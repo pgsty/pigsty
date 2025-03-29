@@ -1,0 +1,19 @@
+#!/usr/bin/ansible-playbook
+---
+
+- name: patroni restart cls {{ pg_cluster }}
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  become_user: "{{ dbsu }}"
+  when: patroni_mode != 'remove'
+  vars:
+    dbsu: "{{ pg_dbsu|default('postgres') }}"
+  block:
+    - name: restart primary of {{ pg_cluster }}
+      when: pg_role == 'primary'
+      include_tasks: patroni_restart.yml
+
+    - name: patroni restart replica of {{ pg_cluster }}
+      include_tasks: patroni_restart.yml
+      when: pg_role != 'primary'
+
+...

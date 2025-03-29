@@ -1,0 +1,95 @@
+#!/usr/bin/ansible-playbook
+---
+#--------------------------------------------------------------#
+# patroni restart pg_cls gracefully                 [pt_restart]
+# avoiding switching pg primary/standby
+# usage:
+#   - ./pgsql.yml -l <pg_cls> -t pt_restart -e "pt_restart=true"
+#   - ./pgsql.yml -l '<ip>,&<pg_cls>' -t pt_restart -e "pt_restart=true"
+#--------------------------------------------------------------#
+# inner steps:
+#   1. patroni pause
+#   2. patroni restart pg_cls
+#   3. patroni resume
+#--------------------------------------------------------------#
+# tested scenarios:
+#   - ./pgsql.yml -l <pg_cls> -t pt_restart -e "pt_restart=true"
+#      - all nodes have been restarted
+#   - ./pgsql.yml -l '<ip>,&<pg_cls>' -t pt_restart -e "pt_restart=true"
+#      - nodes in ansible_play_hosts_all have been restarted, other nodes in the same pg_cls ignored
+#   - ./pgsql.yml -l '<replica>,<primary>,&<pg_cls>' -t pt_restart -e "pt_restart=true"
+#      - nodes in ansible_play_hosts_all have been restarted, other nodes in the same pg_cls ignored
+#      - switchover triggered when patroni restart primary failed
+#--------------------------------------------------------------#
+
+- name: set variable
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  when: pg_role_runtime is undefined or pg_primary_host_runtime is undefined
+  block:
+    - name: run pg-role
+      command: /pg/bin/pg-role
+      register: pg_role_cmd
+
+    - name: set variable pg_role_runtime
+      set_fact:
+        pg_role_runtime: "{{ pg_role_cmd.stdout | default(pg_role) | trim }}"
+
+    - name: set pg_primary_host_runtime
+      tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+      import_tasks: util/patroni_primary_runtime.yml
+
+    - name: print variables
+      debug:
+        msg: |
+          pg_role_runtime: {{ pg_role_runtime|default('') }},
+           pg_primary_host_runtime: {{ pg_primary_host_runtime|default('') }},
+           pg_primary_member_runtime: {{ pg_primary_member_runtime|default('') }}
+      changed_when: false
+
+
+- name: 0. patroni restart pg_cls gracefully
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  when: patroni_mode != 'remove'
+  become_user: "{{ dbsu }}"
+  vars:
+    pg_role: "{{ pg_role_runtime }}"
+    dbsu: "{{ pg_dbsu|default('postgres') }}"
+  block:
+    - name: 1. patroni pause gracefully {{ pg_cluster }}
+      include_tasks: util/grace_patroni_pause.yml
+      run_once: true
+
+    - name: 2. patroni restart pg_cls {{ pg_cluster }}
+      include_tasks: util/patroni_restart_cls.yml
+
+    - name: 3. check pg ready {{ pg_cluster }}
+      include_tasks: util/check_pg_ready.yml
+
+    - name: 4.patroni resume pg_cls gracefully {{ pg_cluster }}
+      include_tasks: util/grace_patroni_resume.yml
+      run_once: true
+
+    - name: 5. print message
+      debug:
+        msg: finally, check if all postgres is ready {{ pg_cluster }}
+
+    # finally, check if all postgres is ready
+    - import_tasks: util/check_pg_ready.yml
+
+    - name: 6. re-set variable pt_restart to false
+      set_fact:
+        pt_restart: false
+
+  rescue:
+    - name: check postgres ready failed for {{ pg_cluster }}
+      debug:
+        msg: |
+          rc: {{ pg_ready_result.rc }}
+          STDOUT: {{ pg_ready_result.stdout }}
+          STDERR: {{ pg_ready_result.stderr }}
+      when: pg_ready_result is defined and pg_ready_result.rc != 0
+
+    - name: Exit Playbook due to error
+      meta: end_play
+
+...

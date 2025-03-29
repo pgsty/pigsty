@@ -1,0 +1,31 @@
+#!/usr/bin/ansible-playbook
+---
+#--------------------------------------------------------------#
+# patroni restart nodes individually
+#--------------------------------------------------------------#
+
+- name: patroni restart node
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  become_user: "{{ pg_dbsu }}"
+  when: patroni_mode != 'remove'
+  block:
+    - name: get current patroni member of {{ pg_cluster }}
+      import_tasks: patroni_current_member.yml
+
+    # result may be success but contains 'Failed' message,
+    # due to node has multiple ip addresses and got "Failed: ... status code=403, (Access is denied)" for replica
+    - name: patroni restart members of {{ pg_cluster }}
+      when: curr_pg_member_name is defined and curr_pg_member_name|length>0
+      command: /usr/bin/patronictl -c /pg/bin/patroni.yml restart --force {{ pg_cluster }} {{ curr_pg_member_name }}
+      register: patroni_restart_cmd
+      failed_when: patroni_restart_cmd.rc != 0 or patroni_restart_cmd.stdout.find('Failed') != -1
+
+    - name: sleep after restart if succeed at primary
+      when: pg_role_runtime is defined and pg_role_runtime == 'primary'
+      args: { executable: /bin/bash }
+      shell: |
+        sync; sync;
+        sleep 3
+      changed_when: false
+
+...

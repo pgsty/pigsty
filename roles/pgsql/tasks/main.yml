@@ -147,6 +147,21 @@
   with_items: "{{ pg_databases }}"
 
 #--------------------------------------------------------------#
+# pg hugepages                                     [pg_hugepage]
+#--------------------------------------------------------------#
+- import_tasks: pg_hugepage.yml
+  when: patroni_enabled|bool
+  tags: [ patroni, pg_launch, pg_hugepage ]
+
+#--------------------------------------------------------------#
+# patroni restart pg_cls gracefully                 [pt_restart]
+#--------------------------------------------------------------#
+- name: patroni restart pg_cls gracefully
+  include_tasks: grace_patroni_restart.yml
+  when: patroni_enabled|bool and (pt_restart is defined and pt_restart|bool)
+  tags: [ patroni, pg_launch, pt_restart, pg_hugepage ]
+
+#--------------------------------------------------------------#
 # Summary                                              [pg_done]
 #--------------------------------------------------------------#
 - name: pgsql init done

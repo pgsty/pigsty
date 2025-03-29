@@ -1,0 +1,21 @@
+#!/usr/bin/ansible-playbook
+---
+
+- name: check patroni maintenance mode
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  become_user: "{{ pg_dbsu|default('postgres') }}"
+  block:
+    - name: run patroni list
+      args: { executable: /bin/bash }
+      shell: |
+        /usr/bin/patronictl -c /pg/bin/patroni.yml list 2>/dev/null | tail -n 3
+      register: patroni_status_cmd
+      changed_when: false
+      ignore_errors: yes
+
+    - name: set variable is_patroni_paused by patroni maintenance mode
+      set_fact:
+        is_patroni_paused: "{{ patroni_status_cmd.stdout | default('') | regex_search('Maintenance mode: on') }}"
+      changed_when: false
+
+...

@@ -1,0 +1,56 @@
+#!/usr/bin/ansible-playbook
+---
+#--------------------------------------------------------------#
+# start postgres cluster gracefully             [grace_start_pg]
+#--------------------------------------------------------------#
+
+- name: start postgres cluster gracefully
+  tags: grace_start_pg
+  vars:
+    dbsu: "{{ pg_dbsu|default('postgres') }}"
+  block:
+    - import_tasks: start_pg.yml
+      when: pg_role == 'primary'
+
+    - import_tasks: start_pg.yml
+      when: pg_role != 'primary'
+
+    - name: sleep 5 seconds before patroni resume if needed
+      when: patroni_mode != 'remove'
+      command: sleep 5
+      changed_when: false
+
+    - import_tasks: check_pg_ready.yml
+
+    - name: run patronictl list
+      become_user: "{{ dbsu }}"
+      when: patroni_mode != 'remove'
+      command: /usr/bin/patronictl -c /pg/bin/patroni.yml list -f tsv
+      register: patronictl_list
+      changed_when: false
+
+    - name: check patroni status all ready (no stopped status) and set fact
+      when: patroni_mode != 'remove'
+      set_fact:
+        patroni_all_ready: "{{ patronictl_list.stdout_lines | select('search', 'stopped') | list | length == 0 }}"
+      changed_when: false
+
+    - name: sleep extra 15 seconds before patroni resume if needed
+      when: patroni_mode != 'remove' and patroni_all_ready == false
+      command: sleep 15
+      changed_when: false
+
+
+  rescue:
+    - name: check postgres ready failed for {{ pg_cluster }}
+      debug:
+        msg: |
+          rc: {{ pg_ready_result.rc }}
+           STDOUT: {{ pg_ready_result.stdout }}
+           STDERR: {{ pg_ready_result.stderr }}
+      when: pg_ready_result is defined and pg_ready_result.rc != 0
+
+    - name: Exit Playbook due to error
+      meta: end_play
+
+...

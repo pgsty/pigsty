@@ -1,0 +1,27 @@
+#!/usr/bin/ansible-playbook
+---
+
+- name: check postgres ready
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  vars:
+    dbsu: "{{ pg_dbsu|default('postgres') }}"
+  block:
+    - name: wait for postgres ready
+      wait_for: host={{ inventory_hostname }} port={{ pg_port }} state=started timeout=60
+      ignore_errors: true
+
+    - name: check postgres ready
+      become_user: "{{ dbsu }}"
+      shell: |
+        {{ pg_bin_dir }}/pg_isready -t 5 -p {{ pg_port }}
+      register: result
+      retries: 6
+      until: result.rc == 0
+      delay: 5
+
+    - name: Set fact pg_ready_result
+      set_fact:
+        pg_ready_result: "{{ result }}"
+      changed_when: false
+
+...

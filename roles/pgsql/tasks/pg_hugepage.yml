@@ -1,0 +1,71 @@
+---
+#--------------------------------------------------------------#
+# Enable hugepage for pg and restart pg cluster    [pg_hugepage]
+# if `node_hugepage_count` or `node_hugepage_ratio` changed,
+# it will full backup the pg_cls and restart it gracefully
+# support usage:
+#   - `pig install`
+#   - `bin/pgsql-add <pg_cls>`
+#   - `bin/pgsql-add <pg_cls> <ip>`
+#      service of nodes in ansible_play_hosts_all will be unavailable during the process,
+#      other nodes in the same pg_cls ignored
+#   - `pgsql.yml -l <pg_cls> -t pg_hugepage`
+#      entire service of this postgres cluster will be unavailable during the process
+#   - `pgsql.yml -l '<ip>,&<pg_cls>' -t pg_hugepage`
+#      service of nodes in ansible_play_hosts_all will be unavailable during the process,
+#      other nodes in the same pg_cls ignored
+#--------------------------------------------------------------#
+# calculation rules:
+#   1. `shared_memory_size_in_huge_pages` (from PG15+): if `node_hugepage_count` is -1 and huge_pages (from PG) != off
+#   2. if `node_hugepage_count` > 0
+#      - `shared_memory_size_in_huge_pages`: if `shared_memory_size_in_huge_pages` > `node_hugepage_count`
+#      - `node_hugepage_count`
+#   3. disable hugepage if `node_hugepage_count` is 0
+#   4. if `node_hugepage_ratio` > 0
+#      - `shared_memory_size_in_huge_pages`: if `shared_memory_size_in_huge_pages` > pages calculated from `node_hugepage_ratio`
+#      - page value calculated from `node_hugepage_ratio`
+# All above rules and usages are tested successfully on Rocky Linux 9
+#--------------------------------------------------------------#
+
+- name: Set default value
+  set_fact:
+    curr_nr_hugepages: 0
+    new_nr_hugepages: 0
+  changed_when: false
+
+
+- name: enable hugepage for pg
+  tags: pg_hugepage
+  vars:
+  block:
+    - import_tasks: util/pg_read_hugepage.yml
+
+    - name: calculate hugepage need update
+      set_fact:
+        hugepages_need_update: "{{ new_nr_hugepages|int != curr_nr_hugepages|int }}"
+      changed_when: false
+
+    - name: set pt_restart according to hugepages_need_update
+      set_fact:
+        pt_restart: "{{ hugepages_need_update|bool }}"
+      changed_when: false
+
+    - name: print nr_hugepages values
+      when: new_nr_hugepages is defined and curr_nr_hugepages is defined
+      debug:
+        msg: |
+          curr_nr_hugepages: {{ curr_nr_hugepages|trim }}, new_nr_hugepages: {{ new_nr_hugepages|trim }},
+           hugepages_need_update: {{ hugepages_need_update|bool }},
+           pt_restart: {{ pt_restart|bool }}
+      changed_when: false
+
+    # full back if contains primary, otherwise backup (full or incremental) at primary
+    - name: pg-backup before update hugepage
+      include_tasks: util/pg_backup.yml
+      when: hugepages_need_update|bool
+
+    - name: update hugepage
+      include_tasks: util/pg_write_hugepage.yml
+      when: hugepages_need_update|bool
+
+...
