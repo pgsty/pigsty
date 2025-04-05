@@ -99,7 +99,7 @@ groups:
       - record: node:cpu:time_irate1m
         expr: irate(node_cpu_seconds_total[1m])
 
-      # {cpu} total time spent per second on single cpu 
+      # {cpu} total time spent per second on single cpu
       - record: node:cpu:total_time_irate1m
         expr: sum without (mode) (node:cpu:time_irate1m)
 
@@ -247,7 +247,7 @@ groups:
           node_memory_HardwareCorrupted_bytes +
           node_memory_PageTables_bytes +
           node_memory_Slab_bytes +
-          node_memory_PageTables_bytes) - 
+          node_memory_PageTables_bytes) -
           node_memory_Buffers_bytes -
           (node_memory_Hugepagesize_bytes * node_memory_HugePages_Total) -
           (node_memory_Cached_bytes - node_memory_Mapped_bytes ) -
@@ -442,6 +442,56 @@ groups:
         expr: node:dev:disk_write_bytes_rate1m / node:dev:disk_writes_rate1m
       - record: node:dev:disk_io_batch_1m
         expr: node:dev:disk_io_bytes_rate1m / node:dev:disk_iops_1m
+
+      #--------------------------------#
+      #           ZFS                  #
+      #--------------------------------#
+      # health [0: ONLINE, 1: DEGRADED, 2: FAULTED, 3: OFFLINE, 4: UNAVAIL, 5: REMOVED, 6: SUSPENDED].
+      - record: node:zfs:pool_metrics
+        expr: |
+          label_replace(zfs_pool_ashift, "metric_type", "ashift", "", "") or
+          label_replace(zfs_pool_allocated_bytes / 1048576, "metric_type", "allocated_mib", "", "") or
+          label_replace(zfs_pool_autoexpand, "metric_type", "autoexpand", "", "") or
+          label_replace(zfs_pool_autoreplace, "metric_type", "autoreplace", "", "") or
+          label_replace(zfs_pool_autotrim, "metric_type", "autotrim", "", "") or
+          label_replace(
+            ceil( (zfs_pool_allocated_bytes / clamp_min(zfs_pool_size_bytes, 1) ) * 1000 ) / 1000,
+            "metric_type", "capacity", "", ""
+          ) or
+          label_replace(zfs_pool_dedupratio, "metric_type", "dedupratio", "", "") or
+          label_replace(zfs_pool_free_bytes / 1048576, "metric_type", "free_mib", "", "") or
+          label_replace(zfs_pool_health, "metric_type", "health", "", "") or
+          label_replace(zfs_pool_leaked_bytes / 1024, "metric_type", "leaked_kib", "", "") or
+          label_replace(zfs_pool_fragmentation_ratio, "metric_type", "fragmentation_ratio", "", "") or
+          label_replace(zfs_pool_freeing_bytes / 1024, "metric_type", "freeing_kib", "", "") or
+          label_replace(zfs_pool_readonly, "metric_type", "readonly", "", "") or
+          label_replace(zfs_pool_size_bytes / 1073741824, "metric_type", "size_gib", "", "")
+
+      - record: node:zfs:dataset_metrics
+        expr: |
+          label_replace(zfs_dataset_atime, "metric_type", "atime", "", "") or
+          label_replace(zfs_dataset_available_bytes / 1048576, "metric_type", "avail_mib", "", "") or
+          label_replace(
+            ceil( (zfs_dataset_used_bytes / clamp_min(zfs_dataset_used_bytes + zfs_dataset_available_bytes, 1) ) * 1000 ) / 1000,
+            "metric_type", "capacity", "", ""
+          ) or
+          label_replace(zfs_dataset_compression, "metric_type", "compression", "", "") or
+          label_replace(zfs_dataset_compressratio, "metric_type", "compressratio", "", "") or
+          label_replace(zfs_dataset_creation * 1000, "metric_type", "creation", "", "") or
+          label_replace(zfs_dataset_exec, "metric_type", "exec", "", "") or
+          label_replace(zfs_dataset_logbias, "metric_type", "logbias", "", "") or
+          label_replace(zfs_dataset_logical_used_bytes / 1048576, "metric_type", "logical_used_mib", "", "") or
+          label_replace(zfs_dataset_mounted, "metric_type", "mounted", "", "") or
+          label_replace(zfs_dataset_primarycache, "metric_type", "primarycache", "", "") or
+          label_replace(zfs_dataset_quota_bytes / 1048576, "metric_type", "quota_mib", "", "") or
+          label_replace(zfs_dataset_recordsize / 1024, "metric_type", "recordsize_kib", "", "") or
+          label_replace(zfs_dataset_referenced_bytes, "metric_type", "refer_bytes", "", "") or
+          label_replace(zfs_dataset_relatime, "metric_type", "relatime", "", "") or
+          label_replace(zfs_dataset_sync, "metric_type", "sync", "", "") or
+          label_replace((zfs_dataset_used_bytes + zfs_dataset_available_bytes) / 1073741824, "metric_type", "size_gib", "", "") or
+          label_replace(zfs_dataset_used_bytes / 1048576, "metric_type", "used_mib", "", "") or
+          label_replace(zfs_dataset_written_bytes / 1048576, "metric_type", "written_mib", "", "")
+
 
       #--------------------------------#
       #           Filesystem           #
@@ -777,7 +827,7 @@ groups:
             keepalived_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
             http://g.pigsty/d/node-instance?var-ins={{ $labels.ins }}
 
-  
+
 
       #==============================================================#
       #                          Node : CPU                          #
@@ -855,7 +905,7 @@ groups:
 
       # filesystem usage > 90%
       - alert: NodeFsSpaceFull
-        expr: node:fs:space_usage > 0.90
+        expr: node:fs:space_usage{fstype!="zfs"} > 0.90
         for: 1m
         labels: { level: 1, severity: WARN, category: node }
         annotations:
@@ -882,6 +932,73 @@ groups:
           summary: 'WARN NodeFdFull {{ $labels.ins }}@{{ $labels.instance }} {{ $value  | printf "%.2f" }}'
           description: |
             node:ins:fd_usage[ins={{ $labels.ins }}] = {{ $value  | printf "%.2f" }} > 90%
+
+      #==============================================================#
+      #                        Node : ZFS POOL                       #
+      #==============================================================#
+      # 0: ONLINE, 1: DEGRADED, 2: FAULTED, 3: OFFLINE, 4: UNAVAIL, 5: REMOVED, 6: SUSPENDED
+      - alert: ZPoolDegraded
+        expr: node:zfs:pool_metrics{metric_type="health"} == 1
+        labels: { level: 0, severity: CRIT, category: node }
+        annotations:
+          summary: "CRIT ZFS Pool Degraded {{ $labels.pool }} {{ $labels.ins }}@{{ $labels.instance }}"
+
+      - alert: ZPoolFaulted
+        expr: node:zfs:pool_metrics{metric_type="health"} == 2
+        labels: { level: 0, severity: CRIT, category: node }
+        annotations:
+          summary: "CRIT ZFS Pool Faulted {{ $labels.pool }} {{ $labels.ins }}@{{ $labels.instance }}"
+
+      - alert: ZPoolOffline
+        expr: node:zfs:pool_metrics{metric_type="health"} == 3
+        labels: { level: 0, severity: CRIT, category: node }
+        annotations:
+          summary: "CRIT ZFS Pool Offline {{ $labels.pool }} {{ $labels.ins }}@{{ $labels.instance }}"
+
+      - alert: ZPoolUnavail
+        expr: node:zfs:pool_metrics{metric_type="health"} == 4
+        labels: { level: 0, severity: CRIT, category: node }
+        annotations:
+          summary: "CRIT ZFS Pool Unavail {{ $labels.pool }} {{ $labels.ins }}@{{ $labels.instance }}"
+
+      - alert: ZPoolRemoved
+        expr: node:zfs:pool_metrics{metric_type="health"} == 5
+        labels: { level: 0, severity: WARN, category: node }
+        annotations:
+          summary: "CRIT ZFS Pool Removed {{ $labels.pool }} {{ $labels.ins }}@{{ $labels.instance }}"
+
+      - alert: ZPoolSuspended
+        expr: node:zfs:pool_metrics{metric_type="health"} == 6
+        labels: { level: 0, severity: CRIT, category: node }
+        annotations:
+          summary: "CRIT ZFS Pool Suspended {{ $labels.pool }} {{ $labels.ins }}@{{ $labels.instance }}"
+
+      - alert: ZPoolReadonly
+        expr: node:zfs:pool_metrics{metric_type="readonly"} == 1
+        labels: { level: 0, severity: CRIT, category: node }
+        annotations:
+          summary: "WARN ZPool Readonly {{ $labels.pool }} {{ $labels.ins }}@{{ $labels.instance }}"
+
+      # > 85% according to https://openzfs.github.io/openzfs-docs/Performance%20and%20Tuning/Workload%20Tuning.html#free-space
+      - alert: ZPoolSpaceFull
+        expr: node:zfs:pool_metrics{metric_type="capacity"} > 0.85
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: node }
+        annotations:
+          summary: 'WARN ZFS Pool SpaceFull {{ $labels.pool }} {{ $labels.ins }}@{{ $labels.instance }} {{ $value  | printf "%.2f" }}'
+          description: |
+            node:zfs:pool_metrics[metric_type=capacity, pool={{ $labels.pool }}, ins={{ $labels.ins }}] = {{ $value  | printf "%.2f" }} > 85%
+
+      # > 85% according to https://openzfs.github.io/openzfs-docs/Performance%20and%20Tuning/Workload%20Tuning.html#free-space
+      - alert: ZDatasetSpaceFull
+        expr: node:zfs:dataset_metrics{metric_type="capacity"} > 0.85
+        for: 1m
+        labels: { level: 1, severity: WARN, category: node }
+        annotations:
+          summary: 'WARN ZFS Dataset SpaceFull {{ $labels.name }} {{ $labels.ins }}@{{ $labels.instance }} {{ $value  | printf "%.2f" }}'
+          description: |
+            node:zfs:dataset_metrics[metric_type=capacity, name={{ $labels.name }}, ins={{ $labels.ins }}] = {{ $value  | printf "%.2f" }} > 85%
+
 
       # OPTIONAL: space predict 1d
       # OPTIONAL: filesystem read-only
