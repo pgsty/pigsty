@@ -1,0 +1,58 @@
+#!/usr/bin/ansible-playbook
+---
+#--------------------------------------------------------------#
+# Modify pg_wal destination if pg_fs_wal defined        [pg_wal]
+# new pg_wal is <pg_fs_wal>/<pg_cluster>-<pg_version>/pg_wal
+#--------------------------------------------------------------#
+
+- name: restore postgres wal directory to default
+  vars:
+    tmp_wal_dir:    "pg_wal.tmp-backup"
+    pg_data_lock:   "{{ pg_data }}.locked"
+    pg_wal_src:     "{{ pg_data_lock }}/pg_wal"
+    pg_wal_src_tmp: "{{ pg_data_lock }}/{{ tmp_wal_dir }}"
+    dbsu:           "{{ pg_dbsu|default('postgres') }}"
+  when: real_curr_pg_wal_is_link == true
+  block:
+    - import_tasks: pg_wal_before.yml
+
+    - name: lock pg data directory temporarily before restoring pg_wal
+      command: mv "{{ pg_data }}" "{{ pg_data_lock }}"
+
+    - name: copy current pg_wal to {{ pg_wal_src_tmp }}
+      become: yes
+      copy:
+        src: "{{ pg_wal_src }}"
+        dest: "{{ pg_wal_src_tmp }}"
+        owner: "{{ dbsu }}"
+        group: "{{ dbsu }}"
+        mode: '0700'
+        remote_src: yes
+
+    - name: unlink current pg_wal
+      file: path={{ item }} state=absent
+      with_items:
+        - "{{ pg_wal_src }}"
+
+    - name: restore default pg_wal
+      become: yes
+      command: mv "{{ pg_wal_src_tmp }}/pg_wal" "{{ pg_wal_src }}"
+
+    - name: update pg_wal owner
+      args: { executable: /bin/bash }
+      shell: |
+        chown -R {{ dbsu }}:{{ dbsu }} "{{ pg_wal_src }}"
+        chmod -R 0700 "{{ pg_wal_src }}"
+
+    - name: remove tmp directory after restoring pg_wal
+      become: yes
+      file: path={{ item }} state=absent
+      with_items:
+        - "{{ pg_wal_src_tmp }}"
+        - "{{ real_curr_pg_wal }}"
+
+    - name: restore pg data directory after restoring pg_wal
+      command: mv "{{ pg_data_lock }}" "{{ pg_data }}"
+
+    - import_tasks: pg_wal_after.yml
+...

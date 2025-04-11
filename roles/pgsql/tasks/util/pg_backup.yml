@@ -1,0 +1,49 @@
+#!/usr/bin/ansible-playbook
+---
+
+- name: set variable
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  when: pg_role_runtime is undefined
+  block:
+    - name: run pg-role
+      command: /pg/bin/pg-role
+      register: pg_role_cmd
+
+    - name: set variable pg_role_runtime
+      set_fact:
+        pg_role_runtime: "{{ pg_role_cmd.stdout | default(pg_role) | trim }}"
+
+
+- name: pg_backup
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  when: pgbackrest_enabled|bool
+  vars:
+    dbsu: "{{ pg_dbsu|default('postgres') }}"
+    pg_role: "{{ pg_role_runtime }}"
+  block:
+    - name: full backup cls {{ pg_cluster }}
+      become_user: "{{ dbsu }}"
+      when: pg_role == 'primary'
+      command: /pg/bin/pg-backup full
+      register: back_ret_cmd
+      ignore_errors: false
+
+    - name: show backup result for {{ pg_cluster }}
+      when: pg_role == 'primary'
+      debug:
+        msg: |
+          STDOUT {{ back_ret_cmd.stdout_lines }},
+           STDERR {{ back_ret_cmd.stderr_lines }}
+      changed_when: false
+
+  rescue:
+    - name: pg-backup failed for {{ pg_cluster }}
+      debug:
+        msg: |
+          STDOUT: {{ back_ret_cmd.stdout }},
+           STDERR: {{ back_ret_cmd.stderr }}
+      when: back_ret_cmd is defined
+
+    - name: Exit Playbook due to backup failure
+      meta: end_play
+...

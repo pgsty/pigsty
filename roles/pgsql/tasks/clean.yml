@@ -19,7 +19,7 @@
       ignore_errors: false
       fail:
         msg: >-
-          Abort because the node {{ inventory_hostname }} seems not managed by pigsty, use ./node.yml to init node first.  
+          Abort because the node {{ inventory_hostname }} seems not managed by pigsty, use ./node.yml to init node first.
 
     # check postgres by listening port
     - name: check postgres exists
@@ -41,7 +41,7 @@
       ignore_errors: false
       fail:
         msg: >-
-          Abort because pg instance {{ pg_cluster }}-{{ pg_seq }} @ {{ inventory_hostname }} exists. 
+          Abort because pg instance {{ pg_cluster }}-{{ pg_seq }} @ {{ inventory_hostname }} exists.
            {% if pg_safeguard|bool %}pg_safeguard enabled, please disable it before purging.{% endif %}
            {% if not pg_clean|bool %}pg_clean = false, use -e pg_safeguard=false to override.{% endif %}
 
@@ -94,7 +94,7 @@
         rm -rf /lib/systemd/system/postgresql@.service /lib/systemd/system/postgresql.service /etc/init.d/postgresql
         systemctl daemon-reload
         {% endif %}
-        
+
         if ps -u postgres -o pid:1,command | grep -E 'postmaster|postgres:|-D' ; then
             {{ pg_bin_dir }}/pg_ctl -D {{ pg_data }} stop --mode=immediate
         fi
@@ -121,7 +121,7 @@
         {% else %}
         META_DIR="{{ pg_namespace|default('/pg') }}/{{ pg_cluster }}"
         {% endif %}
-        
+
         export ETCDCTL_API=3
         export ETCDCTL_ENDPOINTS="{% for ip in groups['etcd']|sort %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
         export ETCDCTL_CACERT=/etc/pki/ca.crt
@@ -145,4 +145,10 @@
         - /etc/pgbouncer
         - /var/run/pgbouncer
 
+    - name: remove pg_fs_wal/?/pg_wal (if pg_fs_wal defined)
+      tags: pg_clean_data
+      when: pg_fs_wal | length > 0
+      file: path={{ item }} state=absent
+      with_items:
+        - "{{ pg_fs_wal }}/{{ pg_cluster }}-{{ pg_version }}"
 ...

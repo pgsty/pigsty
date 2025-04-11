@@ -1,0 +1,21 @@
+#!/usr/bin/ansible-playbook
+---
+
+- name: operations before updating pg_wal dir
+  vars:
+    tmp_wal_dir:    "pg_wal.tmp-backup"
+    pg_data_lock:   "{{ pg_data }}.locked"
+    pg_wal_src_tmp: "{{ pg_data_lock }}/{{ tmp_wal_dir }}"
+  any_errors_fatal: true
+  block:
+    - import_tasks: ../util/pg_backup.yml
+    - import_tasks: ../util/grace_patroni_pause.yml
+    - import_tasks: ../util/grace_stop_pg.yml
+
+    - name: clean tmp dir before modify pg_wal
+      file: path={{ item }} state=absent
+      with_items:
+        - "{{ pg_data_lock }}"
+        - "{{ pg_wal_src_tmp }}"
+
+...

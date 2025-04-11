@@ -1,0 +1,30 @@
+#!/usr/bin/ansible-playbook
+---
+
+- name: operations after updating pg_wal dir
+  vars:
+    tmp_wal_dir:    "pg_wal.tmp-backup"
+    pg_data_lock:   "{{ pg_data }}.locked"
+    pg_wal_src_tmp: "{{ pg_data_lock }}/{{ tmp_wal_dir }}"
+  block:
+    - import_tasks: ../util/grace_start_pg.yml
+    - import_tasks: ../util/grace_patroni_resume.yml
+
+    # finally, check if all postgres is ready
+    - import_tasks: ../util/check_pg_ready.yml
+
+    - name: clean tmp directory after modifying pg_wal
+      ignore_errors: yes
+      file: path={{ item }} state=absent
+      with_items:
+        - "{{ pg_data }}/{{ tmp_wal_dir }}"
+        - "{{ pg_wal_src_tmp }}"
+
+    - name: clean old pg_wal directory after modifying pg_wal
+      ignore_errors: yes
+      when: (real_curr_pg_wal != pg_wal_dst) and (real_curr_pg_wal_is_link == true)
+      file: path={{ item }} state=absent
+      with_items:
+        - "{{ real_curr_pg_wal }}"
+
+...

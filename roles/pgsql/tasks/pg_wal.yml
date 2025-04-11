@@ -1,0 +1,100 @@
+#!/usr/bin/ansible-playbook
+---
+#--------------------------------------------------------------#
+# Modify pg_wal destination if pg_fs_wal defined        [pg_wal]
+# new pg_wal is <pg_fs_wal>/<pg_cluster>-<pg_version>/pg_wal
+#--------------------------------------------------------------#
+
+- name: run pg-role
+  command: /pg/bin/pg-role
+  register: pg_role_cmd
+
+- name: update variable pg_role
+  set_fact:
+    pg_role: "{{ pg_role_cmd.stdout | trim }}"
+
+- name: validate variable pg_fs_wal
+  tags: [ validate_pg_fs_wal ]
+  when: pg_fs_wal | length > 0
+  block:
+    - name: validate pg_fs_wal "{{ pg_fs_wal }}"
+      fail:
+        msg: "The variable pg_fs_wal  must start with '/' and not contain spaces"
+      when: >
+        (pg_fs_wal[0] != '/') or (' ' in pg_fs_wal)
+
+- name: retrieve path of pg_wal directory
+  become: yes
+  block:
+    - name: validate variable pg_data
+      assert:
+        that: pg_data is defined and pg_data | length > 0
+        msg: "pg_data must be defined"
+      changed_when: false
+
+    - name: get current pg_wal real path
+      command: realpath -m "{{ pg_data }}/pg_wal"
+      register: real_curr_pg_wal_cmd
+      changed_when: false
+
+    - name: calculate new pg_data path (parent of target pg_wal)
+      set_fact:
+        target_new_pg_data: >-
+          {% if pg_fs_wal is defined and pg_fs_wal %}
+          {{ pg_fs_wal | trim }}/{{ pg_cluster }}-{{ pg_version }}
+          {% else %}
+          {{ pg_data }}
+          {% endif %}
+      changed_when: false
+
+    - name: get target pg_wal real path
+      command: "realpath -m {{ target_new_pg_data }}"    # do not quote the var like "{{ target_new_pg_data }}"
+      register: new_pg_data_cmd
+      changed_when: false
+
+    - name: Set final path facts
+      set_fact:
+        new_pg_data: "{{ new_pg_data_cmd.stdout }}"
+        real_curr_pg_wal: "{{ real_curr_pg_wal_cmd.stdout }}"
+        pg_wal_dst: "{{ new_pg_data_cmd.stdout }}/pg_wal"
+      changed_when: false
+
+    - name: get current pg_wal stat
+      stat:
+        path: "{{ pg_data }}/pg_wal"  # do not use real_curr_pg_wal, use pg_data instead
+      register: real_curr_pg_wal_stat
+      changed_when: false
+
+    - name: Set real_curr_pg_wal_is_link variable
+      set_fact:
+        real_curr_pg_wal_is_link: "{{ real_curr_pg_wal_stat.stat.exists and real_curr_pg_wal_stat.stat.islnk }}"
+      changed_when: false
+
+    - name: variable output for pg_wal
+      debug:
+        msg: |
+          real_curr_pg_wal: {{ real_curr_pg_wal }}, pg_wal_dst: {{ pg_wal_dst }},
+           real_curr_pg_wal_is_link: {{ real_curr_pg_wal_is_link }},
+           pg_data: {{ pg_data }}, new_pg_data: {{ new_pg_data }},
+           pg_fs_wal: {{ pg_fs_wal }},
+      changed_when: false
+
+
+
+#--------------------------------------------------------------#
+# Modify WAL                                     [modify_pg_wal]
+#--------------------------------------------------------------#
+- include_tasks: pg_wal/pg_wal_modification.yml
+  tags: modify_pg_wal
+  when: (real_curr_pg_wal != pg_wal_dst) and (pg_fs_wal | length > 0)
+
+
+#--------------------------------------------------------------#
+# Restore WAL                                   [restore_pg_wal]
+#--------------------------------------------------------------#
+- include_tasks: pg_wal/pg_wal_restoration.yml
+  tags: restore_pg_wal
+  when: (real_curr_pg_wal != pg_wal_dst) and (pg_fs_wal is not defined or (pg_fs_wal | trim | length == 0))
+
+
+...

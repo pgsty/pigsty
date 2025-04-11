@@ -1,0 +1,67 @@
+#!/usr/bin/ansible-playbook
+---
+#--------------------------------------------------------------#
+# Modify pg_wal destination if pg_fs_wal defined        [pg_wal]
+# new pg_wal is <pg_fs_wal>/<pg_cluster>-<pg_version>/pg_wal
+#--------------------------------------------------------------#
+
+- name: modify postgres wal directory to pg_fs_wal
+  vars:
+    tmp_wal_dir:    "pg_wal.tmp-backup"
+    pg_data_lock:    "{{ pg_data }}.locked"
+    pg_wal_src:     "{{ pg_data_lock }}/pg_wal"
+    pg_wal_src_tmp: "{{ pg_data_lock }}/{{ tmp_wal_dir }}"
+    dbsu:           "{{ pg_dbsu|default('postgres') }}"
+  when: (pg_fs_wal | length > 0) and (real_curr_pg_wal != pg_wal_dst)
+  block:
+    - name: stat new pg_wal before modifying pg_wal
+      find:
+        paths: "{{ pg_wal_dst }}"
+      register: pg_wal_dst_stat
+      ignore_errors: yes
+
+    - name: check if new pg_wal is empty
+      fail:
+        msg: "The directory is not empty: {{ pg_wal_dst }} "
+      when: pg_wal_dst_stat.matched > 0
+
+    - name: create new pg_data dir before modifying pg_wal
+      file: path={{ item }} state=directory owner={{ dbsu }} group=postgres mode=0700
+      with_items:
+        - "{{ new_pg_data }}"
+
+    - import_tasks: pg_wal_before.yml
+
+    - name: clean tmp dir before modify pg_wal
+      file: path={{ item }} state=absent
+      with_items:
+        - "{{ pg_wal_dst }}"
+
+    - name: lock pg data directory temporarily before modifying pg_wal
+      command: mv "{{ pg_data }}" "{{ pg_data_lock }}"
+
+    - name: copy files from backup pg_wal to {{ new_pg_data }}
+      copy:
+        src: "{{ pg_wal_src }}"
+        dest: "{{ new_pg_data }}"
+        owner: postgres
+        group: postgres
+        mode: '0700'
+        remote_src: yes
+
+    - name: backup current pg_wal
+      command: mv "{{ pg_wal_src }}" "{{ pg_wal_src_tmp }}"
+
+    - name: create symlink for pg_wal
+      file:
+        src: "{{ pg_wal_dst }}"
+        dest: "{{ pg_wal_src }}"
+        state: link
+        force: yes
+
+    - name: restore pg data directory after modifying pg_wal
+      command: mv "{{ pg_data_lock }}" "{{ pg_data }}"
+
+    - import_tasks: pg_wal_after.yml
+
+...
