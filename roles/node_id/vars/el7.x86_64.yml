@@ -16,7 +16,7 @@ repo_extra_packages_default: [ pgsql-main ]
 node_packages_default:
   - lz4,unzip,bzip2,pv,jq,git,ncdu,make,patch,bash,lsof,wget,uuid,tuned,nvme-cli,numactl,sysstat,iotop,htop,rsync,tcpdump
   - python3,python3-pip,socat,lrzsz,net-tools,ipvsadm,telnet,ca-certificates,openssl,keepalived,etcd,haproxy,chrony,pig
-  - zlib,yum,audit,bind-utils,readline,vim-minimal,node_exporter,grubby,openssh-server,openssh-clients,chkconfig
+  - zlib,yum,audit,bind-utils,readline,vim-minimal,node_exporter,grubby,openssh-server,openssh-clients,chkconfig,mtail
 
 # default infra packages to be installed (if `infra_packages` is not explicitly set)
 infra_packages_default:
@@ -65,7 +65,6 @@ repo_upstream_default:
   - { name: pgdg17-nonfree ,description: 'PostgreSQL 17+'     ,module: extra   ,releases: [  8,9] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/17/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.tuna.tsinghua.edu.cn/postgresql/repos/yum/non-free/17/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/17/redhat/rhel-$releasever-$basearch' }}
   - { name: timescaledb    ,description: 'TimescaleDB'        ,module: extra   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packagecloud.io/timescale/timescaledb/el/$releasever/$basearch'  }}
   - { name: wiltondb       ,description: 'WiltonDB'           ,module: mssql   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/yum/mssql/el$releasever.$basearch', china: 'https://repo.pigsty.cc/yum/mssql/el$releasever.$basearch' , origin: 'https://download.copr.fedorainfracloud.org/results/wiltondb/wiltondb/epel-$releasever-$basearch/' }}
-  - { name: ivorysql       ,description: 'IvorySQL'           ,module: ivory   ,releases: [7,8,9] ,arch: [x86_64         ] ,baseurl: { default: 'https://repo.pigsty.io/yum/ivory/el$releasever.$basearch', china: 'https://repo.pigsty.cc/yum/ivory/el$releasever.$basearch' }}
   - { name: groonga        ,description: 'Groonga'            ,module: groonga ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packages.groonga.org/almalinux/$releasever/$basearch/' }}
   - { name: mysql          ,description: 'MySQL'              ,module: mysql   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.mysql.com/yum/mysql-8.0-community/el/$releasever/$basearch/', china: 'https://mirrors.tuna.tsinghua.edu.cn/mysql/yum/mysql-8.0-community-el7-$basearch/'}}
   - { name: mongo          ,description: 'MongoDB'            ,module: mongo   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/8.0/$basearch/' , 'https://mirrors.aliyun.com/mongodb/yum/redhat/$releasever/mongodb-org/8.0/$basearch/' }}
@@ -73,7 +72,8 @@ repo_upstream_default:
   - { name: redis          ,description: 'Redis'              ,module: redis   ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://rpmfind.net/linux/remi/enterprise/$releasever/redis72/$basearch/' }}
   - { name: grafana        ,description: 'Grafana'            ,module: grafana ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://rpm.grafana.com' }}
   - { name: kubernetes     ,description: 'Kubernetes'         ,module: kube    ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://pkgs.k8s.io/core:/stable:/v1.31/rpm/', china: 'https://mirrors.aliyun.com/kubernetes-new/core/stable/v1.31/rpm/' }}
-  - { name: gitlab         ,description: 'Gitlab'             ,module: gitlab  ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packages.gitlab.com/gitlab/gitlab-ee/el/$releasever/$basearch' }}
+  - { name: gitlab-ee      ,description: 'Gitlab EE'          ,module: gitlab  ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packages.gitlab.com/gitlab/gitlab-ee/el/$releasever/$basearch' }}
+  - { name: gitlab-ce      ,description: 'Gitlab CE'          ,module: gitlab  ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packages.gitlab.com/gitlab/gitlab-ce/el/$releasever/$basearch' }}
   
   
 # package alias map to simplify package download & installation
@@ -83,7 +83,7 @@ package_map:
   # REPO: download packages 
   #--------------------------------#
   node-bootstrap:          "ansible python3 python3-pip python36-virtualenv python36-requests python36-idna yum-utils createrepo_c sshpass"
-  infra-package:           "nginx dnsmasq etcd haproxy vip-manager node_exporter keepalived_exporter pg_exporter pgbackrest_exporter redis_exporter redis minio mcli pig"
+  infra-package:           "nginx dnsmasq etcd haproxy vip-manager mtail node_exporter keepalived_exporter pg_exporter pgbackrest_exporter redis_exporter redis minio mcli pig"
   infra-addons:            "grafana grafana-plugins loki logcli promtail prometheus alertmanager pushgateway blackbox_exporter nginx_exporter pev2 certbot python3-certbot-nginx"
   extra-modules:           "docker-ce docker-compose-plugin ferretdb2 duckdb restic juicefs vray grafana-infinity-ds"
   node-package1:           "lz4 unzip bzip2 zlib yum pv jq git ncdu make patch bash lsof wget uuid tuned nvme-cli numactl grubby sysstat iotop htop rsync tcpdump perf flamegraph chkconfig"
