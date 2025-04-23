@@ -79,6 +79,9 @@ COMMENT ON DATABASE "{{ database.name }}" IS '{{ database.comment }}';
 COMMENT ON DATABASE "{{ database.name }}" IS 'business database {{ database.name }}';
 {% endif %}
 
+-- search path
+ALTER DATABASE "{{ database.name }}" SET search_path = "$user", public, extensions;
+
 
 --==================================================================--
 --                       REVOKE/GRANT CONNECT                       --
