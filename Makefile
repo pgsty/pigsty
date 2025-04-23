@@ -94,7 +94,7 @@ install:
 ###############################################################
 # There are two things needs to be downloaded:
 #    pigsty.tgz    :   source code
-#    pkg.tgz       :   offline rpm packages (build under 7.9)
+#    pkg.tgz       :   offline rpm packages (optional)
 #
 # get latest stable version to ~/pigsty
 src:
