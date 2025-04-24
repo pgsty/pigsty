@@ -1,0 +1,31 @@
+---
+#--------------------------------------------------------------#
+# Config pgbouncer_exporter          [pgbouncer_exporter_config]
+#--------------------------------------------------------------#
+- name: config pgbouncer_exporter
+  tags: pgbouncer_exporter_config
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  with_items:
+    - { src: "pgbouncer_exporter.yml" ,dest: "/etc/pgbouncer_exporter.yml"     ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0644" }
+    - { src: "pgbouncer_exporter.env" ,dest: "/etc/default/pgbouncer_exporter" ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0600" }
+    - { src: "pgbouncer_exporter.svc" ,dest: "{{ exporter_svc_path }}"         ,owner: "root"          ,group: root     ,mode: "0644" }
+  vars:
+    ttl_fast: "{{ pg_exporter_cache_ttls.split(',')[0] }}"
+    ttl_norm: "{{ pg_exporter_cache_ttls.split(',')[1] }}"
+    ttl_slow: "{{ pg_exporter_cache_ttls.split(',')[2] }}"
+    ttl_slowest: "{{ pg_exporter_cache_ttls.split(',')[3] }}"
+    exporter_svc_path: "{{ systemd_dir|default('/usr/lib/systemd/system') }}/pgbouncer_exporter.service"
+
+#--------------------------------------------------------------#
+# Launch pgbouncer_exporter          [pgbouncer_exporter_launch]
+#--------------------------------------------------------------#
+- name: launch pgbouncer_exporter
+  tags: pgbouncer_exporter_launch
+  ignore_errors: true            # skip non-critical errors here
+  block:
+    - name: launch pgbouncer_exporter systemd unit
+      systemd: name=pgbouncer_exporter state=restarted enabled=yes daemon_reload=yes
+    - name: wait for pgbouncer_exporter online
+      wait_for: host=127.0.0.1 port={{ pgbouncer_exporter_port|default(9631) }} state=started timeout=10
+
+...

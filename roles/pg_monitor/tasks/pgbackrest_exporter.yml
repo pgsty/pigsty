@@ -1,0 +1,26 @@
+---
+#--------------------------------------------------------------#
+# Config pgbackrest_exporter          [pgbackrest_exporter_config]
+#--------------------------------------------------------------#
+- name: config pgbackrest_exporter
+  tags: pgbackrest_exporter_config
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  with_items:
+    - { src: "pgbackrest_exporter.env" ,dest: "/etc/default/pgbackrest_exporter" ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0600" }
+    - { src: "pgbackrest_exporter.svc" ,dest: "{{ exporter_systemd_service }}"   ,owner: "root"          ,group: root     ,mode: "0644" }
+  vars:
+    exporter_systemd_service: "{{ systemd_dir|default('/usr/lib/systemd/system') }}/pgbackrest_exporter.service"
+
+#--------------------------------------------------------------#
+# Launch pgbackrest_exporter        [pgbackrest_exporter_launch]
+#--------------------------------------------------------------#
+- name: launch pgbackrest_exporter
+  tags: pgbackrest_exporter_launch
+  ignore_errors: true            # skip non-critical errors here
+  block:
+    - name: launch pgbackrest_exporter systemd unit
+      systemd: name=pgbackrest_exporter state=restarted enabled=yes daemon_reload=yes
+    - name: wait for pg_exporter online
+      wait_for: host=127.0.0.1 port={{ pgbackrest_exporter_port|default(9854) }} state=started timeout=10
+
+...

@@ -4,8 +4,9 @@
 # File      :   install.yml
 # Desc      :   install everything on all nodes
 # Ctime     :   2021-01-19
-# Mtime     :   2023-02-20
+# Mtime     :   2025-04-24
 # Path      :   install.yml
+# Docs      :   https://pigsty.io/docs/infra/playbook/#installyml
 # License   :   AGPLv3 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -14,15 +15,16 @@
 #==============================================================#
 # install.yml will interleave infra.yml & node.yml in following
 # orders to set up everything in one pass
-# - id           : generate node & pgsql identity
-# - ca           : create self-signed CA on localhost
-# - repo         : create local yum repo on infra nodes
-# - node-init    : init node, haproxy & docker
-# - infra        : init nginx, dns, prometheus, grafana
-# - node-monitor : init node-exporter promtail
-# - etcd         : init etcd (required for pgsql HA)
-# - minio        : init minio (optional)
-# - pgsql        : init pgsql
+# - id            : generate node & pgsql identity
+# - ca            : create self-signed CA on localhost
+# - repo          : create local yum repo on infra nodes
+# - node-init     : init node, haproxy & docker
+# - infra         : init nginx, dns, prometheus, grafana
+# - node-monitor  : init node-exporter promtail
+# - etcd          : init etcd (required for pgsql HA)
+# - minio         : init minio (optional)
+# - pgsql         : init pgsql
+# - pgsql-monitor : init pgsql
 #
 # Which is equivalent to the following 4 playbooks altogether:
 # - infra.yml -l infra   deploy infrastructure on group 'infra'
@@ -98,7 +100,7 @@
   become: yes
   hosts: all
   gather_facts: no
-  tags: node-monitor
+  tags: [ monitor, node-monitor ]
   roles: [ { role: node_monitor } ]
 
 
@@ -125,14 +127,26 @@
 
 
 #---------------------------------------------------------------
-# INIT PGSQL
+# PGSQL INIT
 #---------------------------------------------------------------
 - name: PGSQL INIT            # init pgsql on all nodes
   become: yes                 # with pg_cluster defined
   hosts: all
   gather_facts: no
   tags: pgsql
-  roles: [ { role: pgsql ,when: pg_cluster is defined } ]
+  roles:
+    - { role: pgsql      ,when: pg_cluster is defined }
+    - { role: pg_monitor ,when: pg_cluster is defined }
 
 
+#---------------------------------------------------------------
+# PGSQL Monitor
+#---------------------------------------------------------------
+- name: PGSQL MONITOR         # init pgsql monitor
+  become: yes                 # with pg_cluster defined
+  hosts: all
+  gather_facts: no
+  tags: [monitor, pgsql-monitor ]
+  roles:
+    - { role: pg_monitor ,when: pg_cluster is defined }
 ...

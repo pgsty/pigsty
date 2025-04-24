@@ -1,0 +1,317 @@
+#==============================================================#
+# Desc      :   pgbouncer_exporter metrics collector definition
+# Ver       :   pgbouncer 1.9 ~ 1.24+
+# Ctime     :   2019-12-09
+# Mtime     :   2025-04-24
+# Homepage  :   https://pigsty.io
+# Author    :   Ruohang Feng (rh@vonng.com)
+# License   :   Apache-2.0 @ https://github.com/pgsty/pg_exporter
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+
+#==============================================================#
+# 910 pgbouncer_list
+#==============================================================#
+# http://www.pgbouncer.org/usage.html#show-lists
+pgbouncer_list:
+  name: pgbouncer_list
+  desc: Pgbouncer entry list
+  query: SHOW LISTS;
+  ttl: {{ ttl_norm }}
+  min_version: 10800
+  fatal: true
+  tags: [ pgbouncer ]
+  metrics:
+    - list:                { usage: LABEL                 ,description: Pgbouncer internal list name }
+    - items:               { usage: GAUGE                 ,description: Number of corresponding pgbouncer object }
+
+#==============================================================#
+# 920 pgbouncer_database
+#==============================================================#
+# http://www.pgbouncer.org/usage.html#show-databases
+pgbouncer_database_124:
+  name: pgbouncer_database
+  desc: Pgbouncer database stats (since 1.24)
+  query: SHOW DATABASES;
+  ttl: {{ ttl_norm }}
+  min_version: 12400
+  tags: [ pgbouncer ]
+  metrics:
+    - name:                       { usage: LABEL  ,rename: datname       ,description: Name of configured database entry }
+    - host:                       { usage: LABEL                         ,description: Host that pgbouncer will connects to }
+    - port:                       { usage: LABEL                         ,description: Port that pgbouncer will connects to }
+    - database:                   { usage: LABEL  ,rename: real_datname  ,description: The real database name pgbouncer connects to }
+    - force_user:                 { usage: DISCARD }
+    - pool_size:                  { usage: GAUGE                         ,description: Maximum number of server connections }
+    - min_pool_size:              { usage: GAUGE                         ,description: Minimum number of server connections }
+    - reserve_pool_size:          { usage: GAUGE  ,rename: reserve_pool  ,description: Maximum number of additional connections for this database }
+    - server_lifetime:            { usage: GAUGE                         ,description: The maximum lifetime of a server connection for this database }
+    - pool_mode:                  { usage: DISCARD }
+    - load_balance_hosts:         { usage: DISCARD }
+    - max_connections:            { usage: GAUGE                         ,description: Maximum number of allowed connections for this database }
+    - current_connections:        { usage: GAUGE                         ,description: Current number of connections for this database }
+    - max_client_connections:     { usage: GAUGE                         ,description: Maximum number of allowed client connections for this pgbouncer instance }
+    - current_client_connections: { usage: GAUGE                         ,description: Current number of client connections for this database }
+    - paused:                     { usage: GAUGE                         ,description: True(1) if this database is currently paused, else 0 }
+    - disabled:                   { usage: GAUGE                         ,description: True(1) if this database is currently disabled, else 0 }
+
+pgbouncer_database_123:
+  name: pgbouncer_database
+  desc: Pgbouncer database stats 1.23
+  query: SHOW DATABASES;
+  ttl: {{ ttl_norm }}
+  min_version: 12300
+  max_version: 12400
+  tags: [ pgbouncer ]
+  metrics:
+    - name:                { usage: LABEL ,rename: datname      ,description: Name of configured database entry }
+    - host:                { usage: LABEL                       ,description: Host that pgbouncer will connects to }
+    - port:                { usage: LABEL                       ,description: Port that pgbouncer will connects to }
+    - database:            { usage: LABEL ,rename: real_datname ,description: The real database name pgbouncer connects to }
+    - force_user:          { usage: DISCARD }
+    - pool_size:           { usage: GAUGE                       ,description: Maximum number of server connections }
+    - min_pool_size:       { usage: GAUGE                       ,description: Minimum number of server connections }
+    - reserve_pool:        { usage: GAUGE                       ,description: Maximum number of additional connections for this database }
+    - server_lifetime:     { usage: GAUGE                       ,description: The maximum lifetime of a server connection for this database }
+    - pool_mode:           { usage: DISCARD }
+    - max_connections:     { usage: GAUGE                       ,description: Maximum number of allowed connections for this database }
+    - current_connections: { usage: GAUGE                       ,description: Current number of connections for this database }
+    - paused:              { usage: GAUGE                       ,description: True(1) if this database is currently paused, else 0 }
+    - disabled:            { usage: GAUGE                       ,description: True(1) if this database is currently disabled, else 0 }
+
+pgbouncer_database_116:
+  name: pgbouncer_database
+  desc: Pgbouncer database stats (1.16-1.22)
+  query: SHOW DATABASES;
+  ttl: {{ ttl_norm }}
+  min_version: 11600
+  max_version: 12300
+  tags: [ pgbouncer ]
+  metrics:
+    - name:                { usage: LABEL ,rename: datname      ,description: Name of configured database entry }
+    - host:                { usage: LABEL                       ,description: Host that pgbouncer will connects to }
+    - port:                { usage: LABEL                       ,description: Port that pgbouncer will connects to }
+    - database:            { usage: LABEL ,rename: real_datname ,description: The real database name pgbouncer connects to }
+    - force_user:          { usage: DISCARD }
+    - pool_size:           { usage: GAUGE                       ,description: Maximum number of server connections }
+    - min_pool_size:       { usage: GAUGE                       ,description: Minimum number of server connections }
+    - reserve_pool:        { usage: GAUGE                       ,description: Maximum number of additional connections for this database }
+    - pool_mode:           { usage: DISCARD }
+    - max_connections:     { usage: GAUGE                       ,description: Maximum number of allowed connections for this database }
+    - current_connections: { usage: GAUGE                       ,description: Current number of connections for this database }
+    - paused:              { usage: GAUGE                       ,description: True(1) if this database is currently paused, else 0 }
+    - disabled:            { usage: GAUGE                       ,description: True(1) if this database is currently disabled, else 0 }
+
+pgbouncer_database_108:
+  name: pgbouncer_database
+  desc: Pgbouncer database stats (1.08-1.15)
+  query: SHOW DATABASES;
+  ttl: {{ ttl_norm }}
+  min_version: 10800
+  max_version: 11600
+  tags: [ pgbouncer ]
+  metrics:
+    - name:                { usage: LABEL ,rename: datname      ,description: Name of configured database entry }
+    - host:                { usage: LABEL                       ,description: Host that pgbouncer will connects to }
+    - port:                { usage: LABEL                       ,description: Port that pgbouncer will connects to }
+    - database:            { usage: LABEL ,rename: real_datname ,description: The real database name pgbouncer connects to }
+    - force_user:          { usage: DISCARD }
+    - pool_size:           { usage: COUNTER                     ,description: Maximum number of server connections }
+    - reserve_pool:        { usage: GAUGE                       ,description: Maximum number of additional connections for this database }
+    - pool_mode:           { usage: DISCARD }
+    - max_connections:     { usage: GAUGE                       ,description: Maximum number of allowed connections for this database }
+    - current_connections: { usage: GAUGE                       ,description: Current number of connections for this database }
+    - paused:              { usage: GAUGE                       ,description: True(1) if this database is currently paused, else 0 }
+    - disabled:            { usage: GAUGE                       ,description: True(1) if this database is currently disabled, else 0 }
+#==============================================================#
+# 930 pgbouncer_stat
+#==============================================================#
+# http://www.pgbouncer.org/usage.html#show-stats
+pgbouncer_stat_124:
+  name: pgbouncer_stat
+  desc: Pgbouncer stats per database (since 1.24)
+  query: SHOW STATS;
+  ttl: {{ ttl_norm }}
+  min_version: 12400
+  tags: [ pgbouncer ]
+  metrics:
+    - database:                      { usage: LABEL   ,rename: datname ,description: Name of database }
+    - total_xact_count:              { usage: COUNTER                  ,description: Total number of SQL transactions pooled by pgbouncer }
+    - total_query_count:             { usage: COUNTER                  ,description: Total number of SQL queries pooled by pgbouncer }
+    - total_server_assignment_count: { usage: COUNTER                  ,description: Total times a server was assigned to a client }
+    - total_received:                { usage: COUNTER                  ,description: Total volume in bytes of network traffic received by pgbouncer }
+    - total_sent:                    { usage: COUNTER                  ,description: Total volume in bytes of network traffic sent by pgbouncer }
+    - total_xact_time:               { usage: COUNTER ,scale: 1e-6     ,description: Total number of seconds spent when in a transaction }
+    - total_query_time:              { usage: COUNTER ,scale: 1e-6     ,description: Total number of seconds spent when executing queries }
+    - total_wait_time:               { usage: COUNTER ,scale: 1e-6     ,description: Time spent by clients waiting for a server, in seconds }
+    - total_client_parse_count:      { usage: COUNTER                  ,description: Total number of prepared statements created by clients }
+    - total_server_parse_count:      { usage: COUNTER                  ,description: Total number of prepared statements created on a server. }
+    - total_bind_count:              { usage: COUNTER                  ,description: Total number of prepared statements readied for execution by clients and forwarded to postgres }
+    - avg_xact_count:                { usage: GAUGE                    ,description: Average transactions per second in last stat period }
+    - avg_query_count:               { usage: GAUGE                    ,description: Average queries per second in last stat period }
+    - avg_server_assignment_count:   { usage: GAUGE                    ,description: Average number of times a server as assigned to a client per second in the last stat period. }
+    - avg_recv:                      { usage: GAUGE                    ,description: Average received (from clients) bytes per second }
+    - avg_sent:                      { usage: GAUGE                    ,description: Average sent (to clients) bytes per second }
+    - avg_xact_time:                 { usage: GAUGE   ,scale: 1e-6     ,description: Average transaction duration, in seconds }
+    - avg_query_time:                { usage: GAUGE   ,scale: 1e-6     ,description: Average query duration, in seconds }
+    - avg_wait_time:                 { usage: GAUGE   ,scale: 1e-6     ,description: Time spent by clients waiting for a server, in seconds (average per second). }
+    - avg_client_parse_count:        { usage: COUNTER                  ,description: Average number of prepared statements created by clients }
+    - avg_server_parse_count:        { usage: COUNTER                  ,description: Average number of prepared statements created on a server. }
+    - avg_bind_count:                { usage: COUNTER                  ,description: Average number of prepared statements readied for execution by clients and forwarded to postgres }
+
+pgbouncer_stat_123:
+  name: pgbouncer_stat
+  desc: Pgbouncer stats per database (1.23)
+  query: SHOW STATS;
+  ttl: {{ ttl_norm }}
+  min_version: 12300
+  max_version: 12400
+  tags: [ pgbouncer ]
+  metrics:
+    - database:                      { usage: LABEL   ,rename: datname ,description: Name of database }
+    - total_xact_count:              { usage: COUNTER                  ,description: Total number of SQL transactions pooled by pgbouncer }
+    - total_query_count:             { usage: COUNTER                  ,description: Total number of SQL queries pooled by pgbouncer }
+    - total_server_assignment_count: { usage: COUNTER                  ,description: Total times a server was assigned to a client }
+    - total_received:                { usage: COUNTER                  ,description: Total volume in bytes of network traffic received by pgbouncer }
+    - total_sent:                    { usage: COUNTER                  ,description: Total volume in bytes of network traffic sent by pgbouncer }
+    - total_xact_time:               { usage: COUNTER ,scale: 1e-6     ,description: Total number of seconds spent when in a transaction }
+    - total_query_time:              { usage: COUNTER ,scale: 1e-6     ,description: Total number of seconds spent when executing queries }
+    - total_wait_time:               { usage: COUNTER ,scale: 1e-6     ,description: Time spent by clients waiting for a server, in seconds }
+    - avg_xact_count:                { usage: GAUGE                    ,description: Average transactions per second in last stat period }
+    - avg_query_count:               { usage: GAUGE                    ,description: Average queries per second in last stat period }
+    - avg_server_assignment_count:   { usage: GAUGE                    ,description: Average number of times a server as assigned to a client per second in the last stat period. }
+    - avg_recv:                      { usage: GAUGE                    ,description: Average received (from clients) bytes per second }
+    - avg_sent:                      { usage: GAUGE                    ,description: Average sent (to clients) bytes per second }
+    - avg_xact_time:                 { usage: GAUGE   ,scale: 1e-6     ,description: Average transaction duration, in seconds }
+    - avg_query_time:                { usage: GAUGE   ,scale: 1e-6     ,description: Average query duration, in seconds }
+    - avg_wait_time:                 { usage: GAUGE   ,scale: 1e-6     ,description: Time spent by clients waiting for a server, in seconds (average per second). }
+
+pgbouncer_stat_108:
+  name: pgbouncer_stat
+  desc: Pgbouncer stats per database (1.08 - 1.22)
+  query: SHOW STATS;
+  ttl: {{ ttl_norm }}
+  min_version: 10800
+  max_version: 12300
+  tags: [ pgbouncer ]
+  metrics:
+    - database:                      { usage: LABEL   ,rename: datname ,description: Name of database }
+    - total_xact_count:              { usage: COUNTER                  ,description: Total number of SQL transactions pooled by pgbouncer }
+    - total_query_count:             { usage: COUNTER                  ,description: Total number of SQL queries pooled by pgbouncer }
+    - total_received:                { usage: COUNTER                  ,description: Total volume in bytes of network traffic received by pgbouncer }
+    - total_sent:                    { usage: COUNTER                  ,description: Total volume in bytes of network traffic sent by pgbouncer }
+    - total_xact_time:               { usage: COUNTER ,scale: 1e-6     ,description: Total number of seconds spent when in a transaction }
+    - total_query_time:              { usage: COUNTER ,scale: 1e-6     ,description: Total number of seconds spent when executing queries }
+    - total_wait_time:               { usage: COUNTER ,scale: 1e-6     ,description: Time spent by clients waiting for a server, in seconds }
+    - avg_xact_count:                { usage: GAUGE                    ,description: Average transactions per second in last stat period }
+    - avg_query_count:               { usage: GAUGE                    ,description: Average queries per second in last stat period }
+    - avg_recv:                      { usage: GAUGE                    ,description: Average received (from clients) bytes per second }
+    - avg_sent:                      { usage: GAUGE                    ,description: Average sent (to clients) bytes per second }
+    - avg_xact_time:                 { usage: GAUGE   ,scale: 1e-6     ,description: Average transaction duration, in seconds }
+    - avg_query_time:                { usage: GAUGE   ,scale: 1e-6     ,description: Average query duration, in seconds }
+    - avg_wait_time:                 { usage: GAUGE   ,scale: 1e-6     ,description: Time spent by clients waiting for a server, in seconds (average per second). }
+
+
+#==============================================================#
+# 940 pgbouncer_pool
+#==============================================================#
+# http://www.pgbouncer.org/usage.html#show-pools
+pgbouncer_pool_124:
+  name: pgbouncer_pool
+  desc: Pgbouncer pool stats (1.24+)
+  query: SHOW POOLS;
+  ttl: {{ ttl_norm }}
+  min_version: 12400
+  tags: [ pgbouncer ]
+  metrics:
+    - database:              { usage: LABEL, rename: datname,                description: Database name of this pool }
+    - user:                  { usage: LABEL,                                 description: User name of this pool }
+    - cl_active:             { usage: GAUGE, rename: active_clients,         description: Client connections that are linked to server connection and can process queries }
+    - cl_waiting:            { usage: GAUGE, rename: waiting_clients,        description: Client connections that have sent queries but have not yet got a server connection }
+    - cl_active_cancel_req:  { usage: GAUGE, rename: active_cancel_clients,  description: Client connections that have forwarded query cancellations to the server and are waiting for the server response. }
+    - cl_waiting_cancel_req: { usage: GAUGE, rename: cancel_clients,         description: Client connections that have not forwarded query cancellations to the server yet. }
+    - sv_active:             { usage: GAUGE, rename: active_servers,         description: Server connections that are linked to a client }
+    - sv_active_cancel:      { usage: GAUGE, rename: active_cancel_servers,  description: Server connections that are currently forwarding a cancel request }
+    - sv_being_canceled:     { usage: GAUGE, rename: cancel_servers,         description: cancel requests have completed that were sent to cancel a query on this server }
+    - sv_idle:               { usage: GAUGE, rename: idle_servers,           description: Server connections that are unused and immediately usable for client queries }
+    - sv_used:               { usage: GAUGE, rename: used_servers,           description: Server connections that have been idle for more than server_check_delay (means have to run check query) }
+    - sv_tested:             { usage: GAUGE, rename: tested_servers,         description: Server connections that are currently running reset or check query }
+    - sv_login:              { usage: GAUGE, rename: login_servers,          description: Server connections currently in the process of logging in }
+    - maxwait:               { usage: GAUGE,                                 description: How long the first(oldest) client in the queue has waited, in seconds, key metric }
+    - maxwait_us:            { usage: GAUGE,                                 description: Microsecond part of the maximum waiting time. }
+    - pool_mode:             { usage: LABEL,                                 description: Pooling mode in use }
+    - load_balance_hosts:    { usage: LABEL,                                 description: The load_balance_hosts in use }
+
+pgbouncer_pool_118:
+  name: pgbouncer_pool
+  desc: Pgbouncer pool stats (1.18-1.23)
+  query: SHOW POOLS;
+  ttl: {{ ttl_norm }}
+  min_version: 11800
+  max_version: 12400
+  tags: [ pgbouncer ]
+  metrics:
+    - database:              { usage: LABEL, rename: datname,                description: Database name of this pool }
+    - user:                  { usage: LABEL,                                 description: User name of this pool }
+    - cl_active:             { usage: GAUGE, rename: active_clients,         description: Client connections that are linked to server connection and can process queries }
+    - cl_waiting:            { usage: GAUGE, rename: waiting_clients,        description: Client connections that have sent queries but have not yet got a server connection }
+    - cl_active_cancel_req:  { usage: GAUGE, rename: active_cancel_clients,  description: Client connections that have forwarded query cancellations to the server and are waiting for the server response. }
+    - cl_waiting_cancel_req: { usage: GAUGE, rename: cancel_clients,         description: Client connections that have not forwarded query cancellations to the server yet. }
+    - sv_active:             { usage: GAUGE, rename: active_servers,         description: Server connections that are linked to a client }
+    - sv_active_cancel:      { usage: GAUGE, rename: active_cancel_servers,  description: Server connections that are currently forwarding a cancel request }
+    - sv_being_canceled:     { usage: GAUGE, rename: cancel_servers,         description: cancel requests have completed that were sent to cancel a query on this server }
+    - sv_idle:               { usage: GAUGE, rename: idle_servers,           description: Server connections that are unused and immediately usable for client queries }
+    - sv_used:               { usage: GAUGE, rename: used_servers,           description: Server connections that have been idle for more than server_check_delay (means have to run check query) }
+    - sv_tested:             { usage: GAUGE, rename: tested_servers,         description: Server connections that are currently running reset or check query }
+    - sv_login:              { usage: GAUGE, rename: login_servers,          description: Server connections currently in the process of logging in }
+    - maxwait:               { usage: GAUGE,                                 description: How long the first(oldest) client in the queue has waited, in seconds, key metric }
+    - maxwait_us:            { usage: GAUGE,                                 description: Microsecond part of the maximum waiting time. }
+    - pool_mode:             { usage: LABEL,                                 description: Pooling mode in use }
+
+pgbouncer_pool_116:
+  name: pgbouncer_pool
+  desc: Pgbouncer pool stats (1.16-1.17)
+  query: SHOW POOLS;
+  ttl: {{ ttl_norm }}
+  min_version: 11600
+  max_version: 11800
+  tags: [ pgbouncer ]
+  metrics:
+    - database:              { usage: LABEL, rename: datname,          description: Database name of this pool }
+    - user:                  { usage: LABEL,                           description: User name of this pool }
+    - cl_active:             { usage: GAUGE, rename: active_clients,   description: Client connections that are linked to server connection and can process queries }
+    - cl_waiting:            { usage: GAUGE, rename: waiting_clients,  description: Client connections that have sent queries but have not yet got a server connection }
+    - cl_cancel_req:         { usage: GAUGE, rename: cancel_clients,   description: Client connections that have not forwarded query cancellations to the server yet. }
+    - sv_active:             { usage: GAUGE, rename: active_servers,   description: Server connections that are linked to a client }
+    - sv_idle:               { usage: GAUGE, rename: idle_servers,     description: Server connections that are unused and immediately usable for client queries }
+    - sv_used:               { usage: GAUGE, rename: used_servers,     description: Server connections that have been idle for more than server_check_delay (means have to run check query) }
+    - sv_tested:             { usage: GAUGE, rename: tested_servers,   description: Server connections that are currently running reset or check query }
+    - sv_login:              { usage: GAUGE, rename: login_servers,    description: Server connections currently in the process of logging in }
+    - maxwait:               { usage: GAUGE,                           description: How long the first(oldest) client in the queue has waited, in seconds, key metric }
+    - maxwait_us:            { usage: GAUGE,                           description: Microsecond part of the maximum waiting time. }
+    - pool_mode:             { usage: LABEL,                           description: Pooling mode in use }
+
+pgbouncer_pool_108:
+  name: pgbouncer_pool
+  desc: Pgbouncer pool stats (1.08-1.15)
+  query: SHOW POOLS;
+  ttl: {{ ttl_norm }}
+  min_version: 10800
+  max_version: 11600
+  tags: [ pgbouncer ]
+  metrics:
+    - database:              { usage: LABEL, rename: datname,          description: Database name of this pool }
+    - user:                  { usage: LABEL,                           description: User name of this pool }
+    - cl_active:             { usage: GAUGE, rename: active_clients,   description: Client connections that are linked to server connection and can process queries }
+    - cl_waiting:            { usage: GAUGE, rename: waiting_clients,  description: Client connections that have sent queries but have not yet got a server connection }
+    - sv_active:             { usage: GAUGE, rename: active_servers,   description: Server connections that are linked to a client }
+    - sv_idle:               { usage: GAUGE, rename: idle_servers,     description: Server connections that are unused and immediately usable for client queries }
+    - sv_used:               { usage: GAUGE, rename: used_servers,     description: Server connections that have been idle for more than server_check_delay (means have to run check query) }
+    - sv_tested:             { usage: GAUGE, rename: tested_servers,   description: Server connections that are currently running reset or check query }
+    - sv_login:              { usage: GAUGE, rename: login_servers,    description: Server connections currently in the process of logging in }
+    - maxwait:               { usage: GAUGE,                           description: How long the first(oldest) client in the queue has waited, in seconds, key metric }
+    - maxwait_us:            { usage: GAUGE,                           description: Microsecond part of the maximum waiting time. }
+    - pool_mode:             { usage: LABEL,                           description: Pooling mode in use }
+
+

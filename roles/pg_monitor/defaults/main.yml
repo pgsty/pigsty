@@ -1,0 +1,83 @@
+---
+#-----------------------------------------------------------------
+# PG_MONITOR
+#-----------------------------------------------------------------
+pg_exporter_enabled: true              # enable pg_exporter on pgsql hosts?
+pg_exporter_config: pg_exporter.yml    # pg_exporter configuration file name
+pg_exporter_cache_ttls: '1,10,60,300'  # pg_exporter collector ttl stage in seconds, '1,10,60,300' by default
+pg_exporter_port: 9630                 # pg_exporter listen port, 9630 by default
+pg_exporter_params: 'sslmode=disable'  # extra url parameters for pg_exporter dsn
+pg_exporter_url: ''                    # overwrite auto-generate pg dsn if specified
+pg_exporter_auto_discovery: true       # enable auto database discovery? enabled by default
+pg_exporter_exclude_database: 'template0,template1,postgres' # csv of database that WILL NOT be monitored during auto-discovery
+pg_exporter_include_database: ''       # csv of database that WILL BE monitored during auto-discovery
+pg_exporter_connect_timeout: 200       # pg_exporter connect timeout in ms, 200 by default
+pg_exporter_options: ''                # overwrite extra options for pg_exporter
+pgbouncer_exporter_enabled: true       # enable pgbouncer_exporter on pgsql hosts?
+pgbouncer_exporter_port: 9631          # pgbouncer_exporter listen port, 9631 by default
+pgbouncer_exporter_url: ''             # overwrite auto-generate pgbouncer dsn if specified
+pgbouncer_exporter_options: ''         # overwrite extra options for pgbouncer_exporter
+pgbackrest_exporter_enabled: true      # enable pgbackrest_exporter on pgsql hosts?
+pgbackrest_exporter_port: 9854         # pgbackrest_exporter listen port, 9854 by default
+pgbackrest_exporter_options: ''        # overwrite extra options for pgbackrest_exporter
+
+#-----------------------------------------------------------------
+# PG_BUSINESS (Reference)
+#-----------------------------------------------------------------
+pg_databases: []                  # postgres business databases
+pg_monitor_username: dbuser_monitor
+pg_monitor_password: DBUser.Monitor
+#-----------------------------------------------------------------
+# PG_INSTALL (Reference)
+#-----------------------------------------------------------------
+pg_dbsu: postgres                 # os dbsu name, postgres by default, better not change it
+pg_version: 17                    # postgres major version to be installed, 17 by default
+pg_log_dir: /pg/log/postgres      # postgres log dir, `/pg/log/postgres` by default
+pg_port: 5432                     # postgres listen port, 5432 by default
+pg_localhost: /var/run/postgresql # postgres unix socket dir for localhost connection
+#-----------------------------------------------------------------
+# PG_BOOTSTRAP (Reference)
+#-----------------------------------------------------------------
+patroni_enabled: true             # if disabled, no postgres cluster will be created during init
+patroni_port: 8008                # patroni listen port, 8008 by default
+patroni_log_dir: /pg/log/patroni  # patroni log dir, `/pg/log/patroni` by default
+patroni_ssl_enabled: false        # secure patroni RestAPI communications with SSL?
+pg_primary_db: postgres           # primary database name, used by citus,etc... ,postgres by default
+pgbouncer_enabled: true           # if disabled, pgbouncer will not be launched on pgsql host
+pgbouncer_port: 6432              # pgbouncer listen port, 6432 by default
+pgbouncer_log_dir: /pg/log/pgbouncer  # pgbouncer log dir, `/pg/log/pgbouncer` by default
+#-----------------------------------------------------------------
+# PG_PROVISION (Reference)
+#-----------------------------------------------------------------
+pg_provision: true                # provision postgres cluster after bootstrap
+#-----------------------------------------------------------------
+# PG_BACKUP (Reference)
+#-----------------------------------------------------------------
+pgbackrest_enabled: true          # enable pgbackrest on pgsql host?
+pgbackrest_log_dir: /pg/log/pgbackrest # pgbackrest log dir, `/pg/log/pgbackrest` by default
+#-----------------------------------------------------------------
+# PG_SERVICE (Reference)
+#-----------------------------------------------------------------
+pg_vip_enabled: false             # enable a l2 vip for pgsql primary? false by default
+pg_vip_address: 127.0.0.1/24      # vip address in `<ipv4>/<mask>` format, require if vip is enabled
+#-----------------------------------------------------------------
+# PROMETHEUS (Reference)
+#-----------------------------------------------------------------
+prometheus_enabled: true          # enable prometheus on this infra node?
+prometheus_sd_dir: /etc/prometheus/targets # prometheus file service discovery directory
+#-----------------------------------------------------------------
+# EXPORTER (Reference)
+#-----------------------------------------------------------------
+exporter_metrics_path: /metrics   # exporter metric path, `/metrics` by default
+#-----------------------------------------------------------------
+# GRAFANA (Reference)
+#-----------------------------------------------------------------
+grafana_enabled: true             # enable grafana on this infra node?
+grafana_admin_username: admin     # default grafana admin username
+grafana_admin_password: pigsty    # default grafana admin password
+#-----------------------------------------------------------------
+# INFRA (Reference)
+#-----------------------------------------------------------------
+infra_portal:                     # infra services exposed on the portal
+  grafana: {domain: g.pigsty ,endpoint: "${admin_ip}:3000" ,websocket: true }
+...

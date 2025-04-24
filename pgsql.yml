@@ -4,8 +4,9 @@
 # File      :   pgsql.yml
 # Desc      :   init postgres cluster/instance
 # Ctime     :   2020-05-12
-# Mtime     :   2025-03-23
+# Mtime     :   2025-04-24
 # Path      :   pgsql.yml
+# Docs      :   https://pigsty.io/docs/pgsql/playbook/#pgsqlyml
 # License   :   AGPLv3 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -14,9 +15,10 @@
   hosts: all
   gather_facts: no
   roles:
-    - { role: node_id , tags: node-id  } # get node identity (always)
-    - { role: pg_id   , tags: pg-id    } # get pgsql identity (always)
-    - { role: pgsql   , tags: pgsql    } # init postgres cluster/instance
+    - { role: node_id    ,tags: [id,node-id] } # get node identity (always)
+    - { role: pg_id      ,tags: [id,pg-id]   } # get pgsql identity (always)
+    - { role: pgsql      ,tags: pgsql        } # init postgres cluster/instance
+    - { role: pg_monitor ,tags: monitor      } # init postgres monitoring
 
 
 #--------------------------------------------------------------#
@@ -105,14 +107,13 @@
 # pg_service    : expose pgsql service with haproxy
 #   - pg_service_config   : generate local haproxy config for pg services
 #   - pg_service_reload   : expose postgres services with haproxy
-# pg_exporter   : expose pgsql service with haproxy
-#   - pg_exporter_config  : config pg_exporter & pgbouncer_exporter
-#   - pg_exporter_launch  : launch pg_exporter
-#   - pgbouncer_exporter_launch : launch pgbouncer exporter
-#   - pgbackrest_exporter : launch pgbackrest_exporter
-# pg_register   : register postgres to pigsty infrastructure
-#   - register_prometheus : register pg as prometheus monitor targets
-#   - register_grafana    : register pg database as grafana datasource
 # pg_done       : print connection info and finish playbook
+# pg_monitor    : setup pgsql monitor and register to infra
+#   - pg_exporter         : config & launch pg_exporter
+#   - pgbouncer_exporter  : config & launch pgbouncer_exporter
+#   - pgbackrest_exporter : config & launch pgbackrest_exporter
+#   - pg_register         : register postgres target to pigsty infra
+#     - register_prometheus : register pg as prometheus monitor targets
+#     - register_grafana    : register pg database as grafana datasource
 #--------------------------------------------------------------#
 ...

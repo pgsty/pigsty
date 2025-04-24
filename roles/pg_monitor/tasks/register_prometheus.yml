@@ -1,0 +1,72 @@
+---
+#--------------------------------------------------------------#
+# Register postgres to Prometheus          [register_prometheus]
+#--------------------------------------------------------------#
+#- name: Deregister pgsql exporter from prometheus
+#  tags: [ pg_deregister , deregister_prometheus ]
+#  delegate_to: '{{ item }}'
+#  with_items: '{{ groups["infra"] }}'
+#  file: path="{{ prometheus_sd_dir }}/pgsql/{{ pg_cluster }}-{{ pg_seq }}.yml" state=absent
+
+# prometheus are idempotent on multiple infra nodes
+# /etc/prometheus/targets/pgsql/{{ pg_instance }}.yml
+- name: register postgres to prometheus
+  tags: [ pg_register, register_prometheus ]
+  delegate_to: '{{ item }}'
+  with_items: '{{ groups["infra"] }}'
+  ignore_errors: true
+  when: pg_exporter_enabled|bool or pgbouncer_exporter_enabled|bool or (patroni_enabled|bool and patroni_mode != 'remove')
+  copy:
+    dest: "{{ prometheus_sd_dir }}/pgsql/{{ pg_cluster }}-{{ pg_seq }}.yml"
+    owner: prometheus
+    content: |
+      # {{ pg_cluster }}-{{ pg_seq }} [{{ pg_role }}] @ {{ inventory_hostname }}
+      - labels: { cls: {{ pg_cluster }}, ins: {{ pg_cluster }}-{{ pg_seq }}, ip: {{ inventory_hostname }} }
+        targets: {% if not pg_exporter_enabled|bool and not pgbouncer_exporter_enabled|bool and not (not patroni_ssl_enabled|bool and patroni_enabled|bool and patroni_mode != 'remove') %} [] {% endif %}
+
+      {% if pg_exporter_enabled|bool %}
+          - {{ inventory_hostname }}:{{ pg_exporter_port|default(9630) }}
+      {% endif %}
+      {% if pgbouncer_enabled|bool and pgbouncer_exporter_enabled|bool %}
+          - {{ inventory_hostname }}:{{ pgbouncer_exporter_port|default(9631) }}
+      {% endif %}
+      {% if not patroni_ssl_enabled|bool and patroni_enabled|bool and patroni_mode != 'remove' %}
+          - {{ inventory_hostname }}:{{ patroni_port|default(8008) }}
+      {% endif %}
+      {% if pgbackrest_enabled|bool and pgbackrest_exporter_enabled|bool %}
+          - {{ inventory_hostname }}:{{ pgbackrest_exporter_port|default(9854) }}
+      {% endif %}
+
+
+- name: register ssl patroni to prometheus
+  tags: [ pg_register, register_prometheus ]
+  delegate_to: '{{ item }}'
+  with_items: '{{ groups["infra"] }}'
+  ignore_errors: true
+  when: patroni_ssl_enabled|bool and patroni_enabled|bool and patroni_mode != 'remove'
+  copy:
+    dest: "{{ prometheus_sd_dir }}/patroni/{{ pg_cluster }}-{{ pg_seq }}.yml"
+    owner: prometheus
+    content: |
+      # {{ pg_cluster }}-{{ pg_seq }} [{{ pg_role }}] @ {{ inventory_hostname }}
+      - labels: { job: pgsql, cls: {{ pg_cluster }}, ins: {{ pg_cluster }}-{{ pg_seq }}, ip: {{ inventory_hostname }} }
+        targets: [ {{ inventory_hostname }}:{{ patroni_port }} ]
+
+
+- name: register pg vip ping target to prometheus
+  tags: [ pg_register, register_prometheus ]
+  delegate_to: '{{ item }}'
+  with_items: '{{ groups["infra"] }}'
+  ignore_errors: true
+  when: pg_vip_enabled|bool and pg_vip_address is defined and pg_vip_address != ''
+  copy:
+    dest: "{{ prometheus_sd_dir }}/ping/{{ pg_vip_address_ip }}---{{ inventory_hostname }}.yml"
+    owner: prometheus
+    content: |
+      # {{ pg_vip_address_ip }}@{{ inventory_hostname }}
+      - labels: { cls: {{ pg_cluster }}, ins: {{ pg_cluster }}-{{ pg_seq }}, ip: {{ inventory_hostname }}, vip: {{ pg_vip_address_ip }}, job: pgsql-vip }
+        targets: [ {{ pg_vip_address_ip }} ]
+  vars:
+    pg_vip_address_ip:  "{{ pg_vip_address.split('/')[0] }}"
+
+...
