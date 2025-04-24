@@ -124,29 +124,6 @@
   when: pg_service_provider != '' and pg_service_provider in groups and pg_role == 'primary'
 
 #--------------------------------------------------------------#
-# Monitor                                          [pg_exporter]
-#--------------------------------------------------------------#
-# pg_exporter_config, pg_exporter_launch, pgbouncer_exporter_launch
-- import_tasks: exporter.yml
-  tags: pg_exporter
-
-#--------------------------------------------------------------#
-# Register Prometheus         [pg_register, register_prometheus]
-#--------------------------------------------------------------#
-- import_tasks: register_prometheus.yml
-  when: prometheus_enabled|bool
-  tags: [ pg_register, register_prometheus ]
-
-#--------------------------------------------------------------#
-# Register Grafana               [pg_register, register_grafana]
-#--------------------------------------------------------------#
-- include_tasks: register_grafana.yml
-  when: pg_provision|bool and grafana_enabled|bool
-  tags: [ pg_register, register_grafana ]
-  vars: { database: "{{ item }}" }
-  with_items: "{{ pg_databases }}"
-
-#--------------------------------------------------------------#
 # Summary                                              [pg_done]
 #--------------------------------------------------------------#
 - name: pgsql init done
