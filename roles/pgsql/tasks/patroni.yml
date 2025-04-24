@@ -20,11 +20,7 @@
   block:
 
     - name: launch patroni primary
-      systemd:
-        name: patroni
-        state: restarted
-        enabled: yes
-        daemon_reload: yes
+      systemd: name=patroni state=restarted enabled=yes daemon_reload=yes
 
     - name: wait for patroni primary
       wait_for: host={{ inventory_hostname }} port={{ patroni_port }} state=started timeout=60
@@ -49,7 +45,7 @@
 
     - name: render postgres hba rules
       become_user: "{{ pg_dbsu }}"
-      template: src=pg_hba.conf.j2 dest=/pg/data/pg_hba.conf owner={{ pg_dbsu }} group=postgres mode=0600
+      template: src=pg_hba.conf dest=/pg/data/pg_hba.conf owner={{ pg_dbsu }} group=postgres mode=0600
 
     - name: copy extra files to postgres primary
       when: pg_files is defined and pg_files | length > 0
@@ -209,7 +205,7 @@
 - name: render postgres hba rules
   tags: pg_hba
   become_user: "{{ pg_dbsu }}"
-  template: src=pg_hba.conf.j2 dest=/pg/data/pg_hba.conf owner={{ pg_dbsu }} group=postgres mode=0600
+  template: src=pg_hba.conf dest=/pg/data/pg_hba.conf owner={{ pg_dbsu }} group=postgres mode=0600
 
 #--------------------------------------------------------------#
 # Generate postgresql.auto.conf                       [pg_param]

@@ -34,27 +34,17 @@
 #--------------------------------------------------------------#
 # Config Patroni                                       [pg_conf]
 #--------------------------------------------------------------#
-- name: render patroni config
+- name: config patroni
   tags: pg_conf
   block:
 
-    - name: render patroni default config
-      template:
-        src: "{{ item }}"
-        dest: "/pg/conf/{{ item }}"
-        owner: "{{ pg_dbsu }}"
-        group: postgres
-        mode: 0755
-      with_items: [ oltp.yml ,olap.yml ,crit.yml ,tiny.yml ]
-
-    - name: render patroni customize config
-      when: pg_conf not in [ 'oltp.yml' , 'olap.yml' , 'crit.yml', 'tiny.yml' ]
+    - name: render patroni config
       template:
         src: "{{ pg_conf }}"
-        dest: "/pg/conf/{{ pg_conf }}"
+        dest: "/pg/conf/{{ pg_instance }}.yml"
         owner: "{{ pg_dbsu }}"
         group: postgres
-        mode: 0755
+        mode: 0750
 
     # /etc/patroni/patroni.yml -> /pg/bin/patroni.yml -> /pg/conf/{{ pg_instance }}.yml
     - name: use patroni config
@@ -65,7 +55,6 @@
         group: postgres
         state: link
       with_items:
-        - { src: "/pg/conf/{{ pg_conf }}"         , dest: "/pg/conf/{{ pg_instance }}.yml" }
         - { src: "/pg/conf/{{ pg_instance }}.yml" , dest: "/pg/bin/patroni.yml" }
         - { src: "/pg/bin/patroni.yml"            , dest: "/etc/patroni/patroni.yml" }
 
@@ -76,10 +65,9 @@
 - name: create patroni systemd service
   tags: pg_systemd
   template:
-    src: "{{ item }}.service.j2"
+    src: "{{ item }}.svc"
     dest: "{{ systemd_dir }}/{{ item }}.service"
   with_items: [ patroni, postgres ]
-
 
 
 #--------------------------------------------------------------#
@@ -92,8 +80,8 @@
   block:
 
     - name: render pgbackrest config
-      template: src=pitr.conf.j2 dest=/pg/conf/pitr.conf owner=postgres group=postgres mode=0600
+      template: src=pitr.conf dest=/pg/conf/pitr.conf owner=postgres group=postgres mode=0600
 
     - name: render pg-restore bin script
-      template: src=pg-restore.j2 dest=/pg/bin/pg-restore owner=postgres group=postgres mode=0700
+      template: src=pg-restore dest=/pg/bin/pg-restore owner=postgres group=postgres mode=0700
 ...
