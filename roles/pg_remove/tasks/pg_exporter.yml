@@ -1,6 +1,6 @@
 ---
 #--------------------------------------------------------------#
-# Remove PG Exporter                               [pg_exporter]
+# Remove pg_exporter                               [pg_exporter]
 #--------------------------------------------------------------#
 - name: remove postgres exporter
   tags: pg_exporter
@@ -12,36 +12,8 @@
       systemd: name=pg_exporter state=stopped enabled=no daemon_reload=yes
 
     - name: remove pg_exporter config file
-      file: name=/etc/default/pg_exporter state=absent
-
-#--------------------------------------------------------------#
-# Remove Pgbouncer Exporter                 [pgbouncer_exporter]
-#--------------------------------------------------------------#
-- name: remove pgbouncer exporter
-  tags: pgbouncer_exporter
-  become: yes
-  ignore_errors: yes
-  block:
-
-    - name: stop and disable pgbouncer_exporter service
-      systemd: name=pgbouncer_exporter state=stopped enabled=no daemon_reload=yes
-
-    - name: remove pgbouncer_exporter config file
-      file: name=/etc/default/pgbouncer_exporter state=absent
-
-#--------------------------------------------------------------#
-# Remove Pgbackrest Exporter               [pgbackrest_exporter]
-#--------------------------------------------------------------#
-- name: remove pgbackrest exporter
-  tags: pgbackrest_exporter
-  become: yes
-  ignore_errors: yes
-  block:
-
-    - name: stop and disable pgbackrest_exporter service
-      systemd: name=pgbackrest_exporter state=stopped enabled=no daemon_reload=yes
-
-    - name: remove pgbackrest_exporter config file
-      file: name=/etc/default/pgbackrest_exporter state=absent
-
+      file: name={{ item }} state=absent
+      with_items:
+        - /etc/default/pg_exporter
+        - /etc/pg_exporter.yml
 ...
