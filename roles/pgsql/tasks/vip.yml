@@ -1,24 +1,22 @@
 ---
 #--------------------------------------------------------------#
-# Config vip-manager                                [vip_config]
+# Config vip-manager                             [pg_vip_config]
 #--------------------------------------------------------------#
-- name: create vip-manager systemd service
+- name: config vip-manager
   tags: pg_vip_config
-  copy: src=vip-manager.service dest={{ systemd_dir }}/vip-manager.service
-
-
-# TODO: validate pg_vip_address, but ipaddr require extra python packages
-- name: render vip-manager config
-  tags: pg_vip_config
-  template: src=vip-manager.yml.j2 dest=/etc/default/vip-manager.yml
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  with_items:
+    - { src: "vip-manager.yml" ,dest: "/etc/vip-manager.yml"   ,owner: "root" ,group: postgres ,mode: "0600" }
+    - { src: "vip-manager.svc" ,dest: "{{ systemd_svc_path }}" ,owner: "root" ,group: root     ,mode: "0644" }
   vars:
     pg_vip_addr: "{{ pg_vip_address.split('/')[0] }}"
     pg_vip_cidr: "{{ pg_vip_address.split('/')[1] }}"
+    systemd_svc_path: "{{ systemd_dir|default('/usr/lib/systemd/system') }}/vip-manager.service"
 
 #--------------------------------------------------------------#
-#  Reload vip-manager                               [vip_launch]
+#  Launch vip-manager                            [pg_vip_launch]
 #--------------------------------------------------------------#
-- name: reload vip-manager
+- name: launch vip-manager
   tags: pg_vip_launch
   when: pg_vip_enabled|bool and pg_reload|bool
   systemd: name=vip-manager state=restarted enabled=yes daemon_reload=true
