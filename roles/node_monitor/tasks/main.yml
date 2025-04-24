@@ -192,61 +192,14 @@
       - labels: { ip: {{ inventory_hostname }} , ins: {{ nodename }} , cls: {{ node_cluster|default('nodes') }}, vip: {{ vip_address }} , job: node-vip }
         targets: [ {{ vip_address }} ]
 
-
 #--------------------------------------------------------------#
-# Install Promtail                            [promtail_install]
+# Promtail                                            [promtail]
 #--------------------------------------------------------------#
-- name: install promtail
-  tags: [promtail, promtail_install ]
-  block:
-    - name: install promtail systemd service
-      package: name=promtail state=present
-    - name: create promtail systemd service
-      copy: src=promtail.service dest={{ systemd_dir }}/promtail.service
-
-
-#--------------------------------------------------------------#
-# Cleanup Promtail                              [promtail_clean]
-#--------------------------------------------------------------#
-- name: remove promtail positions
-  tags: [ promtail, promtail_clean ]
-  when: promtail_clean|bool
-  file: path={{ promtail_positions }} state=absent
-
-
-#--------------------------------------------------------------#
-# Config Promtail                              [promtail_config]
-#--------------------------------------------------------------#
-- name: config promtail
-  tags: [ promtail, promtail_config ]
-  block:
-    - name: create /etc/promtail config dir
-      file: dest=/etc/promtail state=directory
-    - name: render /etc/promtail.yml config
-      template: src=promtail.yml.j2 dest=/etc/promtail/config.yml
-      vars: { loki_url: "http://{{ infra_portal.loki.endpoint|replace('${admin_ip}', admin_ip) }}/loki/api/v1/push" }
-    - name: create promtail systemd service
-      copy: src=promtail.service dest=/etc/systemd/system/promtail.service
-
-
-#--------------------------------------------------------------#
-# Launch Promtail                              [promtail_launch]
-#--------------------------------------------------------------#
-- name: launch promtail
-  tags: [ promtail, promtail_launch ]
+- import_tasks: promtail.yml
   when: promtail_enabled|bool
-  block:
-
-    - name: restart promtail systemd service
-      systemd: name=promtail state=restarted enabled=yes daemon_reload=yes
-    - name: wait for promtail service online
-      wait_for: host=127.0.0.1 port={{ promtail_port }} state=started timeout=20
-
 
 #--------------------------------------------------------------#
-# Reload Promtail                              [promtail_reload]
+# Vector (TBD)                                          [vector]
 #--------------------------------------------------------------#
-#- name: reload promtail systemd service
-#  tags: promtail_reload
-#  systemd: name=promtail state=restarted enabled=yes daemon_reload=yes
+# - import_tasks: vector.yml
 ...
