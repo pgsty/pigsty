@@ -1,0 +1,34 @@
+#!/usr/bin/ansible-playbook
+---
+
+- name: retrieve runtime patroni primary member
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  become_user: "{{ dbsu }}"
+  vars:
+    dbsu: "{{ pg_dbsu|default('postgres') }}"
+  block:
+    - name: retrieve runtime patroni primary member of {{ pg_cluster }}
+      command: /pg/bin/pg-primary-member
+      register: pg_pri_member_name_cmd
+
+    - name: set variable pg_primary_member_runtime
+      set_fact:
+        pg_primary_member_runtime: "{{ (pg_pri_member_name_cmd is defined and pg_pri_member_name_cmd.stdout) | default('') | trim }}"
+      changed_when: false
+
+
+- name: retrieve runtime patroni primary host
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  become_user: "{{ dbsu }}"
+  vars:
+    dbsu: "{{ pg_dbsu|default('postgres') }}"
+  block:
+    - name: retrieve runtime patroni primary host of {{ pg_cluster }}
+      command: /pg/bin/pg-primary-host
+      register: pg_pri_member_name_cmd
+
+    - name: set variable pg_primary_host_runtime
+      set_fact:
+        pg_primary_host_runtime: "{{ (pg_pri_member_name_cmd is defined and pg_pri_member_name_cmd.stdout) | default('') | trim }}"
+      changed_when: false
+...

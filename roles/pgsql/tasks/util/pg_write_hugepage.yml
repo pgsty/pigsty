@@ -1,0 +1,57 @@
+---
+#--------------------------------------------------------------#
+# Write hugepage sysctl parameter if needed
+#--------------------------------------------------------------#
+
+- name: write hugepage sysctl parameter if needed
+  become: yes
+  when: new_nr_hugepages is defined
+  vars:
+    pg_hugetlb_shm_group: ''
+  block:
+    - name: set variable pg_hugetlb_shm_group if needed
+      when:
+        - pg_dbsu_gid is defined and pg_dbsu_gid|int > 0
+        - pg_shared_memory_size_in_huge_pages is defined
+        - new_nr_hugepages|int == pg_shared_memory_size_in_huge_pages|int
+      set_fact:
+        pg_hugetlb_shm_group: "vm.hugetlb_shm_group = {{ pg_dbsu_gid }}"
+      changed_when: false
+
+    - name: write hugepage sysctl parameter
+      vars:
+        txt: |
+          vm.nr_hugepages = {{ new_nr_hugepages }}
+          {{ pg_hugetlb_shm_group }}
+      copy:
+        dest: /etc/sysctl.d/hugepage.conf
+        content: "{{ txt }}"
+
+    - name: activate tuned profile, prepare for database performance impact!
+      args: { executable: /bin/bash }
+      shell: |
+        sync; echo 3 > /proc/sys/vm/drop_caches   # 刷盘，释放系统缓存（请做好数据库性能受到冲击的准备）
+        sysctl -p /etc/sysctl.d/hugepage.conf
+      ignore_errors: true
+
+    - name: print new_nr_hugepages after write
+      become: yes
+      args: { executable: /bin/bash }
+      shell: |
+        cat /proc/meminfo | grep HugePages_
+        sysctl -a | grep vm.nr_hugepages
+      ignore_errors: true
+      changed_when: false
+      register: hugepage_after_write_cmd
+
+    - name: print hugepage_after_write_cmd
+      when: hugepage_after_write_cmd is defined
+      debug:
+        msg: |
+          rc: {{ hugepage_after_write_cmd.rc }}
+            STDOUT: {{ hugepage_after_write_cmd.stdout }}
+            STDERR: {{ hugepage_after_write_cmd.stderr }}
+      ignore_errors: true
+      changed_when: false
+
+...

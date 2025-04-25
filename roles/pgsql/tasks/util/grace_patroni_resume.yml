@@ -1,0 +1,35 @@
+#!/usr/bin/ansible-playbook
+---
+#--------------------------------------------------------------#
+# patroni resume pg_cls gracefully
+#--------------------------------------------------------------#
+
+- name: patroni resume pg_cls gracefully
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  become_user: "{{ dbsu }}"
+  vars:
+    dbsu: "{{ pg_dbsu|default('postgres') }}"
+  block:
+    - name: check is paused {{ pg_cluster }}
+      import_tasks: is_patroni_paused.yml
+
+    - name: patroni resume {{ pg_cluster }}
+      when: is_patroni_paused|length > 0
+      command: /usr/bin/patronictl -c /pg/bin/patroni.yml resume
+      register: patroni_resume_result
+      until: patroni_resume_result.rc == 0 and patroni_resume_result.stdout.find('Success') != -1
+      retries: 2
+      delay: 1
+      ignore_errors: true
+
+    - name: check is paused {{ pg_cluster }}
+      import_tasks: is_patroni_paused.yml
+
+    - name: delegate task to the primary node of {{ pg_cluster }} if previous failed
+      command: /usr/bin/patronictl -c /pg/bin/patroni.yml resume
+      when:
+        - is_patroni_paused|length > 0
+        - pg_primary_host_runtime != ''
+      delegate_to: "{{ pg_primary_host_runtime }}"
+
+...

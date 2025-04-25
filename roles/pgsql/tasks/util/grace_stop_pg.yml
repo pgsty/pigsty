@@ -1,0 +1,26 @@
+#!/usr/bin/ansible-playbook
+---
+#--------------------------------------------------------------#
+# stop postgres cluster gracefully               [grace_stop_pg]
+#--------------------------------------------------------------#
+
+- name: stop postgres cluster gracefully
+  tags: grace_stop_pg
+  become_user: "{{ dbsu }}"
+  vars:
+    dbsu: "{{ pg_dbsu|default('postgres') }}"
+  any_errors_fatal: true
+  block:
+    - name: stop postgres replica of {{ pg_cluster }}
+      when: pg_role != 'primary'
+      shell: |
+        {{ pg_bin_dir }}/pg_ctl -D {{ pg_data }} stop
+        sleep 3
+
+    - name: stop postgres primary of {{ pg_cluster }}
+      when: pg_role == 'primary'
+      shell: |
+        {{ pg_bin_dir }}/pg_ctl -D {{ pg_data }} stop
+        sync; sync;
+
+...

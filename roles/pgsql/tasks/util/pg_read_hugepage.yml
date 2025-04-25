@@ -1,0 +1,132 @@
+---
+#--------------------------------------------------------------#
+# read and calculate hugepage settings
+#--------------------------------------------------------------#
+
+- name: Set default value of hugepage_count, hugepage_ratio
+  set_fact:
+    hugepage_count: "{{ node_hugepage_count|default(0) }}"
+    hugepage_ratio: "{{ node_hugepage_ratio|default(0) }}"
+    pg_hugepage_value: 0
+  changed_when: false
+
+- name: calculate hugepage from configs hugepage_count and hugepage_count
+  when: hugepage_count|int > 0 or hugepage_ratio|float > 0
+  block:
+    - name: calculate hugepage from configs hugepage_count and hugepage_count
+      args: { executable: /bin/bash }
+      set_fact:
+        pg_hugepage_value: |-
+          {% if hugepage_count is defined and hugepage_count|int > 0 %}
+          {% if hugepage_count|float >= node_mem_bytes|float / 2097152.0 * 0.90 %}
+          {{ (node_mem_bytes|int / 2097152.0 * 0.90 )|round(0, 'ceil')|int }}
+          {% else %}
+          {{ hugepage_count }}
+          {% endif %}
+          {% else %}
+          {% if hugepage_ratio|float > 0 and hugepage_ratio|float < 0.90 %}
+          {{ (node_mem_bytes|int / 2097152.0 * hugepage_ratio )|round(0, 'ceil')|int }}
+          {% else %}0
+          {% endif %}
+          {% endif %}
+
+    - name: print pg_hugepage_value
+      debug:
+        var: pg_hugepage_value
+      changed_when: false
+
+- name: read pg hugepage settings (PG 15+)
+  become_user: "{{ pg_dbsu|default('postgres') }}"
+  when: pg_version >= 15 and (hugepage_count|int == -1 or pg_hugepage_value|int > 0)   # check pg_hugepage_value
+  vars:
+    dbsu:           "{{ pg_dbsu|default('postgres') }}"
+    pg_bin_prefix:  "{{ pg_bin_dir|default('/usr/pgsql/bin') }}"
+    localhost:      "{{ pg_localhost|default('/var/run/postgresql') }}"
+    port:           "{{ pg_port|default(5432) }}"
+  block:
+    - name: read pg huge_pages (PG 15+)
+      args: { executable: /bin/bash }
+      ignore_errors: true
+      shell: |
+        {{ pg_bin_prefix }}/psql -h {{ localhost }} -p {{ port }} -qwAXtc 'show huge_pages'
+      register: huge_pages_cmd
+
+    - name: Set variable pg_hugepage_enabled
+      set_fact:
+        pg_hugepage_enabled: "{{ huge_pages_cmd.stdout | default('off') | lower in ['try', 'on'] }}"
+        # pg_hugepage_enabled: |-
+        #   {% if huge_pages_cmd.stdout is defined %}{{ huge_pages_cmd.stdout|lower in ['try', 'on'] }}{% else %}false|bool{% endif %}
+
+    - name: read pg shared_memory_size_in_huge_pages
+      args: { executable: /bin/bash }
+      when: pg_hugepage_enabled|bool
+      ignore_errors: true
+      shell: |
+        {{ pg_bin_prefix }}/psql -h {{ localhost }} -p {{ port }} -qwAXtc 'show shared_memory_size_in_huge_pages'
+      register: shared_memory_size_in_huge_pages_cmd
+
+    - name: Set variable pg_shared_memory_size_in_huge_pages if hugepage enabled (try or on)
+      set_fact:
+        pg_shared_memory_size_in_huge_pages: |-
+          {% if pg_hugepage_enabled|bool and shared_memory_size_in_huge_pages_cmd.stdout is defined %}
+          {{ shared_memory_size_in_huge_pages_cmd.stdout|int }}
+          {% else %}0{% endif %}
+
+    - name: print pg hugepage settings
+      when: pg_hugepage_enabled is defined
+      debug:
+        msg: |
+          pg_hugepage_enabled: {{ pg_hugepage_enabled }},
+           pg_shared_memory_size_in_huge_pages: {{ pg_shared_memory_size_in_huge_pages }}
+      changed_when: false
+
+
+- name: calculate real hugepage during node_hugepage_count -1
+  when: hugepage_count|int == -1 and pg_shared_memory_size_in_huge_pages|default(0)|int > 0
+  set_fact:
+    new_nr_hugepages: "{{ pg_shared_memory_size_in_huge_pages|default(0) }}"
+
+
+- name: calculate real hugepage from pg_hugepage_value and pg_shared_memory_size_in_huge_pages
+  when: hugepage_count|int != -1
+  vars:
+    v_conf: "{{ pg_hugepage_value|default(0) }}"
+    v_pg: "{{ pg_shared_memory_size_in_huge_pages|default(0) }}"
+  set_fact:
+    new_nr_hugepages: |-
+      {% if v_pg|int > v_conf|int %}
+      {{ v_pg }}
+      {% else %}
+      {{ v_conf }}
+      {% endif %}
+
+
+- name: read current nr_hugepages by sysctl
+  args: { executable: /bin/bash }
+  become: yes
+  shell: |
+    sysctl -n vm.nr_hugepages
+  register: curr_nr_hugepages_cmd
+  ignore_errors: true
+
+
+- name: Set variable curr_nr_hugepages
+  when: curr_nr_hugepages_cmd.stdout is defined
+  set_fact:
+    curr_nr_hugepages: |-
+      {% if curr_nr_hugepages_cmd.stdout is defined %}
+      {{ curr_nr_hugepages_cmd.stdout|int }}
+      {% else %}0{% endif %}
+
+- name: get gid from {{ pg_dbsu }}
+  command: /usr/bin/id -g {{ pg_dbsu }}
+  register: get_gid_cmd
+  ignore_errors: true
+
+- name: set variable pg_dbsu_gid
+  when: get_gid_cmd.rc == 0
+  set_fact:
+    pg_dbsu_gid: "{{ get_gid_cmd.stdout }}"
+  changed_when: false
+
+...

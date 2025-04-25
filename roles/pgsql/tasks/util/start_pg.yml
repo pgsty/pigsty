@@ -1,0 +1,26 @@
+#!/usr/bin/ansible-playbook
+---
+#--------------------------------------------------------------#
+# start postgres
+#--------------------------------------------------------------#
+
+- name: start postgres
+  vars:
+    dbsu: "{{ pg_dbsu|default('postgres') }}"
+  block:
+    - name: check if postmaster.pid exists and is not empty
+      stat:
+        path: "{{ pg_data }}/postmaster.pid"
+      register: postmaster_pid_stat
+      changed_when: false
+
+    - name: start postgres member of {{ pg_cluster }}
+      become_user: "{{ dbsu }}"
+      when: (postmaster_pid_stat.stat.exists == false or postmaster_pid_stat.stat.size == 0)
+      args: { executable: /bin/bash }
+      shell: |
+        {{ pg_bin_dir }}/pg_ctl -D {{ pg_data }} start
+        sync; sync;
+        sleep 3
+
+...

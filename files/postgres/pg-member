@@ -1,0 +1,32 @@
+#!/bin/bash
+set -uo pipefail
+#==============================================================#
+# File      :   pg-member
+# Desc      :   retrieve patroni member name from patroni REST API
+# Path      :   /pg/bin/pg-member
+# Depend    :   patroni
+# License   :   AGPLv3 @ https://pigsty.io/docs/about/license
+# Author    :   waiting
+#==============================================================#
+
+# method 1: get patroni member name from patroni REST API
+api_ip=$(ss -tlnpH | grep -E ':8008\b' | awk '{print $4}' | cut -d':' -f1 | grep -vE '^0\.0\.0\.0$|^::$' | head -n1)
+[ -z "$api_ip" ] && api_ip="127.0.0.1"
+
+name=$(curl -s "http://${api_ip}:8008/patroni" 2>/dev/null | jq -r '.patroni.name')
+
+# method 2: get patroni member name from patronictl
+if [ -z "$name" ]; then
+    ips=($(hostname -I | tr ' ' '\n' | grep -v '^$'))
+    if [ ${#ips[@]} -eq 0 ]; then
+        # echo "Cannot get local IP address" >&2
+        exit 0
+    fi
+    ip_json=$(printf '"%s",' "${ips[@]}" | sed 's/,$//')
+    name=$(/usr/bin/patronictl -c /pg/bin/patroni.yml list -f json | jq -r --argjson ips "[$ip_json]" '.[] | select(.Host as $h | $ips | index($h)) | .Member')
+fi
+
+if [[ -n "$name" ]]; then
+    echo "$name"
+fi
+

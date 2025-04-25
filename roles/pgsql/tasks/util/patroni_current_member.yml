@@ -1,0 +1,20 @@
+#!/usr/bin/ansible-playbook
+---
+#--------------------------------------------------------------#
+# get current member of patroni cluster
+#--------------------------------------------------------------#
+
+- name: get current member of patroni cluster
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  become_user: "{{ pg_dbsu }}"
+  block:
+    - name: retrieve current patroni member of {{ pg_cluster }}
+      command: /pg/bin/pg-member
+      register: pg_member_name_cmd
+
+    - name: set variable curr_pg_member_name
+      set_fact:
+        curr_pg_member_name: "{{ pg_member_name_cmd.stdout | default('') | trim }}"
+      changed_when: false
+
+...

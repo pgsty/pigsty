@@ -1,0 +1,36 @@
+#!/usr/bin/ansible-playbook
+---
+#--------------------------------------------------------------#
+# patroni pause pg_cls gracefully
+#--------------------------------------------------------------#
+
+- name: patroni pause gracefully
+  tags: grace_patroni_pause
+  become_user: "{{ dbsu }}"
+  vars:
+    dbsu: "{{ pg_dbsu|default('postgres') }}"
+  block:
+    - name: check is paused {{ pg_cluster }}
+      import_tasks: is_patroni_paused.yml
+
+    - name: patroni pause {{ pg_cluster }}
+      when: is_patroni_paused == ''
+      command: /usr/bin/patronictl -c /pg/bin/patroni.yml pause
+      register: patroni_pause_result
+      until: patroni_pause_result.rc == 0 and patroni_pause_result.stdout.find('Success') != -1
+      retries: 2
+      delay: 1
+      run_once: true
+      ignore_errors: true
+
+    - name: check is paused {{ pg_cluster }}
+      import_tasks: is_patroni_paused.yml
+
+    - name: delegate task to the primary node of {{ pg_cluster }} if previous failed
+      command: /usr/bin/patronictl -c /pg/bin/patroni.yml pause
+      when:
+        - is_patroni_paused == ''
+        - pg_primary_host_runtime != ''
+      delegate_to: "{{ pg_primary_host_runtime }}"
+
+...

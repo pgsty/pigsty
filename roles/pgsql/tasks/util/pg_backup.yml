@@ -1,0 +1,82 @@
+#!/usr/bin/ansible-playbook
+---
+#--------------------------------------------------------------#
+# backup pg_cls if pgbackrest enabled               [pg_backup]
+# - full backup when ansible_play_hosts_all contains primary
+# - full or incremental backup when ansible_play_hosts_all contains no primary
+#--------------------------------------------------------------#
+# tested scenarios:
+# - `./pgsql.yml -l <pg_cls> -t pg_hugepage`
+#   - full backup
+# - `./pgsql.yml -l '<replica>,<primary>,&<pg_cls>' -t pg_hugepage`
+#   - full backup
+# - `./pgsql.yml -l '<replica>,&<pg_cls>' -t pg_hugepage`
+#   - full or incremental backup
+#--------------------------------------------------------------#
+
+- name: set variable
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  when: pg_role_runtime is undefined or pg_primary_host_runtime is undefined
+  block:
+    - name: run pg-role
+      command: /pg/bin/pg-role
+      register: pg_role_cmd
+
+    - name: set variable pg_role_runtime
+      set_fact:
+        pg_role_runtime: "{{ pg_role_cmd.stdout | default(pg_role) | trim }}"
+
+    - name: set variable pg_role_runtime
+      set_fact:
+        pg_role_runtime: "{{ pg_role_cmd.stdout | default(pg_role) | trim }}"
+
+    - name: set pg_primary_host_runtime
+      tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+      import_tasks: util/patroni_primary_runtime.yml
+
+- name: pg_backup
+  tags: [ pg_hugepage, patroni, pg_launch, pt_restart ]
+  when: pgbackrest_enabled|bool
+  become_user: "{{ pg_dbsu }}"
+  vars:
+    pg_role: "{{ pg_role_runtime }}"
+  block:
+    - name: full backup cls {{ pg_cluster }}
+      when: pg_role == 'primary'
+      command: /pg/bin/pg-backup full
+      register: back_ret_cmd
+      ignore_errors: false
+
+    - name: show backup result for {{ pg_cluster }}
+      when: pg_role == 'primary' and back_ret_cmd is defined
+      debug:
+        msg: |
+          STDOUT {{ back_ret_cmd.stdout_lines }},
+           STDERR {{ back_ret_cmd.stderr_lines }}
+      changed_when: false
+
+    - name: set variable pt_backup_at_primary from primary
+      when: pg_role != 'primary' and pg_role_runtime is defined
+      set_fact:
+        pt_backup_at_primary: "{{ (hostvars[pg_primary_host_runtime].back_ret_cmd | default(false) | string | trim | bool) }}"
+      changed_when: false
+
+    - name: full or incr backup cls {{ pg_cluster }} if contains no primary at primary
+      when: pg_role != 'primary' and (not pt_backup_at_primary) and pg_role_runtime is defined
+      command: /pg/bin/pg-backup
+      register: back_ret_cmd
+      delegate_to: "{{ pg_primary_host_runtime }}"
+      run_once: true
+
+
+  rescue:
+    - name: pg-backup failed for {{ pg_cluster }}
+      debug:
+        msg: |
+          STDOUT: {{ back_ret_cmd.stdout }},
+           STDERR: {{ back_ret_cmd.stderr }}
+      when: back_ret_cmd is defined
+
+    - name: Exit Playbook due to backup failure
+      meta: end_play
+...
