@@ -1,53 +1,43 @@
 ---
 #--------------------------------------------------------------#
-# Gather PG Node Spec                                  [pg_spec]
-#--------------------------------------------------------------#
-- name: get postgres node facts
-  tags: [ pg_conf, pg_spec ]
-  block:
-
-    # cpu core number | page count | page size | avail 1k-block count for pg_fs_main
-    # it may raise error due to pg_fs_main not exists, which really should raise an error!
-    - name: get node basic facts
-      shell: echo "$(grep -c '^processor' /proc/cpuinfo) $(getconf _PHYS_PAGES) $(getconf PAGE_SIZE) $(df {{ pg_fs_main }} --o=size | tail -1)"
-      register: pg_node_fact
-      args: { executable: /bin/bash }
-
-    # USE node_id ROLE TO GATHER NODE SPEC
-    # if pg_fs_main size is missing, use 40GB as estimation
-    - name: calculate node parameters
-      connection: local
-      set_fact:
-        #node_cpu: "{% set fact_list = pg_node_fact.stdout.split() %}{{ fact_list[0]|int }}"
-        #node_mem_bytes: "{% set fact_list = pg_node_fact.stdout.split() %}{{ (fact_list[1]|int * fact_list[2]|int)|int }}"
-        #node_mem_mb: "{% set fact_list = pg_node_fact.stdout.split() %}{{ ((fact_list[1]|int * fact_list[2]|int)|int / 1048576)|round(0, 'ceil')|int }}"
-        #node_mem_gb: "{% set fact_list = pg_node_fact.stdout.split() %}{{ [ ((fact_list[1]|int * fact_list[2]|int)|int / 1073741824)|round(0, 'ceil')|int , 1 ] | max }}"
-        node_fs_bytes: "{% set fact_list = pg_node_fact.stdout.split() %}{% if fact_list|length >= 4%}{{ fact_list[3]|int * 1024 }}{% else %}42949672960{% endif %}"
-
-    # print cpu, mem, disk info
-    - name: print postgres node spec
-      connection: local
-      debug:
-        msg: "Node={{ node_cpu }}c{{ node_mem_gb }}g {{ node_tune }}, Memory={{ (node_mem_mb|int / 400 | round(0, 'ceil'))|int * 100 }}MB of {{ node_mem_mb }}MB , Disk={{ [ (node_fs_bytes|int / 1073741824)|round(0, 'ceil')|int , 1 ] | max }}GB {{ pg_storage_type|default('SSD') }} @ {{ pg_fs_main }}, PG Conf={{ pg_conf }}"
-
-
-#--------------------------------------------------------------#
 # Config Patroni                                       [pg_conf]
 #--------------------------------------------------------------#
 - name: config patroni
   tags: pg_conf
   block:
 
-    - name: create patroni conf and systemd services
+    # if pg_fs_main/node_data is not exists, use a hypothesis 40 GiB as estimation
+    - name: get pgsql fs size
+      shell: |
+        if [ -d "{{ pg_fs_main|default('/data') }}" ]; then
+          df {{ pg_fs_main|default('/data') }} --output=size | tail -1 | tr -d ' '
+        elif [ -d "{{ node_data|default('/data') }}" ]; then
+          df {{ node_data|default('/data') }} --output=size | tail -1 | tr -d ' '
+        else
+          echo "41943040"
+        fi
+      register: pg_fs_size_res
+      args: { executable: /bin/bash }
+      ignore_errors: true
+
+    # print cpu, mem, disk info
+    - name: print postgres node spec
+      connection: local
+      debug:
+        msg: "Node={{ node_cpu }}c{{ node_mem_gb }}g {{ node_tune }}, Memory={{ (node_mem_mb|int / 400 | round(0, 'ceil'))|int * 100 }}MB of {{ node_mem_mb }}MB , Disk={{ [ (pg_fs_size_res.stdout|trim|int / 1048576)|round(0, 'ceil')|int , 1 ] | max }}GB {{ pg_storage_type|default('SSD') }} @ {{ pg_fs_main }}, PG Conf={{ pg_conf }}"
+
+    - name: config patroni
       template:
         src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+      vars:
+        node_fs_bytes: "{{ pg_fs_size_res.stdout|trim|int * 1024 }}"
       with_items:
         - { src: "{{ pg_conf }}" ,dest: "/pg/conf/{{ pg_instance }}.yml"     ,owner: "{{ pg_dbsu }}" ,group: "postgres", mode: "0750" }
         - { src: "patroni.svc"   ,dest: "{{ systemd_dir }}/patroni.service"  ,owner: root, group: root, mode: "0644" }
         - { src: "postgres.svc"  ,dest: "{{ systemd_dir }}/postgres.service" ,owner: root, group: root, mode: "0644" }
 
-    # /etc/patroni/patroni.yml -> /pg/bin/patroni.yml -> /pg/conf/{{ pg_instance }}.yml
-    - name: use patroni config
+    # /etc/patroni/patroni.yml & /pg/bin/patroni.yml -> /pg/conf/{{ pg_instance }}.yml
+    - name: link patroni config
       file:
         src: "{{ item.src }}"
         dest: "{{ item.dest }}"
@@ -55,8 +45,8 @@
         group: postgres
         state: link
       with_items:
-        - { src: "/pg/conf/{{ pg_instance }}.yml" , dest: "/pg/bin/patroni.yml" }
-        - { src: "/pg/bin/patroni.yml"            , dest: "/etc/patroni/patroni.yml" }
+        - { src: "/pg/conf/{{ pg_instance }}.yml" ,dest: "/pg/bin/patroni.yml"      }
+        - { src: "/pg/conf/{{ pg_instance }}.yml" ,dest: "/etc/patroni/patroni.yml" }
 
 
 #--------------------------------------------------------------#

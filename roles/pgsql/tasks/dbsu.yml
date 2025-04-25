@@ -8,21 +8,24 @@
   block:
 
     # uid = 26 (el rpm default) is already used by other user in debian system
+    # so we'll use 543 as default pg_dbsu_uid for deb system if not explicitly set
     - name: use another default pg_dbsu_uid for deb system
       connection: local
       set_fact: { pg_dbsu_uid: 543 }
       when: os_package is defined and os_package == 'deb' and pg_dbsu_uid == 26
 
     # - dbsu user and group - #
+    # the group name is always hard-coded name postgres
+    # while the dbsu name is configurable, `postgres` is the default dbsu
     - name: create os group postgres
       group: name=postgres gid={{ pg_dbsu_uid }}
     - name: create postgres dbsu
       user: name={{ pg_dbsu }} uid={{ pg_dbsu_uid }} home={{ pg_dbsu_home }} group=postgres groups=postgres shell=/bin/bash generate_ssh_key=yes
 
     # - dbsu privilege - #
-    # nopass : no password required to execute all sudo command! DANGEROUS!
     # all    : require password to execute all sudo command! NOT RECOMMENDED!
     # limit  : only allow sudo command with limited privilege! DEFAULT MODE!
+    # nopass : no password required to execute all sudo command! DANGEROUS!
     - name: grant postgres dbsu sudo privilege
       tags: pg_dbsu_sudo
       copy:
@@ -45,10 +48,13 @@
           %postgres ALL=NOPASSWD: /bin/systemctl reload haproxy
           {% endif %}
 
-    # - watchdog owner - #
-    - name: grant postgres dbsu watchdog owner
-      ignore_errors: true
-      file: path=/dev/watchdog owner={{ pg_dbsu }} group=postgres
+#--------------------------------------------------------------#
+# PostgreSQL Database Superuser                         [pg_ssh]
+#--------------------------------------------------------------#
+- name: exchange postgres dbsu ssh keys
+  become: yes
+  tags: [ pg_dbsu, pg_ssh ]
+  block:
 
     # - dbsu ssh - #
     - name: config postgres dbsu ssh no host checking
@@ -64,7 +70,7 @@
       register: dbsu_ssh_keys
       args: { executable: /bin/bash }
 
-    # for all hosts, copy their postgres ssh public key to each other
+    # only exchange ssh keys among same pg cluster
     - name: exchange postgres dbsu ssh keys
       when: pg_dbsu_ssh_exchange|bool
       authorized_key: user={{ pg_dbsu }} key="{{ item[0] }}"
@@ -72,5 +78,5 @@
       delegate_to: "{{ item[1] }}"
       with_nested:
         - "{{ dbsu_ssh_keys.stdout }}"
-        - "{{ play_hosts }}"
+        - "{{ groups[pg_cluster] }}"
 ...
