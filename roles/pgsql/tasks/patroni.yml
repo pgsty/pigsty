@@ -101,17 +101,13 @@
   when: pg_role == 'primary'
   block:
 
-    - name: render init roles sql
-      tags: pg_init_role
-      template: src="pg-init-roles.sql" dest=/pg/tmp/pg-init-roles.sql owner={{ pg_dbsu }} group=postgres mode=0755
-
-    - name: render init template sql
-      tags: pg_init_tmpl
-      template: src="pg-init-template.sql" dest=/pg/tmp/pg-init-template.sql owner={{ pg_dbsu }} group=postgres mode=0755
-
-    - name: render init main script
-      tags: pg_init_main
-      template: src="{{ pg_init }}" dest=/pg/bin/pg-init owner={{ pg_dbsu }} group=postgres mode=0755
+    - name: render init sql and scripts
+      tags: "{{ item.tag }}"
+      template: src="{{ item.src }}" dest={{ item.dest }} owner={{ pg_dbsu }} group=postgres mode={{ item.mode }}
+      with_items:
+        - { src: "pg-init-roles.sql"    ,dest: "/pg/tmp/pg-init-roles.sql"    ,mode: "0640" }
+        - { src: "pg-init-template.sql" ,dest: "/pg/tmp/pg-init-template.sql" ,mode: "0640" }
+        - { src: "{{ pg_init }}"        ,dest: "/pg/bin/pg-init"              ,mode: "0740" }
 
     - name: init postgres cluster
       tags: pg_init_exec

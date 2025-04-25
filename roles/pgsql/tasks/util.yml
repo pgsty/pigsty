@@ -9,27 +9,13 @@
 
 
 #--------------------------------------------------------------#
-# PostgreSQL Alias & Shortcuts                        [pg_alias]
+# PostgreSQL Alias & Shortcuts and PSQL Client Config [pg_alias][pg_psql]
 #--------------------------------------------------------------#
-- name: copy postgres alias profile
+- name: copy postgres alias and psqlrc files
   tags: pg_alias
-  template: src=pg-alias dest=/etc/profile.d/pg-alias.sh mode=0644
-
-
-#--------------------------------------------------------------#
-# PostgreSQL ~/.pgsqlrc for PSQL Client                [pg_psql]
-#--------------------------------------------------------------#
-- name: copy psqlrc to postgres home
-  tags: pg_psql
-  template: src=psqlrc dest="{{ pg_dbsu_home }}/.psqlrc" owner={{ pg_dbsu }} group=postgres mode=0600
-
-
-#--------------------------------------------------------------#
-# PostgreSQL dummy disk placeholder                   [pg_dummy]
-#--------------------------------------------------------------#
-# dummy file could be removed in case of disk-full which cushion against immediate failure
-- name: create dummy placeholder file
-  tags: pg_dummy
-  command: fallocate -l {{ pg_dummy_filesize }} /pg/dummy
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  with_items:
+    - { src: "pg-alias" ,dest: "/etc/profile.d/pg-alias.sh" ,owner: "root"          ,group: "root"     ,mode: "0644" }
+    - { src: "psqlrc"   ,dest: "{{ pg_dbsu_home }}/.psqlrc" ,owner: "{{ pg_dbsu }}" ,group: "postgres" ,mode: "0600" }
 
 ...

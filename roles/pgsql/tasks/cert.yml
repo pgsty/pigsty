@@ -68,14 +68,11 @@
 # copy postgres key & certs                       [pg_cert_copy]
 #--------------------------------------------------------------#
 - name: copy pg server certificates
-  any_errors_fatal: true
   tags: pg_cert_copy
-  block:
-
-    - name: copy ca cert
-      copy: src="files/pki/ca/ca.crt" dest="/pg/cert/ca.crt" owner=postgres mode=0644
-    - name: copy pg server cert
-      copy: src="files/pki/pgsql/{{ pg_cluster }}-{{ pg_seq }}.crt" dest="/pg/cert/server.crt" owner=postgres group=postgres mode=0644
-    - name: copy pg server key
-      copy: src="files/pki/pgsql/{{ pg_cluster }}.key" dest="/pg/cert/server.key" owner=postgres group=postgres mode=0600
+  any_errors_fatal: true
+  copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+  with_items:
+    - { src: "files/pki/ca/ca.crt"                               ,dest: "/pg/cert/ca.crt"     ,owner: "{{ pg_dbsu }}", mode: "0644" }
+    - { src: "files/pki/pgsql/{{ pg_cluster }}-{{ pg_seq }}.crt" ,dest: "/pg/cert/server.crt" ,owner: "{{ pg_dbsu }}", group: "postgres", mode: "0644" }
+    - { src: "files/pki/pgsql/{{ pg_cluster }}.key"              ,dest: "/pg/cert/server.key" ,owner: "{{ pg_dbsu }}", group: "postgres", mode: "0600" }
 ...

@@ -38,13 +38,13 @@
   tags: pg_conf
   block:
 
-    - name: render patroni config
+    - name: create patroni conf and systemd services
       template:
-        src: "{{ pg_conf }}"
-        dest: "/pg/conf/{{ pg_instance }}.yml"
-        owner: "{{ pg_dbsu }}"
-        group: postgres
-        mode: 0750
+        src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+      with_items:
+        - { src: "{{ pg_conf }}" ,dest: "/pg/conf/{{ pg_instance }}.yml"     ,owner: "{{ pg_dbsu }}" ,group: "postgres", mode: "0750" }
+        - { src: "patroni.svc"   ,dest: "{{ systemd_dir }}/patroni.service"  ,owner: root, group: root, mode: "0644" }
+        - { src: "postgres.svc"  ,dest: "{{ systemd_dir }}/postgres.service" ,owner: root, group: root, mode: "0644" }
 
     # /etc/patroni/patroni.yml -> /pg/bin/patroni.yml -> /pg/conf/{{ pg_instance }}.yml
     - name: use patroni config
@@ -60,28 +60,19 @@
 
 
 #--------------------------------------------------------------#
-# Systemd Service                                   [pg_systemd]
-#--------------------------------------------------------------#
-- name: create patroni systemd service
-  tags: pg_systemd
-  template:
-    src: "{{ item }}.svc"
-    dest: "{{ systemd_dir }}/{{ item }}.service"
-  with_items: [ patroni, postgres ]
-
-
-#--------------------------------------------------------------#
 # Config PgBackrest PITR Config                   [pg_pitr_conf]
 #--------------------------------------------------------------#
 # this config is render for bootstrap / replica creation only
 - name: config pgbackrest for pitr
   tags: pg_pitr_conf
   when: pgbackrest_enabled|bool and pg_pitr is defined and pg_pitr is mapping
-  block:
-
-    - name: render pgbackrest config
-      template: src=pitr.conf dest=/pg/conf/pitr.conf owner=postgres group=postgres mode=0600
-
-    - name: render pg-restore bin script
-      template: src=pg-restore dest=/pg/bin/pg-restore owner=postgres group=postgres mode=0700
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+    owner: "{{ pg_dbsu }}"
+    group: "postgres"
+    mode: "{{ item.mode }}"
+  with_items:
+    - { src: "pitr.conf"  ,dest: "/pg/conf/pitr.conf", mode: "0600" }
+    - { src: "pg-restore" ,dest: "/pg/bin/pg-restore", mode: "0700" }
 ...
