@@ -335,6 +335,9 @@ bootstrap:
         # REPLICATION
         #------------------------------------------------------#
         # synchronous_standby_names: ''
+{% if pg_version|int >= 17 %}
+        sync_replication_slots: on
+{% endif %}
         max_standby_archive_delay: 10min        # max delay before canceling queries when reading WAL from archive;
         max_standby_streaming_delay: 3min       # max delay before canceling queries when reading streaming WAL;
         wal_receiver_status_interval: 1s        # send replies at least this often
@@ -417,6 +420,11 @@ bootstrap:
         pg_stat_statements.track_utility: 'off' # do not track query other than CRUD
         pg_stat_statements.track_planning: 'off' # do not track planning metrics
 
+        # pg_wait_sampling
+        pg_wait_sampling.profile_pid: 'false'   # do not track profile pid
+        pg_wait_sampling.profile_queries: 'all' # track all queries
+        pg_wait_sampling.history_size: 100000   # keep 100K event in buffer
+
         # timescaledb
         timescaledb.telemetry_level: 'off'      # disable timescale telemetry
         timescaledb.max_background_workers: {{ pg_max_worker_processes }}
@@ -432,6 +440,7 @@ bootstrap:
 {% else %}
         cron.database_name: {{ pg_primary_db|default('postgres') }}
 {% endif %}
+
 
 
 #--------------------------------------------------------------#

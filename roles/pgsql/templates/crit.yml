@@ -334,6 +334,9 @@ bootstrap:
         # REPLICATION
         #------------------------------------------------------#
         # synchronous_standby_names: ''
+{% if pg_version|int >= 17 %}
+        sync_replication_slots: on
+{% endif %}
 {% if pg_version|int <= 15 %}
         vacuum_defer_cleanup_age: 500000        # 0->500000 last 500000 xact changes will not be vacuumed (pg_version<=15)
 {% endif %}
@@ -421,6 +424,11 @@ bootstrap:
         pg_stat_statements.track_utility: 'off' # do not track query other than CRUD
         pg_stat_statements.track_planning: 'off' # do not track planning metrics
 
+        # pg_wait_sampling
+        pg_wait_sampling.profile_pid: 'false'   # do not track profile pid
+        pg_wait_sampling.profile_queries: 'all' # track all queries
+        pg_wait_sampling.history_size: 100000   # keep 100K event in buffer
+
         # timescaledb
         timescaledb.telemetry_level: 'off'      # disable timescale telemetry
         timescaledb.max_background_workers: {{ pg_max_worker_processes }}
@@ -436,6 +444,7 @@ bootstrap:
 {% else %}
         cron.database_name: {{ pg_primary_db|default('postgres') }}
 {% endif %}
+
 
 
 #--------------------------------------------------------------#
