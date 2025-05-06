@@ -16,7 +16,7 @@ repo_extra_packages_default: [ pgsql-main ]
 node_packages_default:
   - lz4,unzip,bzip2,pv,jq,git,ncdu,make,patch,bash,lsof,wget,uuid,tuned,nvme-cli,numactl,sysstat,iotop,htop,rsync,tcpdump
   - python3,python3-pip,socat,lrzsz,net-tools,ipvsadm,telnet,ca-certificates,openssl,keepalived,etcd,haproxy,chrony,pig
-  - zlib,yum,audit,bind-utils,readline,vim-minimal,node_exporter,grubby,openssh-server,openssh-clients,chkconfig,mtail
+  - zlib,yum,audit,bind-utils,readline,vim-minimal,node_exporter,grubby,openssh-server,openssh-clients,chkconfig,vector
 
 # default infra packages to be installed (if `infra_packages` is not explicitly set)
 infra_packages_default:
@@ -57,6 +57,7 @@ repo_upstream_default:
   - { name: pgdg15         ,description: 'PostgreSQL 15'      ,module: pgsql   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/15/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.tuna.tsinghua.edu.cn/postgresql/repos/yum/15/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/15/redhat/rhel-$releasever-$basearch' }}
   - { name: pgdg16         ,description: 'PostgreSQL 16'      ,module: pgsql   ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/16/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.tuna.tsinghua.edu.cn/postgresql/repos/yum/16/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/16/redhat/rhel-$releasever-$basearch' }}
   - { name: pgdg17         ,description: 'PostgreSQL 17'      ,module: pgsql   ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/17/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.tuna.tsinghua.edu.cn/postgresql/repos/yum/17/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/17/redhat/rhel-$releasever-$basearch' }}
+  - { name: pgdg18-beta    ,description: 'PostgreSQL 18 Beta' ,module: beta    ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/testing/18/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.tuna.tsinghua.edu.cn/postgresql/repos/yum/testing/18/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/testing/18/redhat/rhel-$releasever-$basearch' }}
   - { name: pgdg-extras    ,description: 'PostgreSQL Extra'   ,module: extra   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/common/pgdg-rhel$releasever-extras/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.tuna.tsinghua.edu.cn/postgresql/repos/yum/common/pgdg-rhel$releasever-extras/redhat/rhel-$releasever-$basearch' , europe: 'https://mirrors.xtom.de/postgresql/repos/yum/common/pgdg-rhel$releasever-extras/redhat/rhel-$releasever-$basearch' }}
   - { name: pgdg13-nonfree ,description: 'PostgreSQL 13+'     ,module: extra   ,releases: [7,8,9] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/13/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.tuna.tsinghua.edu.cn/postgresql/repos/yum/non-free/13/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/13/redhat/rhel-$releasever-$basearch' }}
   - { name: pgdg14-nonfree ,description: 'PostgreSQL 14+'     ,module: extra   ,releases: [7,8,9] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/14/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.tuna.tsinghua.edu.cn/postgresql/repos/yum/non-free/14/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/14/redhat/rhel-$releasever-$basearch' }}
@@ -83,7 +84,7 @@ package_map:
   # REPO: download packages 
   #--------------------------------#
   node-bootstrap:          "ansible python3 python3-pip python3-virtualenv python3-requests python3.12-jmespath python3-cryptography dnf-utils modulemd-tools createrepo_c sshpass"
-  infra-package:           "nginx dnsmasq etcd haproxy vip-manager mtail node_exporter keepalived_exporter pg_exporter pgbackrest_exporter redis_exporter redis minio mcli pig"
+  infra-package:           "nginx dnsmasq etcd haproxy vip-manager vector node_exporter keepalived_exporter pg_exporter pgbackrest_exporter redis_exporter redis minio mcli pig"
   infra-addons:            "grafana grafana-plugins loki logcli promtail prometheus alertmanager pushgateway blackbox_exporter nginx_exporter pev2 certbot python3-certbot-nginx"
   extra-modules:           "docker-ce docker-compose-plugin ferretdb2 duckdb restic juicefs vray grafana-infinity-ds"
   node-package1:           "lz4 unzip bzip2 zlib yum pv jq git ncdu make patch bash lsof wget uuid tuned nvme-cli numactl grubby sysstat iotop htop rsync tcpdump perf flamegraph chkconfig"
@@ -162,6 +163,35 @@ package_map:
   pgsql-fdw:                "wrappers_$v multicorn2_$v* odbc_fdw_$v* pgspider_ext_$v* tds_fdw_$v* sqlite_fdw_$v* pgbouncer_fdw_$v redis_fdw_$v* pg_redis_pubsub_$v* hdfs_fdw_$v* firebird_fdw_$v aws_s3_$v log_fdw_$v*" #jdbc_fdw_$v* #mysql_fdw_$v* #oracle_fdw_$v* #db2_fdw_$v* #mongo_fdw_$v* #kafka_fdw_$v
   pgsql-sim:                "orafce_$v pgtt_$v* session_variable_$v* pg_statement_rollback_$v* pg_dbms_lock_$v pgmemcache_$v*" #documentdb_$v* #pg_dbms_metadata_$v #pg_dbms_job_$v #wiltondb
   pgsql-etl:                "pglogical_$v* pglogical_ticker_$v* pgl_ddl_deploy_$v* pg_failover_slots_$v* db_migrator_$v wal2json_$v* postgres-decoderbufs_$v* decoder_raw_$v* mimeo_$v pg_fact_loader_$v* pg_bulkload_$v*" #wal2mongo_$v* #repmgr_$v*
+
+  #--------------------------------#
+  # PG18: packages 
+  #--------------------------------#
+  pg18:                    "postgresql18 postgresql18-server postgresql18-libs postgresql18-contrib postgresql18-plperl postgresql18-plpython3 postgresql18-pltcl postgresql18-llvmjit"
+  pg18-mini:               "postgresql18 postgresql18-server postgresql18-libs postgresql18-contrib"
+  pg18-core:               "postgresql18 postgresql18-server postgresql18-libs postgresql18-contrib postgresql18-plperl postgresql18-plpython3 postgresql18-pltcl postgresql18-llvmjit"
+  pg18-full:               "postgresql18 postgresql18-server postgresql18-libs postgresql18-contrib postgresql18-plperl postgresql18-plpython3 postgresql18-pltcl postgresql18-llvmjit postgresql18-test postgresql18-devel"
+  pg18-main:               "postgresql18 postgresql18-server postgresql18-libs postgresql18-contrib postgresql18-plperl postgresql18-plpython3 postgresql18-pltcl postgresql18-llvmjit pg_repack_18* wal2json_18* pgvector_18*"
+  pg18-client:             "postgresql18"
+  pg18-server:             "postgresql18-server postgresql18-libs postgresql18-contrib"
+  pg18-devel:              "postgresql18-devel"
+  pg18-basic:              "pg_repack_18* wal2json_18* pgvector_18*"
+  pg18-time:               "" #timescaledb-tsl_18* #timescaledb-toolkit_18 #pg_timeseries_18 #periods_18* #temporal_tables_18* #e-maj_18 #table_version_18 #pg_cron_18* #pg_task_18* #pg_later_18 #pg_background_18*
+  pg18-gis:                "" #postgis35_18* #pgrouting_18* #pointcloud_18* #h3-pg_18* #q3c_18* #ogr_fdw_18* #geoip_18 #pg_polyline_18 #pg_geohash_18*
+  pg18-rag:                "" #pgvector_18* #vchord_18 #pgvectorscale_18 #pg_vectorize_18 #pg_similarity_18* #smlar_18* #pg_summarize_18 #pg_tiktoken_18 #pg4ml_18
+  pg18-fts:                "" #pg_search_18 #pgroonga_18* #pg_bigm_18* #zhparser_18* #pg_bestmatch_18 #vchord_bm25_18 #hunspell_cs_cz_18 #hunspell_de_de_18 #hunspell_en_us_18 #hunspell_fr_18 #hunspell_ne_np_18 #hunspell_nl_nl_18 #hunspell_nn_no_18 #hunspell_ru_ru_18 #hunspell_ru_ru_aot_18
+  pg18-olap:               "" #citus_18* #hydra_18* #pg_analytics_18 #pg_duckdb_18* #pg_mooncake_18* #duckdb_fdw_18* #pg_parquet_18 #pg_fkpart_18 #pg_partman_18* #plproxy_18* #pg_strom_18*
+  pg18-feat:               "" #apache-age_18* #hll_18* #rum_18 #pg_graphql_18 #pg_jsonschema_18 #jsquery_18* #pg_hint_plan_18* #hypopg_18* #index_advisor_18 #pg_plan_filter_18* #imgsmlr_18* #pg_ivm_18* #pg_incremental_18* #pgmq_18 #pgq_18* #pg_cardano_18 # #omnigres_18
+  pg18-lang:               "" #pg_tle_18* #plv8_18* #pllua_18* #plprql_18 #pldebugger_18* #plpgsql_check_18* #plprofiler_18* #plsh_18* #pljava_18* #plr_18* #pgtap_18* #postgresql_faker_18* #dbt2-pg18-extensions*
+  pg18-type:               "" #prefix_18* #semver_18* #postgresql-unit_18* #pgpdf_18* #pglite_fusion_18 #md5hash_18* #asn1oid_18* #pg_roaringbitmap_18* #pgfaceting_18 #pgsphere_18* #pg_country_18* #pg_xenophile_18 #pg_currency_18* #pgcollection_18* #pgmp_18* #numeral_18* #pg_rational_18* #pguint_18* #pg_uint128_18* #hashtypes_18* #ip4r_18* #pg_duration_18* #pg_uri_18* #pg_emailaddr_18* #acl_18* # #timestamp9_18* #chkpass_18*
+  pg18-util:               "" #pgsql_gzip_18* #pg_bzip_18* #pg_zstd_18* #pgsql_http_18* #pg_net_18* #pg_curl_18* #pgjq_18* #pgjwt_18 #pg_smtp_client_18 #pg_html5_email_address_18 #url_encode_18* #pgsql_tweaks_18 #pg_extra_time_18 #pgpcre_18 #icu_ext_18* #pgqr_18* #pg_protobuf_18 #pg_envvar_18* #floatfile_18* #pg_readme_18 #ddl_historization_18 #data_historization_18 #pg_schedoc_18 #pg_hashlib_18 #pg_xxhash_18* #postgres_shacrypt_18* #cryptint_18* #pg_ecdsa_18* #pgsparql_18
+  pg18-func:               "" #pg_idkit_18 #pg_uuidv7_18* #permuteseq_18* #pg_hashids_18* #sequential_uuids_18 #topn_18* #quantile_18* #lower_quantile_18* #count_distinct_18* #omnisketch_18* #ddsketch_18* #vasco_18* #pgxicor_18* #tdigest_18* #first_last_agg_18 #extra_window_functions_18* #floatvec_18* #aggs_for_vecs_18* #aggs_for_arrays_18* #pg_arraymath_18* #pg_math_18* #pg_random_18* #pg_base36_18* #pg_base62_18* #pg_base58_18 #pg_financial_18*
+  pg18-admin:              "" #pg_repack_18* #pg_squeeze_18* #pg_dirtyread_18* #pgfincore_18* #pg_cooldown_18* #ddlx_18 #pg_prioritize_18* #pg_checksums_18* #pg_readonly_18* #pg_upless_18 #pg_permissions_18 #pg_auto_failover_18* #pg_catcheck_18* #preprepare_18* #pgcozy_18 #pg_orphaned_18* #pg_crash_18* #pg_cheat_funcs_18* #pg_fio_18 #pg_savior_18* #safeupdate_18* #pg_drop_events_18 #table_log_18 #pgagent_18* #pgpool-II-pg18-extensions
+  pg18-stat:               "" #pg_profile_18* #pg_tracing_18* #pg_show_plans_18* #pg_stat_kcache_18* #pg_stat_monitor_18* #pg_qualstats_18* #pg_store_plans_18* #pg_track_settings_18 #pg_wait_sampling_18* #system_stats_18* #pg_meta_18 #pgnodemx_18 #pg_sqlog_18 #bgw_replstatus_18* #pgmeminfo_18* #toastinfo_18* #pg_explain_ui_18 #pg_relusage_18 #pagevis_18 #powa_18*
+  pg18-sec:                "" #passwordcheck_cracklib_18* #supautils_18* #pgsodium_18* #vault_18* #pg_session_jwt_18 #pg_anon_18 #pg_tde_18* #pgsmcrypto_18 #pgaudit_18* #pgauditlogtofile_18* #pg_auth_mon_18* #credcheck_18* #pgcryptokey_18 #pg_jobmon_18 #logerrors_18* #login_hook_18* #set_user_18* #pg_snakeoil_18* #pgextwlist_18* #pg_auditor_18 #sslutils_18* #noset_18*
+  pg18-fdw:                "" #wrappers_18 #multicorn2_18* #odbc_fdw_18* #jdbc_fdw_18* #pgspider_ext_18* #mysql_fdw_18* #oracle_fdw_18* #tds_fdw_18* #db2_fdw_18* #sqlite_fdw_18* #pgbouncer_fdw_18 #mongo_fdw_18* #redis_fdw_18* #pg_redis_pubsub_18* #kafka_fdw_18 #hdfs_fdw_18* #firebird_fdw_18 #aws_s3_18 #log_fdw_18*
+  pg18-sim:                "" #documentdb_18* #orafce_18 #pgtt_18* #session_variable_18* #pg_statement_rollback_18* #pg_dbms_metadata_18 #pg_dbms_lock_18 #pg_dbms_job_18 #wiltondb #pgmemcache_18*
+  pg18-etl:                "" #pglogical_18* #pglogical_ticker_18* #pgl_ddl_deploy_18* #pg_failover_slots_18* #db_migrator_18 #wal2json_18* #wal2mongo_18* #postgres-decoderbufs_18* #decoder_raw_18* #mimeo_18 #repmgr_18* #pg_fact_loader_18* #pg_bulkload_18*
 
   #--------------------------------#
   # PG17: packages 
