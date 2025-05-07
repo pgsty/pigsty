@@ -141,9 +141,9 @@ REVOKE ALL ON FUNCTION monitor.beating() FROM dbrole_offline;
 GRANT EXECUTE ON FUNCTION monitor.beating() TO pg_monitor;
 
 -- function to return explain plan of given query
-CREATE OR REPLACE FUNCTION monitor.explain(query TEXT) RETURNS JSON AS $$
+CREATE OR REPLACE FUNCTION monitor.explain(query TEXT) RETURNS JSON
+SET search_path = '' AS $$
 DECLARE result JSON;
-SET search_path = '';
 BEGIN
     EXECUTE format('EXPLAIN (ANALYZE, COSTS, VERBOSE, BUFFERS, FORMAT JSON) %s', query) INTO result;
     RETURN result;
@@ -165,7 +165,7 @@ DROP VIEW IF EXISTS monitor.pg_index_bloat CASCADE;
 
 -- table bloat func
 CREATE OR REPLACE FUNCTION monitor.pg_table_bloat()
-    RETURNS TABLE(datname TEXT,nspname TEXT,relname TEXT,tblid OID,size BIGINT,ratio FLOAT) 
+    RETURNS TABLE(datname TEXT,nspname TEXT,relname TEXT,tblid OID,size BIGINT,ratio FLOAT)
     SET search_path = '' AS
 $$SELECT CURRENT_CATALOG AS datname, nspname, relname , tblid , bs * tblpages AS size,
          CASE WHEN tblpages - est_tblpages_ff > 0 THEN (tblpages - est_tblpages_ff)/tblpages::FLOAT ELSE 0 END AS ratio
@@ -208,7 +208,7 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 
 -- index bloat func
 CREATE OR REPLACE FUNCTION monitor.pg_index_bloat()
-    RETURNS TABLE(datname TEXT,nspname TEXT,relname TEXT,tblid OID,idxid OID,size BIGINT,ratio FLOAT) 
+    RETURNS TABLE(datname TEXT,nspname TEXT,relname TEXT,tblid OID,idxid OID,size BIGINT,ratio FLOAT)
     SET search_path = '' AS
 $$ SELECT CURRENT_CATALOG AS datname, nspname, idxname AS relname, tblid, idxid,
           relpages::BIGINT * bs AS size,
@@ -448,7 +448,7 @@ GRANT SELECT ON monitor.pg_lock_waiting TO pg_monitor;
 ----------------------------------------------------------------------
 DROP FUNCTION IF EXISTS monitor.pg_shmem() CASCADE;
 CREATE OR REPLACE FUNCTION monitor.pg_shmem() RETURNS SETOF
-    pg_shmem_allocations 
+    pg_shmem_allocations
     SET search_path = '' AS
     $$SELECT * FROM pg_shmem_allocations;$$ LANGUAGE SQL SECURITY DEFINER;
 COMMENT ON FUNCTION monitor.pg_shmem() IS 'security wrapper for system view pg_shmem';
@@ -463,7 +463,7 @@ GRANT EXECUTE ON FUNCTION monitor.pg_shmem() TO pg_monitor;
 -- monitor.pgbouncer_auth for pgbouncer_auth_query
 ----------------------------------------------------------------------
 {% if pgbouncer_enabled|bool %}
-CREATE OR REPLACE FUNCTION monitor.pgbouncer_auth(p_username TEXT) RETURNS TABLE(username TEXT, password TEXT) 
+CREATE OR REPLACE FUNCTION monitor.pgbouncer_auth(p_username TEXT) RETURNS TABLE(username TEXT, password TEXT)
     SET search_path = '' AS
 $$
 BEGIN
