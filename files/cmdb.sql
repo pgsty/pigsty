@@ -1245,7 +1245,7 @@ TRUNCATE pigsty.default_var;
 INSERT INTO pigsty.default_var VALUES
 
 -- INFRA PARAMETERS
-(101, 'version', '"v3.4.1"', 'INFRA', 'META', 'string', 'G', 'pigsty version string', NULL),
+(101, 'version', '"v3.5.0"', 'INFRA', 'META', 'string', 'G', 'pigsty version string', NULL),
 (102, 'admin_ip', '"10.10.10.10"', 'INFRA', 'META', 'ip', 'G', 'admin node ip address', NULL),
 (103, 'region', '"default"', 'INFRA', 'META', 'enum', 'G', 'upstream mirror region: default,china,europe', NULL),
 (104, 'proxy_env', '{"no_proxy": "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.myqcloud.com,*.tsinghua.edu.cn"}', 'INFRA', 'META', 'dict', 'G', 'global proxy env when downloading packages', NULL),
