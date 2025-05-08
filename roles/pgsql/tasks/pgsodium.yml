@@ -1,0 +1,56 @@
+---
+#--------------------------------------------------------------#
+# Initialize pgsodium                            [pgsodium_init]
+#--------------------------------------------------------------#
+# If pgsodium is installed, this task will create a symbolic link for the pgsodium key script
+# To install pgsodium on an existing cluster: 
+# 1/ add to your pigsty.yml cluster variables:
+#    pg_libs: [ pgsodium ]
+# 2/ run:
+#    ./pgsql.yml -l <cluster> -t node-id,pg_extension,pgsodium_init
+- name: Ensure PostgreSQL binary directory exists (for pgsodium script)
+  tags: pgsodium_init
+  become: yes
+  ansible.builtin.file:
+    path: "{{ pg_bin_dir }}"
+    state: directory
+    mode: '0755'
+  when: "'pgsodium' in pg_extension_list"
+
+- name: Copy pgsodium key generation script
+  tags: pgsodium_init
+  become: yes
+  ansible.builtin.template:
+    src: pgsodium_getkey_urandom.sh.j2
+    dest: "{{ pg_bin_dir }}/pgsodium_getkey.sh"
+    owner: "{{ pg_dbsu }}"
+    group: postgres
+    mode: '0755'
+  when: "'pgsodium' in pg_extension_list"
+
+- name: Define PostgreSQL share directory based on OS
+  tags: pgsodium_init
+  ansible.builtin.set_fact:
+    # Debian: /usr/lib/postgresql/15/bin -> /usr/share/postgresql/15
+    # RedHat: /usr/pgsql-15/bin -> /usr/share/pgsql
+    pg_share_dir_path: "{{ '/usr/share/postgresql/' + pg_version|string if os_package == 'deb' else '/usr/share/pgsql' }}"
+  when: "'pgsodium' in pg_extension_list"
+
+- name: Ensure PostgreSQL extension directory exists
+  tags: pgsodium_init
+  become: yes
+  ansible.builtin.file:
+    path: "{{ pg_share_dir_path }}/extension"
+    state: directory
+    mode: '0755'
+  when: "'pgsodium' in pg_extension_list"
+
+- name: Create symbolic link for pgsodium key script
+  become: yes
+  ansible.builtin.file:
+    src: "{{ pg_bin_dir }}/pgsodium_getkey.sh"
+    dest: "{{ pg_share_dir_path }}/extension/pgsodium_getkey"
+    owner: "{{ pg_dbsu }}"
+    group: postgres
+    state: link
+  when: "'pgsodium' in pg_extension_list"
