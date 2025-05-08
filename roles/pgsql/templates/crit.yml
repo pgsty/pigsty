@@ -429,9 +429,17 @@ bootstrap:
         pg_wait_sampling.profile_queries: 'all' # track all queries
         pg_wait_sampling.history_size: 100000   # keep 100K event in buffer
 
+{% if 'timescaledb' in pg_libs | default("pg_stat_statements, auto_explain") %}
         # timescaledb
         timescaledb.telemetry_level: 'off'      # disable timescale telemetry
         timescaledb.max_background_workers: {{ pg_max_worker_processes }}
+{% endif %}
+
+{% if 'pgsodium' in pg_libs | default("pg_stat_statements, auto_explain") %}
+        # pgsodium
+        pgsodium.getkey_script: /pg/bin/pgsodium_getkey
+        pgsodium.enable_event_trigger: off
+{% endif %}
 
 {% if pg_mode|default('pgsql') == 'polar' %}
         # polardb

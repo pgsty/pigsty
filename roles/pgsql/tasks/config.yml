@@ -48,6 +48,16 @@
         - { src: "/pg/conf/{{ pg_instance }}.yml" ,dest: "/pg/bin/patroni.yml"      }
         - { src: "/pg/conf/{{ pg_instance }}.yml" ,dest: "/etc/patroni/patroni.yml" }
 
+#--------------------------------------------------------------#
+# Generate pgSodium Key                                 [pg_key]
+#--------------------------------------------------------------#
+- name: generate pgsodium key
+  tags: pg_key
+  block:
+    - name: create pgsodium.key
+      copy: dest=/pg/conf/pgsodium.key owner="{{ pg_dbsu }}" group=postgres mode=0600 content={{ pgsodium_key | default(pg_cluster|hash('sha256')) }}
+    - name: create pgsodium.getkey_script
+      template: src={{ pgsodium_getkey_script|default('pgsodium_getkey') }} dest=/pg/bin/pgsodium_getkey owner="{{ pg_dbsu }}" group=postgres mode=0700
 
 #--------------------------------------------------------------#
 # Config PgBackrest PITR Config                   [pg_pitr_conf]
