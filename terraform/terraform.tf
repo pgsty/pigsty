@@ -2,7 +2,7 @@
 # File      :   terraform.yml
 # Desc      :   1-node cloud vm env for x86_64/aarch64
 # Ctime     :   2020-05-12
-# Mtime     :   2024-01-11
+# Mtime     :   2025-05-08
 # Path      :   terraform/terraform.yml
 # License   :   AGPLv3 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -22,7 +22,7 @@ variable "architecture" {
 variable "distro" {
   description = "The Distribution code"
   type        = string
-  default     = "d12"
+  default     = "el9"
 }
 
 locals {
@@ -41,7 +41,7 @@ locals {
       el9   = "^rockylinux_9_5_x64"
       d11   = "^debian_11_11_x64"
       d12   = "^debian_12_10_x64"
-      u22   = "^ubuntu_20_04_x64"
+      u20   = "^ubuntu_20_04_x64"
       u22   = "^ubuntu_22_04_x64"
       u24   = "^ubuntu_24_04_x64"
       an8   = "^anolisos_8_9_x64"

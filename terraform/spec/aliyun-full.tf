@@ -41,7 +41,7 @@ locals {
       el9   = "^rockylinux_9_5_x64"
       d11   = "^debian_11_11_x64"
       d12   = "^debian_12_10_x64"
-      u22   = "^ubuntu_20_04_x64"
+      u20   = "^ubuntu_20_04_x64"
       u22   = "^ubuntu_22_04_x64"
       u24   = "^ubuntu_24_04_x64"
       an8   = "^anolisos_8_9_x64"
