@@ -1,0 +1,32 @@
+---
+#--------------------------------------------------------------#
+# Config pg_exporter                        [pg_exporter_config]
+#--------------------------------------------------------------#
+- name: config pg_exporter
+  tags: pg_exporter_config
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  with_items:
+    - { src: "{{ pgexp_config }}" ,dest: "/etc/pg_exporter.yml"           ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0644" }
+    - { src: "pg_exporter.env"    ,dest: "/etc/default/pg_exporter"       ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0600" }
+    - { src: "pg_exporter.svc"    ,dest: "{{ exporter_systemd_service }}" ,owner: "root"          ,group: root     ,mode: "0644" }
+  vars:
+    ttl_fast: "{{ pg_exporter_cache_ttls.split(',')[0] }}"
+    ttl_norm: "{{ pg_exporter_cache_ttls.split(',')[1] }}"
+    ttl_slow: "{{ pg_exporter_cache_ttls.split(',')[2] }}"
+    ttl_slowest: "{{ pg_exporter_cache_ttls.split(',')[3] }}"
+    pgexp_config: "{{ pg_exporter_config|default('pg_exporter.yml') }}"
+    exporter_systemd_service: "{{ systemd_dir|default('/usr/lib/systemd/system') }}/pg_exporter.service"
+    
+
+#--------------------------------------------------------------#
+# Launch pg_exporter                        [pg_exporter_launch]
+#--------------------------------------------------------------#
+- name: launch pg_exporter
+  tags: pg_exporter_launch
+  block:
+    - name: launch pg_exporter systemd unit
+      systemd: name=pg_exporter state=restarted enabled=yes daemon_reload=yes
+    - name: wait for pg_exporter online
+      wait_for: host=127.0.0.1 port={{ pg_exporter_port|default(9630) }} state=started timeout=10
+
+...

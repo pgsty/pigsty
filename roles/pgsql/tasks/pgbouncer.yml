@@ -1,23 +1,5 @@
 ---
 #--------------------------------------------------------------#
-# Purge Pgbouncer                              [pgbouncer_clean]
-#--------------------------------------------------------------#
-- name: purge pgbouncer
-  tags: pgbouncer_clean
-  block:
-
-    - name: stop pgbouncer
-      ignore_errors: true
-      systemd: name=pgbouncer state=stopped enabled=no daemon_reload=yes
-
-    - name: remove pgbouncer dir
-      file: path={{ item }} state=absent
-      with_items:
-        - /etc/pgbouncer
-        - "{{ pgbouncer_log_dir }}"
-
-
-#--------------------------------------------------------------#
 # Create Pgbouncer Dir                           [pgbouncer_dir]
 #--------------------------------------------------------------#
 - name: create pgbouncer dir
@@ -27,7 +9,6 @@
     - /etc/pgbouncer
     - "{{ pgbouncer_log_dir }}"
 
-
 #--------------------------------------------------------------#
 # Config Pgbouncer                            [pgbouncer_config]
 #--------------------------------------------------------------#
@@ -35,58 +16,22 @@
   tags: pgbouncer_config
   block:
 
-    # pgbouncer systemd services
-    - name: create pgbouncer systemd service
-      tags: pgbouncer_svc
-      template: src=pgbouncer.service.j2 dest={{ systemd_dir }}/pgbouncer.service owner=root mode=0644
+    - name: config pgbouncer
+      template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+      with_items:
+        - { src: "pgbouncer.svc"      ,dest: "{{ exporter_svc_path }}"        ,owner: "root"          ,group: root     ,mode: "0644" }
+        - { src: "pgbouncer.ini"      ,dest: "/etc/pgbouncer/pgbouncer.ini"   ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0640" }
+        - { src: "pgbouncer.database" ,dest: "/etc/pgbouncer/database.txt"    ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0600" }
+        - { src: "pgbouncer.useropts" ,dest: "/etc/pgbouncer/useropts.txt"    ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0600" }
+      vars:
+        exporter_svc_path: "{{ systemd_dir|default('/usr/lib/systemd/system') }}/pgbouncer.service"
 
-    - name: render pgbouncer config
-      tags: pgbouncer_ini
-      template: src=pgbouncer.ini.j2 dest=/etc/pgbouncer/pgbouncer.ini owner={{ pg_dbsu }} group=postgres mode=0600
-
-    - name: render pgbouncer hba rules
+    - name: config pgbouncer hba rules
       tags: pgbouncer_hba
-      template: src=pgb_hba.conf.j2 dest=/etc/pgbouncer/pgb_hba.conf owner={{ pg_dbsu }} group=postgres mode=0600
+      template: src=pgbouncer.hba dest=/etc/pgbouncer/pgb_hba.conf owner={{ pg_dbsu }} group=postgres mode=0600
 
-    - name: render pgbouncer database.txt
-      tags: pgbouncer_db
-      copy:
-        dest: /etc/pgbouncer/database.txt
-        owner: "{{ pg_dbsu }}"
-        group: postgres
-        mode: 0600
-        content: |
-          {% for db in pg_databases %}
-          {% if 'pgbouncer' not in db or db.pgbouncer|bool %}
-          {% set connstr = "host=" + pg_localhost|string %}
-          {% if pgbouncer_redirect_to is defined and pgbouncer_redirect_to != '' %}{% set db_host = "host=" + pgbouncer_redirect_to %}{% endif %}
-          {% if 'pool_auth_user' in db %}{% set connstr = connstr + " auth_user=" + db.pool_auth_user|string %}{% endif %}
-          {% if 'pool_mode' in db %}{% set connstr = connstr + " pool_mode=" + db.pool_mode|string %}{% endif %}
-          {% if 'pool_size' in db %}{% set connstr = connstr + " pool_size=" + db.pool_size|string %}{% endif %}
-          {% if 'pool_size_min' in db %}{% set connstr = connstr + " min_pool_size=" + db.pool_size_min|string %}{% endif %}
-          {% if 'pool_reserve' in db %}{% set connstr = connstr + " reserve_pool=" + db.pool_reserve|string %}{% endif %}
-          {% if 'pool_connlimit' in db %}{% set connstr = connstr + " max_db_connections=" + db.pool_connlimit|string %}{% endif %}
-          {{ "%-27s" | format(db.name) }} = {{ connstr }}
-          {% endif %}
-          {% endfor %}
-
-    - name: render pgbouncer useropts.txt
-      tags: pgbouncer_user
-      copy:
-        dest: /etc/pgbouncer/useropts.txt
-        owner: "{{ pg_dbsu }}"
-        group: postgres
-        mode: 0600
-        content: |
-          {% for user in pg_default_roles + pg_users %}
-          {% if 'pool_mode' in user or 'pool_connlimit' in user %}
-          {{ "%-27s" | format(user.name) }} = {% if 'pool_mode' in user %}pool_mode={{ user.pool_mode }}{% endif %} {% if 'pool_connlimit' in user %}max_user_connections={{ user.pool_connlimit }}{% endif %}
-          
-          {% endif %}
-          {% endfor %}
-
-    # retrieve default user passwords in AUTO mode except for dbsu
-    - name: create pgbouncer userlist.txt
+    # retrieve default user passwords and business user passwords in AUTO mode
+    - name: create pgbouncer userlist
       tags: pgbouncer_user
       become_user: "{{ pg_dbsu }}"
       ignore_errors: true
@@ -96,22 +41,14 @@
         /bin/bash /pg/bin/pgb-user "{{ pg_dbsu }}" NULL
         /bin/bash /pg/bin/pgb-user "{{ pg_monitor_username }}"
         /bin/bash /pg/bin/pgb-user "{{ pg_admin_username }}"
-      args: { executable: /bin/bash }
-
-    # retrieve biz user password in AUTO mode
-    # ignore errors, in case of user not exists
-    - name: add business users to pgbouncer
-      tags: pgbouncer_user
-      when: user.pgbouncer is defined and user.pgbouncer|bool and not pgbouncer_auth_query|bool
-      ignore_errors: true
-      become_user: "{{ pg_dbsu }}"
-      shell: |
-        export PGHOST={{ pg_localhost }}
-        export PGPORT={{ pg_port }}
+        
+        # Add business users to pgbouncer
+        {% for user in pg_users|default([]) %}
+        {% if user.pgbouncer is defined and user.pgbouncer|bool and not pgbouncer_auth_query|bool %}
         /bin/bash /pg/bin/pgb-user '{{ user.name }}' AUTO
+        {% endif %}
+        {% endfor %}
       args: { executable: /bin/bash }
-      vars: {user: "{{ item }}" }
-      with_items: "{{ pg_users }}"
 
 
 #--------------------------------------------------------------#
@@ -120,13 +57,11 @@
 - name: launch pgbouncer
   tags: pgbouncer_launch
   block:
-
     - name: launch pgbouncer systemd service
       tags: pgbouncer_restart
       systemd: name=pgbouncer state=restarted enabled=yes daemon_reload=yes
-
     - name: wait for pgbouncer service online
-      wait_for: host=127.0.0.1 port={{ pgbouncer_port }} state=started timeout=10
+      wait_for: host=127.0.0.1 port={{ pgbouncer_port|default(6432) }} state=started timeout=10
 
 
 #--------------------------------------------------------------#
@@ -139,11 +74,9 @@
     - name: reload pgbouncer
       when: pg_reload|bool
       systemd: name=pgbouncer state=reloaded enabled=yes daemon_reload=yes
-
     - name: check pgbouncer ready
       become_user: "{{ pg_dbsu }}"
       shell: |
         {{ pg_bin_dir }}/pg_isready -h /var/run/postgresql -p {{ pgbouncer_port }}
-
 
 ...

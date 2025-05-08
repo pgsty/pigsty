@@ -14,34 +14,20 @@
 #--------------------------------------------------------------#
 # Install                                           [pg_install]
 #--------------------------------------------------------------#
-# pg_pkg, pg_path, pg_env, pg_ext
+# pg_pkg, pg_link, pg_path, pg_dir, pg_bin, pg_alias, pg_dummy
 - import_tasks: install.yml
   tags: pg_install
 
 #--------------------------------------------------------------#
-# Directory                                             [pg_dir]
-#--------------------------------------------------------------#
-- import_tasks: dir.yml
-  tags: pg_dir
-
-#--------------------------------------------------------------#
-# Utils                                                [pg_util]
-#--------------------------------------------------------------#
-# pg_bin, pg_alias, pg_psql, pg_dummy
-- import_tasks: util.yml
-  tags: pg_util
-
-#--------------------------------------------------------------#
-# pgsodium Init                                  [pgsodium_init]
+# pgsodium key init                                   [pgsodium]
 #--------------------------------------------------------------#
 # pgsodium_init
 - import_tasks: pgsodium.yml
-  tags: pgsodium_init
+  tags: pgsodium
 
 #--------------------------------------------------------------#
 # Config                                      [patroni] [config]
 #--------------------------------------------------------------#
-# pg_spec, pg_conf, pg_systemd
 - import_tasks: config.yml
   tags: [ patroni, pg_config ]
   when: patroni_enabled|bool
@@ -129,29 +115,6 @@
 - import_tasks: service_remote.yml
   tags: pg_service
   when: pg_service_provider != '' and pg_service_provider in groups and pg_role == 'primary'
-
-#--------------------------------------------------------------#
-# Monitor                                          [pg_exporter]
-#--------------------------------------------------------------#
-# pg_exporter_config, pg_exporter_launch, pgbouncer_exporter_launch
-- import_tasks: exporter.yml
-  tags: pg_exporter
-
-#--------------------------------------------------------------#
-# Register Prometheus         [pg_register, register_prometheus]
-#--------------------------------------------------------------#
-- import_tasks: register_prometheus.yml
-  when: prometheus_enabled|bool
-  tags: [ pg_register, register_prometheus ]
-
-#--------------------------------------------------------------#
-# Register Grafana               [pg_register, register_grafana]
-#--------------------------------------------------------------#
-- include_tasks: register_grafana.yml
-  when: pg_provision|bool and grafana_enabled|bool
-  tags: [ pg_register, register_grafana ]
-  vars: { database: "{{ item }}" }
-  with_items: "{{ pg_databases }}"
 
 #--------------------------------------------------------------#
 # Summary                                              [pg_done]

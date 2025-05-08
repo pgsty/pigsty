@@ -1,0 +1,42 @@
+---
+#--------------------------------------------------------------#
+# Postgres Exporter                                [pg_exporter]
+#--------------------------------------------------------------#
+# pg_exporter_config, pg_exporter_launch
+- import_tasks: pg_exporter.yml
+  tags: pg_exporter
+  when: pg_exporter_enabled|bool
+
+#--------------------------------------------------------------#
+# Pgbouncer Exporter                        [pgbouncer_exporter]
+#--------------------------------------------------------------#
+# pgbouncer_exporter_config, pgbouncer_exporter_launch
+- import_tasks: pgbouncer_exporter.yml
+  tags: pgbouncer_exporter
+  when: pgbouncer_enabled|bool and pgbouncer_exporter_enabled|bool
+
+#--------------------------------------------------------------#
+# Pgbackrest Exporter                      [pgbackrest_exporter]
+#--------------------------------------------------------------#
+# pgbackrest_exporter_config, pgbackrest_exporter_launch
+- import_tasks: pgbackrest_exporter.yml
+  tags: pgbackrest_exporter
+  when: pgbackrest_enabled|bool and pgbackrest_exporter_enabled|bool
+
+#--------------------------------------------------------------#
+# Register Prometheus         [pg_register, register_prometheus]
+#--------------------------------------------------------------#
+- import_tasks: register_prometheus.yml
+  tags: [ pg_register, register_prometheus ]
+  when: prometheus_enabled|bool
+
+#--------------------------------------------------------------#
+# Register Grafana               [pg_register, register_grafana]
+#--------------------------------------------------------------#
+- include_tasks: register_grafana.yml
+  tags: [ pg_register, register_grafana ]
+  when: grafana_enabled|bool and pg_provision|bool
+  vars: { database: "{{ item }}" }
+  with_items: "{{ pg_databases }}"
+
+...

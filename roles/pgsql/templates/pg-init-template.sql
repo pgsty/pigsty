@@ -116,7 +116,7 @@ REVOKE INSERT,UPDATE,DELETE ON TABLE monitor.heartbeat FROM dbrole_readwrite;
 GRANT SELECT,INSERT,UPDATE,DELETE ON TABLE monitor.heartbeat TO pg_monitor;
 
 -- function to generate & return generated heartbeat record
-CREATE OR REPLACE FUNCTION monitor.upsert_heartbeat() RETURNS monitor.heartbeat AS
+CREATE OR REPLACE FUNCTION monitor.upsert_heartbeat() RETURNS monitor.heartbeat SET search_path = '' AS
 $$ INSERT INTO monitor.heartbeat(id, ts, lsn, txid) VALUES (coalesce(current_setting('cluster_name', true), 'unknown'), now(), pg_current_wal_lsn() - '0/0'::PG_LSN, pg_current_xact_id()::text::BIGINT)
    ON CONFLICT(id) DO UPDATE SET ts=EXCLUDED.ts, lsn=EXCLUDED.lsn, txid=EXCLUDED.txid RETURNING *;
 $$ LANGUAGE SQL VOLATILE;
@@ -130,7 +130,7 @@ GRANT EXECUTE ON FUNCTION monitor.upsert_heartbeat() TO pg_monitor;
 -- function to be used by monitor tools
 CREATE OR REPLACE FUNCTION monitor.beating() RETURNS
     TABLE (cls TEXT, ts TIMESTAMPTZ, lsn PG_LSN, lsn_int BIGINT, txid BIGINT, status TEXT)
-AS
+    SET search_path = '' AS
 $$ SELECT id AS cls, ts , '0/0'::PG_LSN + lsn AS lsn, lsn AS lsn_int, txid, CASE WHEN pg_is_in_recovery() THEN 'recovery' ELSE 'leading' END AS status FROM
     (SELECT (CASE WHEN pg_is_in_recovery() THEN (SELECT h FROM monitor.heartbeat h) ELSE monitor.upsert_heartbeat() END).*) d;
 $$ LANGUAGE SQL VOLATILE;
@@ -141,7 +141,8 @@ REVOKE ALL ON FUNCTION monitor.beating() FROM dbrole_offline;
 GRANT EXECUTE ON FUNCTION monitor.beating() TO pg_monitor;
 
 -- function to return explain plan of given query
-CREATE OR REPLACE FUNCTION monitor.explain(query TEXT) RETURNS JSON AS $$
+CREATE OR REPLACE FUNCTION monitor.explain(query TEXT) RETURNS JSON
+SET search_path = '' AS $$
 DECLARE result JSON;
 BEGIN
     EXECUTE format('EXPLAIN (ANALYZE, COSTS, VERBOSE, BUFFERS, FORMAT JSON) %s', query) INTO result;
@@ -164,7 +165,8 @@ DROP VIEW IF EXISTS monitor.pg_index_bloat CASCADE;
 
 -- table bloat func
 CREATE OR REPLACE FUNCTION monitor.pg_table_bloat()
-    RETURNS TABLE(datname TEXT,nspname TEXT,relname TEXT,tblid OID,size BIGINT,ratio FLOAT) AS
+    RETURNS TABLE(datname TEXT,nspname TEXT,relname TEXT,tblid OID,size BIGINT,ratio FLOAT)
+    SET search_path = '' AS
 $$SELECT CURRENT_CATALOG AS datname, nspname, relname , tblid , bs * tblpages AS size,
          CASE WHEN tblpages - est_tblpages_ff > 0 THEN (tblpages - est_tblpages_ff)/tblpages::FLOAT ELSE 0 END AS ratio
   FROM (
@@ -206,7 +208,8 @@ $$ LANGUAGE SQL SECURITY DEFINER;
 
 -- index bloat func
 CREATE OR REPLACE FUNCTION monitor.pg_index_bloat()
-    RETURNS TABLE(datname TEXT,nspname TEXT,relname TEXT,tblid OID,idxid OID,size BIGINT,ratio FLOAT) AS
+    RETURNS TABLE(datname TEXT,nspname TEXT,relname TEXT,tblid OID,idxid OID,size BIGINT,ratio FLOAT)
+    SET search_path = '' AS
 $$ SELECT CURRENT_CATALOG AS datname, nspname, idxname AS relname, tblid, idxid,
           relpages::BIGINT * bs AS size,
           COALESCE((relpages - ( reltuples * (6 + ma - (CASE WHEN index_tuple_hdr % ma = 0 THEN ma ELSE index_tuple_hdr % ma END)
@@ -445,7 +448,9 @@ GRANT SELECT ON monitor.pg_lock_waiting TO pg_monitor;
 ----------------------------------------------------------------------
 DROP FUNCTION IF EXISTS monitor.pg_shmem() CASCADE;
 CREATE OR REPLACE FUNCTION monitor.pg_shmem() RETURNS SETOF
-    pg_shmem_allocations AS $$SELECT * FROM pg_shmem_allocations;$$ LANGUAGE SQL SECURITY DEFINER;
+    pg_shmem_allocations
+    SET search_path = '' AS
+    $$SELECT * FROM pg_shmem_allocations;$$ LANGUAGE SQL SECURITY DEFINER;
 COMMENT ON FUNCTION monitor.pg_shmem() IS 'security wrapper for system view pg_shmem';
 REVOKE ALL ON FUNCTION monitor.pg_shmem() FROM PUBLIC;
 REVOKE ALL ON FUNCTION monitor.pg_shmem() FROM dbrole_readonly;
@@ -458,8 +463,10 @@ GRANT EXECUTE ON FUNCTION monitor.pg_shmem() TO pg_monitor;
 -- monitor.pgbouncer_auth for pgbouncer_auth_query
 ----------------------------------------------------------------------
 {% if pgbouncer_enabled|bool %}
-CREATE OR REPLACE FUNCTION monitor.pgbouncer_auth(p_username TEXT) RETURNS TABLE(username TEXT, password TEXT) AS
-$$ BEGIN
+CREATE OR REPLACE FUNCTION monitor.pgbouncer_auth(p_username TEXT) RETURNS TABLE(username TEXT, password TEXT)
+    SET search_path = '' AS
+$$
+BEGIN
     RAISE WARNING 'PgBouncer auth request: %', p_username;
     RETURN QUERY SELECT rolname::TEXT, rolpassword::TEXT FROM pg_authid WHERE NOT rolsuper AND rolname = p_username;
 END;

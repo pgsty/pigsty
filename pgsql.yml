@@ -4,8 +4,9 @@
 # File      :   pgsql.yml
 # Desc      :   init postgres cluster/instance
 # Ctime     :   2020-05-12
-# Mtime     :   2025-03-23
+# Mtime     :   2025-04-25
 # Path      :   pgsql.yml
+# Docs      :   https://pigsty.io/docs/pgsql/playbook/#pgsqlyml
 # License   :   AGPLv3 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -14,9 +15,10 @@
   hosts: all
   gather_facts: no
   roles:
-    - { role: node_id , tags: node-id  } # get node identity (always)
-    - { role: pg_id   , tags: pg-id    } # get pgsql identity (always)
-    - { role: pgsql   , tags: pgsql    } # init postgres cluster/instance
+    - { role: node_id    ,tags: [id,node-id] } # get node identity (always)
+    - { role: pg_id      ,tags: [id,pg-id]   } # get pgsql identity (always)
+    - { role: pgsql      ,tags: pgsql        } # init postgres cluster/instance
+    - { role: pg_monitor ,tags: monitor      } # init postgres monitoring
 
 
 #--------------------------------------------------------------#
@@ -50,32 +52,31 @@
 # Tasks
 #--------------------------------------------------------------#
 # pg_clean      : cleanup existing postgres if necessary
+#   - pg_purge            : force removing existing postgres
 # pg_dbsu       : setup os user sudo for postgres dbsu
+#   - pg_ssh              : exchange dbsu ssh keys
 # pg_install    : install postgres packages & extensions
-#   - pg_pkg              : install postgres packages
+#   - pg_pkg    : install postgres packages
 #     - pg_ext            : install postgres extension packages
-#   - pg_path             : link pgsql version bin to /usr/pgsql
-#   - pg_env              : add pgsql bin to system path
-# pg_dir        : create postgres directories and setup fhs
-# pg_util       : copy utils scripts, setup alias and env
-#   - pg_bin              : sync postgres util scripts /pg/bin
-#   - pg_alias            : write /etc/profile.d/pg-alias.sh
-#   - pg_psql             : create psqlrc file for psql
-#   - pg_dummy            : create dummy placeholder file
+#   - pg_link   : link pgsql version bin to /usr/pgsql
+#   - pg_path   : add pgsql bin to system path
+#   - pg_dir    : create postgres directories and setup fhs
+#   - pg_bin    : sync /pg/bin scripts
+#   - pg_alias  : write pgsql/psql alias
+#   - pg_dummy  : create dummy placeholder file
 # pg_config     : generate postgres config           (patroni)
 #   - pg_conf           : generate patroni config
-#   - pg_systemd        : generate patroni systemd config
 #   - pg_pitr_conf      : generate optional pitr config
 #  pg_cert      : issues certificates for postgres   (patroni)
 #  pg_launch    : launch patroni primary & replicas  (patroni)
-#   - pg_watchdog       : grant watchdog permission to postgres
-#   - pg_primary        : launch patroni/postgres primary
-#   - pg_init           : init pg cluster with roles/templates
-#   - pg_pass           : write .pgpass file to pg home
-#   - pg_replica        : launch patroni/postgres replicas
-#   - pg_hba            : generate pg HBA rules
-#   - patroni_reload    : reload patroni config
-#   - pg_patroni        : pause or remove patroni if necessary
+#   - pg_watchdog         : grant watchdog permission to postgres
+#   - pg_primary          : launch patroni/postgres primary
+#   - pg_init             : init pg cluster with roles/templates
+#   - pg_pass             : write .pgpass file to pg home
+#   - pg_replica          : launch patroni/postgres replicas
+#   - pg_hba              : generate pg HBA rules
+#   - patroni_reload      : reload patroni config
+#   - pg_patroni          : pause or remove patroni if necessary
 # pg_user       : provision postgres business users
 #   - pg_user_config      : render create user sql
 #   - pg_user_create      : create user on postgres
@@ -86,14 +87,10 @@
 #   - pgbackrest_init     : init pgbackrest repo
 #   - pgbackrest_backup   : make a initial backup after bootstrap
 # pgbouncer     : deploy a pgbouncer sidecar with postgres
-#   - pgbouncer_clean     : cleanup existing pgbouncer
 #   - pgbouncer_dir       : create pgbouncer directories
 #   - pgbouncer_config    : generate pgbouncer config
-#     -  pgbouncer_svc    : generate pgbouncer systemd config
-#     -  pgbouncer_ini    : generate pgbouncer main config
 #     -  pgbouncer_hba    : generate pgbouncer hba config
-#     -  pgbouncer_db     : generate pgbouncer database config
-#     -  pgbouncer_user   : generate pgbouncer user config
+#     -  pgbouncer_user   : generate pgbouncer userlist
 #   -  pgbouncer_launch   : launch pgbouncer pooling service
 #   -  pgbouncer_reload   : reload pgbouncer config
 # pg_vip        : bind vip to pgsql primary with vip-manager
@@ -105,14 +102,12 @@
 # pg_service    : expose pgsql service with haproxy
 #   - pg_service_config   : generate local haproxy config for pg services
 #   - pg_service_reload   : expose postgres services with haproxy
-# pg_exporter   : expose pgsql service with haproxy
-#   - pg_exporter_config  : config pg_exporter & pgbouncer_exporter
-#   - pg_exporter_launch  : launch pg_exporter
-#   - pgbouncer_exporter_launch : launch pgbouncer exporter
-#   - pgbackrest_exporter : launch pgbackrest_exporter
-# pg_register   : register postgres to pigsty infrastructure
+# pg_done       : print connection info and finish playbook
+# pg_monitor    : setup pgsql monitor and register to infra
+#   - pg_exporter         : config & launch pg_exporter
+#   - pgbouncer_exporter  : config & launch pgbouncer_exporter
+#   - pgbackrest_exporter : config & launch pgbackrest_exporter
 #   - register_prometheus : register pg as prometheus monitor targets
 #   - register_grafana    : register pg database as grafana datasource
-# pg_done       : print connection info and finish playbook
 #--------------------------------------------------------------#
 ...

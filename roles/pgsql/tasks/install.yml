@@ -36,13 +36,13 @@
 
     # install postgres extensions
     - name: install postgres extensions
-      tags: pg_extension
+      tags: [pg_extension, pg_ext]
       environment: "{{ proxy_env | default({}) }}"
       package: name={{ item }} state=latest
       with_items: "{{ pg_extension_list | trim | regex_findall('([^\\n]+)') | map('replace', '$v', pg_version|string) | list | map('replace', '${pg_version}', pg_version|string) | map('regex_replace', '(,|\\s)+', ',' ) | list }}"
 
     # fix rpm trash and unused service file, shut debian default service
-    - name: post installation cleanups
+    - name: postgres post-install cleanup
       tags: pg_post
       ignore_errors: true
       shell: |
@@ -74,60 +74,20 @@
         /bin/true;
       args: { executable: /bin/bash }
 
+#--------------------------------------------------------------#
+# Link Binary Dir                                      [pg_link]
+#--------------------------------------------------------------#
+- name: link postgres home
+  tags: pg_link
+  file: src="{{ pg_home_dir }}" dest={{ pg_bin_dir | dirname }} state=link
+  vars: { pg_home_dir: "{{ pg_home_map[pg_mode] | replace('$v', pg_version) | replace('${pg_version}', pg_version )}}" }
 
 #--------------------------------------------------------------#
-# Setup bin path                                       [pg_path]
-#--------------------------------------------------------------#
-# soft link pgsql bin dir to specific pgsql binary version according to pg_mode
-- name: setup pg path
-  tags: pg_path
-  block:
-
-    # fix legacy issue such as ivorysql dir has minor version in path
-    #- name: normalize postgres home dir
-    #  ignore_errors: true
-    #  shell: |
-    #    {% if pg_mode == 'pgsql' or pg_mode == 'citus' %}
-    #    {% if os_package|default('rpm') == 'deb' %}
-    #    ln -snf /usr/lib/postgresql/{{ pg_version|default(17) }} /usr/pgsql-{{ pg_version|default(17) }}
-    #    {% endif %}
-    #    {% elif pg_mode == 'polar' or pg_mode == 'oracle' %}
-    #    ln -snf /u01/polardb_pg /usr/polar-{{ pg_version|default(17) }}
-    #    {% elif pg_mode == 'mssql' %}
-    #    {% if os_package|default('rpm') == 'deb' %}
-    #    ln -snf /usr/lib/postgresql/{{ pg_version|default(17) }} /usr/pgsql-{{ pg_version|default(17) }}
-    #    {% else %}
-    #    {% endif %}
-    #    {% elif pg_mode == 'ivory' %}
-    #    ivorysql_major=$(({{ pg_version | default(17) | int }} - 13))
-    #    ivory_dir="$(ls -1d /opt/IvorySQL-${ivorysql_major}.* 2>/dev/null | sort -V | tail -n1)"
-    #    if [ -z "$ivory_dir" ]; then
-    #        echo "No IvorySQL directory found for /opt/IvorySQL-${ivorysql_major}.*"
-    #        exit 1
-    #    fi
-    #    target="/usr/ivory-{{ pg_version|default(17) }}"
-    #    if [ -L "$target" ]; then
-    #        current="$(readlink -f "$target")"
-    #        if [ "$current" = "$ivory_dir" ]; then
-    #            exit 0
-    #        fi
-    #    fi
-    #    ln -snf "$ivory_dir" "$target"
-    #    {% endif %}
-    #    /bin/true;
-    #  args: { executable: /bin/bash }
-
-    - name: link postgres home
-      file: src="{{ pg_home_dir }}" dest={{ pg_bin_dir | dirname }} state=link
-      vars: { pg_home_dir: "{{ pg_home_map[pg_mode] | replace('$v', pg_version) | replace('${pg_version}', pg_version )}}" }
-
-
-#--------------------------------------------------------------#
-# Setup pgsql profile                                   [pg_env]
+# Setup Profile Path                                   [pg_path]
 #--------------------------------------------------------------#
 # add {{ pg_bin_dir }} to PATH environment variable
-- name: add pgsql path to system profile
-  tags: pg_env
+- name: setup pgsql path
+  tags: pg_path
   copy:
     dest: /etc/profile.d/pgsql.sh
     mode: 0755
@@ -137,5 +97,102 @@
       export PGDATA={{ pg_data }}
       export PGPORT={{ pg_port }}
       export PGDATABASE={{ pg_primary_db }}
+
+#--------------------------------------------------------------#
+# Create Directories                                    [pg_dir]
+#--------------------------------------------------------------#
+
+#--------------------------------------------------------------#
+# Create Directory
+#--------------------------------------------------------------#
+# assumption:
+#   {{ pg_fs_main }} for main data   , default: `/data`              [fast ssd]
+#   {{ pg_fs_bkup }} for backup data , default: `/data/backups`     [cheap hdd]
+#--------------------------------------------------------------#
+# default variable:
+#     pg_fs_main = /data             fast ssd
+#     pg_fs_bkup = /data/backups     cheap hdd (optional)
+#
+#     /pg      -> /data/postgres/pg-test-17    (soft link)
+#     /pg/data -> /data/postgres/pg-test-17/data
+#--------------------------------------------------------------#
+- name: create pgsql directories
+  tags: pg_dir
+  become: yes
+  block:
+
+    # pg_cluster_dir:    "{{ pg_fs_main }}/postgres/{{ pg_cluster }}-{{ pg_version }}"
+    - name: create pgsql directories
+      file: path={{ item.path }} state=directory owner={{ item.owner|default(pg_dbsu) }} group={{ item.group|default('postgres') }} mode={{ item.mode }}
+      with_items:
+        - { path: "{{ pg_fs_main }}"            ,mode: "0777" , owner: "root" , group: "root" }
+        - { path: "{{ pg_fs_bkup }}"            ,mode: "0777" , owner: "root" , group: "root" }
+        - { path: "{{ pg_fs_main }}/postgres"   ,mode: "0700" }   # /data/postgres
+        - { path: "{{ pg_cluster_dir }}"        ,mode: "0700" }   # /data/postgres/pg-meta-17
+        - { path: "{{ pg_cluster_dir }}/bin"    ,mode: "0700" }   # shell scripts in /pg/bin
+        - { path: "{{ pg_cluster_dir }}/tmp"    ,mode: "0700" }   # role/db init sql / log
+        - { path: "{{ pg_cluster_dir }}/cert"   ,mode: "0700" }   # ssl cert
+        - { path: "{{ pg_cluster_dir }}/conf"   ,mode: "0700" }   # configuration files
+        - { path: "{{ pg_cluster_dir }}/data"   ,mode: "0700" }   # main data dir
+        - { path: "{{ pg_cluster_dir }}/spool"  ,mode: "0700" }   # spool for pgbackrest
+        - { path: "{{ pg_backup_dir }}/backup"  ,mode: "0700" }   # backup dir
+        - { path: "/var/run/postgresql"         ,mode: "0755" }   # pid dir
+        - { path: "{{ pg_cluster_dir }}/log"    ,mode: "0750" }   # log dir
+        - { path: "/etc/patroni"                ,mode: "0700" }   # patroni config
+        - { path: "/etc/pgbackrest"             ,mode: "0700" }   # pgbackrest config
+        - { path: "/etc/pgbouncer"              ,mode: "0700" }   # pgbouncer config
+        - { path: "/etc/pg_exporter"            ,mode: "0700" }   # pg_exporter config
+
+    # create /pg soft link
+    - name: link pgsql directories
+      file: src={{ item.src }} dest={{ item.dest }} state=link
+      with_items:
+        - { src: "{{ pg_backup_dir }}/backup" ,dest: "{{ pg_cluster_dir }}/backup" }
+        - { src: "{{ pg_cluster_dir }}"       ,dest: "/pg" }
+
+    # do not create log dir inside data dir (create when data dir is not prefix of log dir)
+    - name: create log directories
+      file: path={{ item }} state=directory owner={{ pg_dbsu }} group=postgres mode=0750
+      with_items:
+        - "{% if not pg_log_dir.startswith(pg_data) %}{{ pg_log_dir }}{% else %}{{ patroni_log_dir }}{% endif %}"
+        - "{{ patroni_log_dir }}"
+        - "{{ pgbouncer_log_dir }}"
+        - "{{ pgbackrest_log_dir }}"
+
+    # make sure the /var/run/postgresql is created
+    - name: create tmpfiles.d for /var/run/postgresql
+      copy:
+        dest: /etc/tmpfiles.d/postgresql.conf
+        content: "d /var/run/postgresql 0755 {{ pg_dbsu }} postgres -"
+        owner: root
+        group: root
+        mode: '0644'
+
+
+#--------------------------------------------------------------#
+# PostgreSQL Bash Scripts                               [pg_bin]
+#--------------------------------------------------------------#
+# sync files/postgres -> /pg/bin/
+- name: copy /pg/bin scripts
+  tags: pg_bin
+  copy: src=postgres/ dest=/pg/bin/ owner={{ pg_dbsu }} group=postgres mode=0755
+
+#--------------------------------------------------------------#
+# PostgreSQL / PSQL Alias                             [pg_alias]
+#--------------------------------------------------------------#
+- name: copy pgsql/psql alias
+  tags: pg_alias
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  with_items:
+    - { src: "pg-alias" ,dest: "/etc/profile.d/pg-alias.sh" ,owner: "root"          ,group: "root"     ,mode: "0644" }
+    - { src: "psqlrc"   ,dest: "{{ pg_dbsu_home }}/.psqlrc" ,owner: "{{ pg_dbsu }}" ,group: "postgres" ,mode: "0600" }
+
+#--------------------------------------------------------------#
+# Create Dummy File                                   [pg_dummy]
+#--------------------------------------------------------------#
+# reserve dummy file for disk-full emergency
+- name: create pgsql dummy file
+  tags: pg_dummy
+  command: fallocate -l {{ pg_dummy_filesize|default('64MiB') }} /pg/dummy
 
 ...

@@ -335,6 +335,9 @@ bootstrap:
         # REPLICATION
         #------------------------------------------------------#
         # synchronous_standby_names: ''
+{% if pg_version|int >= 17 %}
+        sync_replication_slots: on
+{% endif %}
         max_standby_archive_delay: 10min        # max delay before canceling queries when reading WAL from archive;
         max_standby_streaming_delay: 3min       # max delay before canceling queries when reading streaming WAL;
         wal_receiver_status_interval: 1s        # send replies at least this often
@@ -362,8 +365,11 @@ bootstrap:
 {% endif %}
         logging_collector: 'on'                 # enable csvlog
         log_directory: {{ pg_log_dir }}         # postgres log dir
-        # log_filename: 'postgresql-%a.log'     # weekly auto-recycle
-        log_filename: 'postgresql-%Y-%m-%d.log' # YYYY-MM-DD full log retention
+        log_filename: 'postgresql-%F.log'       # %Y-%M-%D ISO 8601
+        log_file_mode: '0640'                   # allow group log read
+        log_rotation_age: '1d'                  # rotate log everyday
+        log_rotation_size: '0'                  # do not rotate by size
+        log_truncate_on_rotation: 'off'         # do not truncate
         log_checkpoints: 'on'                   # log checkpoint info
         log_lock_waits: 'on'                    # log lock wait info
         log_replication_commands: 'on'          # log replication info
@@ -413,6 +419,11 @@ bootstrap:
         pg_stat_statements.track: all           # track all statements (all|top|none)
         pg_stat_statements.track_utility: 'off' # do not track query other than CRUD
         pg_stat_statements.track_planning: 'off' # do not track planning metrics
+
+        # pg_wait_sampling
+        pg_wait_sampling.profile_pid: 'false'   # do not track profile pid
+        pg_wait_sampling.profile_queries: 'all' # track all queries
+        pg_wait_sampling.history_size: 100000   # keep 100K event in buffer
 
         # timescaledb
         timescaledb.telemetry_level: 'off'      # disable timescale telemetry

@@ -1,0 +1,13 @@
+{% for db in pg_databases|default([]) %}
+{% if 'pgbouncer' not in db or db.pgbouncer|bool %}
+{% set connstr = "host=" + pg_localhost|string %}
+{% if pgbouncer_redirect_to is defined and pgbouncer_redirect_to != '' %}{% set db_host = "host=" + pgbouncer_redirect_to %}{% endif %}
+{% if 'pool_auth_user' in db %}{% set connstr = connstr + " auth_user=" + db.pool_auth_user|string %}{% endif %}
+{% if 'pool_mode' in db %}{% set connstr = connstr + " pool_mode=" + db.pool_mode|string %}{% endif %}
+{% if 'pool_size' in db %}{% set connstr = connstr + " pool_size=" + db.pool_size|string %}{% endif %}
+{% if 'pool_size_min' in db %}{% set connstr = connstr + " min_pool_size=" + db.pool_size_min|string %}{% endif %}
+{% if 'pool_reserve' in db %}{% set connstr = connstr + " reserve_pool=" + db.pool_reserve|string %}{% endif %}
+{% if 'pool_connlimit' in db %}{% set connstr = connstr + " max_db_connections=" + db.pool_connlimit|string %}{% endif %}
+{{ "%-27s" | format(db.name) }} = {{ connstr }}
+{% endif %}
+{% endfor %}

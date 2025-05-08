@@ -1,0 +1,19 @@
+---
+#--------------------------------------------------------------#
+# Remove pgbouncer_exporter                 [pgbouncer_exporter]
+#--------------------------------------------------------------#
+- name: remove pgbouncer exporter
+  tags: pgbouncer_exporter
+  become: yes
+  ignore_errors: yes
+  block:
+
+    - name: stop and disable pgbouncer_exporter service
+      systemd: name=pgbouncer_exporter state=stopped enabled=no daemon_reload=yes
+
+    - name: remove pgbouncer_exporter config file
+      file: name={{ item }} state=absent
+      with_items:
+        - /etc/default/pgbouncer_exporter
+        - /etc/pgbouncer_exporter.yml
+...

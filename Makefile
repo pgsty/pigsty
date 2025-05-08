@@ -8,7 +8,7 @@
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 # pigsty version string
-VERSION?=v3.4.1
+VERSION?=v3.5.0
 
 # variables
 SRC_PKG=pigsty-$(VERSION).tgz
@@ -94,7 +94,7 @@ install:
 ###############################################################
 # There are two things needs to be downloaded:
 #    pigsty.tgz    :   source code
-#    pkg.tgz       :   offline rpm packages (build under 7.9)
+#    pkg.tgz       :   offline rpm packages (optional)
 #
 # get latest stable version to ~/pigsty
 src:

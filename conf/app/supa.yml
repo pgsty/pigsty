@@ -3,7 +3,7 @@
 # File      :   supa.yml
 # Desc      :   Pigsty configuration for self-hosting supabase
 # Ctime     :   2023-09-19
-# Mtime     :   2025-03-30
+# Mtime     :   2025-05-08
 # Docs      :   https://pigsty.io/docs/app/supabase/
 # License   :   AGPLv3 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -129,14 +129,15 @@ all:
         pg_hba_rules: # supabase hba rules, require access from docker network
           - { user: all ,db: postgres  ,addr: intra         ,auth: pwd ,title: 'allow supabase access from intranet'    }
           - { user: all ,db: postgres  ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow access from local docker network' }
-        node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
-
+        node_crontab:
+          - '00 01 * * * postgres /pg/bin/pg-backup full'  # make a full backup every 1am
+          - '*  *  * * * postgres /pg/bin/supa-kick'       # kick supabase _analytics lag per minute: https://github.com/pgsty/pigsty/issues/581
 
   #==============================================================#
   # Global Parameters
   #==============================================================#
   vars:
-    version: v3.4.1                   # pigsty version string
+    version: v3.5.0                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
     region: default                   # upstream mirror region: default|china|europe
     node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
