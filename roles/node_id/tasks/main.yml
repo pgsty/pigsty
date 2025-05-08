@@ -64,18 +64,26 @@
     - name: build node identity
       connection: local
       set_fact:
-        nodename:       "{% if node_id_from_pg|bool and pg_cluster is defined and pg_seq is defined and pg_cluster != '' and pg_seq != '' %}{{ pg_cluster }}-{{ pg_seq }}{% else %}{{ nodename|default(omit) }}{% endif %}"
-        node_cluster:   "{% if node_id_from_pg|bool and pg_cluster is defined and pg_cluster != '' and (node_cluster is not defined or node_cluster == 'nodes' or node_cluster == '') %}{{ pg_cluster }}{% else %}{{ node_cluster|default('nodes') }}{% endif %}"
-        node_os_code:   "{% if os_package == 'rpm' %}el{{ os_version }}{% elif os_package == 'deb' %}{{ os_vendor[0] }}{{ os_version }}{% endif %}"  # el7, el8, el9, u20, u22, u24, d12
-        node_mem_bytes: "{{ node_pages|int * node_page_size|int }}"
-        node_mem_mb:    "{{ (node_pages|int * node_page_size|int / 1048576) | round(0, 'ceil')|int }}"
-        node_mem_gb:    "{{ [ (node_pages|int * node_page_size|int / 1073741824) | round(0, 'ceil')|int , 1 ] | max }}"
+        nodename:        "{% if node_id_from_pg|bool and pg_cluster is defined and pg_seq is defined and pg_cluster != '' and pg_seq != '' %}{{ pg_cluster }}-{{ pg_seq }}{% else %}{{ nodename|default(omit) }}{% endif %}"
+        node_cluster:    "{% if node_id_from_pg|bool and pg_cluster is defined and pg_cluster != '' and (node_cluster is not defined or node_cluster == 'nodes' or node_cluster == '') %}{{ pg_cluster }}{% else %}{{ node_cluster|default('nodes') }}{% endif %}"
+        node_os_code:    "{% if os_package == 'rpm' %}el{{ os_version }}{% elif os_package == 'deb' %}{{ os_vendor[0] }}{{ os_version }}{% endif %}"  # el7, el8, el9, u20, u22, u24, d12
+        node_os_code_fb: "{% if os_package == 'rpm' %}el9{% elif os_package == 'deb' %}{% if os_vendor == 'ubuntu' %}u22{% else %}d12{% endif %}{% endif %}"  # fallback to el9, u22, d12
+        node_mem_bytes:  "{{ node_pages|int * node_page_size|int }}"
+        node_mem_mb:     "{{ (node_pages|int * node_page_size|int / 1048576) | round(0, 'ceil')|int }}"
+        node_mem_gb:     "{{ [ (node_pages|int * node_page_size|int / 1073741824) | round(0, 'ceil')|int , 1 ] | max }}"
 
     # load os ad hoc vars according to os_package (rpm/deb) (and optional aarch64 setup)
-    - name: load {{ os_vendor }}.{{ os_version }} {{ os_arch }} vars
+    - name: load os arch specific vars
       become: no
       connection: local
-      include_vars: { file: "{{ role_path }}/vars/{{ node_os_code }}.{{ os_arch }}.yml" }
+      block:
+        - name: load roles/node_id/vars/{{ node_os_code }}.{{ os_arch }}.yml
+          include_vars: { file: "{{ role_path }}/vars/{{ node_os_code }}.{{ os_arch }}.yml" }
+          ignore_errors: yes
+          register: primary_vars_result
+        - name: fallback to {{ node_os_code_fb }}.{{ os_arch }}.yml if {{ node_os_code }}.{{ os_arch }}.yml not exists
+          include_vars: { file: "{{ role_path }}/vars/{{ node_os_code_fb }}.{{ os_arch }}.yml" }
+          when: primary_vars_result is failed
 
     # nodename, cluster, spec, os and modules
     - name: print node identity
