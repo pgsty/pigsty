@@ -97,8 +97,8 @@
     "panels": [
         {
             "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
+                "type": "marcusolsson-static-datasource",
+                "uid": "ds-static"
             },
             "description": "",
             "fieldConfig": {
@@ -121,63 +121,10 @@
                 "overrides": [
                     {
                         "matcher": {
-                            "id": "byName",
-                            "options": "Cluster"
+                            "id": "byFrameRefID",
+                            "options": "A"
                         },
                         "properties": [
-                            {
-                                "id": "displayName",
-                                "value": "${cls}"
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "1": {
-                                                "index": 0,
-                                                "text": "Cluster"
-                                            }
-                                        },
-                                        "type": "value"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "links",
-                                "value": [
-                                    {
-                                        "title": "Node Cluster : ${cls}",
-                                        "url": "/d/node-cluster?var-cls=${cls}&${__url_time_range}"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Instance"
-                        },
-                        "properties": [
-                            {
-                                "id": "displayName",
-                                "value": "${ins}"
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "1": {
-                                                "index": 0,
-                                                "text": "Instance"
-                                            }
-                                        },
-                                        "type": "value"
-                                    }
-                                ]
-                            },
                             {
                                 "id": "links",
                                 "value": [
@@ -191,34 +138,16 @@
                     },
                     {
                         "matcher": {
-                            "id": "byName",
-                            "options": "Database"
+                            "id": "byFrameRefID",
+                            "options": "B"
                         },
                         "properties": [
-                            {
-                                "id": "displayName",
-                                "value": "${datname}"
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "1": {
-                                                "index": 0,
-                                                "text": "Database"
-                                            }
-                                        },
-                                        "type": "value"
-                                    }
-                                ]
-                            },
                             {
                                 "id": "links",
                                 "value": [
                                     {
-                                        "title": "PGCAT Database : ${ins}.${datname}",
-                                        "url": "/d/pgcat-database?var-dsn=$ins.$datname"
+                                        "title": "PGSQL Databases : ${cls}",
+                                        "url": "/d/pgsql-databases?var-cls=${cls}&var-datname=${datname}&${__url_time_range}"
                                     }
                                 ]
                             }
@@ -226,28 +155,27 @@
                     },
                     {
                         "matcher": {
-                            "id": "byName",
-                            "options": "Query"
+                            "id": "byFrameRefID",
+                            "options": "C"
                         },
                         "properties": [
                             {
-                                "id": "displayName",
-                                "value": "${query}"
-                            },
-                            {
-                                "id": "mappings",
+                                "id": "links",
                                 "value": [
                                     {
-                                        "options": {
-                                            "1": {
-                                                "index": 0,
-                                                "text": "QueryID"
-                                            }
-                                        },
-                                        "type": "value"
+                                        "title": "PGSQL Database : ${ins}.${datname}",
+                                        "url": "/d/pgsql-database?var-ins=$ins&var-datname=$datname&${__url_time_range}"
                                     }
                                 ]
-                            },
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byFrameRefID",
+                            "options": "D"
+                        },
+                        "properties": [
                             {
                                 "id": "links",
                                 "value": [
@@ -267,7 +195,7 @@
                 "x": 0,
                 "y": 0
             },
-            "id": 92,
+            "id": 98,
             "options": {
                 "colorMode": "background",
                 "graphMode": "area",
@@ -278,11 +206,14 @@
                     "calcs": [
                         "lastNotNull"
                     ],
-                    "fields": "",
-                    "values": false
+                    "fields": "/.*/",
+                    "values": true
                 },
                 "showPercentChange": false,
-                "text": {},
+                "text": {
+                    "titleSize": 16,
+                    "valueSize": 16
+                },
                 "textMode": "value_and_name",
                 "wideLayout": true
             },
@@ -290,63 +221,91 @@
             "targets": [
                 {
                     "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
+                        "type": "marcusolsson-static-datasource",
+                        "uid": "ds-static"
                     },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "1",
-                    "hide": false,
-                    "instant": true,
-                    "interval": "",
-                    "legendFormat": "Query",
-                    "queryType": "measurements",
-                    "refId": "C"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
+                    "frame": {
+                        "fields": [
+                            {
+                                "config": {},
+                                "name": "Query",
+                                "type": "string",
+                                "values": [
+                                    "${query}"
+                                ]
+                            }
+                        ],
+                        "meta": {},
+                        "name": ""
                     },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "1",
                     "hide": false,
-                    "instant": true,
-                    "interval": "",
-                    "legendFormat": "Database",
-                    "queryType": "measurements",
                     "refId": "D"
                 },
                 {
                     "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
+                        "type": "marcusolsson-static-datasource",
+                        "uid": "ds-static"
                     },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "1",
+                    "frame": {
+                        "fields": [
+                            {
+                                "config": {},
+                                "name": "Database",
+                                "type": "string",
+                                "values": [
+                                    "${datname}"
+                                ]
+                            }
+                        ],
+                        "meta": {},
+                        "name": ""
+                    },
                     "hide": false,
-                    "instant": true,
-                    "interval": "",
-                    "legendFormat": "Instance",
-                    "queryType": "measurements",
-                    "refId": "B"
+                    "refId": "C"
                 },
                 {
                     "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
+                        "type": "marcusolsson-static-datasource",
+                        "uid": "ds-static"
                     },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "1",
+                    "frame": {
+                        "fields": [
+                            {
+                                "config": {},
+                                "name": "Instance",
+                                "type": "string",
+                                "values": [
+                                    "$ins"
+                                ]
+                            }
+                        ],
+                        "meta": {},
+                        "name": ""
+                    },
                     "hide": false,
-                    "instant": true,
-                    "interval": "",
-                    "legendFormat": "Cluster",
-                    "queryType": "measurements",
                     "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "marcusolsson-static-datasource",
+                        "uid": "ds-static"
+                    },
+                    "frame": {
+                        "fields": [
+                            {
+                                "config": {},
+                                "name": "Cluster",
+                                "type": "string",
+                                "values": [
+                                    "${cls}"
+                                ]
+                            }
+                        ],
+                        "meta": {},
+                        "name": ""
+                    },
+                    "hide": false,
+                    "refId": "B"
                 }
             ],
             "title": "",
@@ -583,7 +542,7 @@
                         "properties": [
                             {
                                 "id": "custom.width",
-                                "value": 100
+                                "value": null
                             },
                             {
                                 "id": "unit",

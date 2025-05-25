@@ -94,14 +94,9 @@
             "url": ""
         }
     ],
-    "liveNow": false,
     "panels": [
         {
             "collapsed": false,
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
             "gridPos": {
                 "h": 1,
                 "w": 24,
@@ -115,8 +110,8 @@
         },
         {
             "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
+                "type": "marcusolsson-static-datasource",
+                "uid": "ds-static"
             },
             "description": "",
             "fieldConfig": {
@@ -131,8 +126,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#3e668f",
-                                "value": null
+                                "color": "#3e668f"
                             }
                         ]
                     }
@@ -140,34 +134,61 @@
                 "overrides": [
                     {
                         "matcher": {
-                            "id": "byName",
-                            "options": "LB Cluster"
+                            "id": "byFrameRefID",
+                            "options": "A"
                         },
                         "properties": [
-                            {
-                                "id": "displayName",
-                                "value": "${cls}"
-                            },
                             {
                                 "id": "mappings",
                                 "value": [
                                     {
                                         "options": {
-                                            "1": {
-                                                "index": 0,
-                                                "text": "LB Cluster"
+                                            "pattern": ".*-primary",
+                                            "result": {
+                                                "index": 0
                                             }
                                         },
-                                        "type": "value"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "links",
-                                "value": [
+                                        "type": "regex"
+                                    },
                                     {
-                                        "title": "Node Cluster : ${cls}",
-                                        "url": "/d/node-cluster?var-cls=${cls}&${__url_time_range}"
+                                        "options": {
+                                            "pattern": ".*-replica",
+                                            "result": {
+                                                "color": "#346f36cc",
+                                                "index": 1
+                                            }
+                                        },
+                                        "type": "regex"
+                                    },
+                                    {
+                                        "options": {
+                                            "pattern": ".*-offline",
+                                            "result": {
+                                                "color": "#7d7d7d",
+                                                "index": 2
+                                            }
+                                        },
+                                        "type": "regex"
+                                    },
+                                    {
+                                        "options": {
+                                            "pattern": ".*-default",
+                                            "result": {
+                                                "color": "#f5a673",
+                                                "index": 3
+                                            }
+                                        },
+                                        "type": "regex"
+                                    },
+                                    {
+                                        "options": {
+                                            "pattern": ".*-standby",
+                                            "result": {
+                                                "color": "#b783af",
+                                                "index": 4
+                                            }
+                                        },
+                                        "type": "regex"
                                     }
                                 ]
                             }
@@ -175,60 +196,33 @@
                     },
                     {
                         "matcher": {
-                            "id": "byName",
-                            "options": "Service"
+                            "id": "byFrameRefID",
+                            "options": "B"
                         },
                         "properties": [
-                            {
-                                "id": "displayName",
-                                "value": "${svc}"
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "1": {
-                                                "index": 0,
-                                                "text": "Service"
-                                            }
-                                        },
-                                        "type": "value"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "PG Cluster"
-                        },
-                        "properties": [
-                            {
-                                "id": "displayName",
-                                "value": "${pg_cls}"
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "1": {
-                                                "index": 0,
-                                                "text": "PG Cluster"
-                                            }
-                                        },
-                                        "type": "value"
-                                    }
-                                ]
-                            },
                             {
                                 "id": "links",
                                 "value": [
                                     {
                                         "title": "PGSQL Cluster : ${pg_cls}",
                                         "url": "/d/pgsql-cluster?var-cls=${pg_cls}&${__url_time_range}"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byFrameRefID",
+                            "options": "C"
+                        },
+                        "properties": [
+                            {
+                                "id": "links",
+                                "value": [
+                                    {
+                                        "title": "Node Cluster : ${cls}",
+                                        "url": "/d/node-cluster?var-cls=${cls}&${__url_time_range}"
                                     }
                                 ]
                             }
@@ -242,7 +236,7 @@
                 "x": 0,
                 "y": 1
             },
-            "id": 96,
+            "id": 103,
             "options": {
                 "colorMode": "background",
                 "graphMode": "area",
@@ -253,65 +247,86 @@
                     "calcs": [
                         "lastNotNull"
                     ],
-                    "fields": "",
-                    "values": false
+                    "fields": "/.*/",
+                    "values": true
                 },
                 "showPercentChange": false,
                 "text": {
-                    "titleSize": 20,
+                    "titleSize": 16,
                     "valueSize": 16
                 },
                 "textMode": "value_and_name",
                 "wideLayout": true
             },
-            "pluginVersion": "11.1.3",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
+                        "type": "marcusolsson-static-datasource",
+                        "uid": "ds-static"
                     },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "1",
-                    "hide": false,
-                    "instant": true,
-                    "interval": "",
-                    "legendFormat": "Service",
-                    "queryType": "measurements",
-                    "refId": "B"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
+                    "frame": {
+                        "fields": [
+                            {
+                                "config": {},
+                                "name": "Service",
+                                "type": "string",
+                                "values": [
+                                    "${svc}"
+                                ]
+                            }
+                        ],
+                        "meta": {},
+                        "name": ""
                     },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "1",
                     "hide": false,
-                    "instant": true,
-                    "interval": "",
-                    "legendFormat": "PG Cluster",
-                    "queryType": "measurements",
                     "refId": "A"
                 },
                 {
                     "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
+                        "type": "marcusolsson-static-datasource",
+                        "uid": "ds-static"
                     },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "1",
+                    "frame": {
+                        "fields": [
+                            {
+                                "config": {},
+                                "name": "LB Cluster",
+                                "type": "string",
+                                "values": [
+                                    "${cls}"
+                                ]
+                            }
+                        ],
+                        "meta": {}
+                    },
                     "hide": false,
-                    "instant": true,
-                    "interval": "",
-                    "legendFormat": "LB Cluster",
-                    "queryType": "measurements",
                     "refId": "C"
+                },
+                {
+                    "datasource": {
+                        "type": "marcusolsson-static-datasource",
+                        "uid": "ds-static"
+                    },
+                    "frame": {
+                        "fields": [
+                            {
+                                "config": {},
+                                "name": "PG Cluster",
+                                "type": "string",
+                                "values": [
+                                    "${pg_cls}"
+                                ]
+                            }
+                        ],
+                        "meta": {},
+                        "name": ""
+                    },
+                    "hide": false,
+                    "refId": "B"
                 }
             ],
+            "title": "",
             "type": "stat"
         },
         {
@@ -337,8 +352,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc",
-                                "value": null
+                                "color": "#346f36cc"
                             }
                         ]
                     }
@@ -494,7 +508,7 @@
                     }
                 ]
             },
-            "pluginVersion": "11.1.3",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "datasource": {
@@ -526,6 +540,7 @@
                     "refId": "B"
                 }
             ],
+            "title": "",
             "transformations": [
                 {
                     "id": "seriesToColumns",
@@ -572,6 +587,7 @@
                         "mode": "thresholds"
                     },
                     "custom": {
+                        "axisPlacement": "auto",
                         "fillOpacity": 60,
                         "hideFrom": {
                             "legend": false,
@@ -604,8 +620,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#cc4637d9",
-                                "value": null
+                                "color": "#cc4637d9"
                             },
                             {
                                 "color": "#346f36cc",
@@ -634,10 +649,12 @@
                 "rowHeight": 0.9,
                 "showValue": "never",
                 "tooltip": {
+                    "hideZeros": false,
                     "mode": "single",
                     "sort": "none"
                 }
             },
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "datasource": {
@@ -652,6 +669,7 @@
                     "refId": "A"
                 }
             ],
+            "title": "",
             "type": "state-timeline"
         },
         {
@@ -669,8 +687,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#7b7b7bcc",
-                                "value": null
+                                "color": "#7b7b7bcc"
                             },
                             {
                                 "color": "#346f36cc",
@@ -706,7 +723,7 @@
                 "textMode": "auto",
                 "wideLayout": true
             },
-            "pluginVersion": "11.1.3",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "datasource": {
@@ -750,6 +767,7 @@
                     "refId": "C"
                 }
             ],
+            "title": "",
             "type": "stat"
         },
         {
@@ -770,6 +788,7 @@
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "bars",
                         "fillOpacity": 64,
                         "gradientMode": "none",
@@ -812,8 +831,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc",
-                                "value": null
+                                "color": "#346f36cc"
                             }
                         ]
                     },
@@ -840,11 +858,12 @@
                     "sortDesc": true
                 },
                 "tooltip": {
+                    "hideZeros": false,
                     "mode": "multi",
                     "sort": "none"
                 }
             },
-            "pluginVersion": "8.0.0-beta2",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "datasource": {
@@ -886,8 +905,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "text",
-                                "value": null
+                                "color": "text"
                             },
                             {
                                 "color": "#7771a4",
@@ -947,7 +965,7 @@
                 "textMode": "value_and_name",
                 "wideLayout": true
             },
-            "pluginVersion": "11.1.3",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "datasource": {
@@ -963,6 +981,7 @@
                     "refId": "A"
                 }
             ],
+            "title": "",
             "type": "stat"
         },
         {
@@ -989,8 +1008,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#e3e3e3e0",
-                                "value": null
+                                "color": "#e3e3e3e0"
                             },
                             {
                                 "color": "#e3e3e3e0",
@@ -1286,7 +1304,7 @@
                     }
                 ]
             },
-            "pluginVersion": "11.1.3",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "datasource": {
@@ -1376,8 +1394,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#e3e3e3e0",
-                                "value": null
+                                "color": "#e3e3e3e0"
                             },
                             {
                                 "color": "transparent",
@@ -1673,7 +1690,7 @@
                     }
                 ]
             },
-            "pluginVersion": "11.1.3",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "datasource": {
@@ -1742,10 +1759,6 @@
         },
         {
             "collapsed": false,
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
             "gridPos": {
                 "h": 1,
                 "w": 24,
@@ -1782,8 +1795,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc",
-                                "value": null
+                                "color": "#346f36cc"
                             }
                         ]
                     }
@@ -1963,8 +1975,7 @@
                                     "mode": "absolute",
                                     "steps": [
                                         {
-                                            "color": "#3e668f",
-                                            "value": null
+                                            "color": "#3e668f"
                                         },
                                         {
                                             "color": "#346f36cc",
@@ -2087,7 +2098,7 @@
                     }
                 ]
             },
-            "pluginVersion": "11.1.3",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "datasource": {
@@ -2148,6 +2159,7 @@
                     "refId": "C"
                 }
             ],
+            "title": "",
             "transformations": [
                 {
                     "id": "seriesToColumns",
@@ -2215,6 +2227,7 @@
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 70,
                         "gradientMode": "none",
@@ -2257,8 +2270,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "green",
-                                "value": null
+                                "color": "green"
                             }
                         ]
                     },
@@ -2283,11 +2295,12 @@
                     "showLegend": true
                 },
                 "tooltip": {
+                    "hideZeros": false,
                     "mode": "multi",
                     "sort": "none"
                 }
             },
-            "pluginVersion": "8.0.0-beta2",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "exemplar": false,
@@ -2318,6 +2331,7 @@
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 10,
                         "gradientMode": "none",
@@ -2356,8 +2370,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc",
-                                "value": null
+                                "color": "#346f36cc"
                             }
                         ]
                     },
@@ -2383,11 +2396,12 @@
                     "showLegend": true
                 },
                 "tooltip": {
+                    "hideZeros": false,
                     "mode": "single",
                     "sort": "none"
                 }
             },
-            "pluginVersion": "7.4.3",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "exemplar": false,
@@ -2418,6 +2432,7 @@
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 5,
                         "gradientMode": "none",
@@ -2454,8 +2469,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc",
-                                "value": null
+                                "color": "#346f36cc"
                             }
                         ]
                     },
@@ -2480,11 +2494,12 @@
                     "showLegend": true
                 },
                 "tooltip": {
+                    "hideZeros": false,
                     "mode": "multi",
                     "sort": "none"
                 }
             },
-            "pluginVersion": "8.0.5",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "exemplar": false,
@@ -2539,8 +2554,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc",
-                                "value": null
+                                "color": "#346f36cc"
                             }
                         ]
                     }
@@ -2564,8 +2578,7 @@
                                     "mode": "absolute",
                                     "steps": [
                                         {
-                                            "color": "#f5a673",
-                                            "value": null
+                                            "color": "#f5a673"
                                         }
                                     ]
                                 }
@@ -2722,8 +2735,7 @@
                                     "mode": "absolute",
                                     "steps": [
                                         {
-                                            "color": "red",
-                                            "value": null
+                                            "color": "red"
                                         },
                                         {
                                             "color": "#3e668f",
@@ -2784,7 +2796,7 @@
                     }
                 ]
             },
-            "pluginVersion": "11.1.3",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "datasource": {
@@ -2827,6 +2839,7 @@
                     "refId": "C"
                 }
             ],
+            "title": "",
             "transformations": [
                 {
                     "id": "seriesToColumns",
@@ -2895,6 +2908,7 @@
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 70,
                         "gradientMode": "none",
@@ -2937,8 +2951,7 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc",
-                                "value": null
+                                "color": "#346f36cc"
                             }
                         ]
                     },
@@ -2963,11 +2976,12 @@
                     "showLegend": true
                 },
                 "tooltip": {
+                    "hideZeros": false,
                     "mode": "multi",
                     "sort": "none"
                 }
             },
-            "pluginVersion": "8.0.0-beta2",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "datasource": {
@@ -3005,6 +3019,7 @@
                         "axisPlacement": "auto",
                         "axisSoftMin": 0,
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 0,
                         "gradientMode": "none",
@@ -3069,11 +3084,12 @@
                     "showLegend": true
                 },
                 "tooltip": {
+                    "hideZeros": false,
                     "mode": "single",
                     "sort": "none"
                 }
             },
-            "pluginVersion": "7.4.3",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "datasource": {
@@ -3110,6 +3126,7 @@
                         "axisLabel": "",
                         "axisPlacement": "auto",
                         "barAlignment": 0,
+                        "barWidthFactor": 0.6,
                         "drawStyle": "line",
                         "fillOpacity": 5,
                         "gradientMode": "none",
@@ -3175,11 +3192,12 @@
                     "showLegend": true
                 },
                 "tooltip": {
+                    "hideZeros": false,
                     "mode": "multi",
                     "sort": "none"
                 }
             },
-            "pluginVersion": "8.0.5",
+            "pluginVersion": "12.0.0",
             "targets": [
                 {
                     "exemplar": false,
@@ -3302,12 +3320,13 @@
                     "refId": "A"
                 }
             ],
+            "title": "",
             "type": "state-timeline"
         }
     ],
+    "preload": false,
     "refresh": "",
-    "revision": 1,
-    "schemaVersion": 39,
+    "schemaVersion": 41,
     "tags": [
         "Pigsty",
         "PGSQL",
@@ -3324,10 +3343,8 @@
                 },
                 "definition": "label_values(haproxy_server_status,proxy)",
                 "description": "",
-                "hide": 0,
                 "includeAll": false,
                 "label": "Service",
-                "multi": false,
                 "name": "svc",
                 "options": [],
                 "query": {
@@ -3336,12 +3353,8 @@
                 },
                 "refresh": 1,
                 "regex": "",
-                "skipUrlSync": false,
                 "sort": 1,
-                "tagValuesQuery": "",
-                "tagsQuery": "",
-                "type": "query",
-                "useTags": false
+                "type": "query"
             },
             {
                 "current": {},
@@ -3354,7 +3367,6 @@
                 "hide": 2,
                 "includeAll": false,
                 "label": "Cluster",
-                "multi": false,
                 "name": "cls",
                 "options": [],
                 "query": {
@@ -3363,12 +3375,8 @@
                 },
                 "refresh": 1,
                 "regex": "",
-                "skipUrlSync": false,
                 "sort": 1,
-                "tagValuesQuery": "",
-                "tagsQuery": "",
-                "type": "query",
-                "useTags": false
+                "type": "query"
             },
             {
                 "current": {},
@@ -3381,7 +3389,6 @@
                 "hide": 2,
                 "includeAll": true,
                 "label": "Proxies",
-                "multi": false,
                 "name": "proxies",
                 "options": [],
                 "query": {
@@ -3390,12 +3397,8 @@
                 },
                 "refresh": 1,
                 "regex": "",
-                "skipUrlSync": false,
                 "sort": 1,
-                "tagValuesQuery": "",
-                "tagsQuery": "",
-                "type": "query",
-                "useTags": false
+                "type": "query"
             },
             {
                 "current": {},
@@ -3408,7 +3411,6 @@
                 "hide": 2,
                 "includeAll": true,
                 "label": "Servers",
-                "multi": false,
                 "name": "servers",
                 "options": [],
                 "query": {
@@ -3417,12 +3419,8 @@
                 },
                 "refresh": 1,
                 "regex": "",
-                "skipUrlSync": false,
                 "sort": 1,
-                "tagValuesQuery": "",
-                "tagsQuery": "",
-                "type": "query",
-                "useTags": false
+                "type": "query"
             },
             {
                 "current": {},
@@ -3435,7 +3433,6 @@
                 "hide": 2,
                 "includeAll": false,
                 "label": "PG Cluster",
-                "multi": false,
                 "name": "pg_cls",
                 "options": [],
                 "query": {
@@ -3444,12 +3441,8 @@
                 },
                 "refresh": 1,
                 "regex": "",
-                "skipUrlSync": false,
                 "sort": 1,
-                "tagValuesQuery": "",
-                "tagsQuery": "",
-                "type": "query",
-                "useTags": false
+                "type": "query"
             },
             {
                 "current": {},
@@ -3462,7 +3455,6 @@
                 "hide": 2,
                 "includeAll": false,
                 "label": "Node Cluster",
-                "multi": false,
                 "name": "node_cls",
                 "options": [],
                 "query": {
@@ -3471,12 +3463,8 @@
                 },
                 "refresh": 1,
                 "regex": "",
-                "skipUrlSync": false,
                 "sort": 1,
-                "tagValuesQuery": "",
-                "tagsQuery": "",
-                "type": "query",
-                "useTags": false
+                "type": "query"
             }
         ]
     },
@@ -3500,9 +3488,8 @@
             "1d"
         ]
     },
-    "timezone": "",
+    "timezone": "Asia/Shanghai",
     "title": "PGSQL Service",
     "uid": "pgsql-service",
-    "version": 1,
-    "weekStart": ""
+    "version": 1
 }
