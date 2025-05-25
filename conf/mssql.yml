@@ -51,35 +51,6 @@ all:
             parameters: { 'babelfishpg_tsql.migration_mode' : 'multi-db' }
             comment: babelfish cluster, a MSSQL compatible pg cluster
 
-    #----------------------------------#
-    # pgsql (3-node pgsql/mssql cluster)
-    #----------------------------------#
-    pg-test:
-      hosts:
-        10.10.10.11: { pg_seq: 1, pg_role: primary }
-        10.10.10.12: { pg_seq: 2, pg_role: replica }
-        10.10.10.13: { pg_seq: 3, pg_role: replica, pg_offline_query: true }
-      vars:
-        pg_cluster: pg-test
-        pg_users:                           # create MSSQL superuser
-          - {name: dbuser_mssql ,password: DBUser.MSSQL ,superuser: true, pgbouncer: true ,roles: [dbrole_admin], comment: superuser & owner for babelfish  }
-        pg_primary_db: mssql                # use `mssql` as the primary sql server database
-        pg_databases:
-          - name: mssql
-            baseline: mssql.sql             # init babelfish database & user
-            extensions:
-              - { name: uuid-ossp          }
-              - { name: babelfishpg_common }
-              - { name: babelfishpg_tsql   }
-              - { name: babelfishpg_tds    }
-              - { name: babelfishpg_money  }
-              - { name: pg_hint_plan       }
-              - { name: system_stats       }
-              - { name: tds_fdw            }
-            owner: dbuser_mssql
-            parameters: { 'babelfishpg_tsql.migration_mode' : 'single-db' }
-            comment: babelfish cluster, a MSSQL compatible pg cluster
-
   vars:
 
     #----------------------------------#

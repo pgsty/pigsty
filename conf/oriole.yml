@@ -39,23 +39,6 @@ all:
           - {name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty], extensions: [orioledb]}
         pg_hba_rules:
           - {user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes'}
-        pg_vip_enabled: true
-        pg_vip_address: 10.10.10.2/24
-        pg_vip_interface: eth1
-
-    # orioledb 3-node ha cluster: 10.10.10.3 ---> 10.10.10.1{1,2,3}
-    pg-test:
-      hosts:
-        10.10.10.11: { pg_seq: 1, pg_role: primary }   # primary instance, leader of cluster
-        10.10.10.12: { pg_seq: 2, pg_role: replica }   # replica instance, follower of leader
-        10.10.10.13: { pg_seq: 3, pg_role: replica, pg_offline_query: true } # replica with offline access
-      vars:
-        pg_cluster: pg-test           # define pgsql cluster name
-        pg_users:  [{ name: test , password: test , pgbouncer: true , roles: [ dbrole_admin ] }]
-        pg_databases: [{ name: test, extensions: [orioledb] }]
-        pg_vip_enabled: true
-        pg_vip_address: 10.10.10.3/24
-        pg_vip_interface: eth1
 
   vars:                               # global variables
     version: v3.5.0                   # pigsty version string
