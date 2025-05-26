@@ -1,10 +1,10 @@
 ---
 #--------------------------------------------------------------#
-# PostgreSQL Database Superuser                        [pg_dbsu]
+# PostgreSQL Database Superuser                 [pg_dbsu_create]
 #--------------------------------------------------------------#
 - name: create postgres dbsu
   become: yes
-  tags: pg_dbsu
+  tags: [ pg_dbsu, pg_dbsu_create ]
   block:
 
     # uid = 26 (el rpm default) is already used by other user in debian system
@@ -22,34 +22,37 @@
     - name: create postgres dbsu
       user: name={{ pg_dbsu }} uid={{ pg_dbsu_uid }} home={{ pg_dbsu_home }} group=postgres groups=postgres shell=/bin/bash generate_ssh_key=yes
 
-    # - dbsu privilege - #
-    # all    : require password to execute all sudo command! NOT RECOMMENDED!
-    # limit  : only allow sudo command with limited privilege! DEFAULT MODE!
-    # nopass : no password required to execute all sudo command! DANGEROUS!
-    - name: grant postgres dbsu sudo privilege
-      tags: pg_dbsu_sudo
-      copy:
-        dest: /etc/sudoers.d/postgres
-        mode: 0440
-        content: |
-          {% if pg_dbsu_sudo == 'nopass' %}postgres ALL=(ALL) NOPASSWD: ALL{% endif %}
-          {% if pg_dbsu_sudo == 'all' %}postgres ALL=(ALL) ALL{% endif %}
-          {% if pg_dbsu_sudo == 'limit' %}
-          %postgres ALL=NOPASSWD: /sbin/modprobe softdog
-          %postgres ALL=NOPASSWD: /bin/chown {{ pg_dbsu }} /dev/watchdog
-          {% for svc in ['postgres', 'pgbouncer', 'patroni', 'pgbackrest', 'pg_exporter', 'pgbouncer_exporter',  'pgbackrest_exporter', 'vip-manager' ] %}
-          %postgres ALL=NOPASSWD: /bin/systemctl stop {{ svc }}
-          %postgres ALL=NOPASSWD: /bin/systemctl start {{ svc }}
-          %postgres ALL=NOPASSWD: /bin/systemctl status {{ svc }}
-          %postgres ALL=NOPASSWD: /bin/systemctl reload {{ svc }}
-          %postgres ALL=NOPASSWD: /bin/systemctl restart {{ svc }}
-          
-          {% endfor %}
-          %postgres ALL=NOPASSWD: /bin/systemctl reload haproxy
-          {% endif %}
+#--------------------------------------------------------------#
+# PostgreSQL Database Superuser                   [pg_dbsu_sudo]
+#--------------------------------------------------------------#
+# - dbsu privilege - #
+# all    : require password to execute all sudo command! NOT RECOMMENDED!
+# limit  : only allow sudo command with limited privilege! DEFAULT MODE!
+# nopass : no password required to execute all sudo command! DANGEROUS!
+- name: grant postgres dbsu sudo privilege
+  tags: [ pg_dbsu, pg_dbsu_sudo ]
+  copy:
+    dest: /etc/sudoers.d/postgres
+    mode: 0440
+    content: |
+      {% if pg_dbsu_sudo == 'nopass' %}postgres ALL=(ALL) NOPASSWD: ALL{% endif %}
+      {% if pg_dbsu_sudo == 'all' %}postgres ALL=(ALL) ALL{% endif %}
+      {% if pg_dbsu_sudo == 'limit' %}
+      %postgres ALL=NOPASSWD: /sbin/modprobe softdog
+      %postgres ALL=NOPASSWD: /bin/chown {{ pg_dbsu }} /dev/watchdog
+      {% for svc in ['postgres', 'pgbouncer', 'patroni', 'pgbackrest', 'pg_exporter', 'pgbouncer_exporter',  'pgbackrest_exporter', 'vip-manager' ] %}
+      %postgres ALL=NOPASSWD: /bin/systemctl stop {{ svc }}
+      %postgres ALL=NOPASSWD: /bin/systemctl start {{ svc }}
+      %postgres ALL=NOPASSWD: /bin/systemctl status {{ svc }}
+      %postgres ALL=NOPASSWD: /bin/systemctl reload {{ svc }}
+      %postgres ALL=NOPASSWD: /bin/systemctl restart {{ svc }}
+      
+      {% endfor %}
+      %postgres ALL=NOPASSWD: /bin/systemctl reload haproxy
+      {% endif %}
 
 #--------------------------------------------------------------#
-# PostgreSQL Database Superuser                         [pg_ssh]
+# Exchange SSH among PostgreSQL DBSU                    [pg_ssh]
 #--------------------------------------------------------------#
 - name: exchange postgres dbsu ssh keys
   become: yes
