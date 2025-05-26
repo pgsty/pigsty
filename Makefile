@@ -160,6 +160,7 @@ prometheus:
 # init grafana
 grafana:
 	./infra.yml --tags=grafana
+	./pgsql.yml --tags=register_grafana
 
 # init loki
 loki:
