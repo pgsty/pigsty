@@ -33,10 +33,12 @@
 #--------------------------------------------------------------#
 # Register Grafana               [pg_register, register_grafana]
 #--------------------------------------------------------------#
+# the database 'postgres' is registered by default
+# if postgres is explicitly defined, it will be overridden
 - include_tasks: register_grafana.yml
   tags: [ pg_register, register_grafana ]
   when: grafana_enabled|bool and pg_provision|bool
   vars: { database: "{{ item }}" }
-  with_items: "{{ pg_databases }}"
+  with_items: "{{ [{'name': 'postgres'}] + pg_databases|default([]) }}"
 
 ...
