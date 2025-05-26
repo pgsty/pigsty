@@ -4,7 +4,7 @@
 # File      :   pgsql-rm.yml
 # Desc      :   remove pgsql from hosts
 # Ctime     :   2020-05-12
-# Mtime     :   2025-04-24
+# Mtime     :   2025-05-26
 # Path      :   pgsql-rm.yml
 # License   :   AGPLv3 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -16,9 +16,9 @@
   ignore_errors: yes
   vars:
     pg_uninstall: false                # uninstall pg_packages? false by default
-    #pg_safeguard: false               # prevent purging running postgres instance? false by default
-    #pg_clean: true                    # remove postgres data? true by default
-    #pgbackrest_clean: true            # remove pgbackrest backup stanza? true by default
+    pg_rm_data: true                  # remove postgres data during remove? true by default
+    pg_rm_bkup: true                  # remove pgbackrest backup during primary remove? true by default
+    pg_rm_pkg: true                   # uninstall postgres packages during remove? true by default
   roles: [ { role: node_id }, { role: pg_remove } ]
 
 
@@ -26,11 +26,11 @@
 # Usage
 #--------------------------------------------------------------#
 #  Remove pgsql cluster `pg-test`
-#     pgsql-rm.yml -l pg-test       # remove cluster `pg-test`
-#         -e pg_clean=true          # remove postgres data by default
-#         -e pgbackrest_clean=true  # remove postgres backup by default (when removing primary)
-#         -e pg_uninstall=false     # do not uninstall pg packages by default, explicit override required
-#         -e pg_safeguard=false     # purge safeguard is not enabled by default, explicit override required
+#     pgsql-rm.yml -l pg-test    # remove cluster `pg-test`
+#         -e pg_rm_data=true     # remove postgres data by default
+#         -e pg_rm_bkup=true     # remove postgres backup by default (when removing primary)
+#         -e pg_rm_pkg=false     # do not uninstall pg packages by default, explicit override required
+#         -e pg_safeguard=false  # safeguard is not enabled by default, if enabled, can be override with cli args
 #
 #  Remove a pgsql replica:
 #     pgsql-rm.yml -l 10.10.10.13   # remove instance `10.10.10.13` from cluster `pg-test`
@@ -46,23 +46,27 @@
 #--------------------------------------------------------------#
 # Tasks
 #--------------------------------------------------------------#
-# register       : remove registration in prometheus, grafana, nginx
-#   - prometheus : remove monitor target from prometheus
-#   - grafana    : remove datasource from grafana
-# dns            : remove pg dns records
-# vip            : remove pg vip manager
-# pg_service     : remove service definition from haproxy
-# pg_monitor     : remove pg monitor exporters
-#  - pg_exporter         : remove postgres exporter
-#  - pgbouncer_exporter  : remove pgbouncer exporter
-#  - pgbackrest_exporter : remove pgbackrest exporter
-# pgbouncer      : remove pgbouncer connection middleware
-# postgres       : remove postgres instances
-#   - pg_replica : remove all replicas
-#   - pg_primary : remove primary instance
-#   - dcs        : remove metadata from dcs
-# pg_data        : remove postgres data (disable with `pg_clean=false`),
-# pgbackrest     : remove postgres backup when removing primary (disable with `pgbackrest_clean=false`),
-# pg_pkg         : remove postgres packages (enable with `pg_uninstall=true`)
+# pg_monitor               : remove registration in prometheus, grafana, nginx
+#   - prometheus           : remove monitor target from prometheus
+#   - grafana              : remove datasource from grafana
+#   - pg_exporter          : remove pg_exporter (postgres monitoring)
+#   - pgbouncer_exporter   : remove pgbouncer_exporter (pgbouncer monitoring)
+#   - pgbackrest_exporter  : remove pgbackrest_exporter (pgbackrest monitoring)
+#
+# pg_access                : remove pg service access
+#   - dns                  : remove pg dns records
+#   - vip                  : remove vip-manager
+#   - pg_service           : remove pg service from haproxy
+#   - pgbouncer            : remove pgbouncer connection middleware
+#
+# postgres                 : remove postgres instances
+#   - pg_replica           : remove all replicas
+#   - pg_primary           : remove primary instance
+#   - pg_meta              : remove metadata from dcs
+#
+# pg_backup                : remove backup repo    (disable with `pg_rm_bkup=false`)
+# pg_data                  : remove postgres data  (disable with `pg_rm_data=false`)
+# pg_pkg                   : uninstall pg packages (disable with `pg_rm_pkg=false`)
+#  - pg_ext                : uninstall postgres extensions alone
 #--------------------------------------------------------------#
 ...

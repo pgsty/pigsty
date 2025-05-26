@@ -1,0 +1,44 @@
+---
+#--------------------------------------------------------------#
+# remove packages                                       [pg_pkg]
+#--------------------------------------------------------------#
+- name: remove postgres packages
+  tags: pg_pkg
+  when: pg_rm_pkg|bool
+  ignore_errors: yes
+  block:
+
+    # remove pg path & alias
+    - name: remove postgres environ
+      file: path={{ item }} state=absent
+      with_items:
+        - /etc/profile.d/pgsql.sh
+        - /etc/profile.d/pg-alias.sh
+
+    - name: lookup pg packages & extensions names
+      become: no
+      connection: local
+      tags: [ pg_extension, pg_ext ]
+      set_fact:
+        pg_packages_list: |-
+          {% set pkg_map = package_map | default({}) %}
+          {% for pkg_list in pg_packages %}{% for pkg in pkg_list | trim | regex_replace('(,|\\s)+', ',') | regex_findall('([^,\\s]+)') | default([]) %}{% if pkg != '' %}{% if pkg in pkg_map %}{% set pkg = pkg_map[pkg] %}{% endif %}{% if not loop.first %},{% endif %}{{ pkg|replace('${pg_version}', pg_version|string)|replace('$v', pg_version|string) }}{% endif %}{% endfor %}
+          
+          {% endfor %}
+        pg_extension_list: |-
+          {% set pkg_map = package_map | default({}) %}
+          {% for ext_list in pg_extensions %}{% for ext in ext_list | trim | regex_replace('(,|\\s)+', ',') | regex_findall('([^,\\s]+)') | default([]) %}{% if ext != '' %}{% if ext in pkg_map %}{% set ext = pkg_map[ext] %}{% endif %}{% if not loop.first %},{% endif %}{{ ext|replace('${pg_version}', pg_version|string)|replace('$v', pg_version|string) }}{% endif %}{% endfor %}
+          
+          {% endfor %}
+
+    # uninstall extensions first
+    - name: uninstall pg extensions
+      tags: [ pg_extension, pg_ext ]
+      package: name={{ item }} state=absent
+      with_items: "{{ pg_extension_list | trim | regex_findall('([^\\n]+)') | map('replace', '$v', pg_version|string) | list | map('replace', '${pg_version}', pg_version|string) | map('regex_replace', '(,|\\s)+', ',' ) | list }}"
+
+    - name: uninstall pg packages
+      package: name={{ item }} state=absent
+      with_items: "{{ pg_packages_list | trim | regex_findall('[^\\n]+') | map('replace', '$v', pg_version|string) | list | map('replace', '${pg_version}', pg_version|string) | map('regex_replace', '(,|\\s)+', ',' ) | list }}"
+
+...

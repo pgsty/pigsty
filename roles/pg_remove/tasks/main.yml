@@ -12,135 +12,94 @@
 
 
 #--------------------------------------------------------------#
-# remove exporter targets from prometheus           [prometheus]
+# remove targets from prometheus        [pg_monitor][prometheus]
 #--------------------------------------------------------------#
 - import_tasks: prometheus.yml
   when: prometheus_enabled|bool
-  tags: [ prometheus , register ]
-
+  tags: [ pg_monitor, prometheus , register ]
 
 #--------------------------------------------------------------#
-# remove pgsql datasource from grafana                 [grafana]
+# remove pgsql datasource from grafana     [pg_monitor][grafana]
 #--------------------------------------------------------------#
 - import_tasks: grafana.yml
   when: grafana_enabled|bool
-  tags: [ grafana , register ]
-
-
-#--------------------------------------------------------------#
-# remove pg dns records                                    [dns]
-#--------------------------------------------------------------#
-- import_tasks: dns.yml
-  tags: dns
-
+  tags: [ pg_monitor, grafana , register ]
 
 #--------------------------------------------------------------#
-# remove pg vip manager                                    [vip]
-#--------------------------------------------------------------#
-- import_tasks: vip.yml
-  tags: vip
-
-
-#--------------------------------------------------------------#
-# remove service                                    [pg_service]
-#--------------------------------------------------------------#
-- import_tasks: pg_service.yml
-  tags: [ haproxy, pg_service ]
-
-
-#--------------------------------------------------------------#
-# remove monitor                                    [pg_monitor]
+# remove postgres monitor              [pg_monitor][pg_exporter]
 #--------------------------------------------------------------#
 - import_tasks: pg_exporter.yml
-  tags: [ pg_exporter, pg_monitor ]
+  tags: [ pg_monitor, pg_exporter ]
 
+#--------------------------------------------------------------#
+# remove pgbouncer monitor      [pg_monitor][pgbouncer_exporter]
+#--------------------------------------------------------------#
 - import_tasks: pgbouncer_exporter.yml
-  tags: [ pgbouncer_exporter, pg_monitor ]
+  tags: [ pg_monitor, pgbouncer_exporter ]
 
+#--------------------------------------------------------------#
+# remove pgbackrest monitor    [pg_monitor][pgbackrest_exporter]
+#--------------------------------------------------------------#
 - import_tasks: pgbackrest_exporter.yml
-  tags: [ pgbackrest_exporter, pg_monitor ]
+  tags: [ pg_monitor, pgbackrest_exporter ]
 
 
 #--------------------------------------------------------------#
-# remove pgbouncer                                   [pgbouncer]
+# remove pg dns records                         [pg_access][dns]
+#--------------------------------------------------------------#
+- import_tasks: dns.yml
+  tags: [ pg_access, dns ]
+
+#--------------------------------------------------------------#
+# remove pg vip manager                         [pg_access][vip]
+#--------------------------------------------------------------#
+- import_tasks: vip.yml
+  tags: [ pg_access, vip ]
+
+#--------------------------------------------------------------#
+# remove service                         [pg_access][pg_service]
+#--------------------------------------------------------------#
+- import_tasks: pg_service.yml
+  tags: [ pg_access, pg_service, haproxy ]
+
+#--------------------------------------------------------------#
+# remove pgbouncer                        [pg_access][pgbouncer]
 #--------------------------------------------------------------#
 - import_tasks: pgbouncer.yml
-  tags: pgbouncer
+  tags: [ pg_access, pgbouncer ]
 
 
 #--------------------------------------------------------------#
-# remove postgres                                     [postgres]
+# remove postgres                       [pg_bootstrap][postgres]
 #--------------------------------------------------------------#
 # pg_replica, pg_primary, pg_meta
 - import_tasks: postgres.yml
-  tags: postgres
-
+  tags: [ pg_bootstrap, postgres, patroni ]
 
 #--------------------------------------------------------------#
-# remove backup                                     [pgbackrest]
+# remove backup                                      [pg_backup]
 #--------------------------------------------------------------#
 - import_tasks: pgbackrest.yml
-  tags: pgbackrest
-
+  tags: [ pg_backup, pgbackrest ]
+  when: pg_rm_bkup|bool
 
 #--------------------------------------------------------------#
 # remove data                                          [pg_data]
 #--------------------------------------------------------------#
 - name: remove postgres data
   tags: pg_data
-  when: pg_clean|bool
+  when: pg_rm_data|bool
   ignore_errors: yes
   file: path={{ item }} state=absent
   with_items:
     - /pg/data
     - "{{ pg_fs_main }}/postgres"
 
-
 #--------------------------------------------------------------#
-# remove packages                                       [pg_pkg]
+# uninstall packages (and extensions)                   [pg_pkg]
 #--------------------------------------------------------------#
-# pigsty will NOT uninstall postgres packages unless explicitly specified
-# example: ./pgsql-rm.yml -l <cls> -t pg_pkg -e pg_uninstall=true
-# to uninstall pg_extensions only:
-# ./pgsql-rm.yml -t pg_extension -e pg_uninstall=true
-
-- name: remove postgres packages
+# tag: pg_ext for remove extensions only
+- import_tasks: uninstall.yml
   tags: pg_pkg
-  when: pg_uninstall|bool
-  ignore_errors: yes
-  block:
-
-    # remove pg path & alias
-    - name: remove postgres environ
-      file: path={{ item }} state=absent
-      with_items:
-        - /etc/profile.d/pgsql.sh
-        - /etc/profile.d/pg-alias.sh
-
-    - name: lookup pg packages & extensions names
-      become: no
-      connection: local
-      tags: pg_extension
-      set_fact:
-        pg_packages_list: |-
-          {% set pkg_map = package_map | default({}) %}
-          {% for pkg_list in pg_packages %}{% for pkg in pkg_list | trim | regex_replace('(,|\\s)+', ',') | regex_findall('([^,\\s]+)') | default([]) %}{% if pkg != '' %}{% if pkg in pkg_map %}{% set pkg = pkg_map[pkg] %}{% endif %}{% if not loop.first %},{% endif %}{{ pkg|replace('${pg_version}', pg_version|string)|replace('$v', pg_version|string) }}{% endif %}{% endfor %}
-          
-          {% endfor %}
-        pg_extension_list: |-
-          {% set pkg_map = package_map | default({}) %}
-          {% for ext_list in pg_extensions %}{% for ext in ext_list | trim | regex_replace('(,|\\s)+', ',') | regex_findall('([^,\\s]+)') | default([]) %}{% if ext != '' %}{% if ext in pkg_map %}{% set ext = pkg_map[ext] %}{% endif %}{% if not loop.first %},{% endif %}{{ ext|replace('${pg_version}', pg_version|string)|replace('$v', pg_version|string) }}{% endif %}{% endfor %}
-          
-          {% endfor %}
-
-    # uninstall extensions first
-    - name: uninstall pg extensions
-      tags: pg_extension
-      package: name={{ item }} state=absent
-      with_items: "{{ pg_extension_list | trim | regex_findall('([^\\n]+)') | map('replace', '$v', pg_version|string) | list | map('replace', '${pg_version}', pg_version|string) | map('regex_replace', '(,|\\s)+', ',' ) | list }}"
-
-    - name: uninstall pg packages
-      package: name={{ item }} state=absent
-      with_items: "{{ pg_packages_list | trim | regex_findall('[^\\n]+') | map('replace', '$v', pg_version|string) | list | map('replace', '${pg_version}', pg_version|string) | map('regex_replace', '(,|\\s)+', ',' ) | list }}"
 
 ...
