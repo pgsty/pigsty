@@ -60,11 +60,10 @@
     {% else %}
     META_DIR="{{ pg_namespace|default('/pg') }}/{{ pg_cluster }}"
     {% endif %}
-    export ETCDCTL_API=3
     export ETCDCTL_ENDPOINTS="{% for ip in groups['etcd']|sort %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
     export ETCDCTL_CACERT=/etc/pki/ca.crt
-    export ETCDCTL_CERT=/etc/etcd/server.crt
-    export ETCDCTL_KEY=/etc/etcd/server.key
+    export ETCDCTL_CERT=/etc/pki/infra.crt
+    export ETCDCTL_KEY=/etc/pki/infra.key
     etcdctl del "${META_DIR}" --prefix=true
     /bin/true
   args: { executable: /bin/bash }
