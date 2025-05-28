@@ -2,7 +2,7 @@
 # File      :   aliyun-pro.yml
 # Desc      :   5-node oss building env for x86_64/aarch64
 # Ctime     :   2024-12-12
-# Mtime     :   2024-12-24
+# Mtime     :   2025-05-28
 # Path      :   tf/terraform
 # License   :   AGPLv3 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -15,8 +15,8 @@
 variable "architecture" {
   description = "The architecture type (amd64 or arm64), choose one from them"
   type        = string
-  #default     = "amd64"    # comment this to use arm64
-  default     = "arm64"   # uncomment this to use arm64
+  default     = "amd64"    # comment this to use arm64
+  #default     = "arm64"   # uncomment this to use arm64
 }
 
 locals {

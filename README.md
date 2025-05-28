@@ -5,7 +5,7 @@
 [![Version: v3.4.1](https://img.shields.io/badge/version-v3.4.1-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases/tag/v3.4.1)
 [![License: AGPLv3](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://pigsty.io/docs/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
-[![Extensions: 414](https://img.shields.io/badge/extensions-414-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pigsty.io/ext/list)
+[![Extensions: 421](https://img.shields.io/badge/extensions-421-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pigsty.io/ext/list)
 
 Battery-Included, Local-First **PostgreSQL** Distribution as a Free & Better **RDS** Alternative!
 
@@ -26,7 +26,7 @@ curl -fsSL https://repo.pigsty.io/get | bash -s v3.4.1
 
 ## Features
 
-- [**Extensible**](https://pigsty.io/about/extensibility/): **414** [**PG Extensions**](https://pigsty.io/ext/list) & **8** [**PG Kernel**](https://pigsty.io/docs/kernel) available, with [**MsSQL**](https://pigsty.io/docs/kernel/babelfish/), [**Oracle**](https://pigsty.io/docs/kernel/ivorysql/), [**MySQL**](https://pigsty.io/docs/kernel/openhalo/), [**Mongo**](https://pigsty.io/docs/ferret) compatibility.
+- [**Extensible**](https://pigsty.io/about/extensibility/): **421** [**PG Extensions**](https://pigsty.io/ext/list) & **8** [**PG Kernel**](https://pigsty.io/docs/kernel) available, with [**MsSQL**](https://pigsty.io/docs/kernel/babelfish/), [**Oracle**](https://pigsty.io/docs/kernel/ivorysql/), [**MySQL**](https://pigsty.io/docs/kernel/openhalo/), [**Mongo**](https://pigsty.io/docs/ferret) compatibility.
 - [**Reliable**](https://pigsty.io/about/reliability/): Self-healing [**HA**](https://pigsty.io/docs/concept/ha/) clusters with pre-configured [**PITR**](https://pigsty.io/docs/pgsql/arch#point-in-time-recovery) and built-in [**ACL**](https://pigsty.io/docs/pgsql/acl), [**CA & SSL**](https://pigsty.io/docs/reference/param/#ca) secure best practice.
 - [**Observable**](https://pigsty.io/about/observability/): SOTA monitoring for [**PG**](https://demo.pigsty.cc/d/pgrds-instance/pgrds-instance) / [**Infra**](https://pigsty.io/docs/infra) / [**Node**](https://pigsty.io/docs/node) based on **Prometheus** & **Grafana** stack: [**Demo**](https://demo.pigsty.cc) & [**Gallery**](https://github.com/pgsty/pigsty/wiki/Gallery).
 - [**Scalable**](https://pigsty.io/about/scalability/): Auto-routed & pooled customizable database [**Services**](https://pigsty.io/docs/concept/svc#default-service) [**Access**](https://pigsty.io/docs/concept/svc#access-service) with **haproxy**, **pgbouncer**, and **VIP**.
@@ -42,7 +42,7 @@ curl -fsSL https://repo.pigsty.io/get | bash -s v3.4.1
 
 ## Get Started
 
-[![Postgres: 17.4](https://img.shields.io/badge/PostgreSQL-17.4-%233E668F?style=flat&logo=postgresql&labelColor=3E668F&logoColor=white)](https://pigsty.io/docs/pgsql)
+[![Postgres: 17.5](https://img.shields.io/badge/PostgreSQL-17.5-%233E668F?style=flat&logo=postgresql&labelColor=3E668F&logoColor=white)](https://pigsty.io/docs/pgsql)
 [![Linux](https://img.shields.io/badge/Linux-AMD64-%23FCC624?style=flat&logo=linux&labelColor=FCC624&logoColor=black)](https://pigsty.io/docs/node)
 [![Linux](https://img.shields.io/badge/Linux-ARM64-%23FCC624?style=flat&logo=linux&labelColor=FCC624&logoColor=black)](https://pigsty.io/docs/node)
 [![EL Support: 8/9](https://img.shields.io/badge/EL-7/8/9-red?style=flat&logo=redhat&logoColor=red)](https://pigsty.io/ext/list/rpm)
@@ -462,7 +462,7 @@ pg-citus: # citus group
 --------
 
 You can deploy different kinds of PostgreSQL instance such as [`primary`](https://pigsty.io/docs/pgsql/config/#primary), [`replica`](https://pigsty.io/docs/pgsql/config/#replica), [`offline`](https://pigsty.io/docs/pgsql/config/#offline), [`delayed`](https://pigsty.io/docs/pgsql/config/#delayed-cluster), [`sync standby`](https://pigsty.io/docs/pgsql/config/#sync-standby), etc.,
-and customize with scene-optimize [**config templates**](https://pigsty.io/docs/conf/) and all **414** [**extensions**](https://pigsty.io/ext/list) out-of-the-box.
+and customize with scene-optimize [**config templates**](https://pigsty.io/docs/conf/) and all **421** [**extensions**](https://pigsty.io/ext/list) out-of-the-box.
 
 You can define [**Users**](https://pigsty.io/docs/pgsql/user/), [**Databases**](https://pigsty.io/docs/pgsql/db/), [**Service**](https://pigsty.io/docs/pgsql/svc/), [**HBAs**](https://pigsty.io/docs/pgsql/hba/) and other entities with code and provision them in one pass.
 You can even replace the vanilla [**`PostgreSQL`**](https://pigsty.io/docs/pgsql) [**Kernel**](https://pigsty.io/docs/kernel/) with exotic forks as an in-place replacement:
