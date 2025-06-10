@@ -80,7 +80,7 @@ install:
 #  (2). Download      :   shortcuts for downloading resources
 #  (3). Configure     :   shortcuts for configure pigsty
 #  (4). Install       :   shortcuts for running playbooks
-#  (5). Sandbox       :   shortcuts for mange sandbox vm nodes
+#  (5). Sandbox       :   shortcuts for manage sandbox vm nodes
 #  (6). Testing       :   shortcuts for testing features
 #  (7). Develop       :   shortcuts for dev purpose
 #  (8). Release       :   shortcuts for release and publish
@@ -92,7 +92,7 @@ install:
 ###############################################################
 #                      2. Download                            #
 ###############################################################
-# There are two things needs to be downloaded:
+# There are two things that need to be downloaded:
 #    pigsty.tgz    :   source code
 #    pkg.tgz       :   offline rpm packages (optional)
 #
@@ -106,7 +106,7 @@ src:
 ###############################################################
 #                      3. Configure                           #
 ###############################################################
-# there are several things needs to be checked before install
+# there are several things that need to be checked before install
 # use ./configure or `make config` to run interactive wizard
 # it will install ansible (from offline rpm repo if available)
 
@@ -227,7 +227,7 @@ dns:
 #------------------------------#
 # 3. start
 #------------------------------#
-# start will pull-up node and write ssh-config
+# start will pull up node and write ssh-config
 # it may take a while to download centos/7 box for the first time
 start: up ssh      # 1-node version
 ssh:               # add current vagrant ssh config to your ~/.ssh/pigsty_config

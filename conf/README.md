@@ -2,7 +2,7 @@
 
 This directory (`conf`) contains pigsty config templates, Which will be used during [`configure`](https://pigsty.io/docs/setup/install/#configure) procedure.
 
-Config templates can be designated using `./configure -c <conf>`, where the conf is relative path to `conf` directory (with or without `.yml` suffix).
+Config templates can be designated using `./configure -c <conf>`, where the conf is a relative path to `conf` directory (with or without `.yml` suffix).
 
 ```bash
 ./configure                     # use the meta.yml config template by default
