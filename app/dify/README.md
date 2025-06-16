@@ -106,7 +106,7 @@ Then expose dify web service via Pigsty's Nginx server:
 
 Don't forget to add `dify.pigsty` to your DNS or local `/etc/hosts` / `C:\Windows\System32\drivers\etc\hosts` to access via domain name.
 
-If you are using a public domain, consider using [Certbot](https://pigsty.io/docs/tasks/certbot/) to get a free SSL certificate.
+If you are using a public domain, consider using [Certbot](https://pgsty.com/docs/admin/cert) to get a free SSL certificate.
 
 ```bash
 certbot --nginx --agree-tos --email your@email.com -n -d dify.your.domain    # replace with your email & dify domain
