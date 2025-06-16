@@ -1,9 +1,9 @@
 # Pigsty
 
 [![Webite: pgsty.com](https://img.shields.io/badge/website-pgsty.com-slategray?style=flat&logo=cilium&logoColor=white)](https://pgsty.com)
-[![Docs](https://img.shields.io/badge/docs-slategray?style=flat&logo=cilium&logoColor=white)](https://pigsty.io/docs)
+[![Docs](https://img.shields.io/badge/docs-slategray?style=flat&logo=cilium&logoColor=white)](https://pgsty.com/docs)
 [![Version: v3.5.0](https://img.shields.io/badge/version-v3.5.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases/tag/v3.5.0)
-[![License: AGPLv3](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://pigsty.io/docs/about/license/)
+[![License: AGPLv3](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://pgsty.com/docs/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
 [![Extensions: 421](https://img.shields.io/badge/extensions-421-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pgsty.com/ext/list)
 
@@ -11,7 +11,7 @@ Battery-Included, Local-First **PostgreSQL** Distribution as a Free & Better **R
 
 > "**P**ostgreSQL **I**n **G**reat **STY**le": **P**ostgres, **I**nfras, **G**raphics, **S**ervice, **T**oolbox, it's all **Y**ours.
 
-[Website](https://pgsty.com) | [Org](https://github.com/pgsty) | [Docs](https://pgsty.com/docs) | [Extensions](https://pgsty.com/ext) | [Values](https://pigsty.io/about/values) | [Demo](https://demo.pigsty.cc) | [Blog](https://pigsty.io/blog) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [中文站点](https://pigsty.cc) | [博客](https://pigsty.cc/blog)
+[Website](https://pgsty.com) | [Org](https://github.com/pgsty) | [Docs](https://pgsty.com/docs) | [Extensions](https://pgsty.com/ext) | [Values](https://pigsty.io/about/values) | [Demo](https://demo.pigsty.io) | [Blog](https://pigsty.io/blog) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [中文站点](https://pigsty.cc) | [博客](https://pigsty.cc/blog)
 
 [![pigsty-desc](https://pigsty.io/img/pigsty/banner.en.jpg)](https://pigsty.io/about/values)
 
@@ -61,16 +61,15 @@ Next, [**bootstrap**](https://pgsty.com/docs/install/offline#bootstrap), [**conf
 ./bootstrap; ./configure; ./install.yml;
 ```
 
-Finally, you will get a pigsty singleton node [**ready**](https://pgsty.com/docs/install/interface), with Web service on port `80/443` and Postgres on port `5432`.
+Finally, you will get a pigsty [**singleton node ready**](https://pgsty.com/docs/install/start), with [Web service](https://pgsty.com/docs/install/interface) on port `80/443` and Postgres on port `5432`.
 
-> Consider [**Slim Installation**](https://pgsty.com/docs/install/minimal) if you only want essential components for HA PostgreSQL.
+> Consider [**Minimal Installation**](https://pgsty.com/docs/install/minimal) if you only want essential parts for HA PostgreSQL.
 
 
 <details><summary>Install with the pig cli</summary><br>
 
 ```bash
 curl -fsSL https://repo.pigsty.io/pig | bash
-curl -fsSL https://repo.pigsty.cc/pig | bash  # mirror
 ```
 
 Then you can launch pigsty with `pig sty` sub command:
@@ -87,24 +86,23 @@ pig sty install  # run the install.yml playbook
 
 <details><summary>Install with get script</summary><br>
 
-```
-$ curl -fsSL https://repo.pigsty.io/get | bash
+```bash
+$ curl https://repo.pigsty.io/get | bash
 [v3.5.0] ===========================================
 $ curl -fsSL https://repo.pigsty.io/get | bash
-[Site] https://pigsty.io
-[Demo] https://demo.pigsty.cc
+[Site] https://pgsty.com
+[Docs] https://pgsty.com/docs
+[Demo] https://demo.pigsty.io
 [Repo] https://github.com/pgsty/pigsty
-[Docs] https://pigsty.io/docs/setup/install
 [Download] ===========================================
 [ OK ] version = v3.5.0 (from default)
 curl -fSL https://repo.pigsty.io/src/pigsty-v3.5.0.tgz -o /tmp/pigsty-v3.5.0.tgz
 ######################################################################## 100.0%
-[ OK ] md5sums = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  /tmp/pigsty-v3.5.0.tgz
+[ OK ] md5sums = da9a3e69bfc34574cd65543889685707  /tmp/pigsty-v3.5.0.tgz
 [Install] ===========================================
-[WARN] os user = root , it's recommended to install as a sudo-able admin
-[ OK ] install = /root/pigsty, from /tmp/pigsty-v3.5.0.tgz
+[ OK ] install = /home/dba/pigsty, from /tmp/pigsty-v3.5.0.tgz
 [TodoList] ===========================================
-cd /root/pigsty
+cd /home/dba/pigsty
 ./bootstrap      # [OPTIONAL] install ansible & use offline package
 ./configure      # [OPTIONAL] preflight-check and config generation
 ./install.yml    # install pigsty modules according to your config.
@@ -724,22 +722,23 @@ There are other [**pro**](https://pigsty.io/docs/pro/), beta, or pilot modules, 
 
 ## Compatibility
 
+We recommend using RockyLinux 9.5, Debian 12.10, and Ubuntu 24.04.2 for production use.
+
 Pigsty runs on bare linux directly, and focuses on active maintained mainstream LTS [Linux distros](https://pgsty.com/docs/prepare/linux):
 
 |  Code   | Distro                            |                     `x86_64`                      | Status |                      `aarch64`                      | Status |
 |:-------:|-----------------------------------|:-------------------------------------------------:|:------:|:---------------------------------------------------:|:------:|
-| **EL9** | RHEL 9 / Rocky9 / Alma9 / ...     | [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml) |  ✅📦   | [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml) |  ✅🛜   |
-| **U24** | Ubuntu 24.04 (noble)              | [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml) |  ✅📦   | [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml) |  ✅🛜   |
+| **EL9** | RHEL 9 / Rocky9 / Alma9 / ...     | [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml) |  ✅📦   | [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml) |   ✅    |
+| **U24** | Ubuntu 24.04 (noble)              | [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml) |  ✅📦   | [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml) |   ✅    |
 | **D12** | Debian 12 (bookworm)              | [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml) |  ✅📦   | [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml) |  ✅📦   |
-| **U22** | Ubuntu 22.04 (jammy)              | [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml) |  ✅🛜   | [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml) |  ✅🛜   |
-| **EL8** | RHEL 8 / Rocky8 / Alma8 / Anolis8 | [`el8.x86_64`](roles/node_id/vars/el8.x86_64.yml) |  ✅🛜   | [`el8.aarch64`](roles/node_id/vars/el8.aarch64.yml) |  ⚠️🛜  |
+| **U22** | Ubuntu 22.04 (jammy)              | [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml) |   ✅    | [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml) |   ✅    |
+| **EL8** | RHEL 8 / Rocky8 / Alma8 / Anolis8 | [`el8.x86_64`](roles/node_id/vars/el8.x86_64.yml) |   ✅    | [`el8.aarch64`](roles/node_id/vars/el8.aarch64.yml) |   ⚠️   |
 | **EL7** | RHEL7 / CentOS7 / Oracle7...      | [`el7.x86_64`](roles/node_id/vars/el7.x86_64.yml) |   ⚠️   |                    `el7.aarch64`                    |   ❌    |
 | **D11** | Debian 11 (bullseye)              | [`d11.x86_64`](roles/node_id/vars/d11.x86_64.yml) |   ⚠️   |                    `d11.aarch64`                    |   ❌    |
 | **U20** | Ubuntu 20.04 (focal)              |                   `u20.x86_64`                    |   ⚠️   |                    `u20.aarch64`                    |   ❌    |
 
->  ✅ = Support , 📦 = Offline Package , 🛜 = Online Install , ⚠️ Deprecated, ❌ = Not Supported
+>  ✅ = Support , 📦 = Offline Package , ⚠️ Deprecated, ❌ = Unsupported
 
-We recommend using RockyLinux 9.5, Debian 12.10, and Ubuntu 24.04.2 for production use.
 
 
 
