@@ -1,8 +1,8 @@
 #==============================================================#
 # File      :   aliyun-pro.yml
-# Desc      :   5-node oss building env for x86_64/aarch64
+# Desc      :   5-node building env for x86_64/aarch64
 # Ctime     :   2024-12-12
-# Mtime     :   2025-05-28
+# Mtime     :   2025-06-16
 # Path      :   tf/terraform
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -137,9 +137,8 @@ output "el8_ip" {
 
 
 #======================================#
-# EL9 ARM64
+# EL9 AMD64 / ARM64
 #======================================#
-# rockylinux_9_4_arm64_20G_alibase_20240820.vhd
 data "alicloud_images" "el9_img" {
   owners     = "system"
   name_regex = local.selected_images.el9
@@ -172,9 +171,8 @@ output "el9_ip" {
 
 
 #======================================#
-# D12 ARM64
+# D12 AMD64 / ARM64
 #======================================#
-# debian_12_7_arm64_20G_alibase_20241105.vhd
 data "alicloud_images" "d12_img" {
   owners     = "system"
   name_regex = local.selected_images.d12
@@ -240,9 +238,8 @@ output "u22_ip" {
 
 
 #======================================#
-# U24 ARM64
+# U24 AMD64 / ARM64
 #======================================#
-# ubuntu_24_04_arm64_20G_alibase_20240820.vhd
 data "alicloud_images" "u24_img" {
   owners     = "system"
   name_regex = local.selected_images.u24
@@ -272,8 +269,8 @@ output "u24_ip" {
 }
 
 
-# sshpass -p PigstyDemo4 ssh-copy-id ael8
-# sshpass -p PigstyDemo4 ssh-copy-id ael9
+# sshpass -p PigstyDemo4 ssh-copy-id el8
+# sshpass -p PigstyDemo4 ssh-copy-id el9
 # sshpass -p PigstyDemo4 ssh-copy-id u22
 # sshpass -p PigstyDemo4 ssh-copy-id u24
 # sshpass -p PigstyDemo4 ssh-copy-id d12

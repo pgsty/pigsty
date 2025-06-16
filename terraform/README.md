@@ -1,10 +1,10 @@
 # Terraform Templates
 
-[Terraform](https://www.terraform.io/) is a popular IaC tool. You can create VMs on public cloud with one command.
+[Terraform](https://developer.hashicorp.com/terraform) is a popular IaC tool. You can create VMs on public cloud with one command.
 
 Aliyun & AWS templates are used as example providers. You can modify `terraform.tf` file to use other cloud providers.
 
-
+Check [Pigsty Docs: Terraform](https://pgsty.com/docs/prepare/terraform) for details.
 
 ## Specifications
 

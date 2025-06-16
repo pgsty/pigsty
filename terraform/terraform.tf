@@ -4,6 +4,7 @@
 # Ctime     :   2020-05-12
 # Mtime     :   2025-05-08
 # Path      :   terraform/terraform.yml
+# Docs      :   https://pgsty.com/docs/prepare/terraform
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
