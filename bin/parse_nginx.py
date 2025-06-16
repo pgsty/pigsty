@@ -6,7 +6,7 @@
 # Ctime     :   2022-05-22
 # Mtime     :   2022-05-22
 # Path      :   bin/inventory_cmdb
-# License   :   AGPLv3 @ https://pigsty.io/docs/about/license
+# License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 import os, sys, re, csv, datetime

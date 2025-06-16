@@ -4,7 +4,7 @@
 # Ctime     :   2023-07-29
 # Mtime     :   2024-12-16
 # Path      :   vagrant/Makefile
-# License   :   AGPLv3 @ https://pigsty.io/docs/about/license
+# License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 

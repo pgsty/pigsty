@@ -4,7 +4,7 @@
 # Ctime     :   2019-04-13
 # Mtime     :   2025-03-29
 # Path      :   Makefile
-# License   :   AGPLv3 @ https://pigsty.io/docs/about/license
+# License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 # pigsty version string

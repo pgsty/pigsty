@@ -3,7 +3,7 @@
 > [Supabase](https://supabase.com/) —— Build in a weekend, Scale to millions
 
 Pigsty allow you to self-host **supabase** with existing managed HA postgres cluster, and launch the stateless part of supabase with docker-compose.
-Check the official tutorial for details: [Self-Hosting Supabase](https://pigsty.io/blog/db/supabase/)
+Check the official tutorial for details: [Self-Hosting Supabase](https://pgsty.com/docs/app/supabase)
 
 Supabase is the open-source Firebase alternative built upon PostgreSQL.
 It provides authentication, API, edge functions, real-time subscriptions, object storage, and vector embedding capabilities out of the box.
@@ -13,8 +13,8 @@ Supabase's slogan is: "**Build in a weekend, Scale to millions**". Supabase has 
 But there is no doubt that when you really grow to millions of users, some may choose to self-hosting their own Supabase —— for functionality, performance, cost, and other reasons.
 
 That's where Pigsty comes in. Pigsty provides a complete one-click self-hosting solution for Supabase.
-Self-hosted Supabase can enjoy full PostgreSQL monitoring, IaC, PITR, and high availability, the new PG 17 kernels (and 14-16),
-and [404](https://pigsty.io/ext/list) PostgreSQL extensions ready to use, and can take full advantage of the performance and cost advantages of modern hardware.
+Self-hosted Supabase can enjoy full PostgreSQL monitoring, IaC, PITR, and high availability, the new PG 17 kernels (and 14~16),
+and [421](https://pgsty.com/ext/list) PostgreSQL extensions ready to use, and can take full advantage of the performance and cost advantages of modern hardware.
 
 
 
@@ -22,7 +22,7 @@ and [404](https://pigsty.io/ext/list) PostgreSQL extensions ready to use, and ca
 
 ## Quick Start
 
-First, download & [install](/docs/setup/install) pigsty as usual, with the `supa` config template:
+First, download & [install](https://pgsty.com/docs/install/start) pigsty as usual, with the `supa` config template:
 
 ```bash
  curl -fsSL https://repo.pigsty.io/get | bash
@@ -45,7 +45,5 @@ You can access the supabase API / Web UI through the `80/443` infra portal,
 with configured DNS for public domain, or a local `/etc/hosts` record with `supa.pigsty` pointing to the node also works.
 
 > Default username & password: `supabase` : `pigsty`
-
-Check the official tutorial for more details: [Self-Hosting Supabase](https://pigsty.io/docs/kernel/supabase)
 
 > Beware the storage API require MinIO/S3 to work, and you have to access it via a valid domain name (`/etc/hosts` or real domain)
