@@ -4,7 +4,7 @@
 # File      :   app.yml
 # Desc      :   copy and launch docker compose app
 # Ctime     :   2025-01-11
-# Mtime     :   2025-03-21
+# Mtime     :   2025-06-17
 # Path      :   app.yml
 # Docs      :   https://pgsty.com/docs/app
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
@@ -34,10 +34,9 @@
 #  ./app.yml -e app=pgweb          # simple app can be launched directly
 #  ./app.yml -e app=pgadmin        # without any further configuration
 #
-#  ./app.yml -e app=bytebase       # sophiscated software that reqire
-#  ./app.yml -e app=supabase       # external postgres and extra config
-#  ./app.yml -e app=odoo           # configure pigsty.yml and apps for
-#  ./app.yml -e app=dify           # fine-grained control
+#  ./app.yml -e app=bytebase       # for sophisticated software
+#  ./app.yml -e app=odoo           # configure pigsty.yml `apps`
+#  ./app.yml -e app=dify           # to have fine-grained control
 #--------------------------------------------------------------#
 
 - name: NODE ID
@@ -86,19 +85,20 @@
             app_dest: "{{ app_def.dest | default('/opt/' + app) }}"               # override dest name with app.dest
             app_conf: "{{ app_def.conf | default({}) }}"                          # application configuration
             app_file: "{{ app_def.file | default([]) }}"                          # application files & directories
-            app_args: "{{ app_def.args | default('') }}"                          # application make short cut list
-
-        - name: check local app folder
-          stat: path={{ app_src }}
-          register: app_folder_stat
-
-        - name: abort if local app not exists
-          fail: {msg: "{{ app_src }} folder not exist"}
-          when: not app_folder_stat.stat.exists
+            app_args: "{{ app_def.args | default('') }}"                          # application makefile shortcuts
 
         - name: print app details
           debug:
             msg: "app: {{ app_name }}, src: {{ app_src }}, dest: {{ app_dest }}, conf: {{ app_conf }}, file: {{ app_file }}"
+
+    #----------------------------------------------------------#
+    # Install app resources to /opt                [app_install]
+    #----------------------------------------------------------#
+    # copy docker app folder to /opt/<app.dest> or /opt/<app.name>
+    # this will fail if the app/<appname> folder does not exist
+    - name: install app resource to /opt
+      tags: app_install
+      copy: src="{{ app_src }}/" dest="/{{ app_dest }}/"
 
     #----------------------------------------------------------#
     # Prepare files & directories                     [app_file]
@@ -108,14 +108,6 @@
       when: app_file | length > 0
       file: "{{ item }}"
       with_items: "{{ app_file }}"
-
-    #----------------------------------------------------------#
-    # Install app resources to /opt                [app_install]
-    #----------------------------------------------------------#
-    # copy docker app folder to /opt/<app.dest> or /opt/<app.name>
-    - name: install app resource to /opt
-      tags: app_install
-      copy: src="{{ app_src }}/" dest="/{{ app_dest }}/"
 
     #----------------------------------------------------------#
     # Configure app with .env                       [app_config]
