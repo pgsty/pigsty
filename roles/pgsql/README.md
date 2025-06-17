@@ -4,7 +4,7 @@
 
 ## Tune
 
-How pigsty tune parameters ?
+How does pigsty tune parameters?
 
 max_connections:
 - user specified value: (50 - 5000) : `pg_max_conn`

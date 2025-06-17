@@ -101,7 +101,7 @@ restapi:
   keyfile:  '/pg/cert/server.key'
   verify_client: none  # none|optional|required
 {% endif %}
-  # unsafe api can only been accessed from meta nodes with auth
+  # unsafe api can only be accessed from meta nodes with auth
   authentication:
     username: '{{ patroni_username }}'
     password: '{{ patroni_password }}'
@@ -161,7 +161,7 @@ bootstrap:
     - data-checksums
 {% endif %}
 {% if pg_version|default(17)|int >= 17 and pg_encoding|default('UTF8') in ['UTF8','UTF-8'] and pg_locale|default('C')|upper in ['C', 'C.UTF-8'] %}
-    # use postgres built-in C or C.UTF-8 local since PG 17 by default
+    # use postgres built-in C or C.UTF-8 locale since PG 17 by default
     - encoding: {{ pg_encoding }}
     - locale-provider: builtin
     - builtin-locale: {{ pg_locale }}
@@ -192,7 +192,7 @@ bootstrap:
   # bootstrap config
   #------------------------------------------------------------#
   # this section will be written to /{{ pg_namespace }}/{{ pg_cluster }}/config
-  # if will NOT take any effect after cluster bootstrap
+  # it will NOT take any effect after cluster bootstrap
   dcs:
 
 {% if pg_role == 'primary' and pg_upstream is defined %}
@@ -230,7 +230,7 @@ bootstrap:
     # Max RTO: 2 loop wait + primary_start_timeout
     primary_start_timeout: {{ (pg_rto / 3)|round(0, 'ceil')|int }}
 
-    # import: candidate will not be promoted if replication lag is higher than this
+    # important: candidate will not be promoted if replication lag is higher than this
     # maximum RPO: 1MB
     maximum_lag_on_failover: {{ pg_rpo }}
 
