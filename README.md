@@ -45,9 +45,9 @@ curl -fsSL https://repo.pigsty.io/get | bash -s v3.5.0
 [![Postgres: 17.5](https://img.shields.io/badge/PostgreSQL-17.5-%233E668F?style=flat&logo=postgresql&labelColor=3E668F&logoColor=white)](https://pgsty.com/docs/pgsql)
 [![Linux](https://img.shields.io/badge/Linux-AMD64-%23FCC624?style=flat&logo=linux&labelColor=FCC624&logoColor=black)](https://pgsty.com/docs/node)
 [![Linux](https://img.shields.io/badge/Linux-ARM64-%23FCC624?style=flat&logo=linux&labelColor=FCC624&logoColor=black)](https://pgsty.com/docs/node)
-[![EL Support: 8/9](https://img.shields.io/badge/EL-7/8/9-red?style=flat&logo=redhat&logoColor=red)](https://pgsty.com/docs/prepare/linux#el)
-[![Debian Support: 12](https://img.shields.io/badge/Debian-11/12-%23A81D33?style=flat&logo=debian&logoColor=%23A81D33)](https://pgsty.com/docs/prepare/linux#debian)
-[![Ubuntu Support: 22/24](https://img.shields.io/badge/Ubuntu-20/22/24-%23E95420?style=flat&logo=ubuntu&logoColor=%23E95420)](https://pgsty.com/docs/prepare/linux#ubuntu)
+[![EL Support: 8/9](https://img.shields.io/badge/EL-8/9-red?style=flat&logo=redhat&logoColor=red)](https://pgsty.com/docs/prepare/linux#el)
+[![Debian Support: 12](https://img.shields.io/badge/Debian-12-%23A81D33?style=flat&logo=debian&logoColor=%23A81D33)](https://pgsty.com/docs/prepare/linux#debian)
+[![Ubuntu Support: 22/24](https://img.shields.io/badge/Ubuntu-22/24-%23E95420?style=flat&logo=ubuntu&logoColor=%23E95420)](https://pgsty.com/docs/prepare/linux#ubuntu)
 
 [**Prepare**](https://pgsty.com/docs/prepare) a fresh `x86_64` / `aarch64` node runs any [**compatible**](https://pgsty.com/docs/prepare/linux) **Linux** OS Distros, then [**Download**](https://pgsty.com/docs/software#pigsty) **Pigsty** with:
 
@@ -61,9 +61,9 @@ Next, [**bootstrap**](https://pgsty.com/docs/install/offline#bootstrap), [**conf
 ./bootstrap; ./configure; ./install.yml;
 ```
 
-Finally, you will get a pigsty [**singleton node ready**](https://pgsty.com/docs/install/start), with [Web service](https://pgsty.com/docs/install/interface) on port `80/443` and Postgres on port `5432`.
+Finally, you will get a pigsty [**singleton node ready**](https://pgsty.com/docs/install/start), with [**Web service**](https://pgsty.com/docs/install/interface) on port `80/443` and Postgres on port `5432`.
 
-> Consider [**Minimal Installation**](https://pgsty.com/docs/install/minimal) if you only want essential parts for HA PostgreSQL.
+> [**Single Node Install**](https://pgsty.com/docs/install/start) | [**Multi-Node Install**](https://pgsty.com/docs/install/multinode) | [**Offline Install**](https://pgsty.com/docs/install/offline) | [**Minimal Installation**](https://pgsty.com/docs/install/minimal)
 
 
 <details><summary>Install with the pig cli</summary><br>
@@ -98,7 +98,7 @@ $ curl -fsSL https://repo.pigsty.io/get | bash
 [ OK ] version = v3.5.0 (from default)
 curl -fSL https://repo.pigsty.io/src/pigsty-v3.5.0.tgz -o /tmp/pigsty-v3.5.0.tgz
 ######################################################################## 100.0%
-[ OK ] md5sums = da9a3e69bfc34574cd65543889685707  /tmp/pigsty-v3.5.0.tgz
+[ OK ] md5sums = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  /tmp/pigsty-v3.5.0.tgz
 [Install] ===========================================
 [ OK ] install = /home/dba/pigsty, from /tmp/pigsty-v3.5.0.tgz
 [TodoList] ===========================================
@@ -160,7 +160,7 @@ Which gives you an out-of-the-box PostgreSQL singleton instance (`admin_ip:5432`
 
 [![pigsty-arch.jpg](https://pigsty.io/img/pigsty/arch.jpg)](https://pgsty.com/docs/intro/arch/)
 
-The node can be used as an admin controller to deploy & monitor more nodes & clusters. For example, you can install these **4** **OPTIONAL** [extended modules](https://pigsty.io/docs/about/module/#extended-modules) for advanced use cases:
+The node can be used as an admin controller to deploy & monitor more nodes & clusters. For example, you can install these **4** **OPTIONAL** [extra modules](https://pgsty.com/docs/intro/module#extra-modules) for advanced use cases:
 
 [![MinIO](https://img.shields.io/badge/MINIO-%23C72E49?style=flat&logo=minio&logoColor=white)](https://pgsty.com/docs/minio) S3-compatible object storage service; used as an optional central backup server for `PGSQL`.
 
@@ -177,7 +177,7 @@ Of course, you can deploy different kinds of HA **PostgreSQL** clusters on multi
 
 ## PostgreSQL RDS
 
-To deploy an additional 3-node HA Postgres cluster `pg-test`. Add the cluster [**definition**](https://github.com/pgsty/pigsty/blob/main/conf/full.yml#L46) to the [**config inventory**](https://pgsty.com/docs/config/inventory):
+To deploy an [additional](https://pgsty.com/docs/install/multinode) 3-node HA Postgres cluster `pg-test`. Add the cluster [**definition**](https://github.com/pgsty/pigsty/blob/main/conf/full.yml#L46) to the [**config inventory**](https://pgsty.com/docs/config/inventory):
 
 ```yaml 
 pg-test:
@@ -302,8 +302,8 @@ The cluster keeps serving as long as **ANY** instance survives, with excellent f
 
 ## Customization
 
-Pigsty is highly customizable, You can describe the entire database and infra deployment with **300+** [**parameters**](https://pigsty.io/docs/reference/param/) in a single config file and materialize them with one command.
-There are many built-in configuration [**templates**](https://pigsty.io/docs/conf).
+Pigsty is highly customizable, You can describe the entire database and infra deployment with **300+** [**parameters**](https://pgsty.com/docs/config/inventory) in a single config file and materialize them with one command.
+There are many built-in configuration [**templates**](https://pgsty.com/docs/config/template).
 
 <details><summary>Example: Sandbox (4-node) with two PG cluster</summary><br>
 
@@ -462,8 +462,8 @@ pg-citus: # citus group
 You can deploy different kinds of PostgreSQL instance such as [`primary`](https://pigsty.io/docs/pgsql/config/#primary), [`replica`](https://pigsty.io/docs/pgsql/config/#replica), [`offline`](https://pigsty.io/docs/pgsql/config/#offline), [`delayed`](https://pigsty.io/docs/pgsql/config/#delayed-cluster), [`sync standby`](https://pigsty.io/docs/pgsql/config/#sync-standby), etc.,
 and customize with scene-optimize [**config templates**](https://pigsty.io/docs/conf/) and all **421** [**extensions**](https://pgsty.com/ext/list) out-of-the-box.
 
-You can define [**Users**](https://pigsty.io/docs/pgsql/user/), [**Databases**](https://pigsty.io/docs/pgsql/db/), [**Service**](https://pigsty.io/docs/pgsql/svc/), [**HBAs**](https://pigsty.io/docs/pgsql/hba/) and other entities with code and provision them in one pass.
-You can even replace the vanilla [**`PostgreSQL`**](https://pigsty.io/docs/pgsql) [**Kernel**](https://pigsty.io/docs/kernel/) with exotic forks as an in-place replacement:
+You can define [**Users**](https://pgsty.com/docs/pgsql/user), [**Databases**](https://pgsty.com/docs/pgsql/db/), [**Service**](https://pigsty.io/docs/pgsql/svc/), [**HBAs**](https://pgsty.com/docs/pgsql/hba) and other entities with code and provision them in one pass.
+You can even replace the vanilla [**`PostgreSQL`**](https://pigsty.io/docs/pgsql) [**Kernel**](https://pgsty.com/docs/feat/kernel) with exotic forks as an in-place replacement:
 
 <details><summary>Exotic Kernel: Babelfish (MsSQL Wire Compatible)</summary><br>
 
