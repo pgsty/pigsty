@@ -2,7 +2,7 @@
 # File      :   aliyun-full.yml
 # Desc      :   4-node full sandbox env for x86_64/aarch64
 # Ctime     :   2020-05-12
-# Mtime     :   2024-01-11
+# Mtime     :   2025-06-30
 # Path      :   terraform/spec/aliyun-full.yml
 # Docs      :   https://pgsty.com/docs/prepare/terraform
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
@@ -23,7 +23,7 @@ variable "architecture" {
 variable "distro" {
   description = "The Distribution code"
   type        = string
-  default     = "d12"
+  default     = "el9"
 }
 
 locals {
@@ -74,6 +74,7 @@ data "alicloud_images" "pigsty_img" {
 provider "alicloud" {
   # access_key = "????????????????????"
   # secret_key = "????????????????????"
+  region = "cn-shanghai"
 }
 
 
@@ -90,12 +91,12 @@ resource "alicloud_vpc" "vpc" {
 resource "alicloud_vswitch" "vsw" {
   vpc_id     = "${alicloud_vpc.vpc.id}"
   cidr_block = "10.10.10.0/24"
-  zone_id    = "cn-beijing-l"
+  zone_id    = "cn-shanghai-l"
 }
 
 # add default security group and allow all tcp traffic
 resource "alicloud_security_group" "default" {
-  name   = "default"
+  security_group_name = "default"
   vpc_id = "${alicloud_vpc.vpc.id}"
 }
 resource "alicloud_security_group_rule" "allow_all_tcp" {

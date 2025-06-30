@@ -2,7 +2,7 @@
 # File      :   aliyun-pro.yml
 # Desc      :   5-node building env for x86_64/aarch64
 # Ctime     :   2024-12-12
-# Mtime     :   2025-06-16
+# Mtime     :   2025-06-24
 # Path      :   tf/terraform
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -64,6 +64,7 @@ locals {
 provider "alicloud" {
   # access_key = "????????????????????"
   # secret_key = "????????????????????"
+  region = "cn-shanghai"
 }
 
 
@@ -80,12 +81,12 @@ resource "alicloud_vpc" "vpc" {
 resource "alicloud_vswitch" "vsw" {
   vpc_id     = "${alicloud_vpc.vpc.id}"
   cidr_block = "10.10.10.0/24"
-  zone_id    = "cn-beijing-l"
+  zone_id    = "cn-shanghai-l"
 }
 
 # add default security group and allow all tcp traffic
 resource "alicloud_security_group" "default" {
-  name   = "default"
+  security_group_name = "default"
   vpc_id = "${alicloud_vpc.vpc.id}"
 }
 resource "alicloud_security_group_rule" "allow_all_tcp" {
@@ -269,8 +270,6 @@ output "u24_ip" {
 }
 
 
-# sshpass -p PigstyDemo4 ssh-copy-id el8
 # sshpass -p PigstyDemo4 ssh-copy-id el9
-# sshpass -p PigstyDemo4 ssh-copy-id u22
 # sshpass -p PigstyDemo4 ssh-copy-id u24
 # sshpass -p PigstyDemo4 ssh-copy-id d12
