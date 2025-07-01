@@ -3,7 +3,7 @@
 # File      :   bootstrap
 # Desc      :   setup local repo & install boot utils
 # Ctime     :   2022-10-16
-# Mtime     :   2025-06-30
+# Mtime     :   2025-07-01
 # Path      :   bootstrap
 # Docs      :   https://pgsty.com/docs/install/offline
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
@@ -82,6 +82,7 @@ REPO_NAME=pigsty
 NGINX_HOME=/www
 REPO_DIR=${NGINX_HOME}/${REPO_NAME}
 BIN_DIR=${PIGSTY_HOME}/files/bin
+KERNEL=$(uname -s)
 
 # extract os vendor & version from /etc/os-release
 OS_VENDOR=""
@@ -129,24 +130,27 @@ function check_region(){
 function check_kernel(){
     local kernel_name=$(uname -s)
     if [[ "${kernel_name}" == "Linux" ]]; then
-        log_info "kernel = ${kernel_name}"
+        log_info "kernel  = ${kernel_name}"
         return 0
+    elif [[ "${kernel_name}" == "Darwin" ]]; then
+        log_warn "kernel  = ${kernel_name}, can be used as admin node only"
     else
-        log_error "kernel = ${kernel_name}, not supported, Linux only"
-        exit 1
+        log_warn "kernel  = ${kernel_name}, not supported, Linux only"
+        #exit 1
     fi
 }
+
 
 #----------------------------------------------#
 # machine
 #----------------------------------------------#
 function check_machine(){
     local machine_name=$(uname -m)
-    if [[ "${machine_name}" == "x86_64" ]]; then
+    if [[ "${machine_name}" == "x86_64" || ${machine_name} == "amd64" ]]; then
         log_info "machine = ${machine_name}"
         return 0
-    elif [[ "${machine_name}" == "aarch64" ]]; then
-        log_warn "machine = ${machine_name} (beta)"
+    elif [[ "${machine_name}" == "aarch64" || ${machine_name} == "arm64" ]]; then
+        log_info "machine = ${machine_name}"
         return 0
     else
         log_error "machine = ${machine_name}, not supported, x86_64/aarch64 only"
@@ -159,6 +163,12 @@ function check_machine(){
 #----------------------------------------------#
 function check_package_manager(){
     # get package / manager: rpm|deb and dnf|yum|apt|apt-get|zypper
+    if [[ "$(uname)" == "Darwin" ]]; then
+        OS_PACKAGE="brew"
+        OS_MANAGER="brew"
+        log_info "package = brew (macOS)"
+        return 0
+    fi
     if command -v dpkg >/dev/null 2>&1; then
         OS_PACKAGE="deb"
         if command -v apt >/dev/null 2>&1; then
@@ -193,6 +203,9 @@ function check_package_manager(){
 # os release (Linux|Darwin etc..)
 #----------------------------------------------#
 function check_vendor_version(){
+  if [[ ${KERNEL} == "Darwin" ]]; then
+      return 0
+  fi
   if [[ -f /etc/os-release ]]; then
       . /etc/os-release
       OS_VENDOR="$ID"
@@ -229,6 +242,9 @@ function can_nopass_sudo(){
 
 # sudo is required to extract /www/pigsty
 function check_sudo(){
+    if [[ ${KERNEL} == "Darwin" ]]; then
+        return 0
+    fi
     local current_user=$(whoami)
     if can_nopass_sudo; then
         log_info "sudo = ${current_user} ok"
@@ -270,6 +286,9 @@ function fix_nopass_ssh(){
 }
 
 function check_ssh(){
+    if [[ ${KERNEL} == "Darwin" ]]; then
+        return 0
+    fi
     if can_nopass_ssh ; then
         log_info "ssh = $(whoami)@127.0.0.1 ok"
         return 0
@@ -289,6 +308,9 @@ function check_ssh(){
 #----------------------------------------------#
 # assume user can sudo (pass check_sudo)
 function check_repo(){
+    if [[ ${KERNEL} == "Darwin" ]]; then
+        return 0
+    fi
     local pkg_path=${1-${PKG_PATH}}         # default download path : /tmp/pkg.tgz
     local repo_dir=${2-${REPO_DIR}}         # default repo directory: /www/pigsty
     local nginx_home=$(dirname ${repo_dir})
@@ -579,6 +601,9 @@ function make_repo_cache(){
 # check_repo_file
 #----------------------------------------------#
 function check_repo_file(){
+    if [[ ${KERNEL} == "Darwin" ]]; then
+        return 0
+    fi
     local repo_name=${1-${REPO_NAME}}
     local nginx_home=${2-${NGINX_HOME}}
     local repo_flag=${nginx_home}/${repo_name}/repo_complete
@@ -605,6 +630,17 @@ function check_utils(){
     local repo_name=${1-${REPO_NAME}}
     local nginx_home=${2-${NGINX_HOME}}
     local repo_file=/etc/yum.repos.d/${repo_name}-local.repo
+
+    # if ansible is already installed, skip
+    if command -v ansible-playbook >/dev/null ; then
+        log_info "ansible already installed, skip"
+        return 0
+    fi
+
+    if [[ ${KERNEL} == "Darwin" ]]; then
+        log_warn "please install ansible with: brew install ansible"
+        return 0
+    fi
 
     # install el utils
     if [[ ${OS_PACKAGE} == "rpm" ]]; then
@@ -664,7 +700,7 @@ function main(){
     check_kernel          # kernel        = Linux
     check_machine         # machine       = x86_64 or aarch64
     check_package_manager # package = rpm|deb, manager = dnf|yum|zypper|apt|apt-get
-    check_vendor_version  # release       = rocky, version = 7,8,9...
+    check_vendor_version  # release       = rocky / debian / ubuntu version = 8,9,12,22,24
     check_sudo            # current_user  = NOPASSWD sudo
     check_ssh             # current_user  = NOPASSWD ssh
     check_repo            # create repo from pkg.tgz if exists
