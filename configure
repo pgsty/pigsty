@@ -3,7 +3,7 @@
 # File      :   configure
 # Desc      :   generate pigsty.yml config according to env
 # Ctime     :   2021-05-17
-# Mtime     :   2025-03-30
+# Mtime     :   2025-07-01
 # Path      :   configure
 # Docs      :   https://pgsty.com/docs/config/configure
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
@@ -19,12 +19,14 @@ PIGSTY_VERSION=v3.5.0
 #    [-i|--ip <ip>]          # primary IP address (skip with -s)
 #    [-v|--version <pgver>   # [17|16|15|14|13]
 #    [-r|--region <region>   # [default|china|europe]
+#    [-o|--output <file>]    # output config file (default: pigsty.yml)
 #    [-s|--skip]             # skip IP address probing
 #    [-x|--proxy]            # write proxy env from environment
 #    [-n|--non-interactive]  # non-interactively mode
 #    [-p|--port <port>]      # specify SSH port (only used if set)
 #==============================================================#
 INTERACTIVE=true                  # run configure with interactive mode
+OUTPUT=pigsty.yml                 # output config file path
 PRIMARY_IP=""                     # primary IP address (do not use public IP)
 MODE=""                           # config template (meta|dual|trio|full|prod)
 PGVER=""                          # pg major version (17|16|15|14|13)
@@ -59,6 +61,7 @@ REPO_NAME=pigsty
 NGINX_HOME=/www
 REPO_DIR=${NGINX_HOME}/${REPO_NAME}
 BIN_DIR=${PIGSTY_HOME}/files/bin
+KERNEL=$(uname -s)
 
 # extract os vendor & version from /etc/os-release
 OS_VENDOR=""
@@ -155,6 +158,8 @@ function check_kernel(){
     if [[ "${kernel_name}" == "Linux" ]]; then
         log_info "kernel  = ${kernel_name}"
         return 0
+    elif [[ "${kernel_name}" == "Darwin" ]]; then
+        log_warn "kernel  = ${kernel_name}, can be used as admin node only"
     else
         log_warn "kernel  = ${kernel_name}, not supported, Linux only"
         #exit 1
@@ -167,11 +172,11 @@ function check_kernel(){
 #----------------------------------------------#
 function check_machine(){
     local machine_name=$(uname -m)
-    if [[ "${machine_name}" == "x86_64" ]]; then
+    if [[ "${machine_name}" == "x86_64" || ${machine_name} == "amd64" ]]; then
         log_info "machine = ${machine_name}"
         return 0
     elif [[ "${machine_name}" == "aarch64" || ${machine_name} == "arm64" ]]; then
-        log_warn "machine = ${machine_name}"
+        log_info "machine = ${machine_name}"
         return 0
     else
         log_warn "machine = ${machine_name}, not supported"
@@ -231,6 +236,10 @@ function check_package_manager(){
 # os release (Linux|Darwin etc..)
 #----------------------------------------------#
 function check_vendor_version(){
+  if [[ ${KERNEL} == "Darwin" ]]; then
+      return 0
+  fi
+
   if [[ -f /etc/os-release ]]; then
       . /etc/os-release
       OS_VENDOR="$ID"
@@ -265,6 +274,9 @@ function can_nopass_sudo(){
 }
 
 function check_sudo(){
+    if [[ ${KERNEL} == "Darwin" ]]; then
+        return 0
+    fi
     local current_user=$(whoami)
     if can_nopass_sudo; then
         log_info "sudo = ${current_user} ok"
@@ -298,6 +310,9 @@ function can_nopass_ssh(){
 
 
 function check_ssh(){
+    if [[ ${KERNEL} == "Darwin" ]]; then
+        return 0
+    fi
     if can_nopass_ssh; then
         if [[ -n "${SSH_PORT}" ]]; then
             log_info "ssh = $(whoami)@127.0.0.1 (port: ${SSH_PORT}) ok"
@@ -378,6 +393,13 @@ function check_ipaddr(){
         fi
     fi
 
+    # just use the placeholder since we are running on macOS (as admin node)
+    if [[ ${KERNEL} == "Darwin" ]]; then
+        log_warn "primary_ip = default placeholder 10.10.10.10 (macOS)"
+        PRIMARY_IP=10.10.10.10
+        return 0
+    fi
+
     local ipCount=$(get_ip_count)
     if ((ipCount<1)); then
         log_warn "primary_ip = probe failed, use 10.10.10.10"
@@ -428,6 +450,9 @@ function check_ipaddr(){
 # access to primary ip with sudo privilege set
 
 function check_admin(){
+    if [[ ${KERNEL} == "Darwin" ]]; then
+        return 0
+    fi
     local primary_ip=${1-${PRIMARY_IP}}
 
     case "${MODE}" in
@@ -548,7 +573,7 @@ function check_config(){
     local mode=${2-${MODE}} # use files/pigsty/${mode}.yml as template
     local pigsty_home=${3-${PIGSTY_HOME}}
     local config_src="${pigsty_home}/conf/${mode}.yml"
-    local config_dst="${pigsty_home}/pigsty.yml"
+    local config_dst="${pigsty_home}/${OUTPUT}"
 
     # panic if given config file not exists
     if [[ ! -f ${config_src} ]]; then
@@ -615,9 +640,9 @@ function check_config(){
     if [[ -n "${PGVER}" && "${mode}" != "mssql" && "${mode}" != "polar"  ]]; then
         # upsert pg_version to given PGVER
         if grep -q 'pg_version:' "${config_dst}"; then
-            sed -ie "s/pg_version:.*$/pg_version: ${PGVER}  # set by configure/g" "${config_dst}"
+            sed -ie "s/pg_version:.*$/pg_version: ${PGVER}                      # configured pg major version/g" "${config_dst}"
         else
-            sed -ie '$i\    pg_version: '"${PGVER}  # set by configure" "${config_dst}"
+            sed -ie '$i\    pg_version: '"${PGVER}                      # configured pg major version" "${config_dst}"
         fi
         # also replace pg17-... with pg${PGVER}-...
         sed -ie "s/pg17-/pg${PGVER}-/g" "${config_dst}"
@@ -639,13 +664,20 @@ function check_config(){
     # If either condition is met, append locale settings after region parameter
     if [[ "${should_set_locale}" == "true" ]]; then
         log_info "locale  = C.UTF-8"
-        sed -ie '/^    region:/a\
-    pg_locale: C.UTF-8                # overwrite default C local\
-    pg_lc_collate: C.UTF-8            # overwrite default C lc_collate\
-    pg_lc_ctype: C.UTF-8              # overwrite default C lc_ctype\
+        sed -ie '/^    pg_version:/a\
+    pg_locale: C.UTF-8                  # overwrite default C local\
+    pg_lc_collate: C.UTF-8              # overwrite default C lc_collate\
+    pg_lc_ctype: C.UTF-8                # overwrite default C lc_ctype\
 ' "${config_dst}"
         rm -rf "${config_dst}e"
     fi
+
+    # if postgresql 18 is used, add beta repo
+    if [[ "${PGVER}" -ge 18 ]]; then
+        sed -ie "s/node,infra,pgsql/node,infra,pgsql,beta/g" "${config_dst}"
+        rm -rf "${config_dst}e"
+    fi
+
     return 0
 }
 
@@ -655,10 +687,9 @@ function check_config(){
 function check_utils(){
     # check ansible is installed
     if command -v ansible-playbook >/dev/null ; then
-        log_info "ansible = $(ansible --version | head -n1)"
+        log_info "ansible = ready"
     else
-        log_warn "ansible = not found"
-        # exit 20     # we don't exit here, just a configure process
+        log_warn "ansible = not found, consider install ansible with ./bootstrap first"
     fi
 }
 
@@ -677,6 +708,7 @@ function main(){
             -i|--ip) PRIMARY_IP="$2" ; shift;;
             -r|--region) REGION="$2" ; shift;;
             -v|--ver|--version) PGVER="$2" ; shift;;
+            -o|--output) OUTPUT="$2" ; shift;;
             -s|--skip) SKIP=true ;;
             -n|--non-interactive) INTERACTIVE=false ;;
             -x|--proxy) USE_PROXY=true ;;
@@ -703,9 +735,17 @@ function main(){
     check_admin           # check current_user@primary_ip nopass ssh sudo
     check_conf            # check config template
     check_config          # generate config according to primary_ip and mode
-    #check_utils          # check ansible sshpass and other utils installed
-    log_info "configure pigsty done"
-    log_hint "proceed with ./install.yml \n"
+    check_utils           # check ansible sshpass and other utils installed
+
+    if [[ ${OUTPUT} != "pigsty.yml" ]]; then
+        log_info "pigsty configured @ ${OUTPUT}"
+        log_warn "don't forget to check it and change passwords!"
+        log_hint "proceed with ./install.yml -i ${OUTPUT}\n"
+    else
+        log_info "pigsty configured"
+        log_warn "don't forget to check it and change passwords!"
+        log_hint "proceed with ./install.yml \n"
+    fi
 }
 
 main $@
