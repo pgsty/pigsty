@@ -1,0 +1,125 @@
+---
+#==============================================================#
+# File      :   teable.yml
+# Desc      :   pigsty config for running 1-node teable app
+# Ctime     :   2025-02-24
+# Mtime     :   2025-03-30
+# Docs      :   https://pgsty.com/docs/app/odoo
+# License   :   AGPLv3 @ https://pgsty.com/docs/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+# tutorial: https://pgsty.com/docs/app/teable
+# how to use this template:
+#
+#  curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty
+# ./bootstrap               # prepare local repo & ansible
+# ./configure -c app/teable # use this teable config template
+# vi pigsty.yml             # IMPORTANT: CHANGE CREDENTIALS!!
+# ./install.yml             # install pigsty & pgsql & minio
+# ./docker.yml              # install docker & docker-compose
+# ./app.yml                 # install teable with docker-compose
+#
+# To replace domain name:
+#   sed -ie 's/teable.pigsty/teable.pigsty.cc/g' pigsty.yml
+
+all:
+  children:
+
+    # the teable application
+    teable:
+      hosts: { 10.10.10.10: {} }
+      vars:
+        app: teable   # specify app name to be installed (in the apps)
+        apps:         # define all applications
+          teable:     # app name, ~/pigsty/app/teable folder
+            conf:     # override /opt/teable/.env config file
+              # https://github.com/teableio/teable/blob/develop/dockers/examples/standalone/.env
+              # https://help.teable.io/en/deploy/env
+              POSTGRES_HOST: "10.10.10.10"
+              POSTGRES_PORT: "5432"
+              POSTGRES_DB: "teable"
+              POSTGRES_USER: "dbuser_teable"
+              POSTGRES_PASSWORD: "DBUser.Teable"
+              PRISMA_DATABASE_URL: "postgresql://dbuser_teable:DBUser.Teable@10.10.10.10:5432/teable"
+              PUBLIC_ORIGIN: "http://tea.pigsty"
+              PUBLIC_DATABASE_PROXY: "10.10.10.10:5432"
+              TIMEZONE: "UTC"
+
+              # Need to support sending emails to enable the following configurations
+              #BACKEND_MAIL_HOST: smtp.teable.io
+              #BACKEND_MAIL_PORT: 465
+              #BACKEND_MAIL_SECURE: true
+              #BACKEND_MAIL_SENDER: noreply.teable.io
+              #BACKEND_MAIL_SENDER_NAME: Teable
+              #BACKEND_MAIL_AUTH_USER: username
+              #BACKEND_MAIL_AUTH_PASS: password
+
+
+    pg-meta:
+      hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
+      vars:
+        pg_cluster: pg-meta
+        pg_users:
+          - { name: dbuser_teable ,password: DBUser.Teable ,pgbouncer: true ,roles: [ dbrole_admin ] ,superuser: true ,comment: teable superuser }
+        pg_databases:
+          - { name: teable ,owner: dbuser_teable ,comment: teable database }
+        pg_hba_rules:
+          - { user: teable ,db: all ,addr: 172.17.0.0/16  ,auth: pwd ,title: 'allow teable access from local docker network' }
+        node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
+    minio: { hosts: { 10.10.10.10: { minio_seq: 1 } }, vars: { minio_cluster: minio } }
+
+  vars:                               # global variables
+    version: v3.5.0                   # pigsty version string
+    admin_ip: 10.10.10.10             # admin node ip address
+    region: default                   # upstream mirror region: default|china|europe
+    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
+    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+
+    docker_enabled: true              # enable docker on app group
+    #docker_registry_mirrors: ["https://docker.1ms.run"] # use mirror in mainland china
+
+    proxy_env:                        # global proxy env when downloading packages & pull docker images
+      no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.tsinghua.edu.cn"
+      #http_proxy:  127.0.0.1:12345 # add your proxy env here for downloading packages or pull images
+      #https_proxy: 127.0.0.1:12345 # usually the proxy is format as http://user:pass@proxy.xxx.com
+      #all_proxy:   127.0.0.1:12345
+
+    infra_portal: # domain names and upstream servers
+      home         : { domain: h.pigsty }
+      grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
+      prometheus   : { domain: p.pigsty ,endpoint: "${admin_ip}:9090" }
+      alertmanager : { domain: a.pigsty ,endpoint: "${admin_ip}:9093" }
+      blackbox     : { endpoint: "${admin_ip}:9115" }
+      loki         : { endpoint: "${admin_ip}:3100" }
+      #minio        : { domain: m.pigsty    ,endpoint: "${admin_ip}:9001" ,scheme: https ,websocket: true }
+
+      teable:                            # nginx server config for teable
+        domain: tea.pigsty               # REPLACE IT WITH YOUR OWN DOMAIN!
+        endpoint: "10.10.10.10:8890"     # teable service endpoint: IP:PORT
+        websocket: true                  # add websocket support
+        certbot: tea.pigsty              # certbot cert name, apply with `make cert`
+
+    #----------------------------------#
+    # Credential: CHANGE THESE PASSWORDS
+    #----------------------------------#
+    #grafana_admin_username: admin
+    grafana_admin_password: pigsty
+    #pg_admin_username: dbuser_dba
+    pg_admin_password: DBUser.DBA
+    #pg_monitor_username: dbuser_monitor
+    pg_monitor_password: DBUser.Monitor
+    #pg_replication_username: replicator
+    pg_replication_password: DBUser.Replicator
+    #patroni_username: postgres
+    patroni_password: Patroni.API
+    #haproxy_admin_username: admin
+    haproxy_admin_password: pigsty
+    #minio_access_key: minioadmin
+    minio_secret_key: minioadmin      # minio root secret key, `minioadmin` by default
+
+    repo_extra_packages: [ pg17-main ]
+    pg_version: 17
+...

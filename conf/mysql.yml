@@ -3,30 +3,27 @@
 # File      :   mysql.yml
 # Desc      :   Pigsty Config for HaloDB (MySQL Compatible)
 # Ctime     :   2025-04-03
-# Mtime     :   2025-04-03
+# Mtime     :   2025-07-01
 # Docs      :   https://pgsty.com/docs/config
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
-# openhalodb is available on el8/el9, pg14 compatible
+# This is the config template for OpenHalo PG Kernel,
+# Which is a PostgreSQL 14 fork with MySQL Wire Compatibility
+# tutorial: https://pgsty.com/docs/feat/kernel
+# Usage:
+#   ./configure -c mysql
+#   ./install
 
 all:
   children:
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 }} ,vars: { repo_enabled: false }}
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1  }} ,vars: { etcd_cluster: etcd  }}
 
-    # infra singleton for repo, monitoring,...
-    infra:
-      hosts:
-        10.10.10.10: { infra_seq: 1 }
-
-    # etcd singleton for HA postgres DCS
-    etcd:
-      hosts:
-        10.10.10.10: { etcd_seq: 1 }
-      vars:
-        etcd_cluster: etcd
-
-    # openHaloDB singleton
+    #----------------------------------------------#
+    # OpenHalo Database Cluster
+    #----------------------------------------------#
     # connect with mysql client: mysql -h 10.10.10.10 -u dbuser_meta -D mysql (the actual database is 'postgres', and 'mysql' is a schema)
     pg-meta:
       hosts:
@@ -41,14 +38,20 @@ all:
           - {name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty]}
         pg_hba_rules:
           - {user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes'}
+        node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
 
-  vars:                               # global variables
+        # OpenHalo Ad Hoc Setting
+        pg_mode: mysql                    # MySQL Compatible Mode by HaloDB
+        pg_version: 14                    # The current HaloDB is compatible with PG Major Version 14
+        pg_packages: [ openhalodb, pgsql-common ]  # install openhalodb instead of postgresql kernel
+
+  vars:
+    #----------------------------------------------#
+    # INFRA : https://pgsty.com/docs/infra/param
+    #----------------------------------------------#
     version: v3.5.0                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
     region: default                   # upstream mirror region: default,china,europe
-    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
-    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
-    #docker_registry_mirrors: ["https://docker.1ms.run", "https://docker.m.daocloud.io"]
     infra_portal:                     # domain names and upstream servers
       home         : { domain: h.pigsty }
       grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
@@ -57,9 +60,16 @@ all:
       blackbox     : { endpoint: "${admin_ip}:9115" }
       loki         : { endpoint: "${admin_ip}:3100" }
 
-    pg_mode: mysql                    # MySQL Compatible Mode by HaloDB
-    pg_version: 14                    # The current HaloDB is compatible with PG Major Version 14
-    pg_packages: [ openhalodb, pgsql-common, mysql ]   # also install mysql client shell
-    repo_modules: node,pgsql,infra,mysql
-    repo_extra_packages: [ openhalodb, mysql ] # replace default postgresql kernel with openhalo packages
+    #----------------------------------------------#
+    # NODE : https://pgsty.com/docs/node/param
+    #----------------------------------------------#
+    node_repo_modules: node,infra,pgsql # add these repos directly to the singleton node
+    node_tune: oltp                     # node tuning specs: oltp,olap,tiny,crit
+
+    #----------------------------------------------#
+    # PGSQL : https://pgsty.com/docs/pgsql/param
+    #----------------------------------------------#
+    pg_version: 14                      # OpenHalo is compatible with PG 14
+    pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+
 ...

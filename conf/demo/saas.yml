@@ -1,0 +1,181 @@
+---
+#==============================================================#
+# File      :   saas.yml (1-node)
+# Desc      :   Feature rich 1-node template with all extensions
+# Ctime     :   2020-05-22
+# Mtime     :   2025-03-22
+# Docs      :   https://pgsty.com/docs/config
+# License   :   AGPLv3 @ https://pgsty.com/docs/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+
+all:
+
+  #==============================================================#
+  # Clusters, Nodes, and Modules
+  #==============================================================#
+  children:
+
+    #----------------------------------#
+    # infra: monitor, alert, repo, etc..
+    #----------------------------------#
+    infra:
+      hosts:
+        10.10.10.10: { infra_seq: 1 }
+      vars:
+        docker_enabled: true      # enabled docker with ./docker.yml
+        #docker_registry_mirrors: ["https://docker.1ms.run", "https://docker.m.daocloud.io"]
+
+    #----------------------------------#
+    # etcd cluster for HA postgres DCS
+    #----------------------------------#
+    etcd:
+      hosts:
+        10.10.10.10: { etcd_seq: 1 }
+      vars:
+        etcd_cluster: etcd
+
+    #----------------------------------#
+    # minio (OPTIONAL backup repo)
+    #----------------------------------#
+    minio:
+      hosts:
+        10.10.10.10: { minio_seq: 1 }
+      vars:
+        minio_cluster: minio
+
+    #----------------------------------#
+    # pgsql (singleton on current node)
+    #----------------------------------#
+    # postgres cluster: pg-meta
+    pg-meta:
+      hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
+      vars:
+        pg_cluster: pg-meta
+        pg_users:
+          - {name: dbuser_meta     ,password: DBUser.Meta     ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: pigsty admin user }
+          - {name: dbuser_view     ,password: DBUser.Viewer   ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer for meta database }
+          - {name: dbuser_grafana  ,password: DBUser.Grafana  ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: admin user for grafana database    }
+          - {name: dbuser_bytebase ,password: DBUser.Bytebase ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: admin user for bytebase database   }
+          - {name: dbuser_kong     ,password: DBUser.Kong     ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: admin user for kong api gateway    }
+          - {name: dbuser_gitea    ,password: DBUser.Gitea    ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: admin user for gitea service       }
+          - {name: dbuser_wiki     ,password: DBUser.Wiki     ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: admin user for wiki.js service     }
+          - {name: dbuser_noco     ,password: DBUser.Noco     ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: admin user for nocodb service      }
+          - {name: dbuser_odoo     ,password: DBUser.Odoo     ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: admin user for odoo service ,createdb: true} #,superuser: true}
+        pg_databases:
+          - {name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [{name: vector},{name: postgis},{name: timescaledb}]}
+          - {name: grafana  ,owner: dbuser_grafana  ,revokeconn: true ,comment: grafana primary database  }
+          - {name: bytebase ,owner: dbuser_bytebase ,revokeconn: true ,comment: bytebase primary database }
+          - {name: kong     ,owner: dbuser_kong     ,revokeconn: true ,comment: kong api gateway database }
+          - {name: gitea    ,owner: dbuser_gitea    ,revokeconn: true ,comment: gitea meta database }
+          - {name: wiki     ,owner: dbuser_wiki     ,revokeconn: true ,comment: wiki meta database  }
+          - {name: noco     ,owner: dbuser_noco     ,revokeconn: true ,comment: nocodb database     }
+          #- {name: odoo     ,owner: dbuser_odoo     ,revokeconn: true ,comment: odoo main database  }
+        pg_hba_rules:
+          - {user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes'}
+        pg_libs: 'timescaledb,pg_stat_statements, auto_explain'  # add timescaledb to shared_preload_libraries
+        node_crontab:  # make one full backup 1 am everyday
+          - '00 01 * * * postgres /pg/bin/pg-backup full'
+
+    redis-ms: # redis classic primary & replica
+      hosts: { 10.10.10.10: { redis_node: 1 , redis_instances: { 6379: { }, 6380: { replica_of: '10.10.10.10 6379' } } } }
+      vars: { redis_cluster: redis-ms ,redis_password: 'redis.ms' ,redis_max_memory: 64MB }
+
+
+  vars:                               # global variables
+    version: v3.5.0                   # pigsty version string
+    admin_ip: 10.10.10.10             # admin node ip address
+    region: default                   # upstream mirror region: default|china|europe
+    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
+    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+    proxy_env:                        # global proxy env when downloading packages
+      no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.myqcloud.com,*.tsinghua.edu.cn"
+      # http_proxy:  # set your proxy here: e.g http://user:pass@proxy.xxx.com
+      # https_proxy: # set your proxy here: e.g http://user:pass@proxy.xxx.com
+      # all_proxy:   # set your proxy here: e.g http://user:pass@proxy.xxx.com
+    infra_portal:                     # domain names and upstream servers
+      home         : { domain: h.pigsty }
+      grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
+      prometheus   : { domain: p.pigsty ,endpoint: "${admin_ip}:9090" }
+      alertmanager : { domain: a.pigsty ,endpoint: "${admin_ip}:9093" }
+      blackbox     : { endpoint: "${admin_ip}:9115" }
+      loki         : { endpoint: "${admin_ip}:3100" }
+      minio        : { domain: m.pigsty    ,endpoint: "${admin_ip}:9001" ,scheme: https ,websocket: true }
+      postgrest    : { domain: api.pigsty  ,endpoint: "127.0.0.1:8884" }
+      pgadmin      : { domain: adm.pigsty  ,endpoint: "127.0.0.1:8885" }
+      pgweb        : { domain: cli.pigsty  ,endpoint: "127.0.0.1:8886" }
+      bytebase     : { domain: ddl.pigsty  ,endpoint: "127.0.0.1:8887" }
+      jupyter      : { domain: lab.pigsty  ,endpoint: "127.0.0.1:8888", websocket: true }
+      gitea        : { domain: git.pigsty  ,endpoint: "127.0.0.1:8889" }
+      wiki         : { domain: wiki.pigsty ,endpoint: "127.0.0.1:9002" }
+      noco         : { domain: noco.pigsty ,endpoint: "127.0.0.1:9003" }
+      supa         : { domain: supa.pigsty ,endpoint: "10.10.10.10:8000", websocket: true }
+      dify         : { domain: dify.pigsty ,endpoint: "10.10.10.10:8001", websocket: true }
+      odoo         : { domain: odoo.pigsty, endpoint: "127.0.0.1:8069"  , websocket: true }
+    nginx_navbar:                    # application nav links on home page
+      - { name: PgAdmin4   , url : 'http://adm.pigsty'  , comment: 'PgAdmin4 for PostgreSQL'  }
+      - { name: PGWeb      , url : 'http://cli.pigsty'  , comment: 'PGWEB Browser Client'     }
+      - { name: ByteBase   , url : 'http://ddl.pigsty'  , comment: 'ByteBase Schema Migrator' }
+      - { name: PostgREST  , url : 'http://api.pigsty'  , comment: 'Kong API Gateway'         }
+      - { name: Gitea      , url : 'http://git.pigsty'  , comment: 'Gitea Git Service'        }
+      - { name: Minio      , url : 'https://m.pigsty'   , comment: 'Minio Object Storage'     }
+      - { name: Wiki       , url : 'http://wiki.pigsty' , comment: 'Local Wikipedia'          }
+      - { name: Noco       , url : 'http://noco.pigsty' , comment: 'Nocodb Example'           }
+      - { name: Odoo       , url : 'http://odoo.pigsty' , comment: 'Odoo - the OpenERP'       }
+      - { name: Explain    , url : '/pigsty/pev.html'   , comment: 'pgsql explain visualizer' }
+      - { name: Package    , url : '/pigsty'            , comment: 'local yum repo packages'  }
+      - { name: PG Logs    , url : '/logs'              , comment: 'postgres raw csv logs'    }
+      - { name: Schemas    , url : '/schema'            , comment: 'schemaspy summary report' }
+      - { name: Reports    , url : '/report'            , comment: 'pgbadger summary report'  }
+
+    #----------------------------------#
+    # MinIO Related Options
+    #----------------------------------#
+    #minio_users:                      # and configure `pgbackrest_repo` & `minio_users` accordingly
+    #  - { access_key: dba , secret_key: S3User.DBA, policy: consoleAdmin }
+    #  - { access_key: pgbackrest , secret_key: S3User.Backup, policy: readwrite }
+    #pgbackrest_repo:                  # pgbackrest repo: https://pgbackrest.org/configuration.html#section-repository
+    #  minio: ...                      # optional minio repo for pgbackrest ...
+    #    s3_key: pgbackrest            # minio user access key for pgbackrest
+    #    s3_key_secret: S3User.Backup  # minio user secret key for pgbackrest
+    #    cipher_pass: pgBackRest       # AES encryption password, default is 'pgBackRest'
+    # if you want to use minio as backup repo instead of 'local' fs, uncomment this, and configure `pgbackrest_repo`
+    pgbackrest_method: minio          # use minio as backup repo instead of 'local'
+    node_etc_hosts: [ "${admin_ip} sss.pigsty" ]
+    dns_records: [ "${admin_ip} api.pigsty adm.pigsty cli.pigsty ddl.pigsty lab.pigsty git.pigsty wiki.pigsty noco.pigsty supa.pigsty dify.pigsty odoo.pigsty" ]
+
+    #----------------------------------#
+    # Credential: CHANGE THESE PASSWORDS
+    #----------------------------------#
+    #grafana_admin_username: admin
+    grafana_admin_password: pigsty
+    #pg_admin_username: dbuser_dba
+    pg_admin_password: DBUser.DBA
+    #pg_monitor_username: dbuser_monitor
+    pg_monitor_password: DBUser.Monitor
+    #pg_replication_username: replicator
+    pg_replication_password: DBUser.Replicator
+    #patroni_username: postgres
+    patroni_password: Patroni.API
+    #haproxy_admin_username: admin
+    haproxy_admin_password: pigsty
+    #minio_access_key: minioadmin
+    minio_secret_key: minioadmin
+
+    #----------------------------------#
+    # Safe Guard
+    #----------------------------------#
+    # you can enable these flags after bootstrap, to prevent purging running etcd / pgsql instances
+    etcd_safeguard: false             # prevent purging running etcd instance?
+    pg_safeguard: false               # prevent purging running postgres instance? false by default
+
+    #----------------------------------#
+    # Repo, Node, Packages
+    #----------------------------------#
+    repo_remove: true                 # remove existing repo on admin node during repo bootstrap
+    node_repo_remove: true            # remove existing node repo for node managed by pigsty
+    repo_extra_packages: [ pg17-main ,pg17-core ,pg17-time ,pg17-gis ,pg17-rag ,pg17-fts ,pg17-olap ,pg17-feat ,pg17-lang ,pg17-type ,pg17-util ,pg17-func ,pg17-admin ,pg17-stat ,pg17-sec ,pg17-fdw ,pg17-sim ,pg17-etl]
+    pg_version: 17                    # default postgres version
+    pg_extensions: [pg17-time ,pg17-gis ,pg17-rag ,pg17-fts ,pg17-feat ,pg17-lang ,pg17-type ,pg17-util ,pg17-func ,pg17-admin ,pg17-stat ,pg17-sec ,pg17-fdw ,pg17-sim ,pg17-etl ] #,pg17-olap]
+...

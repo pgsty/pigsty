@@ -3,30 +3,27 @@
 # File      :   oriole.yml
 # Desc      :   Pigsty Config for OrioleDB (OLTP Enhancement)
 # Ctime     :   2025-04-05
-# Mtime     :   2025-04-05
+# Mtime     :   2025-07-01
 # Docs      :   https://pgsty.com/docs/config
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
-# orioledb is available on el8/el9, works on a special pg17 fork
+# This is the config template for OrioleDB Kernel,
+# Which is a Patched PostgreSQL 17 fork without bloat
+# tutorial: https://pgsty.com/docs/feat/kernel
+# Usage:
+#   ./configure -c oriole
+#   ./install
 
 all:
   children:
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 }} ,vars: { repo_enabled: false }}
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1  }} ,vars: { etcd_cluster: etcd  }}
 
-    # infra singleton for repo, monitoring,...
-    infra:
-      hosts:
-        10.10.10.10: { infra_seq: 1 }
-
-    # etcd singleton for HA postgres DCS
-    etcd:
-      hosts:
-        10.10.10.10: { etcd_seq: 1 }
-      vars:
-        etcd_cluster: etcd
-
-    # orioledb example one-node cluster
+    #----------------------------------------------#
+    # OrioleDB Database Cluster
+    #----------------------------------------------#
     pg-meta:
       hosts:
         10.10.10.10: { pg_seq: 1, pg_role: primary }
@@ -39,14 +36,20 @@ all:
           - {name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty], extensions: [orioledb]}
         pg_hba_rules:
           - {user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes'}
+        node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
+
+        # OrioleDB Ad Hoc Settings
+        pg_mode: oriole                                         # oriole compatible mode
+        pg_packages: [ orioledb, pgsql-common ]                 # install OrioleDB kernel
+        pg_libs: 'orioledb, pg_stat_statements, auto_explain'   # Load OrioleDB Extension
 
   vars:                               # global variables
+    #----------------------------------------------#
+    # INFRA : https://pgsty.com/docs/infra/param
+    #----------------------------------------------#
     version: v3.5.0                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
     region: default                   # upstream mirror region: default,china,europe
-    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
-    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
-    #docker_registry_mirrors: ["https://docker.1ms.run", "https://docker.m.daocloud.io"]
     infra_portal:                     # domain names and upstream servers
       home         : { domain: h.pigsty }
       grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
@@ -55,9 +58,15 @@ all:
       blackbox     : { endpoint: "${admin_ip}:9115" }
       loki         : { endpoint: "${admin_ip}:3100" }
 
-    pg_mode: oriole                    # oriole compatible mode
-    pg_version: 17                     # compatible with pg17
-    pg_packages: [ orioledb, pgsql-common ]
-    repo_extra_packages: [ orioledb ]  # download orioedb packages
-    pg_libs: 'orioledb, pg_stat_statements, auto_explain'
+    #----------------------------------------------#
+    # NODE : https://pgsty.com/docs/node/param
+    #----------------------------------------------#
+    node_repo_modules: node,infra,pgsql # add these repos directly to the singleton node
+    node_tune: oltp                     # node tuning specs: oltp,olap,tiny,crit
+
+    #----------------------------------------------#
+    # PGSQL : https://pgsty.com/docs/pgsql/param
+    #----------------------------------------------#
+    pg_version: 17                      # OrioleDB Kernel is based on PG 17
+    pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
 ...

@@ -3,30 +3,27 @@
 # File      :   ivory.yml
 # Desc      :   Pigsty Config for IvorySQL 4 (Oracle Compatible)
 # Ctime     :   2024-08-05
-# Mtime     :   2025-03-25
+# Mtime     :   2025-07-01
 # Docs      :   https://pgsty.com/docs/config
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
-# ivorysql4 is pg17 compatible
+# This is the config template for IvorySQL 4 Kernel,
+# Which is a PostgreSQL 17 fork with Oracle Compatibility
+# tutorial: https://pgsty.com/docs/feat/kernel
+# Usage:
+#   ./configure -c ivory
+#   ./install
 
 all:
   children:
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 }} ,vars: { repo_enabled: false }}
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1  }} ,vars: { etcd_cluster: etcd  }}
 
-    # infra singleton for repo, monitoring,...
-    infra:
-      hosts:
-        10.10.10.10: { infra_seq: 1 }
-
-    # etcd singleton for HA postgres DCS
-    etcd:
-      hosts:
-        10.10.10.10: { etcd_seq: 1 }
-      vars:
-        etcd_cluster: etcd
-
-    # ivorysql singleton
+    #----------------------------------------------#
+    # IvorySQL Database Cluster
+    #----------------------------------------------#
     pg-meta:
       hosts:
         10.10.10.10: { pg_seq: 1, pg_role: primary }
@@ -39,17 +36,20 @@ all:
           - {name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty]}
         pg_hba_rules:
           - {user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes'}
-        pg_vip_enabled: true
-        pg_vip_address: 10.10.10.2/24
-        pg_vip_interface: eth1
+        node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
+
+        # IvorySQL Ad Hoc Settings
+        pg_mode: ivory                                                 # Use IvorySQL Oracle Compatible Mode
+        pg_packages: [ ivorysql, pgsql-common ]                        # install IvorySQL instead of postgresql kernel
+        pg_libs: 'liboracle_parser, pg_stat_statements, auto_explain'  # pre-load oracle parser
 
   vars:                               # global variables
+    #----------------------------------------------#
+    # INFRA : https://pgsty.com/docs/infra/param
+    #----------------------------------------------#
     version: v3.5.0                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
     region: default                   # upstream mirror region: default,china,europe
-    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
-    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
-    #docker_registry_mirrors: ["https://docker.1ms.run", "https://docker.m.daocloud.io"]
     infra_portal:                     # domain names and upstream servers
       home         : { domain: h.pigsty }
       grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
@@ -58,12 +58,17 @@ all:
       blackbox     : { endpoint: "${admin_ip}:9115" }
       loki         : { endpoint: "${admin_ip}:3100" }
 
-    #----------------------------------#
-    # Ivory SQL Configuration
-    #----------------------------------#
-    pg_mode: ivory                    # IvorySQL Oracle Compatible Mode
-    pg_version: 17                    # The current IvorySQL compatible major version is 17
-    pg_packages: [ ivorysql, pgsql-common ]
-    pg_libs: 'liboracle_parser, pg_stat_statements, auto_explain'
-    repo_extra_packages: [ ivorysql ] # replace default postgresql kernel with ivroysql packages
+    #----------------------------------------------#
+    # NODE : https://pgsty.com/docs/node/param
+    #----------------------------------------------#
+    node_repo_modules: node,infra,pgsql # add these repos directly to the singleton node
+    node_tune: oltp                     # node tuning specs: oltp,olap,tiny,crit
+    #node_packages: [openssh-server,libcrypt1]  # Debian / Ubuntu HotFix on aarch64
+    #node_packages: [openssh-server,libxcrypt-compat]  # RHEL HotFix on aarch64
+
+    #----------------------------------------------#
+    # PGSQL : https://pgsty.com/docs/pgsql/param
+    #----------------------------------------------#
+    pg_version: 17                      # IvorySQL kernel is compatible with postgres 17
+    pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
 ...

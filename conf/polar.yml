@@ -3,30 +3,27 @@
 # File      :   polar.yml
 # Desc      :   Pigsty Local 4-node PolarDB for PG Demo Config
 # Ctime     :   2020-08-05
-# Mtime     :   2025-03-25
+# Mtime     :   2025-07-01
 # Docs      :   https://pgsty.com/docs/config
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
-# the latest PolarDB for PG kernel is postgresql 15 compatible
+# This is the config template for PolarDB PG Kernel,
+# Which is a PostgreSQL 15 fork with RAC flavor features
+# tutorial: https://pgsty.com/docs/feat/kernel
+# Usage:
+#   ./configure -c polar
+#   ./install
 
 all:
   children:
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 }} ,vars: { repo_enabled: false }}
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1  }} ,vars: { etcd_cluster: etcd  }}
 
-    # infra singleton for repo, monitoring,...
-    infra:
-      hosts:
-        10.10.10.10: { infra_seq: 1 }
-
-    # etcd singleton for HA postgres DCS
-    etcd:
-      hosts:
-        10.10.10.10: { etcd_seq: 1 }
-      vars:
-        etcd_cluster: etcd
-
-    # polardb singleton
+    #----------------------------------------------#
+    # PolarDB Database Cluster
+    #----------------------------------------------#
     pg-meta:
       hosts:
         10.10.10.10: { pg_seq: 1, pg_role: primary }
@@ -39,14 +36,30 @@ all:
           - {name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty]}
         pg_hba_rules:
           - {user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes'}
+        node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
+
+        # PolarDB Ad Hoc Settings
+        pg_version: 15                            # PolarDB PG is based on PG 15
+        pg_mode: polar                            # PolarDB PG Compatible mode
+        pg_packages: [ polardb, pgsql-common ]    # Replace PG kernel with PolarDB kernel
+        pg_exporter_exclude_database: 'template0,template1,postgres,polardb_admin'
+        pg_default_roles:                         # PolarDB require replicator as superuser
+          - { name: dbrole_readonly  ,login: false ,comment: role for global read-only access     }
+          - { name: dbrole_offline   ,login: false ,comment: role for restricted read-only access }
+          - { name: dbrole_readwrite ,login: false ,roles: [dbrole_readonly] ,comment: role for global read-write access }
+          - { name: dbrole_admin     ,login: false ,roles: [pg_monitor, dbrole_readwrite] ,comment: role for object creation }
+          - { name: postgres     ,superuser: true  ,comment: system superuser }
+          - { name: replicator   ,superuser: true  ,replication: true ,roles: [pg_monitor, dbrole_readonly] ,comment: system replicator } # <- superuser is required for replication
+          - { name: dbuser_dba   ,superuser: true  ,roles: [dbrole_admin]  ,pgbouncer: true ,pool_mode: session, pool_connlimit: 16 ,comment: pgsql admin user }
+          - { name: dbuser_monitor ,roles: [pg_monitor] ,pgbouncer: true ,parameters: {log_min_duration_statement: 1000 } ,pool_mode: session ,pool_connlimit: 8 ,comment: pgsql monitor user }
 
   vars:                               # global variables
+    #----------------------------------------------#
+    # INFRA : https://pgsty.com/docs/infra/param
+    #----------------------------------------------#
     version: v3.5.0                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
     region: default                   # upstream mirror region: default,china,europe
-    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
-    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
-    #docker_registry_mirrors: ["https://docker.1ms.run", "https://docker.m.daocloud.io"]
     infra_portal:                     # domain names and upstream servers
       home         : { domain: h.pigsty }
       grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
@@ -55,22 +68,16 @@ all:
       blackbox     : { endpoint: "${admin_ip}:9115" }
       loki         : { endpoint: "${admin_ip}:3100" }
 
-    #----------------------------------#
-    # NODE, PGSQL, PolarDB
-    #----------------------------------#
-    # THIS SPEC REQUIRE AN AVAILABLE POLARDB KERNEL IN THE LOCAL REPO!
-    pg_version: 15
-    pg_packages: [ polardb, pgsql-common ]
-    pg_mode: polar                    # polardb compatible mode
-    pg_exporter_exclude_database: 'template0,template1,postgres,polardb_admin'
-    pg_default_roles:                 # default roles and users in postgres cluster
-      - { name: dbrole_readonly  ,login: false ,comment: role for global read-only access     }
-      - { name: dbrole_offline   ,login: false ,comment: role for restricted read-only access }
-      - { name: dbrole_readwrite ,login: false ,roles: [dbrole_readonly] ,comment: role for global read-write access }
-      - { name: dbrole_admin     ,login: false ,roles: [pg_monitor, dbrole_readwrite] ,comment: role for object creation }
-      - { name: postgres     ,superuser: true  ,comment: system superuser }
-      - { name: replicator   ,superuser: true  ,replication: true ,roles: [pg_monitor, dbrole_readonly] ,comment: system replicator } # <- superuser is required for replication
-      - { name: dbuser_dba   ,superuser: true  ,roles: [dbrole_admin]  ,pgbouncer: true ,pool_mode: session, pool_connlimit: 16 ,comment: pgsql admin user }
-      - { name: dbuser_monitor ,roles: [pg_monitor] ,pgbouncer: true ,parameters: {log_min_duration_statement: 1000 } ,pool_mode: session ,pool_connlimit: 8 ,comment: pgsql monitor user }
-    repo_extra_packages: [ polardb ] # replace vanilla postgres kernel with polardb kernel
+    #----------------------------------------------#
+    # NODE : https://pgsty.com/docs/node/param
+    #----------------------------------------------#
+    node_repo_modules: node,infra,pgsql # add these repos directly to the singleton node
+    node_tune: oltp                     # node tuning specs: oltp,olap,tiny,crit
+
+    #----------------------------------------------#
+    # PGSQL : https://pgsty.com/docs/pgsql/param
+    #----------------------------------------------#
+    pg_version: 15                      # PolarDB is compatible with PG 15
+    pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+
 ...

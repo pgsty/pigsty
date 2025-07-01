@@ -3,65 +3,75 @@
 # File      :   mssql.yml
 # Desc      :   Pigsty Config for Babelfish: WiltonDB
 # Ctime     :   2020-08-01
-# Mtime     :   2025-03-25
+# Mtime     :   2025-07-01
 # Docs      :   https://pgsty.com/docs/config
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
-# WiltonDB available on el7/el8/el9 and u20/u22/u24
+# This is the config template for Babelfish Kernel (WiltonDB),
+# Which is a PostgreSQL 15 fork with SQL Server Compatibility
+# tutorial: https://pgsty.com/docs/feat/kernel
+# Usage:
+#   ./configure -c mssql
+#   ./install
 
 all:
   children:
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 }} ,vars: { repo_enabled: false }}
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1  }} ,vars: { etcd_cluster: etcd  }}
 
-    #----------------------------------#
-    # infra: monitor, alert, repo, etc..
-    #----------------------------------#
-    infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
-
-    #----------------------------------#
-    # etcd cluster for HA postgres DCS
-    #----------------------------------#
-    etcd: { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
-
-    #----------------------------------#
-    # pgsql (singleton on current node)
-    #----------------------------------#
-    # this is an example single-node postgres cluster
+    #----------------------------------------------#
+    # Babelfish Database Cluster
+    #----------------------------------------------#
     pg-meta:
       hosts:
-        10.10.10.10: { pg_seq: 1, pg_role: primary } # <---- primary instance with read-write capability
+        10.10.10.10: { pg_seq: 1, pg_role: primary }
       vars:
         pg_cluster: pg-meta
-        pg_users:                           # create MSSQL superuser
+        pg_users:
           - {name: dbuser_mssql ,password: DBUser.MSSQL ,superuser: true, pgbouncer: true ,roles: [dbrole_admin], comment: superuser & owner for babelfish  }
         pg_databases:
           - name: mssql
-            baseline: mssql.sql             # init babelfish database & user
-            extensions:
-              - { name: uuid-ossp          }
-              - { name: babelfishpg_common }
-              - { name: babelfishpg_tsql   }
-              - { name: babelfishpg_tds    }
-              - { name: babelfishpg_money  }
-              - { name: pg_hint_plan       }
-              - { name: system_stats       }
-              - { name: tds_fdw            }
+            baseline: mssql.sql
+            extensions: [uuid-ossp, babelfishpg_common, babelfishpg_tsql, babelfishpg_tds, babelfishpg_money, pg_hint_plan, system_stats, tds_fdw]
             owner: dbuser_mssql
             parameters: { 'babelfishpg_tsql.migration_mode' : 'multi-db' }
             comment: babelfish cluster, a MSSQL compatible pg cluster
+        node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
+
+        # Babelfish / WiltonDB Ad Hoc Settings
+        pg_mode: mssql                     # Microsoft SQL Server Compatible Mode
+        pg_version: 15
+        pg_packages: [ wiltondb, pgsql-common, sqlcmd ]
+        pg_libs: 'babelfishpg_tds, pg_stat_statements, auto_explain' # add timescaledb to shared_preload_libraries
+        pg_default_hba_rules: # overwrite default HBA rules for babelfish cluster
+          - { user: '${dbsu}'    ,db: all         ,addr: local     ,auth: ident ,title: 'dbsu access via local os user ident' }
+          - { user: '${dbsu}'    ,db: replication ,addr: local     ,auth: ident ,title: 'dbsu replication from local os ident' }
+          - { user: '${repl}'    ,db: replication ,addr: localhost ,auth: pwd   ,title: 'replicator replication from localhost' }
+          - { user: '${repl}'    ,db: replication ,addr: intra     ,auth: pwd   ,title: 'replicator replication from intranet' }
+          - { user: '${repl}'    ,db: postgres    ,addr: intra     ,auth: pwd   ,title: 'replicator postgres db from intranet' }
+          - { user: '${monitor}' ,db: all         ,addr: localhost ,auth: pwd   ,title: 'monitor from localhost with password' }
+          - { user: '${monitor}' ,db: all         ,addr: infra     ,auth: pwd   ,title: 'monitor from infra host with password' }
+          - { user: '${admin}'   ,db: all         ,addr: infra     ,auth: ssl   ,title: 'admin @ infra nodes with pwd & ssl' }
+          - { user: '${admin}'   ,db: all         ,addr: world     ,auth: ssl   ,title: 'admin @ everywhere with ssl & pwd' }
+          - { user: dbuser_mssql ,db: mssql       ,addr: intra     ,auth: md5   ,title: 'allow mssql dbsu intranet access' } # <--- use md5 auth method for mssql user
+          - { user: '+dbrole_readonly',db: all    ,addr: localhost ,auth: pwd   ,title: 'pgbouncer read/write via local socket' }
+          - { user: '+dbrole_readonly',db: all    ,addr: intra     ,auth: pwd   ,title: 'read/write biz user via password' }
+          - { user: '+dbrole_offline' ,db: all    ,addr: intra     ,auth: pwd   ,title: 'allow etl offline tasks from intranet' }
+        pg_default_services: # route primary & replica service to mssql port 1433
+          - { name: primary ,port: 5433 ,dest: 1433  ,check: /primary   ,selector: "[]" }
+          - { name: replica ,port: 5434 ,dest: 1433  ,check: /read-only ,selector: "[]" , backup: "[? pg_role == `primary` || pg_role == `offline` ]" }
+          - { name: default ,port: 5436 ,dest: postgres ,check: /primary   ,selector: "[]" }
+          - { name: offline ,port: 5438 ,dest: postgres ,check: /replica   ,selector: "[? pg_role == `offline` || pg_offline_query ]" , backup: "[? pg_role == `replica` && !pg_offline_query]" }
 
   vars:
-
-    #----------------------------------#
-    # Meta Data
-    #----------------------------------#
+    #----------------------------------------------#
+    # INFRA : https://pgsty.com/docs/infra/param
+    #----------------------------------------------#
     version: v3.5.0                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
     region: default                   # upstream mirror region: default,china,europe
-    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
-    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
-    #docker_registry_mirrors: ["https://docker.1ms.run", "https://docker.m.daocloud.io"]
     infra_portal:                     # domain names and upstream servers
       home         : { domain: h.pigsty }
       grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
@@ -70,35 +80,15 @@ all:
       blackbox     : { endpoint: "${admin_ip}:9115" }
       loki         : { endpoint: "${admin_ip}:3100" }
 
-    #----------------------------------#
-    # NODE, PGSQL, MSSQL
-    #----------------------------------#
-    pg_version: 15                     # The current WiltonDB major version is 15
-    pg_packages: [ wiltondb, pgsql-common, sqlcmd ]
-    pg_extensions: [ ]                 # do not install any vanilla postgresql extensions
-    pg_mode: mssql                     # Microsoft SQL Server Compatible Mode
-    pg_libs: 'babelfishpg_tds, pg_stat_statements, auto_explain' # add timescaledb to shared_preload_libraries
-    pg_default_hba_rules: # overwrite default HBA rules for babelfish cluster
-      - { user: '${dbsu}'    ,db: all         ,addr: local     ,auth: ident ,title: 'dbsu access via local os user ident' }
-      - { user: '${dbsu}'    ,db: replication ,addr: local     ,auth: ident ,title: 'dbsu replication from local os ident' }
-      - { user: '${repl}'    ,db: replication ,addr: localhost ,auth: pwd   ,title: 'replicator replication from localhost' }
-      - { user: '${repl}'    ,db: replication ,addr: intra     ,auth: pwd   ,title: 'replicator replication from intranet' }
-      - { user: '${repl}'    ,db: postgres    ,addr: intra     ,auth: pwd   ,title: 'replicator postgres db from intranet' }
-      - { user: '${monitor}' ,db: all         ,addr: localhost ,auth: pwd   ,title: 'monitor from localhost with password' }
-      - { user: '${monitor}' ,db: all         ,addr: infra     ,auth: pwd   ,title: 'monitor from infra host with password' }
-      - { user: '${admin}'   ,db: all         ,addr: infra     ,auth: ssl   ,title: 'admin @ infra nodes with pwd & ssl' }
-      - { user: '${admin}'   ,db: all         ,addr: world     ,auth: ssl   ,title: 'admin @ everywhere with ssl & pwd' }
-      - { user: dbuser_mssql ,db: mssql       ,addr: intra     ,auth: md5   ,title: 'allow mssql dbsu intranet access' } # <--- use md5 auth method for mssql user
-      - { user: '+dbrole_readonly',db: all    ,addr: localhost ,auth: pwd   ,title: 'pgbouncer read/write via local socket' }
-      - { user: '+dbrole_readonly',db: all    ,addr: intra     ,auth: pwd   ,title: 'read/write biz user via password' }
-      - { user: '+dbrole_offline' ,db: all    ,addr: intra     ,auth: pwd   ,title: 'allow etl offline tasks from intranet' }
-    pg_default_services: # route primary & replica service to mssql port 1433
-      - { name: primary ,port: 5433 ,dest: 1433  ,check: /primary   ,selector: "[]" }
-      - { name: replica ,port: 5434 ,dest: 1433  ,check: /read-only ,selector: "[]" , backup: "[? pg_role == `primary` || pg_role == `offline` ]" }
-      - { name: default ,port: 5436 ,dest: postgres ,check: /primary   ,selector: "[]" }
-      - { name: offline ,port: 5438 ,dest: postgres ,check: /replica   ,selector: "[? pg_role == `offline` || pg_offline_query ]" , backup: "[? pg_role == `replica` && !pg_offline_query]" }
+    #----------------------------------------------#
+    # NODE : https://pgsty.com/docs/node/param
+    #----------------------------------------------#
+    node_repo_modules: node,infra,pgsql,mssql # extra mssql repo is required
+    node_tune: oltp                           # node tuning specs: oltp,olap,tiny,crit
 
-    # download wiltondb instead of postgresql kernel
-    repo_modules: node,pgsql,infra,mssql      # add extra mssql upstream repo for downloading
-    repo_extra_packages: [ wiltondb, sqlcmd ] # replace pgsql kernel with wiltondb/babelfish
+    #----------------------------------------------#
+    # PGSQL : https://pgsty.com/docs/pgsql/param
+    #----------------------------------------------#
+    pg_version: 15                            # Babelfish kernel is compatible with postgres 15
+    pg_conf: oltp.yml                         # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
 ...

@@ -1,40 +1,29 @@
 ---
 #==============================================================#
-# File      :   mongo.yml (1-node)
+# File      :   mongo.yml
 # Desc      :   DocumentDB & MongoDB (FerretDB) configuration
 # Ctime     :   2025-02-23
-# Mtime     :   2025-03-25
+# Mtime     :   2025-07-01
 # Docs      :   https://pgsty.com/docs/config
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
+# This is the config template for FerretDB & DocumentDB
+# Which is a Mongo Wire-Compatible Layer upon PostgreSQL
+# tutorial: https://pgsty.com/docs/feat/kernel
+# Usage:
+#   ./configure -c mongo
+#   ./install
+#   ./mongo.yml -l ferret
 
 all:
-
-  #==============================================================#
-  # Clusters, Nodes, and Modules
-  #==============================================================#
   children:
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 }} ,vars: { repo_enabled: false }}
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1  }} ,vars: { etcd_cluster: etcd  }}
 
     #----------------------------------#
-    # infra: monitor, alert, repo, etc..
-    #----------------------------------#
-    infra:
-      hosts:
-        10.10.10.10: { infra_seq: 1 }
-
-    #----------------------------------#
-    # etcd cluster for HA postgres DCS
-    #----------------------------------#
-    etcd:
-      hosts:
-        10.10.10.10: { etcd_seq: 1 }
-      vars:
-        etcd_cluster: etcd
-
-    #----------------------------------#
-    # ferretdb for mongodb on postgresql
+    # FerretDB Database Cluster
     #----------------------------------#
     # ./mongo.yml -l ferret
     ferret:
@@ -45,11 +34,11 @@ all:
         mongo_pgurl: 'postgres://mongod:DBUser.Mongo@10.10.10.10:5432/meta'
 
     #----------------------------------#
-    # pgsql (singleton on current node)
+    # PGSQL Database Cluster
     #----------------------------------#
-    # postgres cluster: pg-meta
     pg-meta:
-      hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
+      hosts:
+        10.10.10.10: { pg_seq: 1, pg_role: primary }
       vars:
         pg_cluster: pg-meta
         pg_users:
@@ -61,20 +50,21 @@ all:
         pg_hba_rules:
           - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
           - { user: mongod      , db: all ,addr: world ,auth: pwd ,title: 'mongodb password access from everywhere' }
-        pg_extensions:
-          - documentdb, citus, postgis, pgvector, pg_cron, rum
-        pg_parameters:
-          cron.database_name: meta
+        node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
+
+        # DocumentDB Settings
+        pg_extensions: [ documentdb, citus, postgis, pgvector, pg_cron, rum ]
         pg_libs: 'pg_documentdb, pg_documentdb_core, pg_cron, pg_stat_statements, auto_explain'  # add timescaledb to shared_preload_libraries
+        pg_parameters: { cron.database_name: meta }
 
 
   vars:                               # global variables
+    #----------------------------------------------#
+    # INFRA : https://pgsty.com/docs/infra/param
+    #----------------------------------------------#
     version: v3.5.0                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
-    region: default                   # upstream mirror region: default|china|europe
-    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
-    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
-    #docker_registry_mirrors: ["https://docker.1ms.run", "https://docker.m.daocloud.io"]
+    region: default                   # upstream mirror region: default,china,europe
     infra_portal:                     # domain names and upstream servers
       home         : { domain: h.pigsty }
       grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
@@ -82,35 +72,17 @@ all:
       alertmanager : { domain: a.pigsty ,endpoint: "${admin_ip}:9093" }
       blackbox     : { endpoint: "${admin_ip}:9115" }
       loki         : { endpoint: "${admin_ip}:3100" }
-      minio        : { domain: m.pigsty    ,endpoint: "${admin_ip}:9001" ,scheme: https ,websocket: true }
 
-    #----------------------------------#
-    # Credential: CHANGE THESE PASSWORDS
-    #----------------------------------#
-    #grafana_admin_username: admin
-    grafana_admin_password: pigsty
-    #pg_admin_username: dbuser_dba
-    pg_admin_password: DBUser.DBA
-    #pg_monitor_username: dbuser_monitor
-    pg_monitor_password: DBUser.Monitor
-    #pg_replication_username: replicator
-    pg_replication_password: DBUser.Replicator
-    #patroni_username: postgres
-    patroni_password: Patroni.API
-    #haproxy_admin_username: admin
-    haproxy_admin_password: pigsty
+    #----------------------------------------------#
+    # NODE : https://pgsty.com/docs/node/param
+    #----------------------------------------------#
+    node_repo_modules: node,infra,pgsql # add these repos directly to the singleton node
+    node_tune: oltp                     # node tuning specs: oltp,olap,tiny,crit
 
-    #----------------------------------#
-    # Safe Guard
-    #----------------------------------#
-    # you can enable these flags after bootstrap, to prevent purging running etcd / pgsql instances
-    etcd_safeguard: false             # prevent purging running etcd instance?
-    pg_safeguard: false               # prevent purging running postgres instance? false by default
-
-    #----------------------------------#
-    # Repo, Node, Packages
-    #----------------------------------#
-    pg_version: 17                    # default postgres version
-    repo_extra_packages: [ pg17-main, documentdb, citus, postgis, pgvector, pg_cron, rum ]
+    #----------------------------------------------#
+    # PGSQL : https://pgsty.com/docs/pgsql/param
+    #----------------------------------------------#
+    pg_version: 17                      # IvorySQL kernel is compatible with postgres 17
+    pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
 
 ...
