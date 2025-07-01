@@ -53,7 +53,7 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#studio-dashboard
   studio:
     container_name: supabase-studio
-    image: supabase/studio:2025.04.21-sha-173cc56
+    image: supabase/studio:2025.06.02-sha-8f2993d
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "node", "-e", "fetch('http://studio:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})"]
@@ -74,7 +74,7 @@ services:
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       AUTH_JWT_SECRET: ${JWT_SECRET}
-      LOGFLARE_API_KEY: ${LOGFLARE_API_KEY}
+      LOGFLARE_PRIVATE_ACCESS_TOKEN: ${LOGFLARE_PRIVATE_ACCESS_TOKEN}
       LOGFLARE_URL: http://analytics:4000
       NEXT_PUBLIC_ENABLE_LOGS: true
       NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
@@ -87,7 +87,7 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#gotrue-auth
   auth:
     container_name: supabase-auth
-    image: supabase/gotrue:v2.171.0
+    image: supabase/gotrue:v2.174.0
     restart: unless-stopped
     depends_on:
       analytics:
@@ -154,7 +154,7 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#postgrest-api
   rest:
     container_name: supabase-rest
-    image: postgrest/postgrest:v12.2.11
+    image: postgrest/postgrest:v12.2.12
     depends_on:
       analytics:
         condition: service_healthy
@@ -214,7 +214,7 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#storage-api-large-file-storage
   storage:
     container_name: supabase-storage
-    image: supabase/storage-api:v1.22.7
+    image: supabase/storage-api:v1.23.0
     depends_on:
       rest:
         condition: service_started
@@ -287,7 +287,7 @@ services:
   #--------------------------------------------------------------#
   meta:
     container_name: supabase-meta
-    image: supabase/postgres-meta:v0.88.9
+    image: supabase/postgres-meta:v0.89.3
     depends_on:
       analytics:
         condition: service_healthy
@@ -332,7 +332,7 @@ services:
   # NOTICE: pigsty is still using the same postgres database rather than _supabase for simplicity
   analytics:
     container_name: supabase-analytics
-    image: supabase/logflare:1.12.0
+    image: supabase/logflare:1.14.2
     healthcheck:
       test: [ "CMD", "curl", "http://localhost:4000/health" ]
       timeout: 5s
@@ -347,7 +347,8 @@ services:
       DB_PORT: ${POSTGRES_PORT}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_SCHEMA: _analytics
-      LOGFLARE_API_KEY: ${LOGFLARE_API_KEY}
+      LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
+      LOGFLARE_PRIVATE_ACCESS_TOKEN: ${LOGFLARE_PRIVATE_ACCESS_TOKEN}
       LOGFLARE_SINGLE_TENANT: true
       LOGFLARE_SUPABASE_MODE: true
       LOGFLARE_MIN_CLUSTER_SIZE: 1
@@ -371,7 +372,7 @@ services:
       interval: 5s
       retries: 3
     environment:
-      LOGFLARE_API_KEY: ${LOGFLARE_API_KEY}
+      LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
     volumes:
       - ./volumes/logs/vector.yml:/etc/vector/vector.yml:ro
       - ${DOCKER_SOCKET_LOCATION}:/var/run/docker.sock:ro
