@@ -4,18 +4,10 @@
 #--------------------------------------------------------------#
 - name: render minio config
   tags: minio_conf
-  block:
-
-    - name: render minio config
-      template:
-        src: minio.default.j2
-        dest: /etc/default/minio
-        owner: root
-        group: minio
-        mode: 0644
-
-    - name: create minio systemd service
-      template: src=minio.service.j2 dest={{ systemd_dir }}/minio.service owner=root group=root
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  with_items:
+    - { src: "minio.default" , dest: "/etc/default/minio"               ,owner: root, group: minio ,mode: '0644' }
+    - { src: "minio.service" , dest: "{{ systemd_dir }}/minio.service " ,owner: root, group: root  ,mode: '0644' }
 
 
 #--------------------------------------------------------------#
