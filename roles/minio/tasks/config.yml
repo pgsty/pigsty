@@ -19,7 +19,7 @@
   delegate_to: localhost
   block:
 
-    # reuse existing private key if already exists
+    # reuse the existing private key if already exists
     - name: generate minio private key
       openssl_privatekey:
         path: files/pki/minio/{{ minio_instance }}.key
@@ -90,7 +90,7 @@
 - name: write minio instance dns to infra nameserver
   tags: [ minio_dns , register_dns ]
   delegate_to: '{{ item }}'
-  with_items: "{{ groups['infra'] }}"
+  with_items: "{{ groups['infra'] | default([]) }}"
   copy:
     dest: /etc/hosts.d/{{ minio_instance }}
     mode: 0644
@@ -106,7 +106,7 @@
   delegate_to: '{{ item }}'
   run_once: true
   ignore_errors: true
-  with_items: '{{ groups["infra"] }}'
+  with_items: '{{ groups["infra"] | default([]) }}'
   systemd: name=dnsmasq state=reloaded enabled=yes daemon_reload=yes
 
 ...

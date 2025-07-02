@@ -23,7 +23,7 @@
   delegate_to: '{{ item }}'
   shell: mcli alias set {{ minio_alias }} {% if minio_endpoint is defined and minio_endpoint != '' %}{{ minio_endpoint }}{% else %}https://{{ minio_domain }}:{{ minio_port }}{% endif %} {{ minio_access_key }} {{ minio_secret_key }}
   args: { executable: /bin/bash }
-  with_items: '{{ groups["infra"] }}'
+  with_items: '{{ groups["infra"] | default([]) }}'
   register: result
   retries: 5
   until: result.rc == 0
@@ -32,7 +32,7 @@
 
 
 #--------------------------------------------------------------#
-# Create Minio Bucket minio certs                 [minio_bucket]
+# Create Minio Bucket                             [minio_bucket]
 #--------------------------------------------------------------#
 - name: create minio buckets
   tags: minio_bucket
