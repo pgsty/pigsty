@@ -5,6 +5,7 @@
 - name: register pg database as grafana datasource
   tags: [ pg_register, register_grafana ]
   when: database.register_datasource is not defined or database.register_datasource|bool
+  ignore_errors: true
   delegate_to: "{{ admin_ip }}"
   block:
 
@@ -58,6 +59,7 @@
     #--------------------------------------------------------------#
     - name: load grafana datasource {{ database.name }}
       delegate_to: "{{ admin_ip }}"
+      ignore_errors: true
       shell: |
         curl -X DELETE "{{ endpoint }}/api/datasources/name/{{ name }}" -u "{{ username }}:{{ password }}"  -H 'Content-Type: application/json' 
         curl -X POST   "{{ endpoint }}/api/datasources/" -u "{{ username }}:{{ password }}" -H 'Content-Type: application/json' -d @/etc/pigsty/datasources/{{ name }}.json
