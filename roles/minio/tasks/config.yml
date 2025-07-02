@@ -16,6 +16,7 @@
 - name: generate certs for minio
   tags: [ minio_cert , minio_cert_issue ]
   become: no
+  when: minio_https|bool
   delegate_to: localhost
   block:
 
@@ -61,13 +62,22 @@
   become: yes
   block:
     - name: create minio cert dir
+      when: minio_https|bool
       file: path=/home/{{ minio_user }}/.minio/certs/CAs state=directory owner={{ minio_user }} group=minio mode=0750
-    - name: copy minio ca file
-      copy: src="files/pki/ca/ca.crt" dest="/home/{{ minio_user }}/.minio/certs/CAs/ca.crt" owner={{ minio_user }} group=minio mode=0644
-    - name: copy minio server cert
-      copy: src="files/pki/minio/{{ minio_instance }}.crt" dest="/home/{{ minio_user }}/.minio/certs/public.crt" owner={{ minio_user }} group=minio mode=0644
-    - name: copy minio server key
-      copy: src="files/pki/minio/{{ minio_instance }}.key" dest="/home/{{ minio_user }}/.minio/certs/private.key" owner={{ minio_user }} group=minio mode=0600
+
+    - name: copy minio certificates
+      when: minio_https|bool
+      copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+      with_items:
+        - { src: "files/pki/ca/ca.crt"                       ,dest: "/home/{{ minio_user }}/.minio/certs/CAs/ca.crt"  ,owner: "{{ minio_user }}", group: "minio" ,mode: "0644" }
+        - { src: "files/pki/minio/{{ minio_instance }}.crt"  ,dest: "/home/{{ minio_user }}/.minio/certs/public.crt"  ,owner: "{{ minio_user }}", group: "minio" ,mode: "0644" }
+        - { src: "files/pki/minio/{{ minio_instance }}.key"  ,dest: "/home/{{ minio_user }}/.minio/certs/private.key" ,owner: "{{ minio_user }}", group: "minio" ,mode: "0600" }
+
+    - name: disable minio https by removing certs
+      when: not minio_https|bool
+      file: path=/home/{{ minio_user }}/.minio/certs state=absent
+      ignore_errors: yes
+
 
 
 #--------------------------------------------------------------#
