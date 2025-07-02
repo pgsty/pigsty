@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+set -euo pipefail
+#==============================================================#
+# File      :   app/supabase/bin/dump
+# Desc      :   Dump Supabase Docker images to local dir in parallel
+# Ctime     :   2025-07-01
+# Mtime     :   2025-07-01
+# Args      :   [directory] (default: /tmp/docker/supabase/)
+# Usage     :   bin/load [/tmp/docker/supabase/]
+# License   :   AGPLv3
+#==============================================================#
+
+IMG_DIR=${1:-/tmp/docker/supabase}
+mkdir -p ${IMG_DIR}
+echo "Dumping Supabase Docker images to: $IMG_DIR"
+
+# Dump all images in parallel
+docker save supabase/storage-api   | gzip -c -9 > ${IMG_DIR}/storage.tgz   &
+docker save darthsim/imgproxy      | gzip -c -9 > ${IMG_DIR}/imgproxy.tgz  &
+docker save supabase/studio        | gzip -c -9 > ${IMG_DIR}/studio.tgz    &
+docker save supabase/realtime      | gzip -c -9 > ${IMG_DIR}/realtime.tgz  &
+docker save supabase/edge-runtime  | gzip -c -9 > ${IMG_DIR}/edge.tgz      &
+docker save supabase/gotrue        | gzip -c -9 > ${IMG_DIR}/gotrue.tgz    &
+docker save supabase/postgres-meta | gzip -c -9 > ${IMG_DIR}/postgres.tgz  &
+docker save supabase/logflare      | gzip -c -9 > ${IMG_DIR}/logflare.tgz  &
+docker save postgrest/postgrest    | gzip -c -9 > ${IMG_DIR}/postgrest.tgz &
+docker save timberio/vector        | gzip -c -9 > ${IMG_DIR}/vector.tgz    &
+docker save kong                   | gzip -c -9 > ${IMG_DIR}/kong.tgz      &
+
+# Wait for all background jobs to complete
+wait
+echo "All Supabase Docker images dump successfully!"
+ls -alh ${IMG_DIR}/*.tgz

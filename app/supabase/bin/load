@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+set -euo pipefail
+#==============================================================#
+# File      :   app/supabase/bin/load
+# Desc      :   Load Supabase Docker images in parallel from local
+# Ctime     :   2025-07-01
+# Mtime     :   2025-07-01
+# Args      :   [directory] - directory containing tgz files (default: /tmp/docker/supabase/)
+# Usage     :   bin/load [/tmp/docker/supabase/]
+# License   :   AGPLv3
+#==============================================================#
+
+IMG_DIR=${1:-/tmp/docker/supabase}
+
+echo "Loading Supabase Docker images from: $IMG_DIR"
+echo "Starting parallel image loading..."
+
+# Load all images in parallel
+cat "$IMG_DIR/storage.tgz"   | gzip -d -c - | docker load &
+cat "$IMG_DIR/imgproxy.tgz"  | gzip -d -c - | docker load &
+cat "$IMG_DIR/studio.tgz"    | gzip -d -c - | docker load &
+cat "$IMG_DIR/realtime.tgz"  | gzip -d -c - | docker load &
+cat "$IMG_DIR/edge.tgz"      | gzip -d -c - | docker load &
+cat "$IMG_DIR/gotrue.tgz"    | gzip -d -c - | docker load &
+cat "$IMG_DIR/postgres.tgz"  | gzip -d -c - | docker load &
+cat "$IMG_DIR/logflare.tgz"  | gzip -d -c - | docker load &
+cat "$IMG_DIR/postgrest.tgz" | gzip -d -c - | docker load &
+cat "$IMG_DIR/vector.tgz"    | gzip -d -c - | docker load &
+cat "$IMG_DIR/kong.tgz"      | gzip -d -c - | docker load &
+
+# Wait for all background jobs to complete
+wait
+
+echo "All Supabase Docker images loaded successfully!"

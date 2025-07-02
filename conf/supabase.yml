@@ -50,7 +50,6 @@ all:
       vars:
         minio_cluster: minio
 
-
     #----------------------------------------------#
     # PostgreSQL cluster for Supabase self-hosting
     #----------------------------------------------#
@@ -80,23 +79,25 @@ all:
             comment: supabase postgres database
             schemas: [ extensions ,auth ,realtime ,storage ,graphql_public ,supabase_functions ,_analytics ,_realtime ]
             extensions:
-              - { name: pgcrypto  ,schema: extensions } # cryptographic functions
-              - { name: pg_net    ,schema: extensions } # async HTTP
-              - { name: pgjwt     ,schema: extensions } # json web token API for postgres
-              - { name: uuid-ossp ,schema: extensions } # generate universally unique identifiers (UUIDs)
-              - { name: pgsodium        }               # pgsodium is a modern cryptography library for Postgres.
-              - { name: supabase_vault  }               # Supabase Vault Extension
-              - { name: pg_graphql      }               # pg_graphql: GraphQL support
-              - { name: pg_jsonschema   }               # pg_jsonschema: Validate json schema
-              - { name: wrappers        }               # wrappers: FDW collections
-              - { name: http            }               # http: allows web page retrieval inside the database.
-              - { name: pg_cron         }               # pg_cron: Job scheduler for PostgreSQL
-              - { name: timescaledb     }               # timescaledb: Enables scalable inserts and complex queries for time-series data
-              - { name: pg_tle          }               # pg_tle: Trusted Language Extensions for PostgreSQL
-              - { name: vector          }               # pgvector: the vector similarity search
-              - { name: pgmq            }               # pgmq: A lightweight message queue like AWS SQS and RSMQ
+              - { name: pgcrypto         ,schema: extensions } # cryptographic functions
+              - { name: pg_net           ,schema: extensions } # async HTTP
+              - { name: pgjwt            ,schema: extensions } # json web token API for postgres
+              - { name: uuid-ossp        ,schema: extensions } # generate universally unique identifiers (UUIDs)
+              - { name: pgsodium         ,schema: extensions } # pgsodium is a modern cryptography library for Postgres.
+              - { name: supabase_vault   ,schema: extensions } # Supabase Vault Extension
+              - { name: pg_graphql       ,schema: extensions } # pg_graphql: GraphQL support
+              - { name: pg_jsonschema    ,schema: extensions } # pg_jsonschema: Validate json schema
+              - { name: wrappers         ,schema: extensions } # wrappers: FDW collections
+              - { name: http             ,schema: extensions } # http: allows web page retrieval inside the database.
+              - { name: pg_cron          ,schema: extensions } # pg_cron: Job scheduler for PostgreSQL
+              - { name: timescaledb      ,schema: extensions } # timescaledb: Enables scalable inserts and complex queries for time-series data
+              - { name: pg_tle           ,schema: extensions } # pg_tle: Trusted Language Extensions for PostgreSQL
+              - { name: vector           ,schema: extensions } # pgvector: the vector similarity search
+              - { name: pgmq             ,schema: extensions } # pgmq: A lightweight message queue like AWS SQS and RSMQ
+          - { name: supabase ,owner: supabase_admin ,comment: supabase analytics database ,schemas: [ extensions, _analytics ] }
+
         # supabase required extensions
-        pg_libs: 'timescaledb, pgsodium, plpgsql, plpgsql_check, pg_cron, pg_net, pg_stat_statements, auto_explain, pg_tle, plan_filter'
+        pg_libs: 'timescaledb, pgsodium, plpgsql, plpgsql_check, pg_cron, pg_net, pg_stat_statements, auto_explain, pg_wait_sampling, pg_tle, plan_filter'
         pg_extensions: [pg17-time ,pg17-gis ,pg17-rag ,pg17-fts ,pg17-feat ,pg17-lang ,pg17-type ,pg17-util ,pg17-func ,pg17-admin ,pg17-stat ,pg17-sec ,pg17-fdw ,pg17-sim ,pg17-etl ,pg17-olap]
         pg_parameters: { cron.database_name: postgres }
         pg_hba_rules: # supabase hba rules, require access from docker network
@@ -132,6 +133,10 @@ all:
               DASHBOARD_USERNAME: supabase
               DASHBOARD_PASSWORD: pigsty
 
+              # 32~64 random characters string for logflare
+              LOGFLARE_PUBLIC_ACCESS_TOKEN: 1234567890abcdef1234567890abcdef
+              LOGFLARE_PRIVATE_ACCESS_TOKEN: fedcba0987654321fedcba0987654321
+
               # postgres connection string (use the correct ip and port)
               POSTGRES_HOST: 10.10.10.10      # point to the local postgres node
               POSTGRES_PORT: 5436             # access via the 'default' service, which always route to the primary postgres
@@ -144,10 +149,10 @@ all:
               SUPABASE_PUBLIC_URL: https://supa.pigsty     # <------- DO NOT FORGET TO PUT IT IN infra_portal!
 
               # if using s3/minio as file storage
-              S3_BUCKET: supa
+              S3_BUCKET: data
               S3_ENDPOINT: https://sss.pigsty:9000
-              S3_ACCESS_KEY: supabase
-              S3_SECRET_KEY: S3User.Supabase
+              S3_ACCESS_KEY: s3user_data
+              S3_SECRET_KEY: S3User.Data
               S3_FORCE_PATH_STYLE: true
               S3_PROTOCOL: https
               S3_REGION: stub
@@ -226,6 +231,25 @@ all:
     pg_version: 17                        # default postgres version
     pg_conf: oltp.yml                     # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
     pg_safeguard: false                   # prevent purging running postgres instance?
+    pg_default_schemas: [ monitor, extensions ] # add new schema: exxtensions
+    pg_default_extensions:                # default extensions to be created
+      - { name: pg_stat_statements ,schema: monitor     }
+      - { name: pgstattuple        ,schema: monitor     }
+      - { name: pg_buffercache     ,schema: monitor     }
+      - { name: pageinspect        ,schema: monitor     }
+      - { name: pg_prewarm         ,schema: monitor     }
+      - { name: pg_visibility      ,schema: monitor     }
+      - { name: pg_freespacemap    ,schema: monitor     }
+      - { name: pg_wait_sampling   ,schema: monitor     }
+      # move default extensions to `extensions` schema for supabase
+      - { name: postgres_fdw       ,schema: extensions  }
+      - { name: file_fdw           ,schema: extensions  }
+      - { name: btree_gist         ,schema: extensions  }
+      - { name: btree_gin          ,schema: extensions  }
+      - { name: pg_trgm            ,schema: extensions  }
+      - { name: intagg             ,schema: extensions  }
+      - { name: intarray           ,schema: extensions  }
+      - { name: pg_repack          ,schema: extensions  }
 
     #----------------------------------------------#
     # BACKUP : https://pgsty.com/docs/pgsql/backup
@@ -255,7 +279,7 @@ all:
         cipher_type: aes-256-cbc          # enable AES encryption for remote backup repo
         cipher_pass: pgBackRest           # AES encryption password, default is 'pgBackRest'  <----- HEY, DID YOU CHANGE THIS?
         retention_full_type: time         # retention full backup by time on minio repo
-        retention_full: 14                # keep full backup for last 14 days
+        retention_full: 14                # keep full backup for the last 14 days
       s3:                                 # you can use cloud object storage as backup repo
         type: s3                          # Add your object storage credentials here!
         s3_endpoint: oss-cn-beijing-internal.aliyuncs.com
