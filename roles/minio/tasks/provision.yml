@@ -50,14 +50,30 @@
 #--------------------------------------------------------------#
 # Create Minio Bucket                             [minio_bucket]
 #--------------------------------------------------------------#
+# run mcli mb command on the first minio cluster member
 - name: create minio buckets
   tags: minio_bucket
   when: minio_buckets|length > 0
   become: no
-  delegate_to: '{{ admin_ip }}'
-  shell: mcli mb --ignore-existing {{ minio_alias }}/{{ item.name }}
-  args: { executable: /bin/bash }
-  with_items: '{{ minio_buckets }}'
+  delegate_to: '{{ minio_cluster_members[0] }}'
+  block:
+
+    # render policy.json template for each bucket
+    - name: render minio bucket policies
+      template: src=policy.json dest=/tmp/{{ item.name }}.json
+      with_items: '{{ minio_buckets }}'
+
+    - name: create minio buckets
+      shell: |
+        mcli mb --ignore-existing {% if item.lock is defined and item.lock|bool %}--with-lock{% endif %} {% if item.versioning is defined and item.versioning|bool %}--with-versioning{% endif %} {{ minio_alias }}/{{ item.name }}
+      args: { executable: /bin/bash }
+      with_items: '{{ minio_buckets }}'
+
+    - name: create minio bucket policies
+      shell: |
+        mcli admin policy create {{ minio_alias }} {{ item.name }} /tmp/{{ item.name }}.json
+      args: { executable: /bin/bash }
+      with_items: '{{ minio_buckets }}'
 
 
 #--------------------------------------------------------------#
@@ -67,11 +83,13 @@
   tags: minio_user
   when: minio_users|length > 0
   become: no
-  delegate_to: '{{ admin_ip }}'
+  delegate_to: '{{ minio_cluster_members[0] }}'
   shell: |
     set +o history
     mcli admin user add {{ minio_alias }} {{ item.access_key }} {{ item.secret_key }};
-    mcli admin policy attach {{ minio_alias }} {{ item.policy|default('readwrite') }} --user={{ item.access_key }}
+    {% if item.policy is defined and item.policy != '' %}
+    mcli admin policy attach {{ minio_alias }} {{ item.policy }} --user={{ item.access_key }}
+    {% endif %}
     set -o history
   args: { executable: /bin/bash }
   with_items: '{{ minio_users }}'
