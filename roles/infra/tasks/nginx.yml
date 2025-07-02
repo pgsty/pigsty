@@ -42,7 +42,7 @@
 #--------------------------------------------------------------#
 # 2. Nginx Cert                                     [nginx_cert]
 #--------------------------------------------------------------#
-# check nginx cert & key file exists @ files/pki/nginx/pigsty.{crt|key}
+# check nginx cert and the key file exists @ files/pki/nginx/pigsty.{crt|key}
 - name: check nginx cert key exists
   tags: [ nginx_cert, nginx_cert_check ]
   become: no
@@ -83,6 +83,7 @@
         force: yes
         subject_alt_name: "{% set san = [] %}{% for name,srv in infra_portal.items() %}{% if srv.domain is defined and srv.domain != '' %}{{ san.append('DNS:'+srv.domain) }}{% endif %}{% endfor %}{{ san.append('DNS:localhost') }}{{ san.append('IP:' + inventory_hostname) }}{{ san }}"
 
+    # since 2025, the max validity of a self-signed certificate in Safari / Chrome: 398 days
     - name: signing nginx cert
       connection: local
       openssl_certificate:
@@ -91,7 +92,7 @@
         ownca_path: files/pki/ca/ca.crt
         ownca_privatekey_path: files/pki/ca/ca.key
         provider: ownca
-        selfsigned_not_after: "+{{ cert_validity }}"
+        selfsigned_not_after: "+{{ nginx_cert_validity|default('397d') }}"
         mode: 0644
 
 - name: copy nginx certs
