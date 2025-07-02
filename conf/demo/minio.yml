@@ -40,10 +40,14 @@ all:
       vars:
         minio_cluster: minio
         minio_data: '/data{1...4}'
-        minio_buckets: [ { name: pgsql }, { name: infra }, { name: redis } ]
-        minio_users:
-          - { access_key: dba , secret_key: S3User.DBA, policy: consoleAdmin }
-          - { access_key: pgbackrest , secret_key: S3User.SomeNewPassWord , policy: readwrite }
+        minio_buckets:                    # list of minio bucket to be created
+          - { name: pgsql ,lock: true }
+          - { name: meta  ,lock: true ,versioning: true }
+          - { name: data }
+        minio_users:                      # list of minio user to be created
+          - { access_key: pgbackrest  ,secret_key: S3User.Backup ,policy: pgsql }
+          - { access_key: s3user_meta ,secret_key: S3User.Meta   ,policy: meta  }
+          - { access_key: s3user_data ,secret_key: S3User.Data   ,policy: data  }
 
         # bind a node l2 vip (10.10.10.9) to minio cluster (optional)
         node_cluster: minio

@@ -1,0 +1,123 @@
+---
+#==============================================================#
+# File      :   registry.yml
+# Desc      :   pigsty config for running Docker Registry Mirror
+# Ctime     :   2025-07-01
+# Mtime     :   2025-07-01
+# Docs      :   https://pgsty.com/docs/app/registry
+# License   :   AGPLv3 @ https://pgsty.com/docs/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+# tutorial: https://pgsty.com/docs/app/registry
+# how to use this template:
+#
+#  curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty
+# ./configure -c app/registry   # use this registry config template
+# vi pigsty.yml                 # IMPORTANT: CHANGE DOMAIN & CREDENTIALS!
+# ./install.yml                 # install pigsty infrastructure
+# ./docker.yml                  # install docker & docker-compose
+# ./app.yml                     # install registry with docker-compose
+#
+# To replace domain name:
+#   sed -ie 's/registry.pigsty/registry.your-domain.com/g' pigsty.yml
+
+#==============================================================#
+# Usage Instructions:
+#==============================================================#
+#
+# 1. Deploy the registry:
+#    ./configure -c conf/app/registry.yml && ./install.yml && ./docker.yml && ./app.yml
+#
+# 2. Configure Docker clients to use the mirror:
+#    Edit /etc/docker/daemon.json:
+#    {
+#      "registry-mirrors": ["https://registry.your-domain.com"],
+#      "insecure-registries": ["registry.your-domain.com"]
+#    }
+#
+# 3. Restart Docker daemon:
+#    sudo systemctl restart docker
+#
+# 4. Test the registry:
+#    docker pull nginx:latest  # This will now use your mirror
+#
+# 5. Access the web UI (optional):
+#    https://registry-ui.your-domain.com
+#
+# 6. Monitor the registry:
+#    curl https://registry.your-domain.com/v2/_catalog
+#    curl https://registry.your-domain.com/v2/nginx/tags/list
+#
+#==============================================================#
+
+
+all:
+  children:
+
+    # the docker registry mirror application
+    registry:
+      hosts: { 10.10.10.10: {} }
+      vars:
+        app: registry                    # specify app name to be installed
+        apps:                            # define all applications
+          registry:
+            file:                        # create data directory for registry
+              - { path: /data/registry ,state: directory ,mode: 0755 }
+            conf:                        # environment variables for registry
+              REGISTRY_DATA: /data/registry
+              REGISTRY_PORT: 5000
+              REGISTRY_UI_PORT: 5080
+              REGISTRY_STORAGE_DELETE_ENABLED: true
+              REGISTRY_LOG_LEVEL: info
+              REGISTRY_PROXY_REMOTEURL: https://registry-1.docker.io
+              REGISTRY_PROXY_TTL: 168h
+
+    # basic infrastructure
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
+
+  vars:
+    #----------------------------------------------#
+    # INFRA : https://pgsty.com/docs/infra/param
+    #----------------------------------------------#
+    version: v3.5.0                      # pigsty version string
+    admin_ip: 10.10.10.10                # admin node ip address
+    region: default                      # upstream mirror region: default,china,europe
+    infra_portal:                        # domain names and upstream servers
+      home         : { domain: h.pigsty }
+      grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
+      prometheus   : { domain: p.pigsty ,endpoint: "${admin_ip}:9090" }
+      alertmanager : { domain: a.pigsty ,endpoint: "${admin_ip}:9093" }
+      blackbox     : { endpoint: "${admin_ip}:9115" }
+      loki         : { endpoint: "${admin_ip}:3100" }
+
+      # Docker Registry Mirror service configuration
+      registry:                          # nginx server config for registry
+        domain: d.pigsty                 # REPLACE IT WITH YOUR OWN DOMAIN!
+        endpoint: "10.10.10.10:5000"     # registry service endpoint: IP:PORT
+        websocket: false                 # registry doesn't need websocket
+        certbot: d.pigsty                # certbot cert name, apply with `make cert`
+
+      # Optional: Registry Web UI
+      registry-ui:                       # nginx server config for registry UI
+        domain: dui.pigsty               # REPLACE IT WITH YOUR OWN DOMAIN!
+        endpoint: "10.10.10.10:5080"     # registry UI endpoint: IP:PORT
+        websocket: false                 # UI doesn't need websocket
+        certbot: d.pigsty                # certbot cert name for UI
+
+    #----------------------------------------------#
+    # NODE : https://pgsty.com/docs/node/param
+    #----------------------------------------------#
+    node_repo_modules: node,infra,pgsql # add these repos directly to the singleton node
+    node_tune: oltp                     # node tuning specs: oltp,olap,tiny,crit
+
+    #----------------------------------------------#
+    # PGSQL : https://pgsty.com/docs/pgsql/param
+    #----------------------------------------------#
+    pg_version: 17                      # Default PostgreSQL Major Version is 17
+    pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+    pg_packages: [ pgsql-main, pgsql-common ]   # pg kernel and common utils
+    #pg_extensions: [pg17-time ,pg17-gis ,pg17-rag ,pg17-fts ,pg17-feat ,pg17-lang ,pg17-type ,pg17-util ,pg17-func ,pg17-admin ,pg17-stat ,pg17-sec ,pg17-fdw ,pg17-sim ,pg17-etl ,pg17-olap]
+
+...

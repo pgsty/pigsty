@@ -509,22 +509,30 @@ all:
     #                         VARS: MINIO                            #
     #================================================================#
     #minio_seq: 1                     # minio instance identifier, REQUIRED
-    #minio_cluster: minio             # minio cluster name, minio by default
+    minio_cluster: minio              # minio cluster identifier, REQUIRED
     minio_clean: false                # cleanup minio during init?, false by default
     minio_user: minio                 # minio os user, `minio` by default
+    minio_https: true                 # use https for minio, true by default
     minio_node: '${minio_cluster}-${minio_seq}.pigsty' # minio node name pattern
     minio_data: '/data/minio'         # minio data dir(s), use {x...y} to specify multi drivers
+    #minio_volumes:                   # minio data volumes, override defaults if specified
     minio_domain: sss.pigsty          # minio external domain name, `sss.pigsty` by default
     minio_port: 9000                  # minio service port, 9000 by default
     minio_admin_port: 9001            # minio console port, 9001 by default
     minio_access_key: minioadmin      # root access key, `minioadmin` by default
     minio_secret_key: minioadmin      # root secret key, `minioadmin` by default
     minio_extra_vars: ''              # extra environment variables
+    minio_provision: true             # run minio provisioning tasks?
     minio_alias: sss                  # alias name for local minio deployment
-    minio_buckets: [ { name: pgsql }, { name: infra },  { name: redis } ]
-    minio_users:
-      - { access_key: dba , secret_key: S3User.DBA, policy: consoleAdmin }
-      - { access_key: pgbackrest , secret_key: S3User.Backup, policy: readwrite }
+    #minio_endpoint: https://sss.pigsty:9000 # if not specified, overwritten by defaults
+    minio_buckets:                    # list of minio bucket to be created
+      - { name: pgsql ,lock: true }
+      - { name: meta  ,lock: true ,versioning: true }
+      - { name: data }
+    minio_users:                      # list of minio user to be created
+      - { access_key: pgbackrest  ,secret_key: S3User.Backup ,policy: pgsql }
+      - { access_key: s3user_meta ,secret_key: S3User.Meta   ,policy: meta  }
+      - { access_key: s3user_data ,secret_key: S3User.Data   ,policy: data  }
 
 
     #================================================================#
