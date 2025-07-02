@@ -17,13 +17,29 @@
 #--------------------------------------------------------------#
 # Create Minio Alias                               [minio_alias]
 #--------------------------------------------------------------#
+# mcli alias set sss https://sss.pigsty:9000 minioadmin minioadmin
 - name: write minio alias to infra nodes
   tags: minio_alias
   become: no
   delegate_to: '{{ item }}'
-  shell: mcli alias set {{ minio_alias }} {% if minio_endpoint is defined and minio_endpoint != '' %}{{ minio_endpoint }}{% else %}https://{{ minio_domain }}:{{ minio_port }}{% endif %} {{ minio_access_key }} {{ minio_secret_key }}
+  shell: mcli alias set {{ minio_alias }} {% if minio_endpoint is defined and minio_endpoint != '' %}{{ minio_endpoint }}{% else %}{% if minio_https|bool %}https{% else %}http{% endif %}://{{ minio_domain }}:{{ minio_port }}{% endif %} {{ minio_access_key }} {{ minio_secret_key }}
   args: { executable: /bin/bash }
   with_items: '{{ groups["infra"] | default([]) }}'
+  register: result
+  retries: 5
+  until: result.rc == 0
+  delay: 8
+  #no_log: true
+
+# if minio_cluster_members is overlapping with the infra group, we should not write alias to infra nodes again
+- name: write minio alias to minio cluster nodes
+  tags: minio_alias
+  become: no
+  when: item not in groups["infra"]|default([])
+  delegate_to: '{{ item }}'
+  shell: mcli alias set {{ minio_alias }} {% if minio_endpoint is defined and minio_endpoint != '' %}{{ minio_endpoint }}{% else %}{% if minio_https|bool %}https{% else %}http{% endif %}://{{ minio_domain }}:{{ minio_port }}{% endif %} {{ minio_access_key }} {{ minio_secret_key }}
+  args: { executable: /bin/bash }
+  with_items: '{{ minio_cluster_members }}'
   register: result
   retries: 5
   until: result.rc == 0
