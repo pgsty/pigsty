@@ -5,7 +5,7 @@
 - name: register postgres instance dns
   tags: pg_dns_ins
   delegate_to: '{{ item }}'
-  with_items: "{{ groups['infra'] }}"
+  with_items: "{{ groups['infra'] | default([]) }}"
   copy:
     dest: /etc/hosts.d/{{ pg_instance }}
     mode: 0644
@@ -17,7 +17,7 @@
 - name: register postgres cluster dns
   tags: pg_dns_cls
   delegate_to: '{{ item }}'
-  with_items: "{{ groups['infra'] }}"
+  with_items: "{{ groups['infra'] | default([]) }}"
   ignore_errors: true
   copy:
     dest: /etc/hosts.d/{{ pg_cluster }}
@@ -51,6 +51,6 @@
   delegate_to: '{{ item }}'
   run_once: true
   ignore_errors: true
-  with_items: '{{ groups["infra"] }}'
+  with_items: '{{ groups["infra"] | default([]) }}'
   systemd: name=dnsmasq state=reloaded enabled=yes daemon_reload=yes
 ...

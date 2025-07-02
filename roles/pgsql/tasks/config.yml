@@ -6,7 +6,7 @@
   tags: pg_conf
   block:
 
-    # if pg_fs_main/node_data is not exists, use a hypothesis 40 GiB as estimation
+    # use a hypothesis 40 GiB as estimation if df command failed
     - name: get pgsql fs size
       shell: |
         if [ -d "{{ pg_fs_main|default('/data') }}" ]; then
@@ -27,8 +27,7 @@
         msg: "Node={{ node_cpu }}c{{ node_mem_gb }}g {{ node_tune }}, Memory={{ (node_mem_mb|int / 400 | round(0, 'ceil'))|int * 100 }}MB of {{ node_mem_mb }}MB , Disk={{ [ (pg_fs_size_res.stdout|trim|int / 1048576)|round(0, 'ceil')|int , 1 ] | max }}GB {{ pg_storage_type|default('SSD') }} @ {{ pg_fs_main }}, PG Conf={{ pg_conf }}"
 
     - name: config patroni
-      template:
-        src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+      template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
       vars:
         node_fs_bytes: "{{ pg_fs_size_res.stdout|trim|int * 1024 }}"
       with_items:

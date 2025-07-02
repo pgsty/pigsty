@@ -21,7 +21,7 @@
 # addr alias
 # local     : {{ pg_localhost }}
 # admin     : {{ admin_ip }}
-# infra     : {{ groups['infra']|join(', ') }}
+# infra     : {{ groups['infra']  | default([]) | join(', ') }}
 # intra     : {{ intranet|join(', ') }}
 # cluster   : {{  pg_cluster_members|join(', ') }}
 
@@ -68,7 +68,7 @@
 {% elif hba_addr == 'admin' %}
 {{ hba_enabled }}{{ "%-8s" | format(hba_conntype) }} {{ "%-18s" | format(hba_db) }} {{ "%-18s" | format(hba_user) }} {{ "%-18s" | format(admin_ip|string + '/32') }} {{ hba_auth }}
 {% elif hba_addr == 'infra' %}
-{% for ip in groups['infra']|sort %}
+{% for ip in groups['infra'] | default([]) |sort %}
 {{ hba_enabled }}{{ "%-8s" | format(hba_conntype) }} {{ "%-18s" | format(hba_db) }} {{ "%-18s" | format(hba_user) }} {{ "%-18s" | format(ip|string + '/32') }} {{ hba_auth }}
 {% endfor %}
 {% elif hba_addr == 'cluster' %}
