@@ -77,7 +77,7 @@
   when: prometheus_enabled|bool
   ignore_errors: true
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"] }}'
+  with_items: '{{ groups["infra"] | default([]) }}'
   copy:
     dest: "{{ prometheus_sd_dir }}/minio/{{ minio_cluster }}-{{ minio_seq }}.yml"
     owner: prometheus
@@ -86,10 +86,12 @@
       - labels: { ip: {{ inventory_hostname }} , ins: {{ minio_cluster }}-{{ minio_seq }} , cls: {{ minio_cluster }} }
         targets: [ {{ inventory_hostname }}:{{ minio_port }} ]
 
+
 #--------------------------------------------------------------#
 # Provision Minio                              [minio_provision]
 #--------------------------------------------------------------#
 - import_tasks: provision.yml
+  when: minio_provision|bool
   ignore_errors: true
   tags: minio_provision
 

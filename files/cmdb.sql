@@ -1423,6 +1423,7 @@ INSERT INTO pigsty.default_var VALUES
 (620, 'minio_access_key', '"minioadmin"', 'MINIO', 'MINIO', 'username', 'C', 'root access key, `minioadmin` by default', NULL),
 (621, 'minio_secret_key', '"minioadmin"', 'MINIO', 'MINIO', 'password', 'C', 'root secret key, `minioadmin` by default', NULL),
 (622, 'minio_extra_vars', '""', 'MINIO', 'MINIO', 'string', 'C', 'extra environment variables for minio server', NULL),
+(630, 'minio_provision', 'true', 'MINIO', 'MINIO', 'bool', 'G/C', 'run minio provisioning tasks?', NULL),
 (631, 'minio_alias', '"sss"', 'MINIO', 'MINIO', 'string', 'G', 'alias name for local minio deployment', NULL),
 (632, 'minio_buckets', '[{"name": "pgsql"}, {"name": "infra"}, {"name": "redis"}]', 'MINIO', 'MINIO', 'bucket[]', 'C', 'list of minio bucket to be created', NULL),
 (633, 'minio_users', '[{"policy": "consoleAdmin", "access_key": "dba", "secret_key": "S3User.DBA"}, {"policy": "readwrite", "access_key": "pgbackrest", "secret_key": "S3User.Backup"}]', 'MINIO', 'MINIO', 'user[]', 'C', 'list of minio user to be created', NULL),
