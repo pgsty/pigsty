@@ -1,0 +1,42 @@
+# Docker Registry Mirror for China Users
+# Port: 5000 - Registry Service
+# Port: 5080 - Registry Admin UI (optional)
+
+services:
+  registry:
+    container_name: registry
+    image: registry:2.8
+    restart: always
+    environment:
+      REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
+      REGISTRY_HTTP_ADDR: 0.0.0.0:5000
+      REGISTRY_LOG_LEVEL: info
+      REGISTRY_STORAGE_DELETE_ENABLED: true
+    ports:
+      - "5000:5000"
+    volumes:
+      - ${REGISTRY_DATA:-/data/registry}:/var/lib/registry
+      - ./config.yml:/etc/docker/registry/config.yml:ro
+    command: ["/etc/docker/registry/config.yml"]
+
+  # Optional: Registry UI for management
+  registry-ui:
+    container_name: registry-ui
+    image: joxit/docker-registry-ui:2.5.7
+    restart: always
+    environment:
+      SINGLE_REGISTRY: true
+      REGISTRY_TITLE: "Docker Registry Mirror"
+      DELETE_IMAGES: true
+      SHOW_CONTENT_DIGEST: true
+      NGINX_PROXY_PASS_URL: http://registry:5000
+      SHOW_CATALOG_NB_TAGS: true
+      CATALOG_MIN_BRANCHES: 1
+      CATALOG_MAX_BRANCHES: 1
+      TAGLIST_PAGE_SIZE: 100
+      REGISTRY_SECURED: false
+      CATALOG_ELEMENTS_LIMIT: 1000
+    ports:
+      - "5080:80"
+    depends_on:
+      - registry

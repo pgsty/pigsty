@@ -1,0 +1,49 @@
+version: 0.1
+log:
+  fields:
+    service: registry
+  level: info
+
+storage:
+  cache:
+    blobdescriptor: inmemory
+  filesystem:
+    rootdirectory: /var/lib/registry
+  delete:
+    enabled: true
+
+http:
+  addr: :5000
+  headers:
+    X-Content-Type-Options: [nosniff]
+    Access-Control-Allow-Origin: ['*']
+    Access-Control-Allow-Methods: ['HEAD', 'GET', 'OPTIONS', 'DELETE']
+    Access-Control-Allow-Headers: ['Authorization', 'Accept', 'Cache-Control']
+    Access-Control-Max-Age: [1728000]
+    Access-Control-Allow-Credentials: [true]
+    Access-Control-Expose-Headers: ['Docker-Content-Digest']
+
+# Proxy configuration for multiple registries
+proxy:
+  remoteurl: https://registry-1.docker.io
+  username: ~
+  password: ~
+  ttl: 168h
+
+# Alternative: Use specific proxy configurations
+# This config supports pulling from different registries by URL path
+# proxy:
+#   remoteurl: https://registry-1.docker.io  # Default to Docker Hub
+
+# Health check endpoint
+health:
+  storagedriver:
+    enabled: true
+    interval: 10s
+    threshold: 3
+
+# Optional: Authentication (uncomment if needed)
+# auth:
+#   htpasswd:
+#     realm: basic-realm
+#     path: /etc/docker/registry/htpasswd
