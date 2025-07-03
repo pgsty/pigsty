@@ -43,7 +43,6 @@
 - import_tasks: pgbackrest_exporter.yml
   tags: [ pg_monitor, pgbackrest_exporter ]
 
-
 #--------------------------------------------------------------#
 # remove pg dns records                         [pg_access][dns]
 #--------------------------------------------------------------#
@@ -68,7 +67,6 @@
 - import_tasks: pgbouncer.yml
   tags: [ pg_access, pgbouncer ]
 
-
 #--------------------------------------------------------------#
 # remove postgres                       [pg_bootstrap][postgres]
 #--------------------------------------------------------------#
@@ -81,14 +79,14 @@
 #--------------------------------------------------------------#
 - import_tasks: pgbackrest.yml
   tags: [ pg_backup, pgbackrest ]
-  when: pg_rm_bkup|bool
+  when: (pg_rm_bkup|bool) and not (keep_backup|bool)
 
 #--------------------------------------------------------------#
 # remove data                                          [pg_data]
 #--------------------------------------------------------------#
 - name: remove postgres data
   tags: pg_data
-  when: pg_rm_data|bool
+  when: (pg_rm_data|bool) and not (keep_data|bool)
   ignore_errors: yes
   file: path={{ item }} state=absent
   with_items:
@@ -101,6 +99,6 @@
 # tag: pg_ext for remove extensions only
 - import_tasks: uninstall.yml
   tags: pg_pkg
-  when: pg_rm_pkg|bool
+  when: (pg_rm_pkg|bool) and not (keep_package|bool)
 
 ...
