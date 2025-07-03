@@ -5,7 +5,7 @@
 - name: install promtail
   tags: [promtail, promtail_install ]
   block:
-    - name: install promtail systemd service
+    - name: install promtail package
       package: name=promtail state=present
     - name: create promtail systemd service
       copy: src=promtail.service dest={{ systemd_dir }}/promtail.service
@@ -27,7 +27,7 @@
     - name: create /etc/promtail config dir
       file: dest=/etc/promtail state=directory
     - name: render /etc/promtail.yml config
-      template: src=promtail.yml.j2 dest=/etc/promtail/config.yml
+      template: src=promtail.yml dest=/etc/promtail/config.yml
       vars: { loki_url: "http://{{ infra_portal.loki.endpoint|replace('${admin_ip}', admin_ip) }}/loki/api/v1/push" }
     - name: create promtail systemd service
       copy: src=promtail.service dest=/etc/systemd/system/promtail.service
