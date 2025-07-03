@@ -2,7 +2,8 @@
 #--------------------------------------------------------------#
 # Remove Follower                                   [pg_replica]
 #--------------------------------------------------------------#
-# remove followers first to avoid unnecessary failover, especially when removing entire cluster
+# remove followers first to avoid unnecessary failover
+# especially when removing entire cluster
 - name: remove postgres replica
   tags: pg_replica
   become: yes
@@ -10,21 +11,32 @@
   when: pg_role != 'primary'
   block:
 
-    - name: stop and disable patroni replica service
-      systemd: name=patroni state=stopped enabled=no daemon_reload=yes
-
-    - name: stop and disable postgres replica service
-      systemd: name=postgres state=stopped enabled=no daemon_reload=yes
-
-    # in case of maintenance mode
-    - name: shutdown postgres replica with force
-      become_user: "{{ pg_dbsu }}"
-      shell: "{{ pg_bin_dir }}/pg_ctl -D {{ pg_data }} stop -m immediate; /bin/true"
+    - name: stop postgres replica services with timeout
+      shell: |
+        # stop services with timeout, then force kill if needed
+        timeout 30s systemctl stop patroni || systemctl kill patroni
+        timeout 15s systemctl stop postgres || systemctl kill postgres
+        systemctl disable patroni postgres
+        systemctl daemon-reload
+        
+        # force shutdown postgres processes
+        if ps -u {{ pg_dbsu }} -o pid:1,command | grep -E 'postmaster|postgres:|-D' ; then
+            {{ pg_bin_dir }}/pg_ctl -D {{ pg_data }} stop -m immediate || /bin/true
+        fi
+        
+        # final cleanup: kill any remaining postgres processes
+        sleep 2
+        if ps -u {{ pg_dbsu }} -o pid:1,command | grep -E 'postmaster|postgres:|-D' ; then
+            ps -u {{ pg_dbsu }} -o pid:1,command | grep -E 'postmaster|postgres:|-D' | awk '{print $1}' | xargs -r kill -9
+        fi
       args: { executable: /bin/bash }
 
 #--------------------------------------------------------------#
 # Remove Leader                                     [pg_primary]
 #--------------------------------------------------------------#
+# remove primary last to avoid unnecessary failover
+# we will try gentle shutdown with a 30s timeout first
+# then shutdown remaining processes with brute force
 - name: remove postgres primary
   tags: pg_primary
   become: yes
@@ -32,17 +44,24 @@
   when: pg_role == 'primary'
   block:
 
-    # also add a 30s timeout to avoid waiting forever
-    - name: stop and disable patroni primary service
-      systemd: name=patroni state=stopped enabled=no daemon_reload=yes
-
-    - name: stop and disable postgres primary service
-      systemd: name=postgres state=stopped enabled=no daemon_reload=yes
-
-    # in the case of maintenance mode
-    - name: shutdown postgres primary with force
-      become_user: "{{ pg_dbsu }}"
-      shell: "{{ pg_bin_dir }}/pg_ctl -D {{ pg_data }} stop -m immediate; /bin/true"
+    - name: stop postgres primary services with timeout
+      shell: |
+        # stop services with timeout, then force kill if needed
+        timeout 30s systemctl stop patroni || systemctl kill patroni
+        timeout 15s systemctl stop postgres || systemctl kill postgres
+        systemctl disable patroni postgres
+        systemctl daemon-reload
+        
+        # force shutdown postgres processes
+        if ps -u {{ pg_dbsu }} -o pid:1,command | grep -E 'postmaster|postgres:|-D' ; then
+            {{ pg_bin_dir }}/pg_ctl -D {{ pg_data }} stop -m immediate || /bin/true
+        fi
+        
+        # final cleanup: kill any remaining postgres processes
+        sleep 2
+        if ps -u {{ pg_dbsu }} -o pid:1,command | grep -E 'postmaster|postgres:|-D' ; then
+            ps -u {{ pg_dbsu }} -o pid:1,command | grep -E 'postmaster|postgres:|-D' | awk '{print $1}' | xargs -r kill -9
+        fi
       args: { executable: /bin/bash }
 
 #--------------------------------------------------------------#

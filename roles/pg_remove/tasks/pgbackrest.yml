@@ -1,16 +1,23 @@
 ---
 #--------------------------------------------------------------#
-# Remove Pgbackrest                                 [pgbackrest]
+# Remove pgbackrest                                 [pgbackrest]
 #--------------------------------------------------------------#
-- name: stop pgbackrest and delete stanza
+# when cleanup primary, remove pgbackrest repo too
+- name: stop pgbackrest and delete stanza with timeout
   when: pg_role == 'primary'
   become: yes
   become_user: "{{ pg_dbsu }}"
   ignore_errors: yes
   shell: |
     if [[ -f /etc/pgbackrest/pgbackrest.conf ]]; then
-      /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stop;
-      /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stanza-delete;
+      # stop with timeout, force kill if needed
+      timeout 30s /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stop || /bin/true
+      
+      # kill any remaining pgbackrest processes
+      pkill -f "pgbackrest.*{{ pg_cluster }}" || /bin/true
+      
+      # delete stanza with timeout
+      timeout 30s /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stanza-delete || /bin/true
     fi
   args: { executable: /bin/bash }
 
