@@ -32,13 +32,14 @@
   when: pg_role == 'primary'
   block:
 
+    # also add a 30s timeout to avoid waiting forever
     - name: stop and disable patroni primary service
       systemd: name=patroni state=stopped enabled=no daemon_reload=yes
 
     - name: stop and disable postgres primary service
       systemd: name=postgres state=stopped enabled=no daemon_reload=yes
 
-    # in case of maintenance mode
+    # in the case of maintenance mode
     - name: shutdown postgres primary with force
       become_user: "{{ pg_dbsu }}"
       shell: "{{ pg_bin_dir }}/pg_ctl -D {{ pg_data }} stop -m immediate; /bin/true"

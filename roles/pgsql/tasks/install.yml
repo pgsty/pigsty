@@ -106,44 +106,40 @@
 # Create Directory
 #--------------------------------------------------------------#
 # assumption:
-#   {{ pg_fs_main }} for main data   , default: `/data`              [fast ssd]
-#   {{ pg_fs_bkup }} for backup data , default: `/data/backups`     [cheap hdd]
+#   {{ pg_fs_main }} , default: `/data/postgres` [fast ssd]
+#   {{ pg_fs_bkup }} , default: `/data/backups`  [cheap hdd]
 #--------------------------------------------------------------#
-# default variable:
-#     pg_fs_main = /data             fast ssd
-#     pg_fs_bkup = /data/backups     cheap hdd (optional)
-#
-#     /pg      -> /data/postgres/pg-test-17    (soft link)
-#     /pg/data -> /data/postgres/pg-test-17/data
+#   /pg        -> /data/postgres/pg-test-17       (soft link)
+#   /pg/data   -> /data/postgres/pg-test-17/data
+#   /pg/backup -> /data/backups/pg-test-17/backup
 #--------------------------------------------------------------#
 - name: create pgsql directories
   tags: pg_dir
   become: yes
   block:
 
-    # pg_cluster_dir:    "{{ pg_fs_main }}/postgres/{{ pg_cluster }}-{{ pg_version }}"
+    # assuming that node_data (/data) is already created in the node role
     - name: create pgsql directories
       file: path={{ item.path }} state=directory owner={{ item.owner|default(pg_dbsu) }} group={{ item.group|default('postgres') }} mode={{ item.mode }}
       with_items:
-        - { path: "{{ pg_fs_main }}"            ,mode: "0777" , owner: "root" , group: "root" }
-        - { path: "{{ pg_fs_bkup }}"            ,mode: "0777" , owner: "root" , group: "root" }
-        - { path: "{{ pg_fs_main }}/postgres"   ,mode: "0700" }   # /data/postgres
-        - { path: "{{ pg_cluster_dir }}"        ,mode: "0700" }   # /data/postgres/pg-meta-17
-        - { path: "{{ pg_cluster_dir }}/bin"    ,mode: "0700" }   # shell scripts in /pg/bin
-        - { path: "{{ pg_cluster_dir }}/tmp"    ,mode: "0700" }   # role/db init sql / log
-        - { path: "{{ pg_cluster_dir }}/cert"   ,mode: "0700" }   # ssl cert
-        - { path: "{{ pg_cluster_dir }}/conf"   ,mode: "0700" }   # configuration files
-        - { path: "{{ pg_cluster_dir }}/data"   ,mode: "0700" }   # main data dir
-        - { path: "{{ pg_cluster_dir }}/spool"  ,mode: "0700" }   # spool for pgbackrest
-        - { path: "{{ pg_backup_dir }}/backup"  ,mode: "0700" }   # backup dir
-        - { path: "/var/run/postgresql"         ,mode: "0755" }   # pid dir
-        - { path: "{{ pg_cluster_dir }}/log"    ,mode: "0750" }   # log dir
-        - { path: "/etc/patroni"                ,mode: "0700" }   # patroni config
-        - { path: "/etc/pgbackrest"             ,mode: "0700" }   # pgbackrest config
-        - { path: "/etc/pgbouncer"              ,mode: "0700" }   # pgbouncer config
-        - { path: "/etc/pg_exporter"            ,mode: "0700" }   # pg_exporter config
+        - { path: "{{ pg_fs_main }}"            ,mode: "0700" }   # /data/postgres                  the main data dir
+        - { path: "{{ pg_fs_bkup }}"            ,mode: "0700" }   # /data/backups                   the backup dir
+        - { path: "{{ pg_cluster_dir }}"        ,mode: "0700" }   # /data/postgres/pg-meta-17       the cluster dir
+        - { path: "{{ pg_cluster_dir }}/bin"    ,mode: "0700" }   # /data/postgres/pg-meta-17/bin   postgres scripts
+        - { path: "{{ pg_cluster_dir }}/log"    ,mode: "0750" }   # /data/postgres/pg-meta-17/log   log dir for pg components
+        - { path: "{{ pg_cluster_dir }}/tmp"    ,mode: "0700" }   # /data/postgres/pg-meta-17/tmp   role/db init sql and log
+        - { path: "{{ pg_cluster_dir }}/cert"   ,mode: "0700" }   # /data/postgres/pg-meta-17/cert  ssl certificates
+        - { path: "{{ pg_cluster_dir }}/conf"   ,mode: "0700" }   # /data/postgres/pg-meta-17/conf  patroni and config
+        - { path: "{{ pg_cluster_dir }}/data"   ,mode: "0700" }   # /data/postgres/pg-meta-17/data  main data dir
+        - { path: "{{ pg_cluster_dir }}/spool"  ,mode: "0700" }   # /data/postgres/pg-meta-17/spool pgbackrest temp
+        - { path: "{{ pg_backup_dir }}/backup"  ,mode: "0700" }   # /data/backups/pg-meta-17/backup local backup dir
+        - { path: "/var/run/postgresql"         ,mode: "0755" }   # pid directory for postgresql and pgbouncer
+        - { path: "/etc/patroni"                ,mode: "0700" }   # config dir for patroni
+        - { path: "/etc/pgbackrest"             ,mode: "0700" }   # config dir for pgbackrest
+        - { path: "/etc/pgbouncer"              ,mode: "0700" }   # config dir for pgbouncer
+        - { path: "/etc/pg_exporter"            ,mode: "0700" }   # config dir for pg_exporter
 
-    # create /pg soft link
+    # create the `/pg` soft link
     - name: link pgsql directories
       file: src={{ item.src }} dest={{ item.dest }} state=link
       with_items:
