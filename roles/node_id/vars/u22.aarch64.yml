@@ -5,6 +5,7 @@
 
 # where to register systemd files
 systemd_dir: /lib/systemd/system
+syslog_path: /var/log/syslog
 
 # default packages to be downloaded (if `repo_packages` is not explicitly set)
 repo_packages_default: [ node-bootstrap, infra-package, infra-addons, node-package1, node-package2, pgsql-utility, extra-modules ]
@@ -20,7 +21,7 @@ node_packages_default:
 
 # default infra packages to be installed (if `infra_packages` is not explicitly set)
 infra_packages_default:
-  - grafana,grafana-plugins,loki,logcli,promtail,prometheus,alertmanager,pushgateway,restic,certbot,python3-certbot-nginx
+  - grafana,grafana-plugins,loki,logcli,vector,promtail,prometheus,alertmanager,pushgateway,restic,certbot,python3-certbot-nginx
   - node-exporter,blackbox-exporter,nginx-exporter,pg-exporter,pev2,nginx,dnsmasq,ansible,etcd,python3-requests,redis,mcli
 
 # postgres home dir in various mode
@@ -56,7 +57,7 @@ repo_upstream_default:
   - { name: pgdg-beta      ,description: 'PGDG Beta'          ,module: beta    ,releases: [11,12,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://apt.postgresql.org/pub/repos/apt/ ${distro_codename}-pgdg-testing main 18' ,china: 'https://mirrors.aliyun.com/postgresql/repos/apt/ ${distro_codename}-pgdg-testing main 18' }}
   - { name: timescaledb    ,description: 'TimescaleDB'        ,module: extra   ,releases: [11,12,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packagecloud.io/timescale/timescaledb/${distro_name}/ ${distro_codename} main' }}
   - { name: citus          ,description: 'Citus'              ,module: extra   ,releases: [11,12,20,22   ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packagecloud.io/citusdata/community/${distro_name}/ ${distro_codename} main' } }
-  - { name: percona        ,description: 'Percona TDE'        ,module: percona ,releases: [      20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://repo.percona.com/ppg-17.5/apt ${distro_codename} main' }}
+  - { name: percona        ,description: 'Percona TDE'        ,module: percona ,releases: [11,12,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://repo.percona.com/ppg-17.5/apt ${distro_codename} main' }}
   - { name: wiltondb       ,description: 'WiltonDB'           ,module: mssql   ,releases: [      20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/apt/mssql/ ${distro_codename} main', china: 'https://repo.pigsty.cc/apt/mssql/ ${distro_codename} main' , origin: 'https://ppa.launchpadcontent.net/wiltondb/wiltondb/ubuntu/ ${distro_codename} main'  }}
   - { name: groonga        ,description: 'Groonga Debian'     ,module: groonga ,releases: [11,12         ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packages.groonga.org/debian/ ${distro_codename} main' }}
   - { name: groonga        ,description: 'Groonga Ubuntu'     ,module: groonga ,releases: [      20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://ppa.launchpadcontent.net/groonga/ppa/ubuntu/ ${distro_codename} main' }}
@@ -78,7 +79,7 @@ package_map:
   #--------------------------------#
   node-bootstrap:          "ansible python3 python3-pip python3-venv python3-jmespath dpkg-dev sshpass ftp linux-tools-generic"
   infra-package:           "nginx dnsmasq etcd haproxy vip-manager node-exporter keepalived-exporter pg-exporter pgbackrest-exporter redis-exporter redis minio mcli pig"
-  infra-addons:            "grafana grafana-plugins loki logcli promtail prometheus alertmanager pushgateway blackbox-exporter nginx-exporter pev2 certbot python3-certbot-nginx"
+  infra-addons:            "grafana grafana-plugins loki logcli vector promtail prometheus alertmanager pushgateway blackbox-exporter nginx-exporter pev2 certbot python3-certbot-nginx"
   extra-modules:           "docker-ce docker-compose-plugin ferretdb2 duckdb restic juicefs vray grafana-infinity-ds"
   node-package1:           "lz4 unzip bzip2 zlib1g pv jq git ncdu make patch bash lsof wget uuid tuned nvme-cli numactl sysstat iotop htop rsync tcpdump acl chrony"
   node-package2:           "netcat-openbsd socat lrzsz net-tools ipvsadm dnsutils telnet ca-certificates libreadline-dev vim-tiny keepalived openssl openssh-server openssh-client"

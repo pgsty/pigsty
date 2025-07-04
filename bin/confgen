@@ -76,7 +76,7 @@ EXTRA_COMMENT = {
 RPM_COMMON_PKG = [
     #"ansible python3 python3-pip python3-virtualenv python3-requests python3-jmespath python3-cryptography dnf-utils modulemd-tools createrepo_c sshpass",
     "nginx dnsmasq etcd haproxy vip-manager node_exporter keepalived_exporter pg_exporter pgbackrest_exporter redis_exporter redis minio mcli pig",
-    "grafana grafana-plugins loki logcli promtail prometheus alertmanager pushgateway blackbox_exporter nginx_exporter pev2 certbot python3-certbot-nginx",
+    "grafana grafana-plugins loki logcli vector promtail prometheus alertmanager pushgateway blackbox_exporter nginx_exporter pev2 certbot python3-certbot-nginx",
     "docker-ce docker-compose-plugin ferretdb2 duckdb restic juicefs vray grafana-infinity-ds",
     "lz4 unzip bzip2 zlib yum pv jq git ncdu make patch bash lsof wget uuid tuned nvme-cli numactl grubby sysstat iotop htop rsync tcpdump perf flamegraph chkconfig",
     "netcat socat ftp lrzsz net-tools ipvsadm bind-utils telnet audit ca-certificates readline vim-minimal keepalived chrony openssl openssh-server openssh-clients",
@@ -86,7 +86,7 @@ RPM_COMMON_PKG = [
 DEB_COMMON_PKG = [
     #"ansible python3 python3-pip python3-venv python3-jmespath dpkg-dev sshpass",
     "nginx dnsmasq etcd haproxy vip-manager node-exporter keepalived-exporter pg-exporter pgbackrest-exporter redis-exporter redis minio mcli pig",
-    "grafana grafana-plugins loki logcli promtail prometheus alertmanager pushgateway blackbox-exporter nginx-exporter pev2 certbot python3-certbot-nginx",
+    "grafana grafana-plugins loki logcli vector promtail prometheus alertmanager pushgateway blackbox-exporter nginx-exporter pev2 certbot python3-certbot-nginx",
     "docker-ce docker-compose-plugin ferretdb2 duckdb restic juicefs vray grafana-infinity-ds",
     "lz4 unzip bzip2 zlib1g pv jq git ncdu make patch bash lsof wget uuid tuned nvme-cli numactl sysstat iotop htop rsync tcpdump acl chrony",
     "netcat-openbsd socat lrzsz net-tools ipvsadm dnsutils telnet ca-certificates libreadline-dev vim-tiny keepalived openssl openssh-server openssh-client",
@@ -113,6 +113,7 @@ RPM_VARS_TMPL = """---
 
 # where to register systemd files
 systemd_dir: /usr/lib/systemd/system
+syslog_path: /var/log/messages
 
 # default packages to be downloaded (if `repo_packages` is not explicitly set)
 repo_packages_default: [ node-bootstrap, infra-package, infra-addons, node-package1, node-package2, pgsql-utility, extra-modules ]
@@ -128,7 +129,7 @@ node_packages_default:
 
 # default infra packages to be installed (if `infra_packages` is not explicitly set)
 infra_packages_default:
-  - grafana,loki,logcli,promtail,prometheus,alertmanager,pushgateway,grafana-plugins,restic,certbot,python3-certbot-nginx
+  - grafana,loki,logcli,vector,promtail,prometheus,alertmanager,pushgateway,grafana-plugins,restic,certbot,python3-certbot-nginx
   - node_exporter,blackbox_exporter,nginx_exporter,pg_exporter,pev2,nginx,dnsmasq,ansible,etcd,python3-requests,redis,mcli
 
 # postgres home dir in various mode
@@ -196,6 +197,7 @@ DEB_VARS_TMPL = """---
 
 # where to register systemd files
 systemd_dir: /lib/systemd/system
+syslog_path: /var/log/syslog
 
 # default packages to be downloaded (if `repo_packages` is not explicitly set)
 repo_packages_default: [ node-bootstrap, infra-package, infra-addons, node-package1, node-package2, pgsql-utility, extra-modules ]
@@ -211,7 +213,7 @@ node_packages_default:
 
 # default infra packages to be installed (if `infra_packages` is not explicitly set)
 infra_packages_default:
-  - grafana,grafana-plugins,loki,logcli,promtail,prometheus,alertmanager,pushgateway,restic,certbot,python3-certbot-nginx
+  - grafana,grafana-plugins,loki,logcli,vector,promtail,prometheus,alertmanager,pushgateway,restic,certbot,python3-certbot-nginx
   - node-exporter,blackbox-exporter,nginx-exporter,pg-exporter,pev2,nginx,dnsmasq,ansible,etcd,python3-requests,redis,mcli
 
 # postgres home dir in various mode
@@ -247,7 +249,7 @@ repo_upstream_default:
   - { name: pgdg-beta      ,description: 'PGDG Beta'          ,module: beta    ,releases: [11,12,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://apt.postgresql.org/pub/repos/apt/ ${distro_codename}-pgdg-testing main 18' ,china: 'https://mirrors.aliyun.com/postgresql/repos/apt/ ${distro_codename}-pgdg-testing main 18' }}
   - { name: timescaledb    ,description: 'TimescaleDB'        ,module: extra   ,releases: [11,12,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packagecloud.io/timescale/timescaledb/${distro_name}/ ${distro_codename} main' }}
   - { name: citus          ,description: 'Citus'              ,module: extra   ,releases: [11,12,20,22   ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packagecloud.io/citusdata/community/${distro_name}/ ${distro_codename} main' } }
-  - { name: percona        ,description: 'Percona TDE'        ,module: percona ,releases: [      20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://repo.percona.com/ppg-17.5/apt ${distro_codename} main' }}
+  - { name: percona        ,description: 'Percona TDE'        ,module: percona ,releases: [11,12,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://repo.percona.com/ppg-17.5/apt ${distro_codename} main' }}
   - { name: wiltondb       ,description: 'WiltonDB'           ,module: mssql   ,releases: [      20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/apt/mssql/ ${distro_codename} main', china: 'https://repo.pigsty.cc/apt/mssql/ ${distro_codename} main' , origin: 'https://ppa.launchpadcontent.net/wiltondb/wiltondb/ubuntu/ ${distro_codename} main'  }}
   - { name: groonga        ,description: 'Groonga Debian'     ,module: groonga ,releases: [11,12         ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packages.groonga.org/debian/ ${distro_codename} main' }}
   - { name: groonga        ,description: 'Groonga Ubuntu'     ,module: groonga ,releases: [      20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://ppa.launchpadcontent.net/groonga/ppa/ubuntu/ ${distro_codename} main' }}
@@ -507,7 +509,7 @@ def gen_rpm_package_map(distro, arch='x86_64'):
     buf.append(LAYOUT % ('%s:'% "sealos", "sealos" ))
     buf.append(LAYOUT % ('%s:'% "kubernetes", "kubeadm kubelet kubectl" ))
     buf.append(LAYOUT % ('%s:'% "docker", "docker-ce docker-compose-plugin" ))
-    buf.append(LAYOUT % ('%s:'% "infra-extra", "victoria-metrics* victoria-logs vlogscli grafana-victorialogs-ds grafana-victoriametrics-ds vector rclone mysqld_exporter mongodb_exporter kafka_exporter" ))
+    buf.append(LAYOUT % ('%s:'% "infra-extra", "victoria-metrics* victoria-logs vlogscli grafana-victorialogs-ds grafana-victoriametrics-ds rclone mysqld_exporter mongodb_exporter kafka_exporter" ))
     buf.append(LAYOUT % ('%s:'% "tigerbeetle", "tigerbeetle" ))
 
     buf.append(title_box('PGSQL','tools & utils'))
