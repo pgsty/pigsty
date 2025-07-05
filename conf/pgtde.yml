@@ -2,8 +2,8 @@
 #==============================================================#
 # File      :   pgtde.yml
 # Desc      :   PG TDE with Percona PostgreSQL 1-node template
-# Ctime     :   2025-07-03
-# Mtime     :   2025-07-03
+# Ctime     :   2025-07-04
+# Mtime     :   2025-07-04
 # Docs      :   https://pgsty.com/docs/config
 # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -11,7 +11,7 @@
 
 # This is the config template for Percona PostgreSQL Distribution
 # With pg_tde extension, which is compatible with PostgreSQL 17.5
-# tutorial: https://pgsty.com/docs/feat/kernel
+# tutorial: https://percona.github.io/pg_tde/main/index.html
 #
 # Usage:
 #   curl https://repo.pigsty.io/get | bash
@@ -35,13 +35,18 @@ all:
           - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin   ] ,comment: pigsty admin user }
           - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
         pg_databases:
-          - { name: meta, baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [ vector ]}
+          - name: meta
+            baseline: cmdb.sql
+            comment: pigsty tde database
+            schemas: [pigsty]
+            extensions: [ vector, postgis, pg_tde ,pgaudit, set_user, {name: pg_stat_monitor, schema: monitor} ]}
         pg_hba_rules:
           - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
         node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
 
         # Percona PostgreSQL TDE Ad Hoc Settings
-        pg_packages: [ percona, pgsql-common ]
+        pg_packages: [ percona-main, pgsql-common ]  # install percona postgres packages
+        pg_libs: 'pg_tde, pgaudit, pg_stat_statements, pg_stat_monitor, auto_explain'
 
   vars:
     #----------------------------------------------#

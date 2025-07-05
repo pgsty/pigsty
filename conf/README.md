@@ -17,6 +17,7 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c polar            # PolarDB PG kernel for Aurora / RAC flavor postgres (15)
 ./configure -c ivory            # IvorySQL Kernel for Oracle grammar compatibility (17)
 ./configure -c mysql            # OpenHalo Kernel for MySQL Compatibility (14)
+./configure -c pgtde            # Percona PostgreSQL Server with TDE (17)
 ./configure -c oriole           # OrioleDB Kernel for OLTP Enhancement (17, deb broken)
 ./configure -c supabase         # PostgreSQL configured for Supabase self-hosting (15~17)
 
@@ -47,6 +48,7 @@ These are 1-node config template, which can be used to install pigsty on a singl
 * [polar.yml](polar.yml) : PolarDB PG kernel for Aurora / RAC flavor postgres (15)
 * [ivory.yml](ivory.yml) : IvorySQL Kernel for Oracle grammar compatibility (17)
 * [mysql.yml](mysql.yml) : OpenHalo Kernel for MySQL Compatibility (14)
+* [pgtde.yml](pgtde.yml) : Percona PostgreSQL Server with TDE (17)
 * [oriole.yml](oriole.yml) : OrioleDB Kernel for OLTP Enhancement (17, deb broken)
 * [supabase.yml](supabase.yml) : PostgreSQL configured for Supabase self-hosting (15~17)
 
