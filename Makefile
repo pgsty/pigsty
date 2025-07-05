@@ -413,10 +413,10 @@ cso: copy-src-oss
 copy-src-oss:
 	scp "dist/${VERSION}/${SRC_PKG}" el9:~/pigsty.tgz
 	scp "dist/${VERSION}/${SRC_PKG}" d12:~/pigsty.tgz
-	scp "dist/${VERSION}/${SRC_PKG}" u22:~/pigsty.tgz
+	scp "dist/${VERSION}/${SRC_PKG}" u24:~/pigsty.tgz
 	ssh -t el9 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 	ssh -t d12 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
-	ssh -t u22 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
+	ssh -t u24 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 copy-src-pro: copy-src-oss
 	scp "dist/${VERSION}/${SRC_PKG}" el8:~/pigsty.tgz
 	scp "dist/${VERSION}/${SRC_PKG}" u24:~/pigsty.tgz
