@@ -11,14 +11,21 @@
   shell: |
     if [[ -f /etc/pgbackrest/pgbackrest.conf ]]; then
       # stop with timeout, force kill if needed
-      timeout 30s /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stop || /bin/true
-      
-      # kill any remaining pgbackrest processes
-      pkill -f "pgbackrest.*{{ pg_cluster }}" || /bin/true
+      timeout 30s /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stop
+      stop_result=$?
+      if [[ $stop_result -eq 124 ]]; then
+        echo "pgbackrest stop timeout, force killing processes"
+        pkill -f "pgbackrest.*{{ pg_cluster }}" || /bin/true
+      fi
       
       # delete stanza with timeout
-      timeout 30s /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stanza-delete || /bin/true
+      timeout 30s /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stanza-delete
+      delete_result=$?
+      if [[ $delete_result -eq 124 ]]; then
+        echo "pgbackrest stanza-delete timeout, but continuing"
+      fi
     fi
+    exit 0
   args: { executable: /bin/bash }
 
 # stop file: /tmp/pgbackrest/{{ pg_cluster }}.stop
