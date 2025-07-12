@@ -1579,6 +1579,6 @@ INSERT INTO pigsty.default_var VALUES
 (957, 'pgbackrest_exporter_options', '""', 'PGSQL', 'PG_MONITOR', 'arg', 'C', 'overwrite extra options for pgbackrest_exporter', NULL),
 
 (980, 'pg_safeguard', 'false', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'prevent purging running postgres instance? false by default', NULL),
-(981, 'pg_rm_data', 'true', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'remove postgres data during remove? true by default', NULL),
-(982, 'pg_rm_bkup', 'true', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'remove pgbackrest backup during primary remove? true by default', NULL),
-(983, 'pg_rm_pkg', 'true',  'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'uninstall postgres packages during remove? true by default', NULL);
+(981, 'keep_data', 'true', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'keep postgres data during remove? false by default', NULL),
+(982, 'keep_backup', 'true', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'keep pgbackrest backup during remove? false by default', NULL),
+(983, 'keep_package', 'true',  'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'keep postgres packages during remove? false by default', NULL);
