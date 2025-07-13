@@ -1427,7 +1427,7 @@ INSERT INTO pigsty.default_var VALUES
 (622, 'minio_extra_vars', '""', 'MINIO', 'MINIO', 'string', 'C', 'extra environment variables for minio server', NULL),
 (630, 'minio_provision', 'true', 'MINIO', 'MINIO', 'bool', 'G/C', 'run minio provisioning tasks?', NULL),
 (631, 'minio_alias', '"sss"', 'MINIO', 'MINIO', 'string', 'G', 'alias name for local minio deployment', NULL),
-(632, 'minio_buckets', '[{"name": "pgsql", "lock": true}, {"name": "meta", "lock": true, "versioning": true}, {"name": "data"}]', 'MINIO', 'MINIO', 'bucket[]', 'C', 'list of minio bucket to be created', NULL),
+(632, 'minio_buckets', '[{"name": "pgsql"}, {"name": "meta", "versioning": true}, {"name": "data"}]', 'MINIO', 'MINIO', 'bucket[]', 'C', 'list of minio bucket to be created', NULL),
 (634, 'minio_users', '[{"access_key": "pgbackrest", "secret_key": "S3User.Backup", "policy": "pgsql"}, {"access_key": "s3user_meta", "secret_key": "S3User.Meta", "policy": "pgsql"}, {"access_key": "s3user_data", "secret_key": "S3User.Data", "policy": "pgsql"}]', 'MINIO', 'MINIO', 'user[]', 'C', 'list of minio user to be created', NULL),
 
 -- REDIS PARAMETERS
