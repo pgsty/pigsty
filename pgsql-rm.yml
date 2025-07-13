@@ -4,7 +4,7 @@
 # File      :   pgsql-rm.yml
 # Desc      :   remove pgsql from hosts
 # Ctime     :   2020-05-12
-# Mtime     :   2025-07-03
+# Mtime     :   2025-07-13
 # Path      :   pgsql-rm.yml
 # Docs      :   https://doc.pgsty.com/pgsql/playbook
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -16,10 +16,10 @@
   gather_facts: no
   ignore_errors: yes
   vars:
-    pg_uninstall: false                # uninstall pg_packages? false by default
-    keep_data: false                   # keep postgres data during remove? false by default
-    keep_backup: false                 # keep pgbackrest backup during remove? false by default
-    keep_package: false                # keep postgres packages during remove? false by default
+    #pg_safeguard: true                # safeguard for pgsql remove, set to true halt remove execution
+    #pg_rm_data: true                  # remove postgres data during remove? true by default
+    #pg_rm_backup: true                # remove pgbackrest backup during primary remove? true by default
+    #pg_rm_pkg: true                   # uninstall postgres packages during remove? true by default
   roles: [ { role: node_id }, { role: pg_remove } ]
 
 
@@ -28,9 +28,10 @@
 #--------------------------------------------------------------#
 #  Remove pgsql cluster `pg-test`
 #     pgsql-rm.yml -l pg-test    # remove cluster `pg-test`
-#         -e keep_data=false     # keep postgres data during remove?
-#         -e keep_backup=false   # keep pgbackrest backup during remove?
-#         -e keep_package=false  # keep pg packages & extensions during remove?
+#         -e pg_rm_data=true     # remove postgres data by default
+#         -e pg_rm_backup=true   # remove postgres backup by default (when removing primary)
+#         -e pg_rm_pkg=false     # do not uninstall pg packages by default, explicit override required
+#         -e pg_safeguard=false  # safeguard is not enabled by default, if enabled, can be override with cli args
 #  It will abort if `pg_safeguard` is set to `true` explicitly
 #
 #  Remove a pgsql replica:
