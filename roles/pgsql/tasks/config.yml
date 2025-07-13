@@ -58,20 +58,4 @@
     - name: create pgsodium.getkey_script
       template: src={{ pgsodium_getkey_script|default('pgsodium_getkey') }} dest=/pg/bin/pgsodium_getkey owner="{{ pg_dbsu }}" group=postgres mode=0700
 
-#--------------------------------------------------------------#
-# Config PgBackrest PITR Config                   [pg_pitr_conf]
-#--------------------------------------------------------------#
-# this config is render for bootstrap / replica creation only
-- name: config pgbackrest for pitr
-  tags: pg_pitr_conf
-  when: pgbackrest_enabled|bool and pg_pitr is defined and pg_pitr is mapping
-  template:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
-    owner: "{{ pg_dbsu }}"
-    group: "postgres"
-    mode: "{{ item.mode }}"
-  with_items:
-    - { src: "pitr.conf"  ,dest: "/pg/conf/pitr.conf", mode: "0600" }
-    - { src: "pg-restore" ,dest: "/pg/bin/pg-restore", mode: "0700" }
 ...
