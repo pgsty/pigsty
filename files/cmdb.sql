@@ -1492,7 +1492,7 @@ INSERT INTO pigsty.default_var VALUES
 
 (852, 'pg_data', '"/pg/data"', 'PGSQL', 'PG_BOOTSTRAP', 'path', 'C', 'postgres data directory, `/pg/data` by default', NULL),
 (853, 'pg_fs_main', '"/data/postgres"', 'PGSQL', 'PG_BOOTSTRAP', 'path', 'C', 'postgres main data directory, `/data/postgres` by default', NULL),
-(854, 'pg_fs_bkup', '"/data/backups"', 'PGSQL', 'PG_BOOTSTRAP', 'path', 'C', 'postgres backup data directory, `/data/backups` by default', NULL),
+(854, 'pg_fs_backup', '"/data/backups"', 'PGSQL', 'PG_BOOTSTRAP', 'path', 'C', 'postgres backup data directory, `/data/backups` by default', NULL),
 (855, 'pg_storage_type', '"SSD"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'storage type for pg main data, SSD,HDD, SSD by default', NULL),
 (856, 'pg_dummy_filesize', '"64MiB"', 'PGSQL', 'PG_BOOTSTRAP', 'size', 'C', 'size of `/pg/dummy`, hold 64MB disk space for emergency use', NULL),
 (857, 'pg_listen', '"0.0.0.0"', 'PGSQL', 'PG_BOOTSTRAP', 'ip(s)', 'C/I', 'postgres/pgbouncer listen addresses, comma separated list', NULL),

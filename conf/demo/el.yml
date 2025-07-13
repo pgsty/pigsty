@@ -127,7 +127,7 @@ all:
             balance: roundrobin             # optional, haproxy load balance algorithm (roundrobin by default, other: leastconn)
             options: 'inter 3s fastinter 1s downinter 5s rise 3 fall 3 on-marked-down shutdown-sessions slowstart 30s maxconn 3000 maxqueue 128 weight 100'
 
-        # define pg extensions: https://pgsty.com/ext
+        # define pg extensions: https://doc.pgsty.com/pgsql/extension
         pg_libs: 'pg_stat_statements, auto_explain' # add timescaledb to shared_preload_libraries
         #pg_extensions: [] # extensions to be installed on this cluster
 
@@ -293,6 +293,7 @@ all:
     nginx_enabled: true               # enable nginx on this infra node?
     nginx_exporter_enabled: true      # enable nginx_exporter on this infra node?
     nginx_sslmode: enable             # nginx ssl mode? disable,enable,enforce
+    nginx_cert_validity: 397d         # nginx self-signed cert validity, 397d by default
     nginx_home: /www                  # nginx content dir, `/www` by default
     nginx_port: 80                    # nginx listen port, 80 by default
     nginx_ssl_port: 443               # nginx ssl listen port, 443 by default
@@ -301,7 +302,10 @@ all:
       - { name: Package ,url: '/pigsty'   ,desc: 'local yum repo packages'     }
       - { name: PG Logs ,url: '/logs'     ,desc: 'postgres raw csv logs'       }
       - { name: Reports ,url: '/report'   ,desc: 'pgbadger summary report'     }
-      - { name: Explain ,url: '/pigsty/pev.html' ,desc: 'postgres explain visualizer' }
+      - { name: Explain ,url: '/pev.html' ,desc: 'postgres explain visualizer' }
+    certbot_sign: false               # sign nginx cert with certbot during setup?
+    certbot_email: your@email.com     # certbot email address, used for free ssl
+    certbot_options: ''               # certbot extra options
 
     #-----------------------------------------------------------------
     # DNS
@@ -341,22 +345,6 @@ all:
     grafana_clean: true               # clean grafana data during init?
     grafana_admin_username: admin     # grafana admin username, `admin` by default
     grafana_admin_password: pigsty    # grafana admin password, `pigsty` by default
-    grafana_plugin_cache: /www/pigsty/plugins.tgz # path to grafana plugins cache tarball
-    grafana_plugin_list:              # grafana plugins to be downloaded with grafana-cli
-      - volkovlabs-echarts-panel
-      - volkovlabs-image-panel
-      - volkovlabs-form-panel
-      - volkovlabs-table-panel
-      - volkovlabs-variable-panel
-      - knightss27-weathermap-panel
-      - marcusolsson-dynamictext-panel
-      - marcusolsson-treemap-panel
-      - marcusolsson-calendar-panel
-      - marcusolsson-hourly-heatmap-panel
-      - marcusolsson-static-datasource
-      - marcusolsson-json-datasource
-      - volkovlabs-rss-datasource
-      - volkovlabs-grapi-datasource
     loki_enabled: true                # enable loki on this infra node?
     loki_clean: false                 # whether remove existing loki data?
     loki_data: /data/loki             # loki data dir, `/data/loki` by default
@@ -494,7 +482,7 @@ all:
     #                         VARS: ETCD                             #
     #================================================================#
     #etcd_seq: 1                      # etcd instance identifier, explicitly required
-    #etcd_cluster: etcd               # etcd cluster & group name, etcd by default
+    etcd_cluster: etcd                # etcd cluster & group name, etcd by default
     etcd_safeguard: false             # prevent purging running etcd instance?
     etcd_clean: true                  # purging existing etcd during initialization?
     etcd_data: /data/etcd             # etcd data directory, /data/etcd by default
@@ -577,7 +565,7 @@ all:
     # pg_shard:             #CLUSTER  # pgsql shard name, optional identity for sharding clusters
     # pg_group: 0           #CLUSTER  # pgsql shard index number, optional identity for sharding clusters
     # gp_role: master       #CLUSTER  # greenplum role of this cluster, could be master or segment
-    pg_offline_query: false #INSTANCE # set to true to enable offline query on this instance
+    pg_offline_query: false #INSTANCE # set to true to enable offline queries on this instance
 
     #-----------------------------------------------------------------
     # PG_BUSINESS
@@ -589,13 +577,13 @@ all:
     pg_hba_rules: []                  # business hba rules for postgres
     pgb_hba_rules: []                 # business hba rules for pgbouncer
     # global credentials, overwrite in global vars
+    pg_dbsu_password: ''              # dbsu password, empty string means no dbsu password by default
     pg_replication_username: replicator
     pg_replication_password: DBUser.Replicator
     pg_admin_username: dbuser_dba
     pg_admin_password: DBUser.DBA
     pg_monitor_username: dbuser_monitor
     pg_monitor_password: DBUser.Monitor
-    pg_dbsu_password: ''              # dbsu password, empty string means no dbsu password by default
 
     #-----------------------------------------------------------------
     # PG_INSTALL
@@ -615,11 +603,9 @@ all:
     #-----------------------------------------------------------------
     # PG_BOOTSTRAP
     #-----------------------------------------------------------------
-    pg_safeguard: false               # prevent purging running postgres instance? false by default
-    pg_clean: true                    # purging existing postgres during pgsql init? true by default
     pg_data: /pg/data                 # postgres data directory, `/pg/data` by default
     pg_fs_main: /data/postgres        # postgres main data directory, `/data/postgres` by default
-    pg_fs_bkup: /data/backups         # postgres backup data directory, `/data/backups` by default
+    pg_fs_backup: /data/backups       # postgres backup data directory, `/data/backups` by default
     pg_storage_type: SSD              # storage type for pg main data, SSD,HDD, SSD by default
     pg_dummy_filesize: 64MiB          # size of `/pg/dummy`, hold 64MB disk space for emergency use
     pg_listen: '0.0.0.0'              # postgres/pgbouncer listen addresses, comma separated list
@@ -650,12 +636,8 @@ all:
     pg_locale: C                      # database cluster local, `C` by default
     pg_lc_collate: C                  # database cluster collate, `C` by default
     pg_lc_ctype: C                    # database character type, `C` by default
-    pgbouncer_enabled: true           # if disabled, pgbouncer will not be launched on pgsql host
-    pgbouncer_port: 6432              # pgbouncer listen port, 6432 by default
-    pgbouncer_log_dir: /pg/log/pgbouncer  # pgbouncer log dir, `/pg/log/pgbouncer` by default
-    pgbouncer_auth_query: false       # query postgres to retrieve unlisted business users?
-    pgbouncer_poolmode: transaction   # pooling mode: transaction,session,statement, transaction by default
-    pgbouncer_sslmode: disable        # pgbouncer client ssl mode, disable by default
+      #pgsodium_key: ""                 # pgsodium key, 64 hex digit, default to sha256(pg_cluster)
+      #pgsodium_getkey_script: ""       # pgsodium getkey script path, pgsodium_getkey by default
 
     #-----------------------------------------------------------------
     # PG_PROVISION
@@ -736,11 +718,12 @@ all:
     pgbackrest_clean: true            # remove pg backup data during init?
     pgbackrest_log_dir: /pg/log/pgbackrest # pgbackrest log dir, `/pg/log/pgbackrest` by default
     pgbackrest_method: local          # pgbackrest repo method: local,minio,[user-defined...]
+    pgbackrest_init_backup: true      # take a full backup after pgbackrest is initialized?
     pgbackrest_repo:                  # pgbackrest repo: https://pgbackrest.org/configuration.html#section-repository
       local:                          # default pgbackrest repo with local posix fs
         path: /pg/backup              # local backup directory, `/pg/backup` by default
         retention_full_type: count    # retention full backups by count
-        retention_full: 2             # keep 2, at most 3 full backup when using local fs repo
+        retention_full: 2             # keep 2, at most 3 full backups when using local fs repo
       minio:                          # optional minio repo for pgbackrest
         type: s3                      # minio is s3-compatible, so s3 is used
         s3_endpoint: sss.pigsty       # minio endpoint domain name, `sss.pigsty` by default
@@ -759,12 +742,19 @@ all:
         cipher_type: aes-256-cbc      # enable AES encryption for remote backup repo
         cipher_pass: pgBackRest       # AES encryption password, default is 'pgBackRest'
         retention_full_type: time     # retention full backup by time on minio repo
-        retention_full: 14            # keep full backup for last 14 days
+        retention_full: 14            # keep full backup for the the last 14 days
 
     #-----------------------------------------------------------------
-    # PG_SERVICE
+    # PG_ACCESS
     #-----------------------------------------------------------------
-    pg_weight: 100                    # relative load balance weight in service, 100 by default, 0-255
+    pgbouncer_enabled: true           # if disabled, pgbouncer will not be launched on pgsql host
+    pgbouncer_port: 6432              # pgbouncer listen port, 6432 by default
+    pgbouncer_log_dir: /pg/log/pgbouncer  # pgbouncer log dir, `/pg/log/pgbouncer` by default
+    pgbouncer_auth_query: false       # query postgres to retrieve unlisted business users?
+    pgbouncer_poolmode: transaction   # pooling mode: transaction,session,statement, transaction by default
+    pgbouncer_sslmode: disable        # pgbouncer client ssl mode, disable by default
+    pgbouncer_ignore_param: [ extra_float_digits, application_name, TimeZone, DateStyle, IntervalStyle, search_path ]
+    pg_weight: 100          #INSTANCE # relative load balance weight in service, 100 by default, 0-255
     pg_service_provider: ''           # dedicate haproxy node group name, or empty string for local nodes by default
     pg_default_service_dest: pgbouncer # default service destination if svc.dest='default'
     pg_default_services:              # postgres default service definitions
@@ -779,7 +769,7 @@ all:
     pg_dns_target: auto               # auto, primary, vip, none, or ad hoc ip
 
     #-----------------------------------------------------------------
-    # PG_EXPORTER
+    # PG_MONITOR
     #-----------------------------------------------------------------
     pg_exporter_enabled: true              # enable pg_exporter on pgsql hosts?
     pg_exporter_config: pg_exporter.yml    # pg_exporter configuration file name
@@ -796,5 +786,16 @@ all:
     pgbouncer_exporter_port: 9631          # pgbouncer_exporter listen port, 9631 by default
     pgbouncer_exporter_url: ''             # overwrite auto-generate pgbouncer dsn if specified
     pgbouncer_exporter_options: ''         # overwrite extra options for pgbouncer_exporter
+    pgbackrest_exporter_enabled: true      # enable pgbackrest_exporter on pgsql hosts?
+    pgbackrest_exporter_port: 9854         # pgbackrest_exporter listen port, 9854 by default
+    pgbackrest_exporter_options: ''        # overwrite extra options for pgbackrest_exporter
+
+    #-----------------------------------------------------------------
+    # PG_REMOVE
+    #-----------------------------------------------------------------
+    pg_safeguard: false               # stop pg_remove running if pg_safeguard is enabled, false by default
+    pg_rm_data: true                  # remove postgres data during remove? true by default
+    pg_rm_backup: true                # remove pgbackrest backup during primary remove? true by default
+    pg_rm_pkg: true                   # uninstall postgres packages during remove? true by default
 
 ...
