@@ -2,6 +2,9 @@
 #--------------------------------------------------------------#
 # Config PgBackrest Repo                     [pgbackrest_config]
 #--------------------------------------------------------------#
+- name: create pgbackrest dir
+  tags: [ pgbackrest, pgbackrest_dir ]
+  file: path=/etc/pgbackrest state=directory owner={{ pg_dbsu|default('postgres') }} group=postgres mode=0750
 - name: config pgbackrest
   tags: [ pgbackrest, pgbackrest_config ]
   template: src=pgbackrest.conf dest=/etc/pgbackrest/pgbackrest.conf owner=postgres group=postgres mode=0600
@@ -57,7 +60,7 @@
 # create an initial backup on primary when cluster is bootstrapped
 - name: create pgbackrest initial backup
   tags: [ pgbackrest, pgbackrest_backup ]
-  when: pg_role == 'primary' and pg_upstream is not defined
+  when: pgbackrest_init_backup|bool and pg_role == 'primary' and pg_upstream is not defined
   ignore_errors: yes
   become: yes
   become_user: "{{ pg_dbsu }}"
