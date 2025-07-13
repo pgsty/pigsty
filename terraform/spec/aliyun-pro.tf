@@ -4,7 +4,7 @@
 # Ctime     :   2024-12-12
 # Mtime     :   2025-06-24
 # Path      :   tf/terraform
-# License   :   AGPLv3 @ https://pgsty.com/docs/about/license
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 

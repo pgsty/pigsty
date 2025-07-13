@@ -5,7 +5,7 @@
 # Ctime     :   2022-11-23
 # Mtime     :   2025-06-16
 # Path      :   files/grafana/grafana.py
-# License   :   AGPLv3 @ https://pgsty.com/docs/about/license
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 import os, sys, json, requests
@@ -243,7 +243,7 @@ def dump_dashboard_to_file(d, path):
         raw = dashboard_raw(d)
         raw["version"] = 1
         raw["author"] = "Ruohang Feng (rh@vonng.com)"
-        raw["license"] = "https://pgsty.com/docs/about/license"
+        raw["license"] = "https://doc.pgsty.com/about/license"
         json.dump(raw, dst, indent=4, sort_keys=True)
 
 

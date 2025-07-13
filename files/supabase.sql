@@ -3,7 +3,7 @@
 -- # Desc      :   Pigsty self-hosting supabase baseline schema
 -- # Ctime     :   2021-04-21
 -- # Mtime     :   2025-07-01
--- # License   :   AGPLv3 @ https://pgsty.com/docs/about/license
+-- # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 -- # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
 

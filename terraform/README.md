@@ -4,7 +4,7 @@
 
 Aliyun & AWS templates are used as example providers. You can modify `terraform.tf` file to use other cloud providers.
 
-Check [Pigsty Docs: Terraform](https://pgsty.com/docs/prepare/terraform) for details.
+Check [Pigsty Docs: Terraform](https://doc.pgsty.com/prepare/terraform) for details.
 
 ## Specifications
 

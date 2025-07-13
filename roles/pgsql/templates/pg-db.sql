@@ -5,7 +5,7 @@
 -- Host      :   {{ pg_cluster }}-{{ pg_seq }} @ {{ inventory_hostname }}:{{ pg_port|default(5432) }}
 -- Path      :   /pg/tmp/pg-db-{{ database.name }}.sql
 -- Note      :   ANSIBLE MANAGED, DO NOT CHANGE!
--- License   :   AGPLv3 @ https://pigsty.io/docs/about/license
+-- License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 -- Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 ----------------------------------------------------------------------
 

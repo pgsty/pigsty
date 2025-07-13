@@ -4,8 +4,8 @@
 # Desc      :   Pigsty default 1-node online install config
 # Ctime     :   2020-05-22
 # Mtime     :   2025-07-01
-# Docs      :   https://pgsty.com/docs/config
-# License   :   AGPLv3 @ https://pgsty.com/docs/about/license
+# Docs      :   https://doc.pgsty.com/config
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
@@ -26,7 +26,7 @@ all:
   children:
 
     #----------------------------------------------#
-    # PGSQL : https://pgsty.com/docs/pgsql
+    # PGSQL : https://doc.pgsty.com/pgsql
     #----------------------------------------------#
     # this is an example single-node postgres cluster with pgvector installed, with one biz database & two biz users
     pg-meta:
@@ -37,29 +37,29 @@ all:
       vars:
         pg_cluster: pg-meta
 
-        # install, load, create pg extensions: https://pgsty.com/docs/pgsql/ext
+        # install, load, create pg extensions: https://doc.pgsty.com/pgsql/extension
         pg_extensions: [ postgis, timescaledb, citus, pgvector ]
         pg_libs: 'timescaledb, pg_stat_statements, auto_explain'
 
-        # define business users/roles : https://pgsty.com/docs/pgsql/user
+        # define business users/roles : https://doc.pgsty.com/pgsql/user
         pg_users:
           - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin   ] ,comment: pigsty admin user }
           - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
 
-        # define business databases : https://pgsty.com/docs/pgsql/db
+        # define business databases : https://doc.pgsty.com/pgsql/db
         pg_databases:
           - name: meta
             baseline: cmdb.sql
             comment: "pigsty meta database"
             schemas: [pigsty]
-            # define extensions in database : https://pgsty.com/docs/pgsql/ext/create
+            # define extensions in database : https://doc.pgsty.com/pgsql/extension/create
             extensions: [ postgis, timescaledb, vector ]
 
-        # define HBA rules : https://pgsty.com/docs/pgsql/hba
+        # define HBA rules : https://doc.pgsty.com/pgsql/hba
         pg_hba_rules:
           - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
 
-        # define backup policies: https://pgsty.com/docs/pgsql/backup
+        # define backup policies: https://doc.pgsty.com/pgsql/backup
         node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every day 1am
 
         # define (OPTIONAL) L2 VIP that bind to primary
@@ -69,17 +69,17 @@ all:
 
 
     #----------------------------------------------#
-    # INFRA : https://pgsty.com/docs/infra
+    # INFRA : https://doc.pgsty.com/infra
     #----------------------------------------------#
     infra:
       hosts:
         10.10.10.10: { infra_seq: 1 }
       vars:
-        repo_enabled: false   # disable in 1-node mode :  https://pgsty.com/docs/admin/repo
+        repo_enabled: false   # disable in 1-node mode :  https://doc.pgsty.com/admin/repo
         #repo_extra_packages: [ pg17-main ,pg17-time ,pg17-gis ,pg17-rag ,pg17-fts ,pg17-olap ,pg17-feat ,pg17-lang ,pg17-type ,pg17-util ,pg17-func ,pg17-admin ,pg17-stat ,pg17-sec ,pg17-fdw ,pg17-sim ,pg17-etl]
 
     #----------------------------------------------#
-    # ETCD : https://pgsty.com/docs/etcd
+    # ETCD : https://doc.pgsty.com/etcd
     #----------------------------------------------#
     etcd:
       hosts:
@@ -89,7 +89,7 @@ all:
         etcd_safeguard: false             # prevent purging running etcd instance?
 
     #----------------------------------------------#
-    # MINIO : https://pgsty.com/docs/minio
+    # MINIO : https://doc.pgsty.com/minio
     #----------------------------------------------#
     #minio:
     #  hosts:
@@ -102,8 +102,8 @@ all:
     #      - { access_key: s3user_data ,secret_key: S3User.Data   ,policy: data  }
 
     #----------------------------------------------#
-    # DOCKER : https://pgsty.com/docs/docker
-    # APP    : https://pgsty.com/docs/app
+    # DOCKER : https://doc.pgsty.com/docker
+    # APP    : https://doc.pgsty.com/app
     #----------------------------------------------#
     # launch example pgadmin app with: ./app.yml (http://10.10.10.10:8885 admin@pigsty.cc / pigsty)
     app:
@@ -125,7 +125,7 @@ all:
   vars:
 
     #----------------------------------------------#
-    # INFRA : https://pgsty.com/docs/infra
+    # INFRA : https://doc.pgsty.com/infra
     #----------------------------------------------#
     version: v3.5.1                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
@@ -146,7 +146,7 @@ all:
       #minio       : { domain: m.pigsty ,endpoint: "${admin_ip}:9001" ,scheme: https ,websocket: true }
 
     #----------------------------------------------#
-    # PASSWORD : https://pgsty.com/docs/config/security
+    # PASSWORD : https://doc.pgsty.com/config/security
     #----------------------------------------------#
     grafana_admin_password: pigsty
     pg_admin_password: DBUser.DBA
@@ -157,7 +157,7 @@ all:
     minio_secret_key: minioadmin
 
     #----------------------------------------------#
-    # NODE : https://pgsty.com/docs/node/param
+    # NODE : https://doc.pgsty.com/node/param
     #----------------------------------------------#
     nodename_overwrite: false             # do not overwrite node hostname on single node mode
     node_tune: oltp                       # node tuning specs: oltp,olap,tiny,crit
@@ -168,7 +168,7 @@ all:
     #node_packages: [openssh-server]      # packages to be installed current nodes with the latest version
 
     #----------------------------------------------#
-    # PGSQL : https://pgsty.com/docs/pgsql/param
+    # PGSQL : https://doc.pgsty.com/pgsql/param
     #----------------------------------------------#
     pg_version: 17                      # default postgres version
     pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
@@ -177,7 +177,7 @@ all:
     #pg_extensions: [pg17-time ,pg17-gis ,pg17-rag ,pg17-fts ,pg17-feat ,pg17-lang ,pg17-type ,pg17-util ,pg17-func ,pg17-admin ,pg17-stat ,pg17-sec ,pg17-fdw ,pg17-sim ,pg17-etl ,pg17-olap]
 
     #----------------------------------------------#
-    # BACKUP : https://pgsty.com/docs/pgsql/backup
+    # BACKUP : https://doc.pgsty.com/pgsql/backup
     #----------------------------------------------#
     # if you want to use minio as backup repo instead of 'local' fs, uncomment this, and configure `pgbackrest_repo`
     # you can also use external object storage as backup repo

@@ -4,7 +4,7 @@
 
 > All your business on one platform, Simple, efficient, yet affordable
 
-Odoo pigsty installation tutorial: [Self-hosting Odoo](https://pgsty.com/docs/app/odoo)
+Odoo pigsty installation tutorial: [Self-hosting Odoo](https://doc.pgsty.com/app/odoo)
 
 Check public demo: http://odoo.pigsty.cc, username: `test@pigsty.cc`, password: `pigsty`
 

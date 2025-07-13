@@ -4,8 +4,8 @@
 # Desc      :   Pigsty 4-node sandbox config template
 # Ctime     :   2020-05-22
 # Mtime     :   2025-07-03
-# Docs      :   https://pgsty.com/docs/config
-# License   :   AGPLv3 @ https://pgsty.com/docs/about/license
+# Docs      :   https://doc.pgsty.com/config
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
@@ -24,7 +24,7 @@ all:
   children:
 
     #----------------------------------------------#
-    # PGSQL : https://pgsty.com/docs/pgsql
+    # PGSQL : https://doc.pgsty.com/pgsql
     #----------------------------------------------#
     # this is an example single-node postgres cluster with pgvector installed, with one biz database & two biz users
     pg-meta:
@@ -35,11 +35,11 @@ all:
       vars:
         pg_cluster: pg-meta
 
-        # install, load, create pg extensions: https://pgsty.com/docs/pgsql/ext
+        # install, load, create pg extensions: https://doc.pgsty.com/pgsql/extension
         pg_extensions: [ postgis, timescaledb, citus, pgvector, pg_wait_sampling ]
         pg_libs: 'timescaledb, pg_stat_statements, auto_explain, pg_wait_sampling'
 
-        # define business users/roles : https://pgsty.com/docs/pgsql/user
+        # define business users/roles : https://doc.pgsty.com/pgsql/user
         pg_users:
           - name: dbuser_meta               # REQUIRED, `name` is the only mandatory field of a user definition
             password: DBUser.Meta           # optional, the password. can be a scram-sha-256 hash string or plain text
@@ -62,7 +62,7 @@ all:
           - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly], comment: read-only viewer for meta database }
           #- {name: dbuser_bytebase ,password: DBUser.Bytebase ,pgbouncer: true ,roles: [dbrole_admin] ,comment: admin user for bytebase database   }
 
-        # define business databases : https://pgsty.com/docs/pgsql/db
+        # define business databases : https://doc.pgsty.com/pgsql/db
         pg_databases:                       # define business databases on this cluster, array of database definition
           - name: meta                      # REQUIRED, `name` is the only mandatory field of a database definition
             baseline: cmdb.sql              # optional, database sql baseline path, (relative path among the ansible search path, e.g.: files/)
@@ -94,11 +94,11 @@ all:
             #pool_max_db_conn: 100          # optional, max database connections at database level, default 100
           #- {name: bytebase ,owner: dbuser_bytebase ,revokeconn: true ,comment: bytebase primary database }
 
-        # define HBA rules : https://pgsty.com/docs/pgsql/hba
+        # define HBA rules : https://doc.pgsty.com/pgsql/hba
         pg_hba_rules:
           - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
 
-        # define backup policies: https://pgsty.com/docs/pgsql/backup
+        # define backup policies: https://doc.pgsty.com/pgsql/backup
         node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every day 1am
 
         # define (OPTIONAL) L2 VIP that bind to primary
@@ -118,7 +118,7 @@ all:
         pg_cluster: pg-test           # define pgsql cluster name
         pg_users:  [{ name: test , password: test , pgbouncer: true , roles: [ dbrole_admin ] }]
         pg_databases: [{ name: test }]
-        # define business service here: https://pgsty.com/docs/pgsql/service
+        # define business service here: https://doc.pgsty.com/pgsql/service
         pg_services:                        # extra services in addition to pg_default_services, array of service definition
           # standby service will route {ip|name}:5435 to sync replica's pgbouncer (5435->6432 standby)
           - name: standby                   # required, service name, the actual svc name will be prefixed with `pg_cluster`, e.g: pg-meta-standby
@@ -139,18 +139,18 @@ all:
           - '00 01 * * 2,3,4,5,6,7 postgres /pg/bin/pg-backup'
 
     #----------------------------------------------#
-    # INFRA : https://pgsty.com/docs/infra
+    # INFRA : https://doc.pgsty.com/infra
     #----------------------------------------------#
     infra:
       hosts:
         10.10.10.10: { infra_seq: 1 }
       vars:
-        repo_enabled: true # build local repo:  https://pgsty.com/docs/admin/repo
+        repo_enabled: true # build local repo:  https://doc.pgsty.com/admin/repo
         repo_extra_packages: [ pg17-main ,pg17-time ,pg17-gis ,pg17-rag ,pg17-fts ,pg17-olap ,pg17-feat ,pg17-lang,
                                pg17-type ,pg17-util ,pg17-func ,pg17-admin ,pg17-stat ,pg17-sec ,pg17-fdw ,pg17-sim ,pg17-etl]
 
     #----------------------------------------------#
-    # ETCD : https://pgsty.com/docs/etcd
+    # ETCD : https://doc.pgsty.com/etcd
     #----------------------------------------------#
     etcd:
       hosts:
@@ -162,7 +162,7 @@ all:
         etcd_safeguard: false             # prevent purging running etcd instance?
 
     #----------------------------------------------#
-    # MINIO : https://pgsty.com/docs/minio
+    # MINIO : https://doc.pgsty.com/minio
     #----------------------------------------------#
     minio:
       hosts:
@@ -171,8 +171,8 @@ all:
         minio_cluster: minio
 
     #----------------------------------------------#
-    # DOCKER : https://pgsty.com/docs/docker
-    # APP    : https://pgsty.com/docs/app
+    # DOCKER : https://doc.pgsty.com/docker
+    # APP    : https://doc.pgsty.com/app
     #----------------------------------------------#
     # OPTIONAL, launch example pgadmin app with: ./app.yml & ./app.yml -e app=bytebase
     app:
@@ -196,7 +196,7 @@ all:
               BB_PGURL: "postgresql://dbuser_bytebase:DBUser.Bytebase@10.10.10.10:5432/bytebase?sslmode=prefer"
 
     #----------------------------------------------#
-    # REDIS : https://pgsty.com/docs/redis
+    # REDIS : https://doc.pgsty.com/redis
     #----------------------------------------------#
     # OPTIONAL, launch redis clusters with: ./redis.yml
     redis-ms: # redis classic primary & replica
@@ -227,7 +227,7 @@ all:
   vars:
 
     #----------------------------------------------#
-    # INFRA : https://pgsty.com/docs/infra
+    # INFRA : https://doc.pgsty.com/infra
     #----------------------------------------------#
     version: v3.5.1                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
@@ -264,7 +264,7 @@ all:
       #  certbot: supa.pigsty         # certbot cert name, apply with `make cert`
 
     #----------------------------------------------#
-    # PASSWORD : https://pgsty.com/docs/config/security
+    # PASSWORD : https://doc.pgsty.com/config/security
     #----------------------------------------------#
     grafana_admin_password: pigsty
     pg_admin_password: DBUser.DBA
@@ -275,7 +275,7 @@ all:
     minio_secret_key: minioadmin
 
     #----------------------------------------------#
-    # NODE : https://pgsty.com/docs/node/param
+    # NODE : https://doc.pgsty.com/node/param
     #----------------------------------------------#
     nodename_overwrite: true              # overwrite node hostname on multi-node template
     node_tune: oltp                       # node tuning specs: oltp,olap,tiny,crit
@@ -288,7 +288,7 @@ all:
     #node_timezone: Asia/Hong_Kong        # overwrite node timezone
 
     #----------------------------------------------#
-    # PGSQL : https://pgsty.com/docs/pgsql/param
+    # PGSQL : https://doc.pgsty.com/pgsql/param
     #----------------------------------------------#
     pg_version: 17                      # default postgres version
     pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
@@ -297,7 +297,7 @@ all:
     #pg_extensions: [pg17-time ,pg17-gis ,pg17-rag ,pg17-fts ,pg17-feat ,pg17-lang ,pg17-type ,pg17-util ,pg17-func ,pg17-admin ,pg17-stat ,pg17-sec ,pg17-fdw ,pg17-sim ,pg17-etl ,pg17-olap]
 
     #----------------------------------------------#
-    # BACKUP : https://pgsty.com/docs/pgsql/backup
+    # BACKUP : https://doc.pgsty.com/pgsql/backup
     #----------------------------------------------#
     # if you want to use minio as backup repo instead of 'local' fs, uncomment this, and configure `pgbackrest_repo`
     # you can also use external object storage as backup repo

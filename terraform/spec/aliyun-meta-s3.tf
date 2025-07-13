@@ -4,8 +4,8 @@
 # Ctime     :   2020-05-12
 # Mtime     :   2024-11-19
 # Path      :   terraform/spec/aliyun-meta-s3.yml
-# Docs      :   https://pgsty.com/docs/prepare/terraform
-# License   :   AGPLv3 @ https://pgsty.com/docs/about/license
+# Docs      :   https://doc.pgsty.com/prepare/terraform
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
