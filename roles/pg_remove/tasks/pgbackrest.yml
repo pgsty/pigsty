@@ -11,7 +11,7 @@
   shell: |
     if [[ -f /etc/pgbackrest/pgbackrest.conf ]]; then
       # stop with timeout, force kill if needed
-      timeout 30s /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stop
+      /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stop
       stop_result=$?
       if [[ $stop_result -eq 124 ]]; then
         echo "pgbackrest stop timeout, force killing processes"
@@ -19,7 +19,7 @@
       fi
       
       # delete stanza with timeout
-      timeout 30s /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stanza-delete
+      /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stanza-delete
       delete_result=$?
       if [[ $delete_result -eq 124 ]]; then
         echo "pgbackrest stanza-delete timeout, but continuing"
@@ -35,5 +35,8 @@
   file: path={{ pg_fs_bkup }} state=absent
 
 - name: remove postgres backup config
-  file: path=/etc/pgbackrest/pgbackrest.conf state=absent
+  file: path={{ item }} state=absent
+  with_items:
+    - /etc/pgbackrest/pgbackrest.conf
+    - /etc/pgbackrest/initial.done
 ...
