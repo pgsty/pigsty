@@ -1,0 +1,31 @@
+---
+#--------------------------------------------------------------#
+# Pause Patroni HA                                       [pause]
+#--------------------------------------------------------------#
+- name: pause patroni ha
+  become_user: "{{ pg_dbsu }}"
+  tags: [ down, pause ]
+  ignore_errors: true
+  shell: |
+    {% if pg_mode|default('pgsql') == 'citus' %} 
+    OUTPUT=$(/usr/bin/patronictl -c /etc/patroni/patroni.yml pause {{ pg_shard }} --group {{ pg_group }} 2>&1)
+    RET=$?
+    {% else %}
+    OUTPUT=$(/usr/bin/patronictl -c /etc/patroni/patroni.yml pause {{ pg_cluster }} 2>&1)
+    RET=$?
+    {% endif %}
+    if [ $RET -eq 0 ]; then
+        echo "Patroni paused successfully."
+        exit 0
+    else
+        if echo "$OUTPUT" | grep -qi 'already paused'; then
+            echo "Patroni already paused"
+            exit 0
+        else
+            echo "Failed to pause patroni $RET, please check the logs."
+            echo "$OUTPUT"
+            exit 1
+        fi
+    fi
+
+...

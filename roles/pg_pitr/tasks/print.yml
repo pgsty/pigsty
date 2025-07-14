@@ -1,0 +1,16 @@
+---
+#--------------------------------------------------------------#
+# PRINT PITR CONFIG                                      [print]
+#--------------------------------------------------------------#
+- name: set pgbackrest restore command fact
+  tags: print
+  set_fact:
+    pitr_command: "{{ lookup('template', 'roles/pg_pitr/templates/command').rstrip('\r\n ') }}"
+    pg_data: "{% if pg_pitr.data is defined and pg_pitr.data is string %}{{ pg_pitr.data }}{% else %}{{ pg_data|default('/pg/data') }}{% endif %}"
+    pg_port: "{% if pg_pitr.port is defined and pg_pitr.port|int is number %}{{ pg_pitr.port|int }}{% else %}{{ pg_port|default(5432) }}{% endif %}"
+
+- name: print pgbackrest restore command
+  tags: print
+  debug:
+    msg: "{{ pitr_command }}"
+...

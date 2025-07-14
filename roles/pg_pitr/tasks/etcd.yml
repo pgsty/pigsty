@@ -1,0 +1,26 @@
+---
+#--------------------------------------------------------------#
+# Cleanup ETCD cluster info                               [etcd]
+#--------------------------------------------------------------#
+# when pitr from another cluster, we'll need to remove the /pg/<cluster>/initialize
+# since it has the cluster id
+- name: remove postgres cluster id from etcd
+  tags: etcd
+  ignore_errors: true
+  when: pg_role == 'primary' and pg_pitr.cluster is defined and pg_pitr.cluster != pg_cluster
+  delegate_to: '{{ admin_ip }}'
+  become: yes
+  shell: |
+    {% if pg_mode == 'citus' %}
+    META_DIR="{{ pg_namespace|default('/pg') }}/{{ pg_shard }}/{{ pg_group }}/initialize"
+    {% else %}
+    META_DIR="{{ pg_namespace|default('/pg') }}/{{ pg_cluster }}/initialize"
+    {% endif %}
+    export ETCDCTL_ENDPOINTS="{% for ip in groups['etcd']|sort %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
+    export ETCDCTL_CACERT=/etc/pki/ca.crt
+    export ETCDCTL_CERT=/etc/pki/infra.crt
+    export ETCDCTL_KEY=/etc/pki/infra.key
+    etcdctl del "${META_DIR}" --prefix=true
+    /bin/true
+  args: { executable: /bin/bash }
+...

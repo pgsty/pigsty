@@ -1,0 +1,81 @@
+{% macro abort(error) %}{{ None['[ERROR] ' ~ error][0] }}{% endmacro %}
+{% set p = pg_pitr                   | default({})           %}
+{% set pitr_repo       = p.repo      | default(pgbackrest_repo[pgbackrest_method]) %}
+{% set pitr_cluster    = p.cluster   | default(pg_cluster) | string %}
+{% set pitr_type       = p.type      | default('default')  | string %}
+{% set pitr_action     = p.action    | default('pause')    | string %}
+{% set pitr_set        = p.set       | default('latest')   | string %}
+{% set pitr_timeline   = p.timeline  | default('latest')   | string %}
+{% set pitr_data       = p.data      | default(pg_data)    | string %}
+{% set cmd_args = [] %}
+{% set cmd_args = cmd_args + [ '--config=/pg/conf/pitr.conf' ] %}
+{% set cmd_args = cmd_args + [ '--stanza=' + pitr_cluster    ] %}
+{% if pitr_type not in ['default','immediate','time','lsn','xid','name'] %}
+{{ abort("invalid pg_pitr.type: " + pitr_type) }}
+{% endif %}
+{% if p.time is defined %}
+{% if p.lsn is defined or p.xid is defined or p.name is defined or p.type|default('time') != 'time' %}
+{{ abort("invalid pitr target provided!") }}
+{% endif %}
+{% set pitr_type = 'time' %}
+{% set pitr_target = p.time %}
+{% set cmd_args = cmd_args + ['--type=time'] %}
+{% set cmd_args = cmd_args + ['--target="' + p.time + '"'] %}
+{% endif %}
+{% if p.name is defined %}
+{% if p.lsn is defined or p.xid is defined or p.time is defined or p.type|default('name') != 'name' %}
+{{ abort("invalid pitr target provided!") }}
+{% endif %}
+{% set pitr_type = 'name' %}
+{% set cmd_args = cmd_args + ['--type=name'] %}
+{% set cmd_args = cmd_args + ['--target="' + p.name + '"'] %}
+{% endif %}
+{% if p.xid is defined %}
+{% if p.lsn is defined or p.name is defined or p.time is defined or p.type|default('xid') != 'xid' %}
+{{ abort("invalid pitr target provided!") }}
+{% endif %}
+{% if p.xid|int is not number or p.xid|int <= 0 or p.xid|int >= 4294967296 %}
+{{ abort("invalid XID: " + p.xid + ". XID must be a positive 32-bit integer (0 < xid < 4294967296)") }}
+{% endif %}
+{% set pitr_type = 'xid' %}
+{% set cmd_args = cmd_args + ['--type=xid'] %}
+{% set cmd_args = cmd_args + ['--target=' + p.xid|string ] %}
+{% endif %}
+{% if p.lsn is defined %}
+{% if p.xid is defined or p.name is defined or p.time is defined or p.type|default('lsn') != 'lsn' %}
+{{ abort("invalid pitr target provided!") }}
+{% endif %}
+{% if not p.lsn|upper is match("[0-9A-F]{1,8}/[0-9A-F]{1,8}") %}
+{{ abort("invalid LSN format: " + p.lsn + ". Expected format: [0-9A-F]{1,8}/[0-9A-F]{1,8}") }}
+{% endif %}
+{% set pitr_type = 'lsn' %}
+{% set cmd_args = cmd_args + ['--type=lsn'] %}
+{% set cmd_args = cmd_args + ['--target=' + p.lsn|upper] %}
+{% endif %}
+{% if p.type is defined and p.type == 'immediate' %}
+{% if p.xid is defined or p.name is defined or p.time is defined or p.lsn is defined  %}
+{{ abort("invalid pitr target provided!") }}
+{% endif %}
+{% set pitr_type = 'immediate' %}
+{% set cmd_args = cmd_args + ['--type=immediate'] %}
+{% endif %}
+{% if p.time is not defined and p.xid is not defined and p.name is not defined and p.lsn is not defined and (p.type is not defined or p.type == 'default') %}
+{% set pitr_type = 'default' %}
+{% endif %}
+{% if p.exclusive is defined and p.exclusive|bool %}
+{% set cmd_args = cmd_args + ['--target-exclusive'] %}
+{% endif %}
+{% if pitr_action not in ['promote','pause','shutdown'] %}
+{{ abort("invalid pg_pitr.action: " + pitr_action) }}
+{% else %}
+{% if pitr_action != 'pause' and pitr_type in ['immediate','time','name','xid','lsn'] %}
+{% set cmd_args = cmd_args + ['--target-action=' + pitr_action] %}
+{% endif %}
+{% endif %}
+{% if pitr_timeline|string != 'latest' %}
+{% set cmd_args = cmd_args + ['--target-timeline=' + pitr_timeline|string] %}
+{% endif %}
+{% if pitr_set != 'latest' %}
+{% set cmd_args = cmd_args + ['--set=' + pitr_set] %}
+{% endif %}
+/usr/bin/pgbackrest {{ cmd_args|join(' ') }} restore 

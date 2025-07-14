@@ -1,0 +1,68 @@
+---
+#--------------------------------------------------------------#
+# Launch patroni primary                         [start_primary]
+#--------------------------------------------------------------#
+- name: launch patroni primary
+  tags: [ start_patroni, start_primary ]
+  any_errors_fatal: true
+  when: pg_role == 'primary'
+  block:
+
+    - name: restart postgres manually
+      tags: start_postgres
+      ignore_errors: yes
+      become_user: "{{ pg_dbsu }}"
+      shell: |
+        "{{ pg_bin_dir }}/pg_ctl" restart -D "{{ pg_data }}"
+      args: { executable: /bin/bash }
+
+    - name: launch patroni primary
+      systemd: name=patroni state=started enabled=yes daemon_reload=yes
+
+    - name: wait for patroni primary
+      wait_for: host={{ inventory_hostname }} port={{ patroni_port }} state=started timeout=60
+
+    - name: check postgres primary ready
+      become_user: "{{ pg_dbsu }}"
+      shell: |
+        {{ pg_bin_dir }}/pg_isready -t 5 -p {{ pg_port }}
+      register: result
+      retries: 12
+      until: result.rc == 0
+      delay: 5
+
+
+#--------------------------------------------------------------#
+# Launch patroni replica                         [start_replica]
+#--------------------------------------------------------------#
+- name: launch patroni replicas
+  tags: [ start_patroni, start_replica ]
+  any_errors_fatal: true
+  when: pg_role != 'primary'
+  block:
+
+    - name: restart postgres replica manually
+      tags: start_postgres
+      ignore_errors: yes
+      become_user: "{{ pg_dbsu }}"
+      shell: |
+        "{{ pg_bin_dir }}/pg_ctl" restart -D "{{ pg_data }}"
+      args: { executable: /bin/bash }
+
+    - name: launch patroni replica
+      systemd: name=patroni state=started enabled=yes daemon_reload=yes
+    - name: wait for patroni replica
+      wait_for: host={{ inventory_hostname }} port={{ patroni_port }} state=started timeout=30
+
+    - name: wait for postgres replica
+      wait_for: host={{ inventory_hostname }} port={{ pg_port }} state=started timeout=86400
+
+    - name: check postgres replica ready
+      become_user: "{{ pg_dbsu }}"
+      shell: |
+        {{ pg_bin_dir }}/pg_isready -t 5 -p {{ pg_port }}
+      register: result
+      retries: 6
+      until: result.rc == 0
+      delay: 5
+...

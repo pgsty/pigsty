@@ -1,0 +1,48 @@
+---
+#--------------------------------------------------------------#
+# PRINT PITR PLAN                                        [print]
+#--------------------------------------------------------------#
+- import_tasks: print.yml
+  tags: [ print, always ]
+
+#--------------------------------------------------------------#
+# PAUSE PATRONI HA                                       [pause]
+#--------------------------------------------------------------#
+- import_tasks: pause.yml
+  tags: [ down, pause ]
+
+#--------------------------------------------------------------#
+# STOP SERVICES                                           [stop]
+#--------------------------------------------------------------#
+# stop_primary, stop_replica, stop_postgres
+- import_tasks: stop.yml
+  tags: [ down, stop ]
+
+#--------------------------------------------------------------#
+# PERFORM PITR                                            [pitr]
+#--------------------------------------------------------------#
+# config, restore, recovery, verify
+- import_tasks: pitr.yml
+  tags: pitr
+
+#--------------------------------------------------------------#
+# REMOVE ETCD META                                        [etcd]
+#--------------------------------------------------------------#
+# remove the old cluster identifier from etcd
+- import_tasks: etcd.yml
+  tags: [ up, etcd ]
+
+#--------------------------------------------------------------#
+# START PRIMARY                                          [start]
+#--------------------------------------------------------------#
+# etcd start_primary start_replica
+- import_tasks: start.yml
+  tags: [ up, start ]
+
+#--------------------------------------------------------------#
+# RESUME PATRONI HA                                     [resume]
+#--------------------------------------------------------------#
+- import_tasks: resume.yml
+  tags: [ up, resume ]
+
+...

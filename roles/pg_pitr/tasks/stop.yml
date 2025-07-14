@@ -1,0 +1,27 @@
+---
+#--------------------------------------------------------------#
+# Stop Patroni and Postgres                              [stop]
+#--------------------------------------------------------------#
+- name: stop patroni on replicas
+  tags: [ down, stop, stop_patroni, stop_replica ]
+  when: patroni_enabled|bool and pg_role != 'primary'
+  systemd: name=patroni state=stopped
+
+- name: stop patroni on primary
+  tags: [ down,stop, stop_patroni, stop_primary ]
+  when: patroni_enabled|bool and pg_role == 'primary'  
+  systemd: name=patroni state=stopped
+
+- name: force stop postgres if still running
+  tags: [ down, stop, stop_postgres ]
+  ignore_errors: yes
+  become_user: "{{ pg_dbsu }}"
+  shell: |
+    # if postmaster.pid file not exists, just return
+    if [[ ! -f "{{ pg_data }}/postmaster.pid" ]]; then
+        echo "Postmaster PID file not found, postgres may not be running."
+        exit 0
+    fi
+    "{{ pg_bin_dir }}/pg_ctl" stop -D "{{ pg_data }}" -m immediate
+    /bin/true;
+  args: { executable: /bin/bash }

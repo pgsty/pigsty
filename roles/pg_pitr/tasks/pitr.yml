@@ -1,0 +1,107 @@
+---
+#--------------------------------------------------------------#
+# PITR CONFIGURATION                                    [config]
+#--------------------------------------------------------------#
+- name: generate pgbackrest pitr config
+  tags: config
+  template: src="{{ item.src }}" dest="{{ item.dest }}" owner="{{ pg_dbsu }}" group="postgres" mode="{{ item.mode }}"
+  with_items:
+    - { src: "pitr.conf"  ,dest: "/pg/conf/pitr.conf", mode: "0600" }
+    - { src: "pg-restore" ,dest: "/pg/bin/pg-restore", mode: "0700" }
+
+#--------------------------------------------------------------#
+# PITR RESTORE                                         [restore]
+#--------------------------------------------------------------#
+# first restore /pg/data with pgbackrest
+- name: run pitr procedure
+  tags: restore
+  become_user: "{{ pg_dbsu|default('postgres') }}"
+  become: true
+  block:
+
+    - name: run pgbackrest restore
+      tags: pgbackrest
+      any_errors_fatal: true
+      ignore_errors: false
+      become_user: "{{ pg_dbsu|default('postgres') }}"
+      shell: |
+        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/pg_ctl -D {{ pg_data }} stop -m immediate
+        mkdir -p "{{ pg_data }}"
+        {{ pitr_command }}
+      register: pitr_result
+
+    - name: print restore result
+      tags: pgbackrest
+      connection: local
+      debug:
+        msg: "restore output: {{ pitr_result.stdout }}"
+
+
+#--------------------------------------------------------------#
+# PITR RECOVERY                                       [recovery]
+#--------------------------------------------------------------#
+# pgbackrest will restore the base data, while you'll need to
+# start postgres to restore them to the target location
+- name: start postgres recovery
+  tags: recovery
+  become_user: "{{ pg_dbsu|default('postgres') }}"
+  become: true
+  block:
+
+    - name: start postgresql with /pg/tmp/recovery.log
+      become_user: "{{ pg_dbsu|default('postgres') }}"
+      shell: |
+        "{{ pg_bin_dir|default('/usr/pgsql/bin') }}/pg_ctl" -W -D {{ pg_data }} -o "-c port={{ pg_port }} -c logging_collector=on -c log_destination=stderr -c log_directory=/pg/tmp -c log_filename=recovery.log" start
+
+    - name: wait for consistent recovery state at /pg/tmp/recovery.log
+      tags: recovery
+      wait_for:
+        path: /pg/tmp/recovery.log
+        search_regex: "consistent recovery state reached"
+        timeout: 300
+        delay: 2
+
+
+#--------------------------------------------------------------#
+# VERIFY RESTORE                                        [verify]
+#--------------------------------------------------------------#
+- name: verify pitr result
+  tags: verify
+  become_user: "{{ pg_dbsu|default('postgres') }}"
+  become: true
+  block:
+
+    # extract pg_controldata summary
+    - name: extract pg_controldata to verify pitr
+      become_user: "{{ pg_dbsu|default('postgres') }}"
+      shell: |
+        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/pg_controldata "{{ pg_data }}"
+      register: pitr_controldata
+
+    - name: verify pitr with control data summary
+      vars:
+        cluster_id:       "{{ (pitr_controldata.stdout | regex_search('Database system identifier:\\s+(\\d+)', '\\1')) | join('') }}"
+        redo_lsn:         "{{ (pitr_controldata.stdout | regex_search('Latest checkpoint.s REDO location:\\s+([0-9A-F/]+)', '\\1')) | join('') }}"
+        timeline_id:      "{{ (pitr_controldata.stdout | regex_search('Latest checkpoint.s TimeLineID:\\s+(\\d+)', '\\1')) | join('') }}"
+        prev_timeline_id: "{{ (pitr_controldata.stdout | regex_search('Latest checkpoint.s PrevTimeLineID:\\s+(\\d+)', '\\1')) | join('') }}"
+        next_xid:         "{{ (pitr_controldata.stdout | regex_search('Latest checkpoint.s NextXID:\\s+([0-9:]+)', '\\1')) | join('') }}"
+        checkpoint_time:  "{{ (pitr_controldata.stdout | regex_search('Time of latest checkpoint:\\s+(.+)', '\\1')) | join('') }}"
+        cluster_state:    "{{ (pitr_controldata.stdout | regex_search('Database cluster state:\\s+(.+)', '\\1')) | join('') }}"
+        redo_wal_file:    "{{ (pitr_controldata.stdout | regex_search('Latest checkpoint.s REDO WAL file:\\s+(.+)', '\\1')) | join('') }}"
+      debug:
+        msg: |-
+          LAST Checkpoint: TIME={{ (checkpoint_time|to_datetime('%a %d %b %Y %I:%M:%S %p %Z')).strftime('%Y-%m-%d %H:%M:%S') }} LSN={{ redo_lsn }} TLI={{ timeline_id }}/{{ prev_timeline_id }} XID={{ next_xid }} FILE={{ redo_wal_file }} STATE={{ cluster_state }} CLS={{ cluster_id }} RAW={{ checkpoint_time }}
+          
+          
+#--------------------------------------------------------------#
+# PROMOTE                                              [promote]
+#--------------------------------------------------------------#
+# default will be 'promote', so explict promote for non-promote actions
+- name: promote the instance after pitr
+  when: (pg_pitr.action is not defined or pg_pitr.action is defined and pg_pitr.action|lower != 'promote') and pg_role == 'primary'
+  become_user: "{{ pg_dbsu|default('postgres') }}"
+  ignore_errors: true
+  shell: |
+    {{ pg_bin_dir|default('/usr/pgsql/bin') }}/pg_ctl -D "{{ pg_data }}" promote
+
+...

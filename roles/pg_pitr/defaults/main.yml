@@ -1,0 +1,74 @@
+---
+#-----------------------------------------------------------------
+# PG_PITR: Point-In-Time Recovery Configuration
+#-----------------------------------------------------------------
+# pg_pitr:                        # define a PITR task
+#   cluster: "some_pg_cls_name"   # Source cluster name
+#   type: latest                  # Recovery target type: time, xid, name, lsn, immediate, latest
+#   time: "2025-01-01 10:00:00+00" # Recovery target: time, exclusive with xid, name, lsn
+#   name: "some_restore_point"    # Recovery target: named restore point, exclusive with time, xid, lsn
+#   xid:  "100000"                # Recovery target: transaction ID, exclusive with time, name, lsn
+#   lsn:  "0/3000000"             # Recovery target: log sequence number, exclusive with time, name, xid
+#   timeline: latest              # Target timeline, can be an integer, latest by default,
+#   exclusive: false              # Exclude the target point, default false?
+#   action: pause                 # Post-recovery action: pause, promote, shutdown
+#   archive: false                # Preserve archive settings? false by default
+#   db_include: []                # Include only these databases
+#   db_exclude: []                # Exclude these databases  
+#   link_map: {}                  # Tablespace link mappings
+#   process: 4                    # Parallel restore processes
+#   repo: {}                      # Repository to restore from
+#   data: /pg/data                # where to restore the data
+#   port: 5432                    # listen port of the recovered instance
+
+#-----------------------------------------------------------------
+# PG_IDENTITY (Reference)
+#-----------------------------------------------------------------
+pg_mode: pgsql          #CLUSTER  # pgsql cluster mode: pgsql,citus,mssql,mysql,ivory,polar,oracle,gpsql
+#-----------------------------------------------------------------
+# PG_INSTALL (Reference)
+#-----------------------------------------------------------------
+pg_dbsu: postgres                 # os dbsu name, postgres by default, betters not to change it
+pg_bin_dir: /usr/pgsql/bin        # postgres binary dir, `/usr/pgsql/bin` by default
+#-----------------------------------------------------------------
+# PG_BOOTSTRAP (Reference)
+#-----------------------------------------------------------------
+pg_data: /pg/data                 # postgres data directory, `/pg/data` by default
+pg_port: 5432                     # postgres listen port, 5432 by default
+patroni_enabled: true             # if disabled, no postgres cluster will be created during init
+patroni_port: 8008                # patroni listen port, 8008 by default
+#-----------------------------------------------------------------
+# PG_BACKUP (Reference)
+#-----------------------------------------------------------------
+pgbackrest_enabled: true          # enable pgbackrest on pgsql host?
+pgbackrest_log_dir: /pg/log/pgbackrest # pgbackrest log dir, `/pg/log/pgbackrest` by default
+pgbackrest_method: local          # pgbackrest repo method: local,minio,[user-defined...]
+pgbackrest_repo:                  # pgbackrest repo: https://pgbackrest.org/configuration.html#section-repository
+  local:                          # default pgbackrest repo with local posix fs
+    path: /pg/backup              # local backup directory, `/pg/backup` by default
+    retention_full_type: count    # retention full backups by count
+    retention_full: 2             # keep 2, at most 3 full backups when using local fs repo
+  minio:                          # optional minio repo for pgbackrest
+    type: s3                      # minio is s3-compatible, so s3 is used
+    s3_endpoint: sss.pigsty       # minio endpoint domain name, `sss.pigsty` by default
+    s3_region: us-east-1          # minio region, us-east-1 by default, useless for minio
+    s3_bucket: pgsql              # minio bucket name, `pgsql` by default
+    s3_key: pgbackrest            # minio user access key for pgbackrest
+    s3_key_secret: S3User.Backup  # minio user secret key for pgbackrest
+    s3_uri_style: path            # use path style uri for minio rather than host style
+    path: /pgbackrest             # minio backup path, default is `/pgbackrest`
+    storage_port: 9000            # minio port, 9000 by default
+    storage_ca_file: /etc/pki/ca.crt  # minio ca file path, `/etc/pki/ca.crt` by default
+    block: y                      # Enable block incremental backup
+    bundle: y                     # bundle small files into a single file
+    bundle_limit: 20MiB           # Limit for file bundles, 20MiB for object storage
+    bundle_size: 128MiB           # Target size for file bundles, 128MiB for object storage
+    cipher_type: aes-256-cbc      # enable AES encryption for remote backup repo
+    cipher_pass: pgBackRest       # AES encryption password, default is 'pgBackRest'
+    retention_full_type: time     # retention full backup by time on minio repo
+    retention_full: 14            # keep full backup for the last 14 days
+#-----------------------------------------------------------------
+# ETCD (Reference)
+#-----------------------------------------------------------------
+etcd_port: 2379                   # etcd client port, 2379 by default
+...

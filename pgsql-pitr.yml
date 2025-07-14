@@ -1,0 +1,74 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   pgsql-pitr.yml
+# Desc      :   PostgreSQL Point-In-Time Recovery Playbook  
+# Ctime     :   2025-07-14
+# Mtime     :   2025-07-14
+# Path      :   pgsql-pitr.yml
+# Docs      :   https://doc.pgsty.com/pgsql/playbook#pgsql-pitryml
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: PGSQL PITR
+  become: yes
+  hosts: all
+  gather_facts: no
+  roles:
+    - { role: node_id  ,tags: [id,node-id] } # get node identity (always)
+    - { role: pg_id    ,tags: [id,pg-id]   } # get pgsql identity (always)  
+    - { role: pg_pitr  ,tags: [pg_pitr] ,when: pg_pitr is defined and pg_pitr is mapping }
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+# pgsql-pitr.yml -l <cluster_name> [-t task]
+# 
+# pg_pitr:                        # define a PITR task
+#   cluster: "some_pg_cls_name"   # Source cluster name
+#   type: latest                  # Recovery target type: time, xid, name, lsn, immediate, latest
+#   time: "2025-01-01 10:00:00+00" # Recovery target: time, exclusive with xid, name, lsn
+#   name: "some_restore_point"    # Recovery target: named restore point, exclusive with time, xid, lsn
+#   xid:  "100000"                # Recovery target: transaction ID, exclusive with time, name, lsn
+#   lsn:  "0/3000000"             # Recovery target: log sequence number, exclusive with time, name, xid
+#   timeline: latest              # Target timeline, can be an integer, latest by default,
+#   exclusive: false              # Exclude the target point, default false?
+#   action: pause                 # Post-recovery action: pause, promote, shutdown
+#   archive: false                # Preserve archive settings? false by default
+#   db_include: []                # Include only these databases
+#   db_exclude: []                # Exclude these databases
+#   link_map: {}                  # Tablespace link mappings
+#   process: 4                    # Parallel restore processes
+#   repo: {}                      # Repository to restore from
+#   data: /pg/data                # where to restore the data
+#   port: 5432                    # listen port of the recovered instance
+#
+# Example:
+# pg_pitr: { }  # restore to the latest status (wal archive stream end)
+# pg_pitr: { time: "2025-07-13 10:00:00+00" }
+# pg_pitr: { lsn: "0/4001C80" }
+# pg_pitr: { xid: "250000" }
+# pg_pitr: { name: "some_restore_point" }
+# pg_pitr: { type: "immediate" }
+#
+#--------------------------------------------------------------#
+# Tasks
+#--------------------------------------------------------------#
+# down                 : # stop ha and shutdown patroni and postgres
+#   - pause            : # pause patroni auto failover
+#   - stop             : # stop patroni and postgres service
+#     - stop_patroni   : # stop patroni service
+#     - stop_postgres  : # stop postgres service
+# pitr                 : # perform the PITR procedure
+#   - config           : # generate pgbackrest config and restore script
+#   - restore          : # run the pgbackrest restore command
+#   - recovery         : # start postgres and complete recovery
+#   - verify           : # verify the recovered cluster control data
+# up:                  : # start postgres / patroni and resume ha
+#   - etcd             : # clean up etcd metadata before launching
+#   - start            : # start patroni and postgres service
+#     - start_postgres : # start postgres service
+#     - start_patroni  : # start patroni service
+#   - resume           : # resume patroni auto failover
+#--------------------------------------------------------------#
+...
