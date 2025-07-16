@@ -8,7 +8,7 @@
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 # pigsty version string
-VERSION?=v3.5.1
+VERSION?=v3.6.0
 
 # detect architecture
 ARCH?=x86_64
