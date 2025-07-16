@@ -1,9 +1,9 @@
 ---
 #--------------------------------------------------------------#
-# Launch patroni primary                         [start_primary]
+# Launch patroni primary                               [primary]
 #--------------------------------------------------------------#
 - name: launch patroni primary
-  tags: [ start_patroni, start_primary ]
+  tags: primary
   any_errors_fatal: true
   when: pg_role == 'primary'
   block:
@@ -17,7 +17,7 @@
       args: { executable: /bin/bash }
 
     - name: launch patroni primary
-      systemd: name=patroni state=started enabled=yes daemon_reload=yes
+      systemd: name=patroni state=restarted enabled=yes daemon_reload=yes
 
     - name: wait for patroni primary
       wait_for: host={{ inventory_hostname }} port={{ patroni_port }} state=started timeout=60
@@ -32,11 +32,57 @@
       delay: 5
 
 
+
 #--------------------------------------------------------------#
-# Launch patroni replica                         [start_replica]
+# Resume Patroni HA                                     [resume]
+#--------------------------------------------------------------#
+- name: resume patroni ha
+  become_user: "{{ pg_dbsu }}"
+  tags: [ up, resume ]
+  ignore_errors: true
+  shell: |
+    {% if pg_mode|default('pgsql') == 'citus' %} 
+    OUTPUT=$(/usr/bin/patronictl -c /etc/patroni/patroni.yml resume {{ pg_shard }} --group {{ pg_group }} 2>&1)
+    RET=$?
+    {% else %}
+    OUTPUT=$(/usr/bin/patronictl -c /etc/patroni/patroni.yml resume {{ pg_cluster }} 2>&1)
+    RET=$?
+    {% endif %}
+    if [ $RET -eq 0 ]; then
+        echo "Patroni resume successfully."
+        exit 0
+    else
+        if echo "$OUTPUT" | grep -qi 'is not paused'; then
+            echo "Patroni already resumed"
+            exit 0
+        else
+            echo "Failed to resume patroni $RET, please check the logs."
+            echo "$OUTPUT"
+            exit 1
+        fi
+    fi
+
+
+#--------------------------------------------------------------#
+# restart HA                                           [restart]
+#--------------------------------------------------------------#
+- name: restart patroni primary
+  tags: restart
+  become_user: "{{ pg_dbsu }}"
+  shell: |
+    {% if pg_mode|default('pgsql') == 'citus' %} 
+    /usr/bin/patronictl -c /etc/patroni/patroni.yml restart {{ pg_shard }} --group {{ pg_group }} --force
+    {% else %}
+    /usr/bin/patronictl -c /etc/patroni/patroni.yml restart {{ pg_cluster }} --force
+    {% endif %}
+  args:
+    executable: /bin/bash
+
+#--------------------------------------------------------------#
+# Launch patroni replica                               [replica]
 #--------------------------------------------------------------#
 - name: launch patroni replicas
-  tags: [ start_patroni, start_replica ]
+  tags: replica
   any_errors_fatal: true
   when: pg_role != 'primary'
   block:
@@ -50,7 +96,7 @@
       args: { executable: /bin/bash }
 
     - name: launch patroni replica
-      systemd: name=patroni state=started enabled=yes daemon_reload=yes
+      systemd: name=patroni state=restarted enabled=yes daemon_reload=yes
     - name: wait for patroni replica
       wait_for: host={{ inventory_hostname }} port={{ patroni_port }} state=started timeout=30
 
@@ -65,4 +111,6 @@
       retries: 6
       until: result.rc == 0
       delay: 5
+
+
 ...
