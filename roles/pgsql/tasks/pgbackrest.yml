@@ -4,34 +4,10 @@
 #--------------------------------------------------------------#
 - name: create pgbackrest dir
   tags: [ pgbackrest, pgbackrest_dir ]
-  file: path=/etc/pgbackrest state=directory owner={{ pg_dbsu|default('postgres') }} group=postgres mode=0750
+  file: path=/etc/pgbackrest state=directory owner={{ pg_dbsu }} group=postgres mode=0750
 - name: config pgbackrest
   tags: [ pgbackrest, pgbackrest_config ]
-  template: src=pgbackrest.conf dest=/etc/pgbackrest/pgbackrest.conf owner=postgres group=postgres mode=0600
-
-
-#--------------------------------------------------------------#
-# Remove Existing Backup                      [pgbackrest_clean]
-#--------------------------------------------------------------#
-# remove previous backup repo when init primary (default)
-# skip if pgbackrest_clean == false
-# - name: stop pgbackrest and delete stanza
-#   tags: [ pgbackrest, pgbackrest_clean ]
-#   when: pgbackrest_clean|bool and pg_role == 'primary'
-#   become: yes
-#   ignore_errors: true
-#   become_user: "{{ pg_dbsu }}"
-#   shell: |
-#     if [[ -f /etc/pgbackrest/pgbackrest.conf ]]; then
-#       /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stop;
-#       /usr/bin/pgbackrest --stanza={{ pg_cluster }} --force stanza-delete;
-#     fi
-#   args: { executable: /bin/bash }
-
-# TO REMOVE A LOCAL BACKUP MANUALLY:
-#    rm -rf /pg/backup/backup/{{ pg_cluster }} /pg/backup/archive/{{ pg_cluster }}
-# TO REMOVE A MINIO BACKUP MANUALLY:
-#    mcli rm pgsql/pgbackrest/backup/{{ pg_cluster }} pgsql/pgbackrest/archive/{{ pg_cluster }}
+  template: src=pgbackrest.conf dest=/etc/pgbackrest/pgbackrest.conf owner={{ pg_dbsu }} group=postgres mode=0600
 
 
 #--------------------------------------------------------------#
