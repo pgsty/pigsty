@@ -10,20 +10,20 @@
     # /etc/nginx/conf.d/haproxy/upstream-{{ pg_instance }}.conf
     - name: remove haproxy upstream from nginx
       delegate_to: '{{ item }}'
-      with_items: '{{ groups["infra"] }}'
+      with_items: '{{ groups["infra"]|default([]) }}'
       file: state=absent path=/etc/nginx/conf.d/haproxy/upstream-{{ pg_cluster }}-{{ pg_seq }}.conf
 
     # /etc/nginx/conf.d/haproxy/location-{{ pg_instance }}.conf
     - name: remove haproxy url location from nginx
       delegate_to: '{{ item }}'
-      with_items: '{{ groups["infra"] }}'
+      with_items: '{{ groups["infra"]|default([]) }}'
       file: state=absent path=/etc/nginx/conf.d/haproxy/location-{{ pg_cluster }}-{{ pg_seq }}.conf
 
     # reload meta node nginx (maybe not appropriate here)
     - name: reload nginx to remove haproxy upstream
       run_once: true
       delegate_to: '{{ item }}'
-      with_items: '{{ groups["infra"] }}'
+      with_items: '{{ groups["infra"]|default([]) }}'
       systemd: name=nginx state=reloaded enabled=yes daemon_reload=yes
 
 ...
