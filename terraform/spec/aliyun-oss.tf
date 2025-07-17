@@ -2,8 +2,8 @@
 # File      :   aliyun-oss.yml
 # Desc      :   3-node building env for x86_64/aarch64
 # Ctime     :   2024-12-12
-# Mtime     :   2025-06-30
-# Path      :   terraform/spec/aliyun-meta.yml
+# Mtime     :   2025-07-17
+# Path      :   terraform/spec/aliyun-oss.yml
 # Docs      :   https://doc.pgsty.com/prepare/terraform
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -65,7 +65,7 @@ locals {
 provider "alicloud" {
   # access_key = "????????????????????"
   # secret_key = "????????????????????"
-  region = "cn-shanghai"
+  region = "cn-hongkong"
 }
 
 
@@ -82,7 +82,7 @@ resource "alicloud_vpc" "vpc" {
 resource "alicloud_vswitch" "vsw" {
   vpc_id     = "${alicloud_vpc.vpc.id}"
   cidr_block = "10.10.10.0/24"
-  zone_id    = "cn-shanghai-l"
+  zone_id    = "cn-hongkong-d"
 }
 
 # add default security group and allow all tcp traffic
