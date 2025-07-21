@@ -1,0 +1,179 @@
+#!/bin/bash
+set -uo pipefail
+#==============================================================#
+# File      :   etcd-add
+# Desc      :   Create ETCD Cluster / Add New Members
+# Ctime     :   2025-07-20
+# Mtime     :   2025-07-20
+# Path      :   bin/etcd-add
+# Deps      :   ansible-playbook, etcd.yml
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+APP_NAME="$(basename $0)"
+APP_DIR="$(cd $(dirname $0) && pwd)"
+PIGSTY_HOME=$(cd $(dirname ${APP_DIR}) && pwd)
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+# bin/etcd-add             # create etcd cluster
+# bin/etcd-add [ip...]     # add new members to existing cluster
+
+
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+__CN='\033[0m';__CB='\033[0;30m';__CR='\033[0;31m';__CG='\033[0;32m';
+__CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';__CC='\033[0;36m';__CW='\033[0;37m';
+function log_info() {  printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n";   }
+function log_warn() {  printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n";   }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n";   }
+function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n"; }
+function log_input() { printf "[${__CM} IN ${__CN}] ${__CM}$*\n=> ${__CN}"; }
+function log_hint()  { printf "${__CB}$*${__CN}\n"; }
+function log_line()  { printf "${__CM}[$*] ===========================================${__CN}\n"; }
+function is_valid_ip(){
+    if [[ "$1" =~ (([0-9]|[0-9]{2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9]{2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]) ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+#--------------------------------------------------------------#
+# Param
+#--------------------------------------------------------------#
+ETCD_CLUSTER=${ETCD_CLUSTER:-'etcd'}
+
+#--------------------------------------------------------------#
+# CHANGE WORKING DIR
+#--------------------------------------------------------------#
+cd "${PIGSTY_HOME}"
+
+
+#--------------------------------------------------------------#
+# Create Entire Cluster                [ 0 arg = create all ]
+#--------------------------------------------------------------#
+# if no args given, create entire etcd cluster
+if (($# == 0)); then
+
+    log_line "WARNING"
+    log_warn "You are about to perform a etcd Create Operation!"
+    log_warn "This operation will CREATE & RESTART the etcd cluster!"
+    log_warn "It will not remove existing etcd cluster and data"
+    log_warn "but mis-configuration could lead to DOWNTIME!"
+    log_warn "if this is not what your want, Ctrl+C to abort before start!"
+
+    # Countdown from 5 to 1
+    for i in 5 4 3 2 1; do
+        log_hint "\rCountdown: $i seconds remaining..."
+        sleep 1
+    done
+    log_warn "Proceeding with etcd cluster create operation."
+
+    log_line "EXECUTE"
+    log_warn "create etcd cluster '${ETCD_CLUSTER}'"
+    log_hint "$ ./etcd.yml -l ${ETCD_CLUSTER}"
+
+    "${PIGSTY_HOME}/etcd.yml" -l "${ETCD_CLUSTER}"
+
+    if [[ $? -ne 0 ]]; then
+      log_line "FAILURE"
+      log_error "fail to create etcd cluster '${ETCD_CLUSTER}'"
+      exit 2
+    fi
+    log_line "SUMMARY"
+    log_info "create etcd cluster ${ETCD_CLUSTER} complete!"
+    exit 0
+fi
+
+
+#--------------------------------------------------------------#
+# Add New Members                     [1+ args = add members ]
+#--------------------------------------------------------------#
+# if args given, add specific etcd members by IP
+IP_LIST=""
+TARGET_PATTERN=""
+EXISTS_PATTERN="${ETCD_CLUSTER}"
+for ((i=1; i<=$#; i++))
+do
+  if ! is_valid_ip "${!i}"; then
+    log_error "invalid ip address given: ${!i}"
+    exit 1
+  fi
+  IP_LIST="${IP_LIST} ${!i}"
+  if [[ -z "${TARGET_PATTERN}" ]]; then
+    TARGET_PATTERN="${!i}"
+  else
+    TARGET_PATTERN="${TARGET_PATTERN},${!i}"
+  fi
+  EXISTS_PATTERN="${EXISTS_PATTERN},!${!i}"
+done
+
+#---------------------------------#
+# Planning
+#---------------------------------#
+log_line "PLANNING"
+log_info "add new etcd members: ${IP_LIST} to cluster '${ETCD_CLUSTER}'"
+log_warn "  add new members to cluster:"
+log_info "    $ ./etcd.yml-l '${TARGET_PATTERN}'"
+log_warn "  update existing members configuration:"
+log_info "    $ ./etcd.yml -l '${EXISTS_PATTERN}' --tags=etcd_config,etcd_launch"
+
+log_line "WARNING"
+log_warn "You are about to perform a etcd Create Expand Operation!"
+log_warn "This operation will add new member to the existing etcd cluster!"
+log_warn "Mis-configuration could lead to DOWNTIME!"
+log_warn "if this is not what your want, Ctrl+C to abort before start!"
+
+# Countdown from 5 to 1
+for i in 5 4 3 2 1; do
+    log_hint "\rCountdown: $i seconds remaining..."
+    sleep 1
+done
+log_warn "Proceeding with etcd cluster expand operation."
+
+#---------------------------------#
+# Add New Members
+#---------------------------------#
+log_line "EXECUTE"
+log_warn "add etcd members${IP_LIST} to ${ETCD_CLUSTER}"
+log_hint "$ ./etcd.yml -e etcd_init=existing -l '${TARGET_PATTERN}'"
+
+"${PIGSTY_HOME}/etcd.yml" -e etcd_init=existing -l "${TARGET_PATTERN}"
+
+if [[ $? -ne 0 ]]; then
+  log_line "FAILURE"
+  log_error "fail to add etcd members${IP_LIST} to ${ETCD_CLUSTER}"
+  exit 4
+fi
+log_info "add etcd members${IP_LIST} to ${ETCD_CLUSTER} complete"
+
+#---------------------------------#
+# Update Existing Members
+#---------------------------------#
+log_line "UPDATE"./e
+log_warn "update existing etcd members configuration"
+log_hint "$ ./etcd.yml -l '${EXISTS_PATTERN}' --tags=etcd_config,etcd_launch"
+"${PIGSTY_HOME}/etcd.yml" -l "${EXISTS_PATTERN}" --tags=etcd_config,etcd_launch
+
+if [[ $? -ne 0 ]]; then
+    log_line "ERROR"
+    log_warn "fail to update existing etcd members"
+    log_hint "you may need to manually update etcd configuration on existing members"
+else
+    log_info "update existing etcd members configuration complete"
+fi
+
+#---------------------------------#
+# Summary
+#---------------------------------#
+log_line "SUMMARY"
+log_info "add etcd members ${IP_LIST} to ${ETCD_CLUSTER} success"
+
+log_warn "please make sure reference to etcd endpoint is also updated"
+log_hint "etcd is used by patroni and vip-manager"
+
+exit 0

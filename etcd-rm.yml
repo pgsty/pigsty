@@ -4,7 +4,7 @@
 # File      :   etcd-rm.yml
 # Desc      :   remove etcd from hosts
 # Ctime     :   2025-07-20
-# Mtime     :   2025-07-20
+# Mtime     :   2025-07-21
 # Path      :   etcd-rm.yml
 # Docs      :   https://doc.pgsty.com/etcd/playbook
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -33,31 +33,25 @@
 #  It will abort if `etcd_safeguard` is set to `true` explicitly
 #
 #  Remove a etcd member:
-#     etcd-rm.yml -l 10.10.10.12    # remove instance `10.10.10.12` from cluster `etcd`
-#     etcd.yml -l etcd              # refresh etcd cluster after member removal
+#     ./etcd-rm.yml -l 10.10.10.12  # remove instance `10.10.10.12` from cluster `etcd`
+#     vi pigsty.yml                 # remove the `10.10.10.12` from `etcd` cluster in `pigsty.yml`
+#     ./etcd.yml                    # refresh etcd cluster after member removal
 #
 #--------------------------------------------------------------#
 # Utils
 #--------------------------------------------------------------#
 #
-#  bin/etcd-rm etcd                  # remove etcd cluster 'etcd'
-#  bin/etcd-rm etcd 10.10.10.10      # remove etcd instance '10.10.10.10' from 'etcd'
+#  bin/etcd-rm                       # remove etcd cluster
+#  bin/etcd-rm etcd 10.10.10.12      # remove one etcd instance '10.10.10.12' from the cluster
 #
 #--------------------------------------------------------------#
 # Tasks
 #--------------------------------------------------------------#
-# etcd_monitor             : remove registration in prometheus
-#   - prometheus           : remove monitor target from prometheus
-#   - etcd_exporter        : remove etcd_exporter (etcd monitoring)
-#
-# etcd_leave               : leave etcd cluster gracefully
-#   - etcd_member_remove   : remove member from etcd cluster
-#
-# etcd_service             : remove etcd service
-#   - etcd_stop            : stop etcd service
-#   - etcd_disable         : disable etcd service
-#
-# etcd_data                : remove etcd data    (disable with `etcd_rm_data=false`)
-# etcd_pkg                 : uninstall packages  (disable with `etcd_rm_pkg=false`)
+# etcd_safeguard           : check safeguard and abort if enabled
+# prometheus               : remove etcd targets registration from prometheus
+# etcd_leave               : try to graceful leave etcd cluster before leave
+# etcd_stop                : stop and disable etcd service with systemd
+# etcd_data                : remove etcd data
+# etcd_pkg                 : uninstall etcd packages
 #--------------------------------------------------------------#
 ...

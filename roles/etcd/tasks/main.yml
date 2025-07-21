@@ -36,12 +36,26 @@
   vars: { etcd_instance: "{{ etcd_cluster }}-{{ etcd_seq }}" }
 
 #--------------------------------------------------------------#
+# Add new member                                   [etcd_member]
+#--------------------------------------------------------------#
+# use etcd member add
+- name: add new member to etcd cluster
+  tags: etcd_member
+  when: etcd_init == 'existing'
+  shell: |
+    etcdctl member add "{{ etcd_cluster }}-{{ etcd_seq }}" {% if etcd_learner|bool %}--learner=true{% endif %} --peer-urls=https://{{ inventory_hostname }}:{{ etcd_peer_port }}
+  environment:
+    ETCDCTL_CACERT: "/etc/etcd/ca.crt"
+    ETCDCTL_CERT: "/etc/etcd/server.crt"
+    ETCDCTL_KEY: "/etc/etcd/server.key"
+    ETCDCTL_ENDPOINTS: "{{ groups[etcd_cluster] | difference([inventory_hostname]) | map('regex_replace', '^(.*)$', '\\1:' + etcd_port|string) | join(',') }}"
+
+#--------------------------------------------------------------#
 # Launch etcd                                      [etcd_launch]
 #--------------------------------------------------------------#
 - name: launch etcd server
   tags: etcd_launch
   block:
-
     - name: launch etcd server service
       systemd: name=etcd state=restarted enabled=yes daemon_reload=yes
     - name: wait for etcd server online

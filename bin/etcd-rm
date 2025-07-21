@@ -1,0 +1,159 @@
+#!/bin/bash
+set -uo pipefail
+#==============================================================#
+# File      :   etcd-rm
+# Desc      :   Remove ETCD Cluster / Remove Members
+# Ctime     :   2025-07-20
+# Mtime     :   2025-07-20
+# Path      :   bin/etcd-rm
+# Deps      :   ansible-playbook, etcd.yml, etcd-rm.yml
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+APP_NAME="$(basename $0)"
+APP_DIR="$(cd $(dirname $0) && pwd)"
+PIGSTY_HOME=$(cd $(dirname ${APP_DIR}) && pwd)
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+# bin/etcd-rm              # remove entire etcd cluster
+# bin/etcd-rm [ip...]      # remove members from etcd cluster
+
+
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+__CN='\033[0m';__CB='\033[0;30m';__CR='\033[0;31m';__CG='\033[0;32m';
+__CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';__CC='\033[0;36m';__CW='\033[0;37m';
+function log_info() {  printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n";   }
+function log_warn() {  printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n";   }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n";   }
+function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n"; }
+function log_input() { printf "[${__CM} IN ${__CN}] ${__CM}$*\n=> ${__CN}"; }
+function log_hint()  { printf "${__CB}$*${__CN}\n"; }
+function log_line()  { printf "${__CM}[$*] ===========================================${__CN}\n"; }
+function is_valid_ip(){
+    if [[ "$1" =~ (([0-9]|[0-9]{2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9]{2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]) ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+#--------------------------------------------------------------#
+# Param
+#--------------------------------------------------------------#
+ETCD_CLUSTER=${ETCD_CLUSTER:-'etcd'}
+cd "${PIGSTY_HOME}"
+
+#--------------------------------------------------------------#
+# Remove Entire Cluster                 [ 0 arg = remove all ]
+#--------------------------------------------------------------#
+# if no args given, remove entire etcd cluster
+if (($# == 0)); then
+    log_line "WARNING"
+    log_warn "You are about to perform a etcd Remove Operation!"
+    log_warn "This operation will Remove the etcd cluster!"
+    log_warn "Data in etcd will be destroyed and lost forever!"
+    log_warn "if this is not what your want, Ctrl+C to abort before start!"
+
+    # Countdown from 5 to 1
+    for i in 5 4 3 2 1; do
+        log_hint "\rCountdown: $i seconds remaining..."
+        sleep 1
+    done
+    log_warn "Proceeding with etcd cluster remove operation."
+
+    log_line "EXECUTE"
+    log_warn "remove entire etcd cluster '${ETCD_CLUSTER}'"
+    log_hint "$ ./etcd-rm.yml -l ${ETCD_CLUSTER}"
+
+    "${PIGSTY_HOME}/etcd-rm.yml"
+
+    if [[ $? -ne 0 ]]; then
+      log_line "FAILURE"
+      log_error "fail to remove etcd cluster '${ETCD_CLUSTER}'"
+      exit 2
+    fi
+    log_line "SUMMARY"
+    log_info "remove etcd cluster ${ETCD_CLUSTER} complete!"
+    log_warn "nodes will not be removed from pigsty, to do so:"
+    log_hint "$ bin/node-rm ${ETCD_CLUSTER}"
+    exit 0
+fi
+
+
+#--------------------------------------------------------------#
+# Remove Members                       [1+ args = remove ips ]
+#--------------------------------------------------------------#
+# if args given, remove specific etcd members by IP
+IP_LIST=""
+TARGET_PATTERN=""
+for ((i=1; i<=$#; i++))
+do
+  if ! is_valid_ip "${!i}"; then
+    log_error "invalid ip address given: ${!i}"
+    exit 1
+  fi
+  IP_LIST="${IP_LIST} ${!i}"
+  if [[ -z "${TARGET_PATTERN}" ]]; then
+    TARGET_PATTERN="${!i}"
+  else
+    TARGET_PATTERN="${TARGET_PATTERN},${!i}"
+  fi
+done
+
+#---------------------------------#
+# Planning
+#---------------------------------#
+log_line "PLANNING"
+log_info "remove etcd members:${IP_LIST} from cluster '${ETCD_CLUSTER}'"
+log_warn "  remove members from cluster:"
+log_info "    $ ./etcd-rm.yml -l '${TARGET_PATTERN}'"
+
+log_line "WARNING"
+log_warn "You are about to perform a etcd instance Remove Operation!"
+log_warn "This operation will Remove a etcd instance from cluster!"
+log_warn "if this is not what your want, Ctrl+C to abort before start!"
+
+# Countdown from 5 to 1
+for i in 5 4 3 2 1; do
+    log_hint "\rCountdown: $i seconds remaining..."
+    sleep 1
+done
+log_warn "Proceeding with etcd cluster remove operation."
+
+#---------------------------------#
+# Remove Members
+#---------------------------------#
+log_line "EXECUTE"
+log_warn "remove etcd members${IP_LIST} from ${ETCD_CLUSTER}"
+log_hint "$ ./etcd-rm.yml -l '${TARGET_PATTERN}'"
+
+"${PIGSTY_HOME}/etcd-rm.yml" -l "${TARGET_PATTERN}"
+
+if [[ $? -ne 0 ]]; then
+  log_line "FAILURE"
+  log_error "fail to remove etcd members ${IP_LIST} from ${ETCD_CLUSTER}"
+  exit 4
+fi
+log_info "remove etcd members ${IP_LIST} from ${ETCD_CLUSTER} complete"
+
+#---------------------------------#
+# Summary
+#---------------------------------#
+log_line "SUMMARY"
+log_info "remove etcd members ${IP_LIST} from ${ETCD_CLUSTER} success"
+
+log_warn "nodes will not be removed from pigsty, to do so:"
+log_hint "$ bin/node-rm  ${IP_LIST}"
+
+log_warn "please adjust your inventory accordingly"
+log_hint "remove ${IP_LIST} from inventory: all.children.${ETCD_CLUSTER}.hosts"
+
+log_warn "then refresh etcd cluster with updated inventory"
+log_hint "$ bin/etcd-add"
+
+exit 0
