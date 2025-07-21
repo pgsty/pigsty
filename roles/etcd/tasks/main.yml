@@ -9,7 +9,6 @@
       - etcd_seq is defined and etcd_seq|int >= 0
     fail_msg: variable 'etcd_seq' is required for etcd instance
 
-
 #--------------------------------------------------------------#
 # Install etcd                                    [etcd_install]
 #--------------------------------------------------------------#
@@ -17,108 +16,17 @@
   tags: etcd_install
   package: name=etcd state=present
 
-
-#--------------------------------------------------------------#
-# Check etcd exists                                 [etcd_check]
-#--------------------------------------------------------------#
-- name: check etcd exists
-  tags: [ etcd_clean, etcd_check ]
-  block:
-
-    # check etcd by listening port
-    - name: check etcd exists
-      command: 'ss -tp state listening sport = :{{ etcd_port }}'
-      register: check_etcd_port_result
-    - name: set etcd_exists flag
-      connection: local
-      set_fact:
-        etcd_exists: "{{ 'etcd' in check_etcd_port_result.stdout }}"
-
-    # when any running etcd exists, abort play in two cases:
-    # 1. etcd_safeguard = true    # prevent accidentally purge at all
-    # 2. etcd_clean = false       # etcd_clean=true is required for purging during init
-    - name: abort etcd purging
-      connection: local
-      any_errors_fatal: true
-      when: etcd_exists and (etcd_safeguard or not etcd_clean)
-      fail:
-        msg: >-
-          Abort because etcd instance {{ etcd_cluster }}-{{ etcd_seq }} @ {{ inventory_hostname }} exists.
-           {% if etcd_safeguard|bool %}etcd_safeguard enabled, please disable it before purging.{% endif %}
-           {% if not etcd_clean|bool %}etcd_clean = false, use -e etcd_clean=true to override.{% endif %}
-
-
-#--------------------------------------------------------------#
-# Purge etcd                                        [etcd_purge]
-#--------------------------------------------------------------#
-- name: purge etcd
-  tags: [ etcd_clean , etcd_purge ]
-  block:
-
-    # dangerous: (it will remove etcd data!)
-    - name: WARNING, PURGE ETCD INSTANCE
-      # connection: local, leave a chance for human intervention
-      when: not etcd_safeguard and etcd_exists and etcd_clean # DANGEROUS!
-      debug:
-        msg: "[DANGEROUS] RUNNING ETCD INSTANCE {{ inventory_hostname }} WILL BE PURGED!"
-
-    - name: purge etcd
-      ignore_errors: yes
-      shell: |
-        # try graceful shutdown first
-        if ps -u etcd -o command | grep -q 'etcd' ; then
-            /usr/bin/etcd leave
-            systemctl stop etcd
-        fi
-        
-        # kill if still exists
-        if ps -u etcd -o command | grep -q 'etcd' ; then
-            sleep 2
-            ps -u etcd -o pid:1,command | grep 'etcd' | awk '{print $1}' | xargs kill
-        fi
-        
-        # kill -9 if not killed 
-        if ps -u etcd -o command | grep -q 'etcd' ; then
-            sleep 5
-            ps -u etcd -o pid:1,command | grep 'etcd' | awk '{print $1}' | xargs kill -9
-        fi
-        
-        # guaranteed success
-        rm -rf /etc/etcd
-        rm -rf /var/lib/etcd/*
-        rm -rf "{{ etcd_data }}"
-        rm -f /etc/profile.d/etcd.sh
-        exit 0
-      args: { executable: /bin/bash }
-
-    - name: remove etcd register from prometheus target
-      tags: [ etcd_deregister ]
-      ignore_errors: true
-      delegate_to: '{{ item }}'
-      with_items: '{{ groups["infra"]|default([]) }}'
-      file:
-        path: "{{ prometheus_sd_dir }}/etcd/{{ etcd_cluster }}-{{ etcd_seq }}.yml"
-        state: absent
-
-
 #--------------------------------------------------------------#
 # Create etcd directory                               [etcd_dir]
 #--------------------------------------------------------------#
-- name: create etcd directory
+- name: create etcd directories
   tags: etcd_dir
-  block:
-
-    - name: create etcd config dir
-      file: path={{ item }} state=directory owner=etcd group=etcd mode=0750
-      with_items: [ "/etc/etcd" , "/var/lib/etcd" ]
-
-    # avoid overwrite node data dir file permission
-    - name: create node data dir if not exists
-      when: etcd_data.startswith(node_data)
-      file: path="{{ node_data }}" state=directory owner=root group=root mode=0777
-    - name: create etcd data dir
-      file: path="{{ etcd_data }}" state=directory owner=etcd group=etcd mode=0700
-
+  file: path={{ item.path }} state=directory owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  with_items:
+    - { path: "/etc/etcd"       ,mode: "0750" , owner: "etcd" , group: "etcd"  }
+    - { path: "/var/lib/etcd"   ,mode: "0750" , owner: "etcd" , group: "etcd"  }
+    - { path: "{{ node_data }}" ,mode: "0777" , owner: "root" , group: "root"  }
+    - { path: "{{ etcd_data }}" ,mode: "0700" , owner: "etcd" , group: "etcd"  }
 
 #--------------------------------------------------------------#
 # Config etcd                                      [etcd_config]
@@ -126,7 +34,6 @@
 - import_tasks: config.yml
   tags: etcd_config
   vars: { etcd_instance: "{{ etcd_cluster }}-{{ etcd_seq }}" }
-
 
 #--------------------------------------------------------------#
 # Launch etcd                                      [etcd_launch]
@@ -139,7 +46,6 @@
       systemd: name=etcd state=restarted enabled=yes daemon_reload=yes
     - name: wait for etcd server online
       wait_for: host=127.0.0.1 port={{ etcd_port }} state=started timeout=10
-
 
 #--------------------------------------------------------------#
 # Register etcd to prometheus                    [etcd_register]
