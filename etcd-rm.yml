@@ -1,0 +1,63 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   etcd-rm.yml
+# Desc      :   remove etcd from hosts
+# Ctime     :   2025-07-20
+# Mtime     :   2025-07-20
+# Path      :   etcd-rm.yml
+# Docs      :   https://doc.pgsty.com/etcd/playbook
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: ETCD REMOVE
+  become: yes
+  hosts: etcd
+  gather_facts: no
+  ignore_errors: yes
+  vars:
+    #etcd_safeguard: true              # safeguard for etcd remove, set to true halt remove execution
+    #etcd_rm_data: true                # remove etcd data during remove? true by default
+    #etcd_rm_pkg: true                 # uninstall etcd packages during remove? true by default
+  roles: [ { role: node_id }, { role: etcd_remove } ]
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+#  Remove etcd cluster `etcd`
+#     etcd-rm.yml -l etcd           # remove cluster `etcd`
+#         -e etcd_rm_data=true      # remove etcd data by default
+#         -e etcd_rm_pkg=true       # remove etcd packages by default
+#         -e etcd_safeguard=false   # safeguard is not enabled by default, if enabled, can be override with cli args
+#  It will abort if `etcd_safeguard` is set to `true` explicitly
+#
+#  Remove a etcd member:
+#     etcd-rm.yml -l 10.10.10.12    # remove instance `10.10.10.12` from cluster `etcd`
+#     etcd.yml -l etcd              # refresh etcd cluster after member removal
+#
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+#
+#  bin/etcd-rm etcd                  # remove etcd cluster 'etcd'
+#  bin/etcd-rm etcd 10.10.10.10      # remove etcd instance '10.10.10.10' from 'etcd'
+#
+#--------------------------------------------------------------#
+# Tasks
+#--------------------------------------------------------------#
+# etcd_monitor             : remove registration in prometheus
+#   - prometheus           : remove monitor target from prometheus
+#   - etcd_exporter        : remove etcd_exporter (etcd monitoring)
+#
+# etcd_leave               : leave etcd cluster gracefully
+#   - etcd_member_remove   : remove member from etcd cluster
+#
+# etcd_service             : remove etcd service
+#   - etcd_stop            : stop etcd service
+#   - etcd_disable         : disable etcd service
+#
+# etcd_data                : remove etcd data    (disable with `etcd_rm_data=false`)
+# etcd_pkg                 : uninstall packages  (disable with `etcd_rm_pkg=false`)
+#--------------------------------------------------------------#
+...

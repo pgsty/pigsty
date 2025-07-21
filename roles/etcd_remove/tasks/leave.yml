@@ -1,0 +1,50 @@
+---
+#--------------------------------------------------------------#
+# Leave etcd cluster gracefully
+#--------------------------------------------------------------#
+- name: get etcd member list in json format
+  shell: |
+    etcdctl member list -w json
+  environment:
+    ETCDCTL_API: "3"
+    ETCDCTL_CACERT: "/etc/etcd/ca.crt"
+    ETCDCTL_CERT: "/etc/etcd/server.crt" 
+    ETCDCTL_KEY: "/etc/etcd/server.key"
+    ETCDCTL_ENDPOINTS: "{% for ip in groups[etcd_cluster] %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
+  register: member_list_result
+  ignore_errors: true
+
+- name: parse member list and find current member ID
+  set_fact:
+    current_member_id: >-
+      {%- if member_list_result.rc == 0 and member_list_result.stdout -%}
+        {%- set json_data = member_list_result.stdout | from_json | default({}) -%}
+        {%- if json_data.members is defined -%}
+          {%- for member in json_data.members -%}
+            {%- if member.name == etcd_instance and member.ID is defined -%}
+              {{ '%x' | format(member.ID) }}
+            {%- endif -%}
+          {%- endfor -%}
+        {%- endif -%}
+      {%- endif -%}
+  ignore_errors: true
+
+- name: print current etcd member id
+  when: current_member_id is defined and current_member_id != ''
+  debug:
+    msg: "remove etcd member {{ etcd_instance }}: {{ current_member_id }}"
+
+- name: remove member from etcd cluster
+  when: current_member_id is defined and current_member_id != ''
+  shell: |
+    etcdctl member remove {{ current_member_id }}
+  environment:
+    ETCDCTL_API: "3"
+    ETCDCTL_CACERT: "/etc/etcd/ca.crt"
+    ETCDCTL_CERT: "/etc/etcd/server.crt"
+    ETCDCTL_KEY: "/etc/etcd/server.key"
+    ETCDCTL_ENDPOINTS: "{% for ip in groups[etcd_cluster] %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
+  ignore_errors: true
+  run_once: true
+
+...

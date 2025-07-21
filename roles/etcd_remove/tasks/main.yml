@@ -1,0 +1,84 @@
+---
+#--------------------------------------------------------------#
+# HONOR ETCD_SAFEGUARD                          [etcd_safeguard]
+#--------------------------------------------------------------#
+- name: ABORT due to etcd_safeguard enabled
+  connection: local
+  when: etcd_safeguard|bool
+  tags: [ always , etcd_safeguard ]
+  any_errors_fatal: true
+  ignore_errors: false
+  fail: msg="Abort due to etcd_safeguard for {{ etcd_cluster }}-{{ etcd_seq }} @ {{ inventory_hostname }} is enabled, override with -e etcd_safeguard=false"
+
+#--------------------------------------------------------------#
+# remove etcd targets from prometheus     [prometheus][register]
+#--------------------------------------------------------------#
+- name: remove etcd from prometheus targets
+  tags: [ etcd_deregister, prometheus , register ]
+  ignore_errors: true
+  delegate_to: '{{ item }}'
+  with_items: '{{ groups["infra"]|default([]) }}'
+  file: path="{{ prometheus_sd_dir }}/etcd/{{ etcd_cluster }}-{{ etcd_seq }}.yml" state=absent
+
+#--------------------------------------------------------------#
+# leave etcd cluster gracefully                     [etcd_leave]
+#--------------------------------------------------------------#
+- import_tasks: 'leave.yml'
+  ignore_errors: yes
+  tags: etcd_leave
+  vars: { etcd_instance: "{{ etcd_cluster }}-{{ etcd_seq }}" }
+
+#--------------------------------------------------------------#
+# Remove etcd service                                 [etcd_svc]
+#--------------------------------------------------------------#
+- name: stop etcd cluster service
+  ignore_errors: yes
+  tags: [etcd, etcd_svc, etcd_stop]
+  shell: |
+    systemctl disable etcd
+    systemctl stop etcd
+    
+    # try graceful shutdown first again
+    if ps -u etcd -o command | grep -q 'etcd' ; then
+        systemctl stop etcd
+    fi
+    
+    # kill if still exists
+    if ps -u etcd -o command | grep -q 'etcd' ; then
+        sleep 2
+        ps -u etcd -o pid:1,command | grep 'etcd' | awk '{print $1}' | xargs kill
+    fi
+    
+    # kill -9 if not killed 
+    if ps -u etcd -o command | grep -q 'etcd' ; then
+        sleep 5
+        ps -u etcd -o pid:1,command | grep 'etcd' | awk '{print $1}' | xargs kill -9
+    fi
+    # guaranteed success
+    exit 0
+  args: { executable: /bin/bash }
+
+#--------------------------------------------------------------#
+# Remove etcd data                                   [etcd_data]
+#--------------------------------------------------------------#
+- name: remove etcd data
+  tags: etcd_data
+  when: etcd_rm_data|bool
+  ignore_errors: yes
+  file: path={{ item }} state=absent
+  with_items:
+    - "/etc/etcd"
+    - "/var/lib/etcd"
+    - "{{ etcd_data }}"
+    - "/etc/profile.d/etcd.sh"
+
+#--------------------------------------------------------------#
+# Uninstall etcd packages                             [etcd_pkg]
+#--------------------------------------------------------------#
+- name: uninstall etcd package
+  tags: etcd_pkg
+  when: etcd_rm_pkg|bool
+  ignore_errors: true
+  package: name=etcd state=absent
+
+...
