@@ -1,0 +1,118 @@
+---
+#--------------------------------------------------------------#
+# HONOR MINIO_SAFEGUARD                               [minio-id]
+#--------------------------------------------------------------#
+- name: minio identity
+  tags: [ always, minio-id ]
+  block:
+
+    - name: assert minio identity
+      assert:
+        that:
+          - minio_cluster is defined and minio_cluster != ''
+          - minio_seq is defined and minio_seq|int >= 0
+        fail_msg: variable 'minio_cluster' & 'minio_seq' are required for minio playbook
+
+    - name: get minio cluster info
+      connection: local
+      set_fact:
+        minio_meta: "{{ hostvars|json_query(cluster_query) }}"
+        minio_data_dirs: >-
+          {% set minio_multidriver =  minio_data | regex_search('{(\d+)...(\d+)}') %}{% if minio_multidriver and minio_multidriver != '' %}{% set minio_driver_min = (minio_data | regex_findall('{(\d+)...(\d+)}'))[0][0]|int %}{% set minio_driver_max = (minio_data | regex_findall('{(\d+)...(\d+)}'))[0][1]|int %}{% for i in range(minio_driver_min, minio_driver_max+1) %}{% if not loop.first %},{% endif %}{{ minio_data | regex_replace('{(\d+)...(\d+)}', i|string) }}{% endfor %}{% else %}{{ minio_data }}{% endif %}
+      vars: { cluster_query: "[@.*][0][?minio_cluster=='{{ minio_cluster }}']" }
+
+    - name: print minio purge task
+      debug:
+        msg: "WARNING: REMOVE MINIO {{ minio_cluster }}-{{ minio_seq }} | {% if minio_rm_data|bool %}REMOVE DATA{% else %}KEEP DATA{% endif %}: {{ minio_data_dirs }} | {% if minio_rm_pkg|bool %}UNINSTALL{% else %}KEEP PKG{% endif %}"
+
+    # pause for 5 seconds to allow user to abort
+    - name: "pause for confirmation, Use Ctrl-C to ABORT"
+      pause: { seconds: 5 }
+
+
+#--------------------------------------------------------------#
+# HONOR MINIO_SAFEGUARD                        [minio_safeguard]
+#--------------------------------------------------------------#
+- name: ABORT due to minio_safeguard enabled
+  connection: local
+  when: minio_safeguard|bool
+  tags: [ always , minio_safeguard ]
+  any_errors_fatal: true
+  ignore_errors: false
+  fail: msg="Abort due to minio_safeguard for {{ minio_cluster }}-{{ minio_seq }} @ {{ inventory_hostname }} is enabled, override with -e minio_safeguard=false"
+
+
+#--------------------------------------------------------------#
+# remove minio targets from prometheus    [prometheus][register]
+#--------------------------------------------------------------#
+- name: remove minio from prometheus targets
+  tags: [ minio_deregister, prometheus , register ]
+  ignore_errors: true
+  delegate_to: '{{ item }}'
+  with_items: '{{ groups["infra"]|default([]) }}'
+  file: path="{{ prometheus_sd_dir }}/minio/{{ minio_cluster }}-{{ minio_seq }}.yml" state=absent
+
+
+#--------------------------------------------------------------#
+# Remove minio service                               [minio_svc]
+#--------------------------------------------------------------#
+- name: stop minio service
+  ignore_errors: yes
+  tags: [ minio, minio_svc, minio_stop ]
+  shell: |
+    systemctl disable minio
+    systemctl stop minio
+    
+    # try graceful shutdown first again
+    if ps -u {{ minio_user }} -o command | grep -q 'minio' ; then
+        systemctl stop minio
+    fi
+    
+    # kill if still exists
+    if ps -u {{ minio_user }} -o command | grep -q 'minio' ; then
+        sleep 2
+        ps -u {{ minio_user }} -o pid:1,command | grep 'minio' | awk '{print $1}' | xargs kill
+    fi
+    
+    # kill -9 if not killed 
+    if ps -u {{ minio_user }} -o command | grep -q 'minio' ; then
+        sleep 5
+        ps -u {{ minio_user }} -o pid:1,command | grep 'minio' | awk '{print $1}' | xargs kill -9
+    fi
+    # guaranteed success
+    exit 0
+  args: { executable: /bin/bash }
+
+
+#--------------------------------------------------------------#
+# Remove minio data                                 [minio_data]
+#--------------------------------------------------------------#
+# VERY DANGEROUS OPERATION!!!
+- name: remove minio data
+  tags: minio_data
+  when: minio_rm_data|bool
+  ignore_errors: yes
+  block:
+
+    - name: remove minio data directories
+      file: path="{{ item.strip() }}" state=absent
+      with_items: "{{ minio_data_dirs.split(',') }}"
+
+    - name: remove minio config files
+      tags: minio_config
+      file: path={{ item }} state=absent
+      with_items:
+        - "/etc/default/minio"
+        - "/var/lib/minio"
+        - "{{ systemd_dir }}/minio.service"
+
+
+#--------------------------------------------------------------#
+# Uninstall minio packages                           [minio_pkg]
+#--------------------------------------------------------------#
+- name: uninstall minio packages
+  tags: minio_pkg
+  when: minio_rm_pkg|bool
+  package: name={{ item }} state=absent
+  with_items: [ minio , mcli ]
+...

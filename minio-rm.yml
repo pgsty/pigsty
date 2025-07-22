@@ -1,0 +1,50 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   minio-rm.yml
+# Desc      :   remove minio from hosts
+# Ctime     :   2025-07-21
+# Mtime     :   2025-07-22
+# Path      :   minio-rm.yml
+# Docs      :   https://doc.pgsty.com/minio/playbook
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: MINIO REMOVE
+  become: yes
+  hosts: all
+  gather_facts: no
+  ignore_errors: yes
+  vars:
+    #minio_safeguard: true             # safeguard for minio remove, set to true halt remove execution
+    #minio_rm_data: true               # remove minio data during remove? true by default
+    #minio_rm_pkg: false               # uninstall minio packages during remove? false by default
+  roles: [ { role: node_id }, { role: minio_remove } ]
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+#  Remove minio cluster `minio`
+#     minio-rm.yml -l minio           # remove cluster `minio`
+#         -e minio_rm_data=true       # remove minio data by default
+#         -e minio_rm_pkg=false       # do not uninstall minio packages by default
+#         -e minio_safeguard=false    # safeguard is not enabled by default, if enabled, can be override with cli args
+#  It will abort if `minio_safeguard` is set to `true` explicitly
+#
+#  Remove a minio member:
+#     minio-rm.yml -l 10.10.10.10     # remove instance `10.10.10.10` from cluster `minio`
+#--------------------------------------------------------------#
+# Tasks
+#--------------------------------------------------------------#
+# minio_monitor            : remove registration in prometheus
+#   - prometheus           : remove monitor target from prometheus
+#
+# minio_service            : remove minio service
+#   - minio_stop           : stop minio service
+#   - minio_disable        : disable minio service
+#
+# minio_data               : remove minio data    (disable with `minio_rm_data=false`)
+# minio_pkg                : uninstall packages   (disable with `minio_rm_pkg=false`)
+#--------------------------------------------------------------#
+...
