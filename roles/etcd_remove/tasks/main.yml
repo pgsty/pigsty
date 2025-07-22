@@ -11,7 +11,15 @@
   fail: msg="Abort due to etcd_safeguard for {{ etcd_cluster }}-{{ etcd_seq }} @ {{ inventory_hostname }} is enabled, override with -e etcd_safeguard=false"
 
 #--------------------------------------------------------------#
-# remove etcd targets from prometheus     [prometheus][register]
+# PAUSE FOR CONFIRMATION                            [etcd_pause]
+#--------------------------------------------------------------#
+# pause for 3 seconds to allow user to abort in case of fat finger
+- name: "pause for confirmation, Use Ctrl-C to ABORT"
+  tags: etcd_pause
+  pause: { seconds: 3 }
+
+#--------------------------------------------------------------#
+# remove etcd targets from prometheus               [prometheus]
 #--------------------------------------------------------------#
 - name: remove etcd from prometheus targets
   tags: [ etcd_deregister, prometheus , register ]

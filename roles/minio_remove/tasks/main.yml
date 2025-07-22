@@ -25,10 +25,6 @@
       debug:
         msg: "WARNING: REMOVE MINIO {{ minio_cluster }}-{{ minio_seq }} | {% if minio_rm_data|bool %}REMOVE DATA{% else %}KEEP DATA{% endif %}: {{ minio_data_dirs }} | {% if minio_rm_pkg|bool %}UNINSTALL{% else %}KEEP PKG{% endif %}"
 
-    # pause for 5 seconds to allow user to abort
-    - name: "pause for confirmation, Use Ctrl-C to ABORT"
-      pause: { seconds: 5 }
-
 
 #--------------------------------------------------------------#
 # HONOR MINIO_SAFEGUARD                        [minio_safeguard]
@@ -40,6 +36,15 @@
   any_errors_fatal: true
   ignore_errors: false
   fail: msg="Abort due to minio_safeguard for {{ minio_cluster }}-{{ minio_seq }} @ {{ inventory_hostname }} is enabled, override with -e minio_safeguard=false"
+
+
+#--------------------------------------------------------------#
+# PAUSE FOR CONFIRMATION                           [minio_pause]
+#--------------------------------------------------------------#
+# pause for 3 seconds to allow user to abort in case of fat finger
+- name: "pause for confirmation, Use Ctrl-C to ABORT"
+  tags: minio_pause
+  pause: { seconds: 3 }
 
 
 #--------------------------------------------------------------#
