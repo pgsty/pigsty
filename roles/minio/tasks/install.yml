@@ -23,25 +23,6 @@
 
 
 #--------------------------------------------------------------#
-# Purge Minio Directories                          [minio_clean]
-#--------------------------------------------------------------#
-# This will not run by default, unless you set `minio_clean` to true.
-- name: clean minio data dir
-  tags: minio_clean
-  when: minio_clean|bool
-  ignore_errors: true
-  block:
-
-    - name: stop minio service
-      systemd: name=minio state=stopped enabled=no daemon_reload=yes
-
-    - name: purge minio data dir
-      tags: minio_purge
-      shell: find {{ item }} -mindepth 1 -delete
-      with_items: "{{ minio_data_dirs.split(',') }}"
-
-
-#--------------------------------------------------------------#
 # Create Minio Directories                           [minio_dir]
 #--------------------------------------------------------------#
 # for a serious production deployment, you should make sure these
