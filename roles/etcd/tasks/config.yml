@@ -9,32 +9,13 @@
       debug:
         msg: "ETCDCTL_ENDPOINTS={% for ip in groups['etcd']|sort %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
 
-    - name: copy /etc/etcd/etcd.conf
-      template: src=etcd.conf.j2 dest=/etc/etcd/etcd.conf owner=etcd mode=0644
-
-    - name: copy etcd server service unit
-      template: src=etcd.service.j2 dest={{ systemd_dir }}/etcd.service
-
-    # since infra node will access etcd with infra.crt, we don't need to write this profile on infra nodes
-    - name: write etcd environment profile
-      tags: etcd_env
-      copy:
-        dest: /etc/profile.d/etcdctl.sh
-        mode: 0644
-        content: |
-          #!/bin/bash
-          alias e="etcdctl"
-          alias em="etcdctl member"
-          export ETCDCTL_ENDPOINTS="{% for ip in groups['etcd']|sort %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
-          export ETCDCTL_CACERT=/etc/pki/ca.crt
-          {% if inventory_hostname in groups['infra'] %}
-          export ETCDCTL_CERT=/etc/pki/infra.crt
-          export ETCDCTL_KEY=/etc/pki/infra.key
-          {% else %}
-          export ETCDCTL_CERT=/etc/etcd/server.crt
-          export ETCDCTL_KEY=/etc/etcd/server.key
-          {% endif %}
-
+    - name: generate etcd config
+      become: yes
+      template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+      with_items:
+        - { src: "etcd.conf"     ,dest: "/etc/etcd/etcd.conf"            ,owner: "etcd", group: "etcd" ,mode: "0644" }
+        - { src: "etcd.service"  ,dest: "{{ systemd_dir }}/etcd.service" ,owner: "root", group: "root" ,mode: "0644" }
+        - { src: "etcdctl.sh"    ,dest: "/etc/profile.d/etcdctl.sh"      ,owner: "etcd", group: "etcd" ,mode: "0755" }
 
 #--------------------------------------------------------------#
 # Issue etcd certs                             [etcd_cert_issue]
@@ -84,13 +65,10 @@
 - name: copy etcd certs
   tags: [ etcd_cert, etcd_cert_copy ]
   become: yes
-  block:
-    - name: copy ca file
-      copy: src="files/pki/ca/ca.crt" dest="/etc/etcd/ca.crt" owner=etcd mode=0644
-    - name: copy etcd ssl cert
-      copy: src="files/pki/etcd/{{ etcd_instance }}.crt" dest="/etc/etcd/server.crt" owner=etcd mode=0644
-    - name: copy etcd ssl key
-      copy: src="files/pki/etcd/{{ etcd_instance }}.key" dest="/etc/etcd/server.key" owner=etcd mode=0600
-
+  copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+  with_items:
+    - { src: "files/pki/ca/ca.crt"                    ,dest: "/etc/etcd/ca.crt"     ,owner: "etcd", group: "etcd" ,mode: "0644" }
+    - { src: "files/pki/etcd/{{ etcd_instance }}.crt" ,dest: "/etc/etcd/server.crt" ,owner: "etcd", group: "etcd" ,mode: "0644" }
+    - { src: "files/pki/etcd/{{ etcd_instance }}.key" ,dest: "/etc/etcd/server.key" ,owner: "etcd", group: "etcd" ,mode: "0600" }
 
 ...

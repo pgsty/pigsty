@@ -152,28 +152,19 @@ fi
 log_info "add etcd members${IP_LIST} to ${ETCD_CLUSTER} complete"
 
 #---------------------------------#
-# Update Existing Members
-#---------------------------------#
-log_line "UPDATE"./e
-log_warn "update existing etcd members configuration"
-log_hint "$ ./etcd.yml -l '${EXISTS_PATTERN}' --tags=etcd_config,etcd_launch"
-"${PIGSTY_HOME}/etcd.yml" -l "${EXISTS_PATTERN}" --tags=etcd_config,etcd_launch
-
-if [[ $? -ne 0 ]]; then
-    log_line "ERROR"
-    log_warn "fail to update existing etcd members"
-    log_hint "you may need to manually update etcd configuration on existing members"
-else
-    log_info "update existing etcd members configuration complete"
-fi
-
-#---------------------------------#
 # Summary
 #---------------------------------#
 log_line "SUMMARY"
 log_info "add etcd members ${IP_LIST} to ${ETCD_CLUSTER} success"
 
-log_warn "please make sure reference to etcd endpoint is also updated"
-log_hint "etcd is used by patroni and vip-manager"
+log_line "INSTRUCTIONS"
+log_warn "also update existing etcd member configuration with"
+log_hint "$ ./etcd.yml -l '${EXISTS_PATTERN}' --tags=etcd_config,etcd_launch -f 1"
+
+log_warn "also update patroni etcd config with:"
+log_hint ".$ ./pgsql.yml -t pg_conf,patroni_reload -e patroni_reload=true"
+
+log_warn "also update vip-manager etcd config with: (if enabled)"
+log_hint ".$ ./pgsql.yml -t pg_vip"
 
 exit 0

@@ -147,13 +147,21 @@ log_info "remove etcd members ${IP_LIST} from ${ETCD_CLUSTER} complete"
 log_line "SUMMARY"
 log_info "remove etcd members ${IP_LIST} from ${ETCD_CLUSTER} success"
 
-log_warn "nodes will not be removed from pigsty, to do so:"
+log_line "INSTRUCTIONS"
+
+log_warn "NOW REMOVE OR COMMENT ${IP_LIST} IN THE CONFIG INVENTORY"
+log_hint "$ vi pigsty.yml"
+
+log_warn "also update existing etcd member config with"
+log_hint "$ ./etcd.yml --tags=etcd_config,etcd_launch -f 1"
+
+log_warn "also update patroni etcd config with:"
+log_hint ".$ ./pgsql.yml -t pg_conf,patroni_reload -e patroni_reload=true"
+
+log_warn "also update vip-manager etcd config with: (if enabled)"
+log_hint ".$ ./pgsql.yml -t pg_vip"
+
+log_warn "nodes will not be removed, if you want to remove this node:"
 log_hint "$ bin/node-rm  ${IP_LIST}"
-
-log_warn "please adjust your inventory accordingly"
-log_hint "remove ${IP_LIST} from inventory: all.children.${ETCD_CLUSTER}.hosts"
-
-log_warn "then refresh etcd cluster with updated inventory"
-log_hint "$ bin/etcd-add"
 
 exit 0

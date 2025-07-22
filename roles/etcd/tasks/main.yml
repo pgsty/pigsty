@@ -42,13 +42,31 @@
 - name: add new member to etcd cluster
   tags: etcd_member
   when: etcd_init == 'existing'
-  shell: |
-    etcdctl member add "{{ etcd_cluster }}-{{ etcd_seq }}" {% if etcd_learner|bool %}--learner=true{% endif %} --peer-urls=https://{{ inventory_hostname }}:{{ etcd_peer_port }}
-  environment:
-    ETCDCTL_CACERT: "/etc/etcd/ca.crt"
-    ETCDCTL_CERT: "/etc/etcd/server.crt"
-    ETCDCTL_KEY: "/etc/etcd/server.key"
-    ETCDCTL_ENDPOINTS: "{{ groups[etcd_cluster] | difference([inventory_hostname]) | map('regex_replace', '^(.*)$', '\\1:' + etcd_port|string) | join(',') }}"
+  block:
+
+    - name: add new member to etcd cluster
+      shell: |
+        etcdctl member add "{{ etcd_cluster }}-{{ etcd_seq }}" {% if etcd_learner|bool %}--learner=true{% endif %} --peer-urls=https://{{ inventory_hostname }}:{{ etcd_peer_port }}
+      environment:
+        ETCDCTL_CACERT: "/etc/etcd/ca.crt"
+        ETCDCTL_CERT: "/etc/etcd/server.crt"
+        ETCDCTL_KEY: "/etc/etcd/server.key"
+        ETCDCTL_ENDPOINTS: "{{ groups[etcd_cluster] | difference([inventory_hostname]) | map('regex_replace', '^(.*)$', '\\1:' + etcd_port|string) | join(',') }}"
+      register: etcd_member_add_result
+      failed_when:
+        - etcd_member_add_result.rc != 0
+        - "'Peer URLs already exists' not in etcd_member_add_result.stderr"
+
+    - name: display member add result
+      debug:
+        msg: >-
+          {% if etcd_member_add_result.rc == 0 %}
+          Successfully added member {{ etcd_cluster }}-{{ etcd_seq }} to etcd cluster
+          {% elif 'Peer URLs already exists' in etcd_member_add_result.stderr %}
+          Member {{ etcd_cluster }}-{{ etcd_seq }} already exists in etcd cluster, skipping
+          {% else %}
+          Unexpected error: {{ etcd_member_add_result.stderr }}
+          {% endif %}
 
 #--------------------------------------------------------------#
 # Launch etcd                                      [etcd_launch]
