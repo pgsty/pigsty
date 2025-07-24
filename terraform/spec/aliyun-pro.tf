@@ -2,8 +2,9 @@
 # File      :   aliyun-pro.yml
 # Desc      :   5-node building env for x86_64/aarch64
 # Ctime     :   2024-12-12
-# Mtime     :   2025-06-24
-# Path      :   tf/terraform
+# Mtime     :   2025-07-24
+# Path      :   terraform/spec/aliyun-pro.yml
+# Docs      :   https://doc.pgsty.com/prepare/terraform
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -32,9 +33,9 @@ locals {
     amd64 = {
       el7   = "^centos_7_9_x64"
       el8   = "^rockylinux_8_10_x64"
-      el9   = "^rockylinux_9_5_x64"
+      el9   = "^rockylinux_9_6_x64"
       d11   = "^debian_11_11_x64"
-      d12   = "^debian_12_10_x64"
+      d12   = "^debian_12_11_x64"
       u20   = "^ubuntu_20_04_x64"
       u22   = "^ubuntu_22_04_x64"
       u24   = "^ubuntu_24_04_x64"
@@ -42,8 +43,8 @@ locals {
     }
     arm64 = {
       el8   = "^rockylinux_8_10_arm64"
-      el9   = "^rockylinux_9_5_arm64"
-      d12   = "^debian_12_10_arm64"
+      el9   = "^rockylinux_9_6_arm64"
+      d12   = "^debian_12_11_arm64"
       u22   = "^ubuntu_22_04_arm64"
       u24   = "^ubuntu_24_04_arm64"
     }
@@ -64,7 +65,7 @@ locals {
 provider "alicloud" {
   # access_key = "????????????????????"
   # secret_key = "????????????????????"
-  region = "cn-shanghai"
+  region = "cn-hongkong"
 }
 
 
@@ -81,7 +82,7 @@ resource "alicloud_vpc" "vpc" {
 resource "alicloud_vswitch" "vsw" {
   vpc_id     = "${alicloud_vpc.vpc.id}"
   cidr_block = "10.10.10.0/24"
-  zone_id    = "cn-shanghai-l"
+  zone_id    = "cn-hongkong-d"
 }
 
 # add default security group and allow all tcp traffic
@@ -269,7 +270,9 @@ output "u24_ip" {
   value = "${alicloud_instance.pg-u24.public_ip}"
 }
 
-
+# sshpass -p PigstyDemo4 ssh-copy-id el8
 # sshpass -p PigstyDemo4 ssh-copy-id el9
-# sshpass -p PigstyDemo4 ssh-copy-id u24
 # sshpass -p PigstyDemo4 ssh-copy-id d12
+# sshpass -p PigstyDemo4 ssh-copy-id u22
+# sshpass -p PigstyDemo4 ssh-copy-id u24
+
