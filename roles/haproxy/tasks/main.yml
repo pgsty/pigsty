@@ -4,6 +4,7 @@
 #--------------------------------------------------------------#
 - name: install haproxy
   tags: haproxy_install
+  when: haproxy_enabled|bool
   ignore_errors: "{{ not haproxy_enabled|bool }}"   # ignore errors if not enabled
   block:
 
@@ -25,6 +26,7 @@
 #--------------------------------------------------------------#
 - name: render haproxy config
   tags: haproxy_config
+  when: haproxy_enabled|bool
   block:
 
     - name: wipe haproxy config dir
@@ -47,6 +49,7 @@
 #--------------------------------------------------------------#
 - name: launch haproxy
   tags: haproxy_launch
+  when: haproxy_enabled|bool
   block:
 
     - name: launch haproxy systemd service
@@ -61,10 +64,10 @@
 #--------------------------------------------------------------#
 - name: reload haproxy to register node services
   tags: [ haproxy_reload , haproxy_config ]
-  when: haproxy_reload|bool
+  when: haproxy_enabled|bool and haproxy_reload|bool
   block:
 
-    # if check fail on this step, haproxy will not be reloaded
+    # if the check fails on this step, haproxy will not be reloaded
     - name: check haproxy config before reload
       ignore_errors: no
       command: /usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg -c -q
