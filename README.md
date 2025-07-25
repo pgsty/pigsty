@@ -64,8 +64,9 @@ Then [**configure**](https://doc.pgsty.com/config/configure) and run the [**`ins
 
 Finally, you will get a pigsty [**singleton node ready**](https://doc.pgsty.com/install/start), with [**Web service**](https://doc.pgsty.com/install/interface) on port `80/443` and Postgres on port `5432`.
 
-> [**Single Node Install**](https://doc.pgsty.com/install/start) | [**Multi-Node Install**](https://doc.pgsty.com/install/multinode) | [**Offline Install**](https://doc.pgsty.com/install/offline) | [**Minimal Installation**](https://doc.pgsty.com/install/minimal)
+--------
 
+> [**Single-Node Install**](https://doc.pgsty.com/install/start) | [**Multi-Node Install**](https://doc.pgsty.com/install/multinode) | [**Offline Install**](https://doc.pgsty.com/install/offline) | [**Minimal Install**](https://doc.pgsty.com/install/minimal)
 
 <details><summary>Install with the pig cli</summary><br>
 
@@ -721,14 +722,14 @@ There are other pro, beta, or pilot modules, and there will be more coming in th
 
 ## Compatibility
 
-We recommend using RockyLinux 9.5, Debian 12.10, and Ubuntu 24.04.2 for production use.
+We recommend using RockyLinux 9.6, Debian 12.11, and Ubuntu 24.04.2 for production use.
 
 Pigsty runs on bare linux directly, and focuses on active maintained mainstream LTS [Linux distros](https://doc.pgsty.com/prepare/linux):
 
 |  Code   | Distro                            |                     `x86_64`                      | Status |                      `aarch64`                      | Status |
 |:-------:|-----------------------------------|:-------------------------------------------------:|:------:|:---------------------------------------------------:|:------:|
-| **EL9** | RHEL 9 / Rocky9 / Alma9 / ...     | [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml) |  ✅📦   | [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml) |   ✅    |
-| **U24** | Ubuntu 24.04 (noble)              | [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml) |  ✅📦   | [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml) |   ✅    |
+| **EL9** | RHEL 9 / Rocky9 / Alma9 / ...     | [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml) |  ✅📦   | [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml) |  ✅📦   |
+| **U24** | Ubuntu 24.04 (noble)              | [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml) |  ✅📦   | [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml) |  ✅📦   |
 | **D12** | Debian 12 (bookworm)              | [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml) |  ✅📦   | [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml) |  ✅📦   |
 | **U22** | Ubuntu 22.04 (jammy)              | [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml) |   ✅    | [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml) |   ✅    |
 | **EL8** | RHEL 8 / Rocky8 / Alma8 / Anolis8 | [`el8.x86_64`](roles/node_id/vars/el8.x86_64.yml) |   ✅    | [`el8.aarch64`](roles/node_id/vars/el8.aarch64.yml) |   ⚠️   |
@@ -739,7 +740,15 @@ Pigsty runs on bare linux directly, and focuses on active maintained mainstream 
 >  ✅ = Support , 📦 = Offline Package , ⚠️ Deprecated, ❌ = Unsupported
 
 
+--------
 
+## Sponsors
+
+Thanks to the MiraclePlus team for sponsoring Pigsty development,
+thanks to Cloudflare for hosting the Pigsty repo for free, 
+and thanks to Vercel for hosting the Pigsty website.
+
+[![Vercel OSS Program](https://vercel.com/oss/program-badge.svg)](https://vercel.com/oss)
 
 
 ----------------

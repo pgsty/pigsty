@@ -1,12 +1,13 @@
 #!/bin/bash
 #set -uo pipefail
 #==============================================================#
-# File      :   get
+# File      :   install
 # Desc      :   download & install pigsty src
 # Ctime     :   2022-10-30
-# Mtime     :   2025-01-10
+# Mtime     :   2025-07-25
 # Path      :   https://repo.pigsty.io/get (global, default)
 # Usage     :   curl -fsSL https://repo.pigsty.io/get | bash
+# Docs      :   https://pgsty.com/docs/install/start
 # Deps      :   curl
 # Author    :   Ruohang Feng (rh@vonng.com)
 # License   :   AGPLv3
@@ -14,11 +15,12 @@
 DEFAULT_VERSION=v3.6.0
 
 # To install the latest version of pigsty (v3.6.0):
-# curl -fsSL https://repo.pigsty.io/get | bash
+# curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty;
+# curl -fsSL https://repo.pigsty.cc/get | bash; cd ~/pigsty;
 
 # To install a specific version of pigsty (e.g. v3.6.0)
 # curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.0
-
+# curl -fsSL https://repo.pigsty.cc/get | bash -s v3.6.0
 
 #--------------------------------------------------------------#
 # Log Util
@@ -61,10 +63,10 @@ fi
 #--------------------------------------------------------------#
 log_line "${VERSION}"
 log_hint "$ curl -fsSL https://repo.pigsty.io/get | bash"
-log_title "Site" "https://pgsty.com"
 log_title "Docs" "https://doc.pgsty.com"
-log_title "Demo" "https://demo.pigsty.cc"
+log_title "Demo" "https://demo.pigsty.io"
 log_title "Repo" "https://github.com/pgsty/pigsty"
+
 log_line "Download"
 log_info "version = ${VERSION} (from ${VERSION_FROM})"
 
@@ -103,7 +105,7 @@ function download_file(){
 download_file "${DOWNLOAD_URL}" "${DOWNLOAD_TO}"
 if [[ $? -ne 0 ]]; then
     log_error "fail to download pigsty source from ${DOWNLOAD_URL}"
-    log_hint "check: https://doc.pgsty.com/install/start"
+    log_hint "check: https://doc.pgsty.com/install"
     log_hint "alternative url: ${SECONDARY_SRC_URL}"
     exit 2
 fi
@@ -118,7 +120,7 @@ INSTALL_DIR=$(dirname ${INSTALL_TO})
 
 log_line "Install"
 if [[ $(whoami) == "root" ]]; then
-    log_warn "os user = root , it's recommended to install as a sudo-able admin"
+    log_warn "os user = root , it's recommended to use a non-root sudo-able admin"
 fi
 
 # extract to home dir if ~/pigsty not exists
@@ -134,12 +136,25 @@ fi
 
 
 #--------------------------------------------------------------#
+# Bootstrap
+#--------------------------------------------------------------#
+# check ansible is installed
+log_line "Bootstrap"
+if command -v ansible-playbook >/dev/null ; then
+    log_info "ansible = ready"
+    log_info "bootstrap = skip"
+    log_hint "you can run ./bootstrap to extrac offline package and install ansible"
+else
+    log_warn "ansible = not found, bootstrap"
+    cd ${INSTALL_TO}
+    ./bootstrap
+fi
+
+#--------------------------------------------------------------#
 # Next Hint
 #--------------------------------------------------------------#
 log_line "TodoList"
 log_hint "cd ${INSTALL_TO}"
-log_hint './bootstrap      # [OPTIONAL] install ansible & use offline package'
 log_hint './configure      # [OPTIONAL] preflight-check and config generation'
-log_hint './install.yml    # install pigsty modules according to your config.'
+log_hint './install.yml    # deployment everything described by your config'
 
-log_line "Complete"
