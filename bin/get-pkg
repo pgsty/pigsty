@@ -1,0 +1,190 @@
+#!/bin/bash
+#==============================================================#
+# File      :   get-pkg
+# Desc      :   download pigsty offline package from public source
+# Ctime     :   2022-10-16
+# Mtime     :   2025-07-25
+# Path      :   bin/get-pkg
+# Deps      :   curl
+# Docs      :   https://doc.pgsty.com/install/offline
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+#  get-pkg [-v|--version <version>] [-c|--cdn] [-o|--os <os>] [-p|--path <path>]
+#
+#  bin/get-pkg
+#     [-c|--cdn]                        download from CDN rather than GitHub
+#     [-o|--os <os>]                    target OS code: el8.x86_64, el9.aarch64, etc.
+#     [-v|--version <version>]          pigsty version, e.g. v3.6.0
+#     [-p|--path <path>]                download path, default /tmp/pkg.tgz
+#
+# Example:
+#   bin/get-pkg                 # get latest pigsty offline package from GitHub (for current OS)
+#   bin/get-pkg -c              # get latest pigsty offline package from CDN (for current OS)
+#   bin/get-pkg -v v3.5.0       # get the v3.5.0 offline package from GitHub (for current OS)
+#   bin/get-pkg -o el9.x86_64 -p /tmp/pkg9.tgz   # get latest for el9.x86_64 and save to /tmp/pkg9.tgz
+#   bin/get-pkg -c -o u24.aarch64                # get Ubuntu 24 ARM64 package from CDN
+#--------------------------------------------------------------#
+PIGSTY_VERSION=v3.6.0   # pigsty version
+USE_CDN=false           # use CDN instead of GitHub
+OS_CODE=""              # target OS code
+PKG_PATH=/tmp/pkg.tgz   # download path
+
+
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+__CN='\033[0m';__CB='\033[0;30m';__CR='\033[0;31m';__CG='\033[0;32m';
+__CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';__CC='\033[0;36m';__CW='\033[0;37m';
+function log_info() {  printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n";   }
+function log_warn() {  printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n";   }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n";   }
+function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n";   }
+function log_hint()  { printf "${__CB}$*${__CN}"; }
+
+
+#--------------------------------------------------------------#
+# OS Detection
+#--------------------------------------------------------------#
+function get_os_code() {
+    if [ "${OS_CODE}" != "" ]; then
+        return 0
+    fi
+
+    local kernel=$(uname -s)
+    local arch=$(uname -m)
+    
+    # normalize architecture
+    if [[ "${arch}" == "amd64" ]]; then
+        arch="x86_64"
+    elif [[ "${arch}" == "arm64" ]]; then
+        arch="aarch64"
+    fi
+
+    # macOS not supported for packages
+    if [[ "${kernel}" == "Darwin" ]]; then
+        log_error "macOS not supported for offline packages"
+        exit 1
+    fi
+
+    # Linux OS detection
+    if [[ "${kernel}" == "Linux" && -f /etc/os-release ]]; then
+        . /etc/os-release
+        local os_vendor="$ID"
+        local os_version="$VERSION_ID"
+        
+        # extract major version
+        if [[ $os_version == *.* ]]; then
+            os_version=$(echo "$os_version" | cut -d. -f1)
+        fi
+
+        # determine OS code
+        if [[ ${os_vendor} == "rocky" || ${os_vendor} == "rhel" || ${os_vendor} == "centos" || ${os_vendor} == "almalinux" || -f "/etc/redhat-release" ]]; then
+            OS_CODE="el${os_version}.${arch}"
+        elif [[ ${os_vendor} == "debian" ]]; then
+            OS_CODE="d${os_version}.${arch}"
+        elif [[ ${os_vendor} == "ubuntu" ]]; then
+            OS_CODE="u${os_version}.${arch}"
+        else
+            log_error "unsupported OS: ${os_vendor} ${os_version}"
+            exit 1
+        fi
+        
+        log_info "os = ${OS_CODE}"
+    else
+        log_error "failed to detect OS, /etc/os-release not found"
+        exit 1
+    fi
+}
+
+
+#--------------------------------------------------------------#
+# URL Construction
+#--------------------------------------------------------------#
+function build_url() {
+    local base_url
+    local filename="pigsty-pkg-${PIGSTY_VERSION}.${OS_CODE}.tgz"
+    
+    if [ "${USE_CDN}" = "true" ]; then
+        base_url="https://repo.pigsty.cc/pro"
+    else
+        base_url="https://github.com/pgsty/pigsty/releases/download/${PIGSTY_VERSION}"
+    fi
+    
+    echo "${base_url}/${filename}"
+}
+
+
+#--------------------------------------------------------------#
+# Download Package
+#--------------------------------------------------------------#
+function download_package() {
+    local url="$1"
+    local file_path="$2"
+    
+    log_info "url = ${url}"
+    
+    # check if local file already exists
+    if [[ -f "${file_path}" ]]; then
+        log_warn "local file exists, overwriting: ${file_path}"
+    fi
+    
+    # download file with proper redirect handling
+    local mirror_type="GitHub"
+    if [ "${USE_CDN}" = "true" ]; then
+        mirror_type="CDN"
+    fi
+    log_info "downloading from ${mirror_type}..."
+    
+    # use curl with follow redirects and fail on error
+    if curl -fSL "${url}" -o "${file_path}"; then
+        log_info "download completed: ${file_path}"
+    else
+        log_error "download failed from ${url}"
+        exit 1
+    fi
+}
+
+
+#--------------------------------------------------------------#
+# Main
+#--------------------------------------------------------------#
+function main() {
+    # argument parsing
+    while [ $# -gt 0 ]; do
+        case $1 in
+            -h|--help)
+                echo "pkg [-v|--version <version>] [-c|--cdn] [-o|--os <os>] [-p|--path <path>]"
+                exit 0;;
+            -v|--version)    PIGSTY_VERSION="$2"; shift ;;
+            -c|--cdn)        USE_CDN=true ;;
+            -o|--os)         OS_CODE="$2"; shift ;;
+            -p|--path)       PKG_PATH="$2"; shift ;;
+            (--) shift; break;;
+            (-*) echo "$0: error - unrecognized option $1" 1>&2; exit 1;;
+            (*) break;;
+        esac
+        shift
+    done
+
+    # ensure version starts with 'v'
+    if [[ ! "${PIGSTY_VERSION}" =~ ^v ]]; then
+        PIGSTY_VERSION="v${PIGSTY_VERSION}"
+    fi
+
+    log_hint "get pigsty offline package ${PIGSTY_VERSION}\n"
+    
+    get_os_code
+    
+    local url=$(build_url)
+    download_package "${url}" "${PKG_PATH}"
+    
+    log_info "package ready: ${PKG_PATH}"
+}
+
+main "$@"

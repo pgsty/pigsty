@@ -744,9 +744,8 @@ Pigsty runs on bare linux directly, and focuses on active maintained mainstream 
 
 ## Sponsors
 
-Thanks to the MiraclePlus team for sponsoring Pigsty development,
-thanks to Cloudflare for hosting the Pigsty repo for free, 
-and thanks to Vercel for hosting the Pigsty website.
+Many thanks to our contributors and sponsors for making Pigsty possible.
+Special thanks to MiraclePlus for fund, to Cloudflare for hosting the Pigsty repo, and to Vercel for hosting the Pigsty website.
 
 [![Vercel OSS Program](https://vercel.com/oss/program-badge.svg)](https://vercel.com/oss)
 
