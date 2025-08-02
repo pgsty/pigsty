@@ -458,6 +458,53 @@ EOF
   sudo mv -f "/tmp/el${releasever}.repo" "/etc/yum.repos.d/el${releasever}.repo"
 }
 
+# Usage: add_el10_repo [region] (default|china|europe)
+function add_el10_repo(){
+    local region=${1-"default"}
+    local suffix=""
+    if [ "${region}" = "china" ]; then
+      baseurl="https://mirrors.aliyun.com"
+      epelbase="https://mirrors.aliyun.com/epel"
+      suffix=linux
+    elif [ "${region}" = "europe" ]; then
+      baseurl="https://mirrors.xtom.de"
+      epelbase="https://mirrors.xtom.de/epel"
+    else
+      baseurl="https://dl.rockylinux.org/pub"
+      epelbase="https://mirrors.edge.kernel.org/fedora-epel"
+    fi
+    cat > "/tmp/el${releasever}.repo" <<-EOF
+[baseos-default]
+name = EL ${releasever} BaseOS \$releasever - \$basearch
+baseurl = ${baseurl}/rocky${suffix}/\$releasever/BaseOS/\$basearch/os/
+gpgcheck = 0
+enabled = 1
+skip_if_unavailable = 1
+module_hotfixes=1
+[appstream-default]
+name = EL ${releasever} AppStream \$releasever - \$basearch
+baseurl = ${baseurl}/rocky${suffix}/\$releasever/AppStream/\$basearch/os/
+gpgcheck = 0
+enabled = 1
+skip_if_unavailable = 1
+module_hotfixes=1
+[crb-default]
+name = EL ${releasever} CRB \$releasever - \$basearch
+baseurl = ${baseurl}/rocky${suffix}/\$releasever/CRB/\$basearch/os/
+gpgcheck = 0
+enabled = 1
+skip_if_unavailable = 1
+module_hotfixes=1
+[epel-default]
+name = EL ${releasever} EPEL \$releasever - \$basearch
+baseurl = ${epelbase}/\$releasever.0/Everything/\$basearch/
+gpgcheck = 0
+enabled = 1
+skip_if_unavailable = 1
+module_hotfixes=1
+EOF
+  sudo mv -f "/tmp/el${releasever}.repo" "/etc/yum.repos.d/el${releasever}.repo"
+}
 
 # Usage: add_ubuntu_repo [region] (default|china|europe)
 function add_ubuntu_repo(){
@@ -577,6 +624,11 @@ function add_upstream_repo(){
             add_el7_repo "${REGION}"
         elif [[ $OS_VERSION == "8" ||  $OS_VERSION == "9" ]]; then
             add_el89_repo "${REGION}"
+        elif [[ $OS_VERSION == "10" ]]; then
+            add_el10_repo "${REGION}"
+        else
+            log_error "unsupported el version ${OS_VERSION}, please use el7, el8, el9 or el10"
+            exit 10
         fi
         log_info "repo file = add el${OS_VERSION}.${ARCH} ${REGION} upstream"
     elif [[ ${OS_PACKAGE} == "deb" ]]; then
@@ -661,6 +713,10 @@ function check_utils(){
             log_info "install el9 utils"
             sudo dnf install -y createrepo_c unzip wget dnf-utils sshpass modulemd-tools
             sudo dnf install -y ansible python3-jmespath
+        elif [[ $OS_VERSION == "10" ]]; then
+            log_info "install el10 utils"
+            sudo dnf install -y createrepo_c unzip wget dnf-utils sshpass
+            sudo dnf install -y ansible-core
         fi
     fi
 
