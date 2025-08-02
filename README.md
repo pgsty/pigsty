@@ -1,6 +1,6 @@
 # Pigsty
 
-[![Webite: pgsty.com](https://img.shields.io/badge/website-pgsty.com-slategray?style=flat&logo=cilium&logoColor=white)](https://pgsty.com)
+[![Webite: pgsty.com](https://img.shields.io/badge/website-pgsty.com-slategray?style=flat&logo=cilium&logoColor=white)](https://doc.pgsty.com)
 [![Docs](https://img.shields.io/badge/docs-slategray?style=flat&logo=cilium&logoColor=white)](https://doc.pgsty.com)
 [![Version: v3.6.0](https://img.shields.io/badge/version-v3.6.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases/tag/v3.6.0)
 [![License: AGPLv3](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://doc.pgsty.com/about/license/)
@@ -11,16 +11,15 @@ Battery-Included, Local-First **PostgreSQL** Distribution as a Free & Better **R
 
 > "**P**ostgreSQL **I**n **G**reat **STY**le": **P**ostgres, **I**nfras, **G**raphics, **S**ervice, **T**oolbox, it's all **Y**ours.
 
-[Website](https://pgsty.com) | [Org](https://github.com/pgsty) | [Docs](https://doc.pgsty.com) | [Extensions](https://ext.pgsty.com) | [Values](https://pigsty.io/about/values) | [Demo](https://demo.pigsty.cc) | [Blog](https://pigsty.io/blog) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [中文站点](https://pigsty.cc) | [博客](https://pigsty.cc/blog)
+[Website](https://doc.pgsty.com) | [Org](https://github.com/pgsty) | [Docs](https://doc.pgsty.com) | [Extensions](https://ext.pgsty.com) | [Values](https://pigsty.io/about/values) | [Demo](https://demo.pigsty.cc) | [Blog](https://pigsty.io/blog) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [中文站点](https://pigsty.cc) | [博客](https://pigsty.cc/blog)
 
-[![pigsty-desc](https://pigsty.io/img/pigsty/banner.en.jpg)](https://pigsty.io/about/values)
+[![banner](https://github.com/user-attachments/assets/c0bb8d27-2cea-4203-bce5-f297c5167baf)](https://pgsty.com)
 
 **Self-Hosting PostgreSQL RDS like a Pro!** [Get Started](https://doc.pgsty.com/docs/install/start) with the latest [v3.6.0](https://github.com/pgsty/pigsty/releases/tag/v3.6.0) release:
 
 ```bash
 curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.0
 ```
-
 
 --------
 
@@ -31,11 +30,26 @@ curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.0
 - [**Observable**](https://pigsty.io/about/observability/): SOTA monitoring for [**PG**](https://demo.pigsty.cc/d/pgrds-instance/pgrds-instance) / [**Infra**](https://doc.pgsty.com/infra) / [**Node**](https://doc.pgsty.com/node) based on **Prometheus** & **Grafana** stack: [**Demo**](https://demo.pigsty.cc) & [**Gallery**](https://github.com/pgsty/pigsty/wiki/Gallery).
 - [**Scalable**](https://pigsty.io/about/scalability/): Auto-routed & pooled customizable database [**Services**](https://doc.pgsty.com/pgsql/service) [**Access**](https://doc.pgsty.com/pgsql/service#access-service) with **haproxy**, **pgbouncer**, and **VIP**.
 - [**Maintainable**](https://pigsty.io/about/maintainability/): [**One-Cmd Install**](https://doc.pgsty.com/install/start), [**Admin SOP**](https://doc.pgsty.com/pgsql/admin), **Auto-Tune**, **Local Repo**, [**IaC**](https://doc.pgsty.com/pgsql/config) and [**Vagrant**](https://doc.pgsty.com/prepare/vagrant) / [**Terraform**](https://doc.pgsty.com/prepare/terraform) support.
-- [**Composable**](https://pigsty.io/about/composability/): Bonus [**Modules**](https://doc.pigsty.io/intro/modules) such as [**Redis**](https://doc.pgsty.com/redis), [**MinIO**](https://doc.pgsty.com/minio), [**Etcd**](https://doc.pgsty.com/etcd), [**Docker**](https://doc.pgsty.com/app), [**DuckDB**](https://doc.pgsty.com/pro/duckdb), [**FerretDB**](https://doc.pgsty.com/ferret), [**Supabase**](https://doc.pgsty.com/pgsql/kernel/supabase/), [**& More**](https://doc.pgsty.com/intro/module)!
+- [**Composable**](https://pigsty.io/about/composability/): Bonus [**Modules**](https://doc.pigsty.io/intro/modules) such as [**Redis**](https://doc.pgsty.com/redis), [**MinIO**](https://doc.pgsty.com/minio), [**Etcd**](https://doc.pgsty.com/etcd), [**Docker**](https://doc.pgsty.com/app), [**DuckDB**](https://doc.pgsty.com/pro/duckdb), [**FerretDB**](https://doc.pgsty.com/ferret), [**Supabase**](https://doc.pgsty.com/app/supabase/), [**& More**](https://doc.pgsty.com/intro/module)!
 - [**Controllable**](https://pigsty.io/about/controllability/): Self-sufficient [**Infra Closure**](https://doc.pgsty.com/infra/), Cloud Neutral FOSS. Run on [**bare Linux**](https://doc.pgsty.com/reference/compatibility/) without [**Docker & K8S**](https://pigsty.io/blog/db/db-in-k8s/)!
 - [**Affordable**](https://pigsty.io/about/affordability/): Self-Hosting like a [**Pro**](https://pigsty.io/price/), without the cost of DBA / [**RDS**](https://pigsty.io/blog/cloud/rds/). Empowering Cloud-Exit to [**save 90%+!**](https://pigsty.io/reference/cost/)
 
-[![landscape](https://pigsty.io/img/pigsty/ecosystem.jpg)](https://ext.pgsty.com/)
+[![ecosystem](https://github.com/user-attachments/assets/c952441e-5ff7-4acb-aace-dd3021d28622)](https://ext.pgsty.com/)
+
+You can even use exotic [PG kernel forks](https://doc.pgsty.com/pgsql/kernel) as an in-place replacement and wrap it as a full RDS service: 
+
+| Kernel                                                    |           Key Feature           | Description                                    |
+|-----------------------------------------------------------|:-------------------------------:|------------------------------------------------|
+| [PostgreSQL](https://doc.pgsty.com/pgsql/kernel/postgres) |       **Original Flavor**       | Vanilla PostgreSQL with 420+ extensions        |
+| [Citus](https://doc.pgsty.com/pgsql/kernel/citus)         |     **Horizontal Scaling**      | Distributive PostgreSQL via native extension   |
+| [WiltonDB](https://doc.pgsty.com/pgsql/kernel/babelfish)  |    **SQL Server Migration**     | SQL Server wire-compatibility                  |
+| [IvorySQL](https://doc.pgsty.com/pgsql/kernel/ivorysql)   |      **Oracle Migration**       | Oracle Grammar and PL/SQL compatible           |
+| [OpenHalo](https://doc.pgsty.com/pgsql/kernel/openhalo)   |       **MySQL Migration**       | MySQL wire-protocol compatibility              |
+| [Percona](https://doc.pgsty.com/pgsql/kernel/percona)     | **Transparent Data Encryption** | Percona Distribution with pg_tde               |
+| [FerretDB](https://doc.pgsty.com/pgsql/kernel/ferretdb)   |      **MongoDB Migration**      | MongoDB wire-protocol compatibility            |
+| [OrioleDB](https://doc.pgsty.com/pgsql/kernel/orioledb)   |      **OLTP Optimization**      | Zheap, No bloat, S3 Storage                    |
+| [PolarDB](https://doc.pgsty.com/pgsql/kernel/polardb)     |      **Aurora flavor RAC**      | RAC, China domestic compliance                 |
+| [Supabase](https://doc.pgsty.com/app/supabase)            |     **Backend as Service**      | BaaS based on PostgreSQL, Firebase alternative |
 
 
 ----------------
@@ -66,7 +80,7 @@ Finally, you will get a pigsty [**singleton node ready**](https://doc.pgsty.com/
 
 --------
 
-> [**Single-Node Install**](https://doc.pgsty.com/install/start) | [**Multi-Node Install**](https://doc.pgsty.com/install/multinode) | [**Offline Install**](https://doc.pgsty.com/install/offline) | [**Minimal Install**](https://doc.pgsty.com/install/minimal)
+> [**Single-Node Install**](https://doc.pgsty.com/install/start) | [**Multi-Node Install**](https://doc.pgsty.com/install/multinode) | [**Offline Install**](https://doc.pgsty.com/install/offline) | [**Minimal Install**](https://doc.pgsty.com/install/minimal) | [**Self-Hosting Supabase**](https://doc.pgsty.com/app/supabase)
 
 <details><summary>Install with the pig cli</summary><br>
 
@@ -88,25 +102,40 @@ pig sty install  # run the install.yml playbook
 <details><summary>Install with get script</summary><br>
 
 ```bash
-$ curl https://repo.pigsty.io/get | bash
+[vagrant@meta ~]$ curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.0
 [v3.6.0] ===========================================
 $ curl -fsSL https://repo.pigsty.io/get | bash
-[Site] https://pgsty.com
 [Docs] https://doc.pgsty.com
 [Demo] https://demo.pigsty.io
 [Repo] https://github.com/pgsty/pigsty
 [Download] ===========================================
-[ OK ] version = v3.6.0 (from default)
+[ OK ] version = v3.6.0 (from arg)
 curl -fSL https://repo.pigsty.io/src/pigsty-v3.6.0.tgz -o /tmp/pigsty-v3.6.0.tgz
-######################################################################## 100.0%
-[ OK ] md5sums = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  /tmp/pigsty-v3.6.0.tgz
+[WARN] tarball = /tmp/pigsty-v3.6.0.tgz exists, size = 1472486, use it
+[ OK ] md5sums = df64ac0c2b5aab39dd29698a640daf2e  /tmp/pigsty-v3.6.0.tgz
 [Install] ===========================================
-[ OK ] install = /home/dba/pigsty, from /tmp/pigsty-v3.6.0.tgz
-[TodoList] ===========================================
-cd /home/dba/pigsty
-./configure      # [OPTIONAL] preflight-check and config generation
-./install.yml    # install pigsty modules according to your config.
-[Complete] ===========================================
+[WARN] pigsty already installed on '/home/vagrant/pigsty', if you wish to overwrite:
+sudo rm -rf /tmp/pigsty_bk; cp -r /home/vagrant/pigsty /tmp/pigsty_bk; # backup old
+sudo rm -rf /tmp/pigsty;    tar -xf /tmp/pigsty-v3.6.0.tgz -C /tmp/; # extract new
+rsync -av --exclude='/pigsty.yml' --exclude='/files/pki/***' /tmp/pigsty/ /home/vagrant/pigsty/; # rsync src
+[Bootstrap] ===========================================
+[WARN] ansible = not found, bootstrap
+bootstrap pigsty v3.6.0 begin
+[ OK ] region = china
+[ OK ] kernel  = Linux
+[ OK ] machine = aarch64
+[ OK ] package = rpm,dnf
+[ OK ] vendor = rocky (Rocky Linux)
+[ OK ] version = 9 (9.5)
+[ OK ] sudo = vagrant ok
+[ OK ] ssh = vagrant@127.0.0.1 ok
+[WARN] old repos = moved to /etc/yum.repos.d/backup
+[ OK ] repo file = add el9.aarch64 china upstream
+[WARN] rpm cache = updating, may take a while
+...... # install ansible output
+[ OK ] ansible = ansible [core 2.14.18]
+[ OK ] boostrap pigsty complete
+proceed with ./configure
 ```
 
 > HINT: To install a specific version, pass the version string as the first parameter:
@@ -133,8 +162,7 @@ git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v3.6.0
 
 **Example: Singleton Installation on RockyLinux 9:**
 
-[![asciicast](https://asciinema.org/a/673459.svg)](https://asciinema.org/a/673459)
-
+[![asciicast](https://asciinema.org/a/731199.svg)](https://asciinema.org/a/731199)
 
 
 ----------------
@@ -457,172 +485,10 @@ pg-citus: # citus group
 </details>
 
 
---------
-
 You can deploy different kinds of PostgreSQL instance such as [`primary`](https://doc.pgsty.com/pgsql/config/#primary), [`replica`](https://doc.pgsty.com/pgsql/config/#replica), [`offline`](https://doc.pgsty.com/pgsql/config/#offline), [`delayed`](https://doc.pgsty.com/pgsql/config/#delayed-cluster), [`sync standby`](https://doc.pgsty.com/pgsql/config/#sync-standby), etc.,
 and customize with scene-optimize [**config templates**](https://doc.pgsty.com/config/template) and all **423** [**extensions**](https://ext.pgsty.com/list) out-of-the-box.
 
 You can define [**Users**](https://doc.pgsty.com/pgsql/user), [**Databases**](https://doc.pgsty.com/pgsql/db), [**Service**](https://doc.pgsty.com/pgsql/service), [**HBAs**](https://doc.pgsty.com/pgsql/hba) and other entities with code and provision them in one pass.
-You can even replace the vanilla [**`PostgreSQL`**](https://doc.pgsty.com/pgsql) [**Kernel**](https://doc.pgsty.com/feat/kernel) with exotic forks as an in-place replacement:
-
-<details><summary>Exotic Kernel: Babelfish (MsSQL Wire Compatible)</summary><br>
-
-The [`conf/mssql.yml`](https://github.com/pgsty/pigsty/blob/main/conf/mssql.yml) Provision a [Babelfish](https://doc.pgsty.com/pgsql/kernel/babelfish/) cluster with Microsoft SQL Server compatibility:
-
-```yaml
-# ./pgsql.yml -l pg-mssql
-pg-mssql:
-  hosts:
-    10.10.10.41: { pg_seq: 1 ,pg_role: primary }
-    10.10.10.42: { pg_seq: 2 ,pg_role: replica }
-    10.10.10.43: { pg_seq: 3 ,pg_role: replica }
-    10.10.10.44: { pg_seq: 4 ,pg_role: replica }
-  vars:
-    pg_cluster: pg-mssql
-    pg_vip_enabled: true
-    pg_vip_address: 10.10.10.3/24
-    pg_vip_interface: eth1
-    pg_users:                           # create MSSQL superuser
-      - {name: dbuser_mssql ,password: DBUser.MSSQL ,superuser: true, pgbouncer: true ,roles: [dbrole_admin], comment: superuser & owner for babelfish  }
-    pg_primary_db: mssql                # use `mssql` as the primary sql server database
-    pg_databases:
-      - name: mssql
-        baseline: mssql.sql             # init babelfish database & user
-        extensions:
-          - { name: uuid-ossp          }
-          - { name: babelfishpg_common }
-          - { name: babelfishpg_tsql   }
-          - { name: babelfishpg_tds    }
-          - { name: babelfishpg_money  }
-          - { name: pg_hint_plan       }
-          - { name: system_stats       }
-          - { name: tds_fdw            }
-        owner: dbuser_mssql
-        parameters: { 'babelfishpg_tsql.migration_mode' : 'single-db' }
-        comment: babelfish cluster, a MSSQL compatible pg cluster
-    node_repo_modules: local,mssql     # add local & mssql modules to node repo (Internet Required)
-    pg_version: 15                     # The current WiltonDB major version is 15
-    pg_packages: ['wiltondb sqlcmd pgsql-common'] # install forked version of postgresql with babelfishpg support
-    pg_extensions: [ ]                 # do not install any vanilla postgresql extensions
-    pg_mode: mssql                    # Microsoft SQL Server Compatible Mode
-    pg_libs: 'babelfishpg_tds, pg_stat_statements, auto_explain' # add timescaledb to shared_preload_libraries
-    pg_default_hba_rules: # overwrite default HBA rules for babelfish cluster
-      - { user: '${dbsu}'    ,db: all         ,addr: local     ,auth: ident ,title: 'dbsu access via local os user ident' }
-      - { user: '${dbsu}'    ,db: replication ,addr: local     ,auth: ident ,title: 'dbsu replication from local os ident' }
-      - { user: '${repl}'    ,db: replication ,addr: localhost ,auth: pwd   ,title: 'replicator replication from localhost' }
-      - { user: '${repl}'    ,db: replication ,addr: intra     ,auth: pwd   ,title: 'replicator replication from intranet' }
-      - { user: '${repl}'    ,db: postgres    ,addr: intra     ,auth: pwd   ,title: 'replicator postgres db from intranet' }
-      - { user: '${monitor}' ,db: all         ,addr: localhost ,auth: pwd   ,title: 'monitor from localhost with password' }
-      - { user: '${monitor}' ,db: all         ,addr: infra     ,auth: pwd   ,title: 'monitor from infra host with password' }
-      - { user: '${admin}'   ,db: all         ,addr: infra     ,auth: ssl   ,title: 'admin @ infra nodes with pwd & ssl' }
-      - { user: '${admin}'   ,db: all         ,addr: world     ,auth: ssl   ,title: 'admin @ everywhere with ssl & pwd' }
-      - { user: dbuser_mssql ,db: mssql       ,addr: intra     ,auth: md5   ,title: 'allow mssql dbsu intranet access' } # <--- use md5 auth method for mssql user
-      - { user: '+dbrole_readonly',db: all    ,addr: localhost ,auth: pwd   ,title: 'pgbouncer read/write via local socket' }
-      - { user: '+dbrole_readonly',db: all    ,addr: intra     ,auth: pwd   ,title: 'read/write biz user via password' }
-      - { user: '+dbrole_offline' ,db: all    ,addr: intra     ,auth: pwd   ,title: 'allow etl offline tasks from intranet' }
-    pg_default_services: # route primary & replica service to mssql port 1433
-      - { name: primary ,port: 5433 ,dest: 1433  ,check: /primary   ,selector: "[]" }
-      - { name: replica ,port: 5434 ,dest: 1433  ,check: /read-only ,selector: "[]" , backup: "[? pg_role == `primary` || pg_role == `offline` ]" }
-      - { name: default ,port: 5436 ,dest: postgres ,check: /primary   ,selector: "[]" }
-      - { name: offline ,port: 5438 ,dest: postgres ,check: /replica   ,selector: "[? pg_role == `offline` || pg_offline_query ]" , backup: "[? pg_role == `replica` && !pg_offline_query]" }
-```
-
-[![mssql](https://pigsty.io/img/pigsty/mssql.jpg)](https://pigsty.io/img/pigsty/mssql.jpg)
-
-</details>
-
-<details><summary>Exotic Kernel: IvorySQL (Oracle Grammar Compatible)</summary><br>
-
-The [`conf/ivory.yml`](https://github.com/pgsty/pigsty/blob/main/conf/mssql.yml) define an [IvorySQL](https://doc.pgsty.com/pgsql/kernel/ivorysql/) cluster, which aims to be Oracle compatible:
-
-```yaml
-# ./pgsql.yml -l pg-ivory
-pg-ivory:
-  hosts:
-    10.10.10.45: { pg_seq: 1 ,pg_role: primary }
-    10.10.10.46: { pg_seq: 2 ,pg_role: replica }
-    10.10.10.47: { pg_seq: 3 ,pg_role: replica }
-  vars:
-    pg_cluster: pg-ivory
-    pg_mode: ivory                    # IvorySQL Oracle Compatible Mode
-    pg_packages: [ 'ivorysql pgsql-common' ]
-    pg_libs: 'liboracle_parser, pg_stat_statements, auto_explain'
-    repo_extra_packages: [ ivorysql ] # replace default postgresql kernel with ivroysql packages
-
-```
-
-[![ivorysql](https://pigsty.io/img/pigsty/ivory.jpg)](https://pigsty.io/img/pigsty/ivory.jpg)
-
-</details>
-
-
-<details><summary>Exotic Kernel: OpenHalo (MySQL Wire Compatible)</summary><br>
-
-The [`conf/mysql.yml`](https://github.com/pgsty/pigsty/blob/main/conf/mysql.yml) Provision a [openHalo](https://doc.pgsty.com/pgsql/kernel/openhalo/) cluster with MySQL compatibility:
-
-```yaml
-pg-mysql:
-  hosts:
-    10.10.10.11: { pg_seq: 1 ,pg_role: primary }
-    10.10.10.12: { pg_seq: 2 ,pg_role: replica }
-    10.10.10.13: { pg_seq: 3 ,pg_role: replica }
-  vars:
-    pg_cluster: pg-mysql
-    pg_mode: mysql
-    pg_version: 14
-    pg_databases: [{name: postgres, extensions: [aux_mysql]}]
-    repo_extra_packages: [ openhalodb ]
-    pg_packages: [ openhalodb, pgsql-common ]
-```
-
-</details>
-
-
-<details><summary>Exotic Kernel: PolarDB (Shared Storage RAC HA)</summary><br>
-
-The [`conf/polar.yml`](https://github.com/pgsty/pigsty/blob/main/conf/polar.yml) Provision a [PolarDB](https://doc.pgsty.com/pgsql/kernel/polardb/) cluster with RAC style kernel:
-
-```yaml
-pg-polar:
-  hosts:
-    10.10.10.11: { pg_seq: 1 ,pg_role: primary }
-    10.10.10.12: { pg_seq: 2 ,pg_role: replica }
-    10.10.10.13: { pg_seq: 3 ,pg_role: replica }
-  vars:
-    pg_cluster: pg-polar
-    pg_mode: polar
-    pg_version: 15
-    pg_packages: [ polardb, pgsql-common ]
-    repo_extra_packages: [ polardb ]
-    pg_exporter_exclude_database: 'template0,template1,postgres,polardb_admin'
-```
-
-</details>
-
-
-<details><summary>Exotic Kernel: OrioleDB (Extreme OLTP Performance)</summary><br>
-
-The [`conf/oriole.yml`](https://github.com/pgsty/pigsty/blob/main/conf/oriole.yml) Provision a [OrioleDB](https://doc.pgsty.com/pgsql/kernel/oriole/) cluster with another storage engine:
-
-```yaml
-pg-oriole:
-  hosts:
-    10.10.10.11: { pg_seq: 1 ,pg_role: primary }
-    10.10.10.12: { pg_seq: 2 ,pg_role: replica }
-    10.10.10.13: { pg_seq: 3 ,pg_role: replica }
-  vars:
-    pg_cluster: pg-oriole
-    pg_mode: oriole
-    pg_version: 17
-    pg_databases: [{name: meta, extensions: [orioledb]}]
-    pg_packages: [ orioledb, pgsql-common ]
-    repo_extra_packages: [ orioledb ]
-    pg_libs: 'orioledb, pg_stat_statements, auto_explain'
-```
-
-</details>
-
-
 
 --------
 
@@ -633,13 +499,13 @@ You can also self-host postgres-centric software like [**`SUPABASE`**](https://d
 You can launch a [self-hosting supabase](https://doc.pgsty.com/app/supabase/) with MinIO and PostgreSQL with just several commands:
 
 ```bash
-./configure -c app/supa    # use supabase config 
+./configure -c supabase    # use supabase config 
 ./install.yml              # install pigsty
 ./docker.yml               # install docker compose
 ./app.yml                  # launch supabase stateless part with docker
 ```
 
-The [`conf/app/supa.yml`](https://github.com/pgsty/pigsty/blob/main/conf/app/supa.yml) just describe everything you need:
+The [`conf/supabase.yml`](https://github.com/pgsty/pigsty/blob/main/conf/supabase.yml) just describe everything you need:
 
 ```yaml
 pg-meta:
@@ -693,7 +559,7 @@ pg-meta:
     node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
 ```
 
-![](https://pigsty.io/img/pigsty/supa.jpg)
+![](https://doc.pgsty.com/img/docs/supa-home.png)
 
 </details>
 
@@ -748,6 +614,14 @@ Many thanks to our contributors and sponsors for making Pigsty possible.
 Special thanks to MiraclePlus for fund, to Cloudflare for hosting the Pigsty repo, and to Vercel for hosting the Pigsty website.
 
 [![Vercel OSS Program](https://vercel.com/oss/program-badge.svg)](https://vercel.com/oss)
+
+
+----------------
+
+## License
+
+Pigsty uses the [AGPLv3](https://doc.pgsty.com/about/license/) license, which requires you to also distribute the source code of your derivative works under the same license when you "Distribute" Pigsty. It's no big deal if you are just "**USING**" it.
+We extend exemptions to common end users under terms akin to the Apache 2.0 license. Check [License](https://doc.pgsty.com/about/license/) for details. 
 
 
 ----------------
