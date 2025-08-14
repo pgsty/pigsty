@@ -1,8 +1,8 @@
 # Pigsty
 
-[![Webite: pgsty.com](https://img.shields.io/badge/website-pgsty.com-slategray?style=flat&logo=cilium&logoColor=white)](https://doc.pgsty.com)
+[![Webite: pgsty.com](https://img.shields.io/badge/website-pgsty.com-slategray?style=flat&logo=cilium&logoColor=white)](https://pgsty.com)
 [![Docs](https://img.shields.io/badge/docs-slategray?style=flat&logo=cilium&logoColor=white)](https://doc.pgsty.com)
-[![Version: v3.6.0](https://img.shields.io/badge/version-v3.6.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases/tag/v3.6.0)
+[![Version: v3.6.1](https://img.shields.io/badge/version-v3.6.1-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases/tag/v3.6.1)
 [![License: AGPLv3](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://doc.pgsty.com/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
 [![Extensions: 423](https://img.shields.io/badge/extensions-423-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://ext.pgsty.com/list)
@@ -11,14 +11,14 @@ Battery-Included, Local-First **PostgreSQL** Distribution as a Free & Better **R
 
 > "**P**ostgreSQL **I**n **G**reat **STY**le": **P**ostgres, **I**nfras, **G**raphics, **S**ervice, **T**oolbox, it's all **Y**ours.
 
-[Website](https://doc.pgsty.com) | [Org](https://github.com/pgsty) | [Docs](https://doc.pgsty.com) | [Extensions](https://ext.pgsty.com) | [Values](https://pigsty.io/about/values) | [Demo](https://demo.pigsty.cc) | [Blog](https://pigsty.io/blog) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [中文站点](https://pigsty.cc) | [博客](https://pigsty.cc/blog)
+[Website](https://doc.pgsty.com) | [Org](https://github.com/pgsty) | [PIG](https://pig.pgsty.com) | [Extensions](https://ext.pgsty.com) | [Values](https://pigsty.io/about/values) | [Demo](https://demo.pigsty.cc) | [Blog](https://vonng.com/en/) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [中文站点](https://doc.pgsty.com/zh/) | [博客](https://vonng.com)
 
 [![banner](https://github.com/user-attachments/assets/c0bb8d27-2cea-4203-bce5-f297c5167baf)](https://pgsty.com)
 
-**Self-Hosting PostgreSQL RDS like a Pro!** [Get Started](https://doc.pgsty.com/docs/install/start) with the latest [v3.6.0](https://github.com/pgsty/pigsty/releases/tag/v3.6.0) release:
+**Self-Hosting PostgreSQL RDS like a Pro!** [Get Started](https://doc.pgsty.com/docs/install/start) with the latest [v3.6.1](https://github.com/pgsty/pigsty/releases/tag/v3.6.1) release:
 
 ```bash
-curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.0
+curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.1
 ```
 
 --------
@@ -40,14 +40,14 @@ You can even use exotic [PG kernel forks](https://doc.pgsty.com/pgsql/kernel) as
 
 | Kernel                                                    |           Key Feature           | Description                                    |
 |-----------------------------------------------------------|:-------------------------------:|------------------------------------------------|
-| [PostgreSQL](https://doc.pgsty.com/pgsql/kernel/postgres) |       **Original Flavor**       | Vanilla PostgreSQL with 420+ extensions        |
+| [PostgreSQL](https://doc.pgsty.com/pgsql/kernel/postgres) |       **Original Flavor**       | Vanilla PostgreSQL with 423 extensions         |
 | [Citus](https://doc.pgsty.com/pgsql/kernel/citus)         |     **Horizontal Scaling**      | Distributive PostgreSQL via native extension   |
-| [WiltonDB](https://doc.pgsty.com/pgsql/kernel/babelfish)  |    **SQL Server Migration**     | SQL Server wire-compatibility                  |
+| [WiltonDB](https://doc.pgsty.com/pgsql/kernel/babelfish)  |    **SQL Server Migration**     | Microsoft SQL Server wire-compatibility        |
 | [IvorySQL](https://doc.pgsty.com/pgsql/kernel/ivorysql)   |      **Oracle Migration**       | Oracle Grammar and PL/SQL compatible           |
 | [OpenHalo](https://doc.pgsty.com/pgsql/kernel/openhalo)   |       **MySQL Migration**       | MySQL wire-protocol compatibility              |
 | [Percona](https://doc.pgsty.com/pgsql/kernel/percona)     | **Transparent Data Encryption** | Percona Distribution with pg_tde               |
 | [FerretDB](https://doc.pgsty.com/pgsql/kernel/ferretdb)   |      **MongoDB Migration**      | MongoDB wire-protocol compatibility            |
-| [OrioleDB](https://doc.pgsty.com/pgsql/kernel/orioledb)   |      **OLTP Optimization**      | Zheap, No bloat, S3 Storage                    |
+| [OrioleDB](https://doc.pgsty.com/pgsql/kernel/orioledb)   |      **OLTP Optimization**      | No bloat, No XID Wraparound, S3 Storage        |
 | [PolarDB](https://doc.pgsty.com/pgsql/kernel/polardb)     |      **Aurora flavor RAC**      | RAC, China domestic compliance                 |
 | [Supabase](https://doc.pgsty.com/app/supabase)            |     **Backend as Service**      | BaaS based on PostgreSQL, Firebase alternative |
 
@@ -102,25 +102,25 @@ pig sty install  # run the install.yml playbook
 <details><summary>Install with get script</summary><br>
 
 ```bash
-[vagrant@meta ~]$ curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.0
-[v3.6.0] ===========================================
+[vagrant@meta ~]$ curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.1
+[v3.6.1] ===========================================
 $ curl -fsSL https://repo.pigsty.io/get | bash
 [Docs] https://doc.pgsty.com
 [Demo] https://demo.pigsty.io
 [Repo] https://github.com/pgsty/pigsty
 [Download] ===========================================
-[ OK ] version = v3.6.0 (from arg)
-curl -fSL https://repo.pigsty.io/src/pigsty-v3.6.0.tgz -o /tmp/pigsty-v3.6.0.tgz
-[WARN] tarball = /tmp/pigsty-v3.6.0.tgz exists, size = 1472486, use it
-[ OK ] md5sums = df64ac0c2b5aab39dd29698a640daf2e  /tmp/pigsty-v3.6.0.tgz
+[ OK ] version = v3.6.1 (from arg)
+curl -fSL https://repo.pigsty.io/src/pigsty-v3.6.1.tgz -o /tmp/pigsty-v3.6.1.tgz
+[WARN] tarball = /tmp/pigsty-v3.6.1.tgz exists, size = 1472486, use it
+[ OK ] md5sums = df64ac0c2b5aab39dd29698a640daf2e  /tmp/pigsty-v3.6.1.tgz
 [Install] ===========================================
 [WARN] pigsty already installed on '/home/vagrant/pigsty', if you wish to overwrite:
 sudo rm -rf /tmp/pigsty_bk; cp -r /home/vagrant/pigsty /tmp/pigsty_bk; # backup old
-sudo rm -rf /tmp/pigsty;    tar -xf /tmp/pigsty-v3.6.0.tgz -C /tmp/; # extract new
+sudo rm -rf /tmp/pigsty;    tar -xf /tmp/pigsty-v3.6.1.tgz -C /tmp/; # extract new
 rsync -av --exclude='/pigsty.yml' --exclude='/files/pki/***' /tmp/pigsty/ /home/vagrant/pigsty/; # rsync src
 [Bootstrap] ===========================================
 [WARN] ansible = not found, bootstrap
-bootstrap pigsty v3.6.0 begin
+bootstrap pigsty v3.6.1 begin
 [ OK ] region = china
 [ OK ] kernel  = Linux
 [ OK ] machine = aarch64
@@ -141,7 +141,7 @@ proceed with ./configure
 > HINT: To install a specific version, pass the version string as the first parameter:
 >
 > ```bash
-> curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.0
+> curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.1
 > ```
 
 </details>
@@ -152,7 +152,7 @@ proceed with ./configure
 You can also download the pigsty source with `git`, remember to check out a specific version tag, the `main` branch is for development.
 
 ```bash
-git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v3.6.0
+git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v3.6.1
 ```
 
 </details>
@@ -620,15 +620,20 @@ Special thanks to MiraclePlus for fund, to Cloudflare for hosting the Pigsty rep
 
 ## License
 
-Pigsty uses the [AGPLv3](https://doc.pgsty.com/about/license/) license, which requires you to also distribute the source code of your derivative works under the same license when you "Distribute" Pigsty. It's no big deal if you are just "**USING**" it.
-We extend exemptions to common end users under terms akin to the Apache 2.0 license. Check [License](https://doc.pgsty.com/about/license/) for details. 
+Pigsty is free and open source software licensed under the [AGPLv3](https://doc.pgsty.com/about/license/) license. 
+While often misunderstood, this license allows anyone to use Pigsty internally without sharing source code or any other work related.
+
+We also extend exemptions to common end users under terms akin to the [Apache 2.0 license](https://doc.pgsty.com/about/license/).
+But if you plan to offer Pigsty as a public service (e.g., a database cloud offering), 
+please make sure to share any modifications you make to pigsty source code,
+so the whole community can benefit from your knowledge and expertise.  
 
 
 ----------------
 
 ## About
 
-[![Webite: pgsty.com](https://img.shields.io/badge/Website-pgsty.com-slategray?style=flat)](https://doc.pgsty.com)
+[![Webite: doc.pgsty.com](https://img.shields.io/badge/Website-pgsty.com-slategray?style=flat)](https://doc.pgsty.com)
 [![Github: Discussions](https://img.shields.io/badge/GitHub-Discussions-slategray?style=flat&logo=github&logoColor=black)](https://github.com/pgsty/pigsty/discussions)
 [![Telegram: gV9zfZraNPM3YjFh](https://img.shields.io/badge/Telegram-gV9zfZraNPM3YjFh-cornflowerblue?style=flat&logo=telegram&logoColor=cornflowerblue)](https://t.me/joinchat/gV9zfZraNPM3YjFh)
 [![Discord: j5pG8qfKxU](https://img.shields.io/badge/Discord-j5pG8qfKxU-mediumpurple?style=flat&logo=discord&logoColor=mediumpurple)](https://discord.gg/j5pG8qfKxU)
