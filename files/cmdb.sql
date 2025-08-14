@@ -1339,7 +1339,7 @@ INSERT INTO pigsty.default_var VALUES
 (233, 'node_disable_swap', 'false', 'NODE', 'NODE_TUNE', 'bool', 'C', 'disable node swap, use with caution', NULL),
 (234, 'node_static_network', 'true', 'NODE', 'NODE_TUNE', 'bool', 'C', 'preserve dns resolver settings after reboot', NULL),
 (235, 'node_disk_prefetch', 'false', 'NODE', 'NODE_TUNE', 'bool', 'C', 'setup disk prefetch on HDD to increase performance', NULL),
-(236, 'node_kernel_modules', '["softdog", "br_netfilter", "ip_vs", "ip_vs_rr", "ip_vs_wrr", "ip_vs_sh"]', 'NODE', 'NODE_TUNE', 'string[]', 'C', 'kernel modules to be enabled on this node', NULL),
+(236, 'node_kernel_modules', '["softdog", "ip_vs", "ip_vs_rr", "ip_vs_wrr", "ip_vs_sh"]', 'NODE', 'NODE_TUNE', 'string[]', 'C', 'kernel modules to be enabled on this node', NULL),
 (237, 'node_hugepage_count', '0', 'NODE', 'NODE_TUNE', 'int', 'C', 'number of 2MB hugepage, take precedence over ratio', NULL),
 (238, 'node_hugepage_ratio', '0', 'NODE', 'NODE_TUNE', 'float', 'C', 'node mem hugepage ratio, 0 disable it by default', NULL),
 (239, 'node_overcommit_ratio', '0', 'NODE', 'NODE_TUNE', 'float', 'C', 'node mem overcommit ratio, 0 disable it by default', NULL),
