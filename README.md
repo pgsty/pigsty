@@ -11,7 +11,7 @@ Battery-Included, Local-First **PostgreSQL** Distribution as a Free & Better **R
 
 > "**P**ostgreSQL **I**n **G**reat **STY**le": **P**ostgres, **I**nfras, **G**raphics, **S**ervice, **T**oolbox, it's all **Y**ours.
 
-[Website](https://doc.pgsty.com) | [Org](https://github.com/pgsty) | [PIG](https://pig.pgsty.com) | [Extensions](https://ext.pgsty.com) | [Values](https://pigsty.io/about/values) | [Demo](https://demo.pigsty.cc) | [Blog](https://vonng.com/en/) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [中文站点](https://doc.pgsty.com/zh/) | [博客](https://vonng.com)
+[Website](https://pgsty.com) | [Docs](https://doc.pgsty.com) | [Org](https://github.com/pgsty) | [PIG](https://pig.pgsty.com) | [Extensions](https://ext.pgsty.com) | [Values](https://pgsty.com/about/values) | [Demo](https://g.pgsty.com) | [Blog](https://vonng.com/en/) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pgsty.com/price) | [中文站点](https://doc.pgsty.com/zh/) | [博客](https://vonng.com)
 
 [![banner](https://github.com/user-attachments/assets/c0bb8d27-2cea-4203-bce5-f297c5167baf)](https://pgsty.com)
 
@@ -25,14 +25,14 @@ curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.1
 
 ## Features
 
-- [**Extensible**](https://pigsty.io/about/extensibility/): **423** [**PG Extensions**](https://ext.pgsty.com/list) & **8** [**PG Kernel**](https://doc.pgsty.com/feat/kernel) available, with [**MsSQL**](https://doc.pgsty.com/pgsql/kernel/babelfish/), [**Oracle**](https://doc.pgsty.com/pgsql/kernel/ivorysql/), [**MySQL**](https://doc.pgsty.com/pgsql/kernel/openhalo/), [**Mongo**](https://doc.pgsty.com/ferret) compatibility.
-- [**Reliable**](https://pigsty.io/about/reliability/): Self-healing [**HA**](https://doc.pgsty.com/feat/ha/) clusters with pre-configured [**PITR**](https://doc.pgsty.com/pgsql/backup/) and built-in [**ACL**](https://doc.pgsty.com/pgsql/acl), [**CA & SSL**](https://doc.pgsty.com/admin/cert/) secure best practice.
-- [**Observable**](https://pigsty.io/about/observability/): SOTA monitoring for [**PG**](https://demo.pigsty.cc/d/pgrds-instance/pgrds-instance) / [**Infra**](https://doc.pgsty.com/infra) / [**Node**](https://doc.pgsty.com/node) based on **Prometheus** & **Grafana** stack: [**Demo**](https://demo.pigsty.cc) & [**Gallery**](https://github.com/pgsty/pigsty/wiki/Gallery).
-- [**Scalable**](https://pigsty.io/about/scalability/): Auto-routed & pooled customizable database [**Services**](https://doc.pgsty.com/pgsql/service) [**Access**](https://doc.pgsty.com/pgsql/service#access-service) with **haproxy**, **pgbouncer**, and **VIP**.
-- [**Maintainable**](https://pigsty.io/about/maintainability/): [**One-Cmd Install**](https://doc.pgsty.com/install/start), [**Admin SOP**](https://doc.pgsty.com/pgsql/admin), **Auto-Tune**, **Local Repo**, [**IaC**](https://doc.pgsty.com/pgsql/config) and [**Vagrant**](https://doc.pgsty.com/prepare/vagrant) / [**Terraform**](https://doc.pgsty.com/prepare/terraform) support.
-- [**Composable**](https://pigsty.io/about/composability/): Bonus [**Modules**](https://doc.pigsty.io/intro/modules) such as [**Redis**](https://doc.pgsty.com/redis), [**MinIO**](https://doc.pgsty.com/minio), [**Etcd**](https://doc.pgsty.com/etcd), [**Docker**](https://doc.pgsty.com/app), [**DuckDB**](https://doc.pgsty.com/pro/duckdb), [**FerretDB**](https://doc.pgsty.com/ferret), [**Supabase**](https://doc.pgsty.com/app/supabase/), [**& More**](https://doc.pgsty.com/intro/module)!
-- [**Controllable**](https://pigsty.io/about/controllability/): Self-sufficient [**Infra Closure**](https://doc.pgsty.com/infra/), Cloud Neutral FOSS. Run on [**bare Linux**](https://doc.pgsty.com/reference/compatibility/) without [**Docker & K8S**](https://pigsty.io/blog/db/db-in-k8s/)!
-- [**Affordable**](https://pigsty.io/about/affordability/): Self-Hosting like a [**Pro**](https://pigsty.io/price/), without the cost of DBA / [**RDS**](https://pigsty.io/blog/cloud/rds/). Empowering Cloud-Exit to [**save 90%+!**](https://pigsty.io/reference/cost/)
+- [**Extensible**](https://pgsty.com/about/extensibility/): **423** [**PG Extensions**](https://ext.pgsty.com/list) & **8** [**PG Kernel**](https://doc.pgsty.com/feat/kernel) available, with [**MsSQL**](https://doc.pgsty.com/pgsql/kernel/babelfish/), [**Oracle**](https://doc.pgsty.com/pgsql/kernel/ivorysql/), [**MySQL**](https://doc.pgsty.com/pgsql/kernel/openhalo/), [**Mongo**](https://doc.pgsty.com/ferret) compatibility.
+- [**Reliable**](https://pgsty.com/about/reliability/): Self-healing [**HA**](https://doc.pgsty.com/feat/ha/) clusters with pre-configured [**PITR**](https://doc.pgsty.com/pgsql/backup/) and built-in [**ACL**](https://doc.pgsty.com/pgsql/acl), [**CA & SSL**](https://doc.pgsty.com/admin/cert/) secure best practice.
+- [**Observable**](https://pgsty.com/about/observability/): SOTA monitoring for [**PG**](https://g.pgsty.com/d/pgrds-instance/pgrds-instance) / [**Infra**](https://doc.pgsty.com/infra) / [**Node**](https://doc.pgsty.com/node) based on **Prometheus** & **Grafana** stack: [**Demo**](https://g.pgsty.com) & [**Gallery**](https://github.com/pgsty/pigsty/wiki/Gallery).
+- [**Scalable**](https://pgsty.com/about/scalability/): Auto-routed & pooled customizable database [**Services**](https://doc.pgsty.com/pgsql/service) [**Access**](https://doc.pgsty.com/pgsql/service#access-service) with **haproxy**, **pgbouncer**, and **VIP**.
+- [**Maintainable**](https://pgsty.com/about/maintainability/): [**One-Cmd Install**](https://doc.pgsty.com/install/start), [**Admin SOP**](https://doc.pgsty.com/pgsql/admin), **Auto-Tune**, **Local Repo**, [**IaC**](https://doc.pgsty.com/pgsql/config) and [**Vagrant**](https://doc.pgsty.com/prepare/vagrant) / [**Terraform**](https://doc.pgsty.com/prepare/terraform) support.
+- [**Composable**](https://pgsty.com/about/composability/): Bonus [**Modules**](https://doc.pgsty.com/intro/modules) such as [**Redis**](https://doc.pgsty.com/redis), [**MinIO**](https://doc.pgsty.com/minio), [**Etcd**](https://doc.pgsty.com/etcd), [**Docker**](https://doc.pgsty.com/app), [**DuckDB**](https://doc.pgsty.com/pro/duckdb), [**FerretDB**](https://doc.pgsty.com/ferret), [**Supabase**](https://doc.pgsty.com/app/supabase/), [**& More**](https://doc.pgsty.com/intro/module)!
+- [**Controllable**](https://pgsty.com/about/controllability/): Self-sufficient [**Infra Closure**](https://doc.pgsty.com/infra/), Cloud Neutral FOSS. Run on [**bare Linux**](https://doc.pgsty.com/reference/compatibility/) without [**Docker & K8S**](https://vonng.com/en/db/db-in-k8s/)!
+- [**Affordable**](https://pgsty.com/about/affordability/): Self-Hosting like a [**Pro**](https://pgsty.com/price/), without the cost of DBA / [**RDS**](https://vonng.com/en/cloud/rds/). Empowering Cloud-Exit to [**save 90%+!**](https://doc.pgsty.com/intro/compare/)
 
 [![ecosystem](https://github.com/user-attachments/assets/c952441e-5ff7-4acb-aace-dd3021d28622)](https://ext.pgsty.com/)
 
@@ -370,13 +370,13 @@ pg-test:
 
 You can even deploy PostgreSQL with different major versions and kernel forks in the same deployment:
 
-[![kernels](https://pigsty.io/img/pigsty/kernels.jpg)](https://pigsty.io/img/pigsty/kernels.jpg)
+[![kernels](https://pigsty.io/img/pigsty/kernels.jpg)](https://doc.pgsty.com/pgsql/kernel)
 
 </details>
 
 <details><summary>Example: Security Setup & Delayed Replica</summary><br>
 
-The following [`conf/safe.yml`](https://github.com/pgsty/pigsty/blob/main/conf/safe.yml) provision a 4-node [security](https://doc.pgsty.com/config/security/) enhanced postgres cluster `pg-meta` with a delayed replica `pg-meta-delay`:
+The following [`conf/safe.yml`](https://github.com/pgsty/pigsty/blob/main/conf/ha/safe.yml) provision a 4-node [security](https://doc.pgsty.com/config/security/) enhanced postgres cluster `pg-meta` with a delayed replica `pg-meta-delay`:
 
 ```yaml
 pg-meta:      # 3 instance postgres cluster `pg-meta`
@@ -447,7 +447,7 @@ pg-meta-delay:                    # delayed instance for pg-meta (1 hour ago)
 
 You can perform horizontal sharding on vanilla postgres with [**`CITUS`**](https://doc.pgsty.com/pgsql/kernel/citus/).
 
-The [`conf/simu.yml`](https://github.com/pgsty/pigsty/blob/main/conf/simu.yml) provision a 10-node [**Citus**](https://doc.pgsty.com/pgsql/kernel/citus/) cluster as below:
+The [`conf/simu.yml`](https://github.com/pgsty/pigsty/blob/main/conf/ha/simu.yml) provision a 10-node [**Citus**](https://doc.pgsty.com/pgsql/kernel/citus/) cluster as below:
 
 ```yaml
 # pg-citus: 10 node citus cluster (5 x primary-replica pair)
@@ -480,7 +480,7 @@ pg-citus: # citus group
       - { user: 'all' ,db: all  ,addr: intra         ,auth: ssl   ,title: 'all user ssl access from intranet'  }
 ```
 
-[![citus](https://pigsty.io/img/pigsty/citus.jpg)](https://pigsty.io/img/pigsty/citus.jpg)
+[![citus](https://pigsty.io/img/pigsty/citus.jpg)](https://doc.pgsty.com/pgsql/kernel/citus)
 
 </details>
 
@@ -604,6 +604,8 @@ Pigsty runs on bare linux directly, and focuses on active maintained mainstream 
 | **U20** | Ubuntu 20.04 (focal)              |                   `u20.x86_64`                    |   ⚠️   |                    `u20.aarch64`                    |   ❌    |
 
 >  ✅ = Support , 📦 = Offline Package , ⚠️ Deprecated, ❌ = Unsupported
+
+We will add full support for EL10 and Debian 13 very soon.
 
 
 --------
