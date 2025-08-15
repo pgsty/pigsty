@@ -2,7 +2,7 @@
 # File      :   aliyun-full.yml
 # Desc      :   4-node full sandbox env for x86_64/aarch64
 # Ctime     :   2020-05-12
-# Mtime     :   2025-07-24
+# Mtime     :   2025-08-15
 # Path      :   terraform/spec/aliyun-full.yml
 # Docs      :   https://doc.pgsty.com/prepare/terraform
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -23,7 +23,7 @@ variable "architecture" {
 variable "distro" {
   description = "The distro code (el8,el9,u22,u24,d12)"
   type        = string
-  default     = "el9"
+  default     = "el9"       # el7/el8/el9/el10/d11/d12/u20/u22/an8
 }
 
 locals {
@@ -40,6 +40,7 @@ locals {
       el7   = "^centos_7_9_x64"
       el8   = "^rockylinux_8_10_x64"
       el9   = "^rockylinux_9_6_x64"
+      el10  = "^rockylinux_10_0_x64"
       d11   = "^debian_11_11_x64"
       d12   = "^debian_12_11_x64"
       u20   = "^ubuntu_20_04_x64"
@@ -50,6 +51,7 @@ locals {
     arm64 = {
       el8   = "^rockylinux_8_10_arm64"
       el9   = "^rockylinux_9_6_arm64"
+      el10   = "^rockylinux_10_0_arm64"
       d12   = "^debian_12_11_arm64"
       u22   = "^ubuntu_22_04_arm64"
       u24   = "^ubuntu_24_04_arm64"

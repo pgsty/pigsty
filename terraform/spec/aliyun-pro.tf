@@ -2,7 +2,7 @@
 # File      :   aliyun-pro.yml
 # Desc      :   5-node building env for x86_64/aarch64
 # Ctime     :   2024-12-12
-# Mtime     :   2025-07-24
+# Mtime     :   2025-08-15
 # Path      :   terraform/spec/aliyun-pro.yml
 # Docs      :   https://doc.pgsty.com/prepare/terraform
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -34,6 +34,7 @@ locals {
       el7   = "^centos_7_9_x64"
       el8   = "^rockylinux_8_10_x64"
       el9   = "^rockylinux_9_6_x64"
+      el10  = "^rockylinux_10_0_x64"
       d11   = "^debian_11_11_x64"
       d12   = "^debian_12_11_x64"
       u20   = "^ubuntu_20_04_x64"
@@ -44,6 +45,7 @@ locals {
     arm64 = {
       el8   = "^rockylinux_8_10_arm64"
       el9   = "^rockylinux_9_6_arm64"
+      el10   = "^rockylinux_10_0_arm64"
       d12   = "^debian_12_11_arm64"
       u22   = "^ubuntu_22_04_arm64"
       u24   = "^ubuntu_24_04_arm64"
@@ -65,7 +67,7 @@ locals {
 provider "alicloud" {
   # access_key = "????????????????????"
   # secret_key = "????????????????????"
-  region = "cn-hongkong"
+  region = "cn-shanghai"
 }
 
 
@@ -82,7 +84,7 @@ resource "alicloud_vpc" "vpc" {
 resource "alicloud_vswitch" "vsw" {
   vpc_id     = "${alicloud_vpc.vpc.id}"
   cidr_block = "10.10.10.0/24"
-  zone_id    = "cn-hongkong-d"
+  zone_id    = "cn-shanghai-l"
 }
 
 # add default security group and allow all tcp traffic
@@ -275,4 +277,3 @@ output "u24_ip" {
 # sshpass -p PigstyDemo4 ssh-copy-id d12
 # sshpass -p PigstyDemo4 ssh-copy-id u22
 # sshpass -p PigstyDemo4 ssh-copy-id u24
-
