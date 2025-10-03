@@ -3,7 +3,7 @@
 # File      :   pgsql.yml
 # Desc      :   1-node PostgreSQL Config template
 # Ctime     :   2025-02-23
-# Mtime     :   2025-07-02
+# Mtime     :   2025-10-03
 # Docs      :   https://doc.pgsty.com/config
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -36,7 +36,9 @@ all:
           - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin   ] ,comment: pigsty admin user }
           - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
         pg_databases:
-          - { name: meta, baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [ vector ]}
+          - { name: meta, baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [ postgis, timescaledb, vector ]}
+        pg_extensions: [ postgis, timescaledb, pgvector, pg_wait_sampling ]
+        pg_libs: 'timescaledb, pg_stat_statements, auto_explain, pg_wait_sampling'
         pg_hba_rules:
           - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
         node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
