@@ -2,7 +2,7 @@
 
 [![Webite: pgsty.com](https://img.shields.io/badge/website-pgsty.com-slategray?style=flat&logo=cilium&logoColor=white)](https://pgsty.com)
 [![Docs](https://img.shields.io/badge/docs-slategray?style=flat&logo=cilium&logoColor=white)](https://doc.pgsty.com)
-[![Version: v3.6.1](https://img.shields.io/badge/version-v3.6.1-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases/tag/v3.6.1)
+[![Version: v3.7.0](https://img.shields.io/badge/version-v3.7.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases/tag/v3.7.0)
 [![License: AGPLv3](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://doc.pgsty.com/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
 [![Extensions: 423](https://img.shields.io/badge/extensions-423-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://ext.pgsty.com/list)
@@ -15,10 +15,10 @@ Battery-Included, Local-First **PostgreSQL** Distribution as a Free & Better **R
 
 [![banner](https://github.com/user-attachments/assets/c0bb8d27-2cea-4203-bce5-f297c5167baf)](https://pgsty.com)
 
-**Self-Hosting PostgreSQL RDS like a Pro!** [Get Started](https://doc.pgsty.com/docs/install/start) with the latest [v3.6.1](https://github.com/pgsty/pigsty/releases/tag/v3.6.1) release:
+**Self-Hosting PostgreSQL RDS like a Pro!** [Get Started](https://doc.pgsty.com/docs/install/start) with the latest [v3.7.0](https://github.com/pgsty/pigsty/releases/tag/v3.7.0) release:
 
 ```bash
-curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.1
+curl -fsSL https://repo.pigsty.io/get | bash -s v3.7.0
 ```
 
 --------
@@ -102,25 +102,25 @@ pig sty install  # run the install.yml playbook
 <details><summary>Install with get script</summary><br>
 
 ```bash
-[vagrant@meta ~]$ curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.1
-[v3.6.1] ===========================================
+[vagrant@meta ~]$ curl -fsSL https://repo.pigsty.io/get | bash -s v3.7.0
+[v3.7.0] ===========================================
 $ curl -fsSL https://repo.pigsty.io/get | bash
 [Docs] https://doc.pgsty.com
 [Demo] https://demo.pigsty.io
 [Repo] https://github.com/pgsty/pigsty
 [Download] ===========================================
-[ OK ] version = v3.6.1 (from arg)
-curl -fSL https://repo.pigsty.io/src/pigsty-v3.6.1.tgz -o /tmp/pigsty-v3.6.1.tgz
-[WARN] tarball = /tmp/pigsty-v3.6.1.tgz exists, size = 1472486, use it
-[ OK ] md5sums = df64ac0c2b5aab39dd29698a640daf2e  /tmp/pigsty-v3.6.1.tgz
+[ OK ] version = v3.7.0 (from arg)
+curl -fSL https://repo.pigsty.io/src/pigsty-v3.7.0.tgz -o /tmp/pigsty-v3.7.0.tgz
+[WARN] tarball = /tmp/pigsty-v3.7.0.tgz exists, size = 1472486, use it
+[ OK ] md5sums = df64ac0c2b5aab39dd29698a640daf2e  /tmp/pigsty-v3.7.0.tgz
 [Install] ===========================================
 [WARN] pigsty already installed on '/home/vagrant/pigsty', if you wish to overwrite:
 sudo rm -rf /tmp/pigsty_bk; cp -r /home/vagrant/pigsty /tmp/pigsty_bk; # backup old
-sudo rm -rf /tmp/pigsty;    tar -xf /tmp/pigsty-v3.6.1.tgz -C /tmp/; # extract new
+sudo rm -rf /tmp/pigsty;    tar -xf /tmp/pigsty-v3.7.0.tgz -C /tmp/; # extract new
 rsync -av --exclude='/pigsty.yml' --exclude='/files/pki/***' /tmp/pigsty/ /home/vagrant/pigsty/; # rsync src
 [Bootstrap] ===========================================
 [WARN] ansible = not found, bootstrap
-bootstrap pigsty v3.6.1 begin
+bootstrap pigsty v3.7.0 begin
 [ OK ] region = china
 [ OK ] kernel  = Linux
 [ OK ] machine = aarch64
@@ -141,7 +141,7 @@ proceed with ./configure
 > HINT: To install a specific version, pass the version string as the first parameter:
 >
 > ```bash
-> curl -fsSL https://repo.pigsty.io/get | bash -s v3.6.1
+> curl -fsSL https://repo.pigsty.io/get | bash -s v3.7.0
 > ```
 
 </details>
@@ -152,7 +152,7 @@ proceed with ./configure
 You can also download the pigsty source with `git`, remember to check out a specific version tag, the `main` branch is for development.
 
 ```bash
-git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v3.6.1
+git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v3.7.0
 ```
 
 </details>
