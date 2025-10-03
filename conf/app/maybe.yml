@@ -1,0 +1,121 @@
+---
+#==============================================================#
+# File      :   maybe.yml
+# Desc      :   pigsty config for running 1-node maybe app
+# Ctime     :   2025-09-08
+# Mtime     :   2025-09-08
+# Docs      :   https://doc.pgsty.com/app/maybe
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+# tutorial: https://doc.pgsty.com/app/maybe
+# how to use this template:
+#
+#  curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty
+# ./bootstrap               # prepare local repo & ansible
+# ./configure -c app/maybe  # Use this maybe config template
+# vi pigsty.yml             # IMPORTANT: CHANGE CREDENTIALS!!
+# ./install.yml             # install pigsty & pgsql
+# ./docker.yml              # install docker & docker-compose
+# ./app.yml                 # install maybe
+
+all:
+  children:
+
+    # the maybe application (personal finance management)
+    maybe:
+      hosts: { 10.10.10.10: {} }
+      vars:
+        app: maybe   # specify app name to be installed (in the apps)
+        apps:        # define all applications
+          maybe:     # app name, should have corresponding ~/pigsty/app/maybe folder
+            file:    # optional directory to be created
+              - { path: /data/maybe             ,state: directory ,mode: 0755 }
+              - { path: /data/maybe/storage     ,state: directory ,mode: 0755 }
+            conf:    # override /opt/<app>/.env config file
+              # Core Configuration
+              MAYBE_VERSION: latest                    # Maybe image version
+              MAYBE_PORT: 5002                         # Port to expose Maybe service
+              MAYBE_DATA: /data/maybe                  # Data directory for Maybe
+              APP_DOMAIN: maybe.pigsty                 # Domain name for Maybe
+              
+              # REQUIRED: Generate with: openssl rand -hex 64
+              SECRET_KEY_BASE: sk-9f73s3ljTXVcMT3Blb3ljTqtsKiGHXVcMT3BlbkFJLK7U
+              
+              # Database Configuration
+              DB_HOST: 10.10.10.10                    # PostgreSQL host
+              DB_PORT: 5432                           # PostgreSQL port
+              DB_USERNAME: maybe                      # PostgreSQL username
+              DB_PASSWORD: MaybeFinance2025           # PostgreSQL password (CHANGE THIS!)
+              DB_DATABASE: maybe_production           # PostgreSQL database name
+              
+              # Optional: API Integration
+              #SYNTH_API_KEY:                         # Get from synthfinance.com
+
+    # the maybe database
+    pg-maybe:
+      hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
+      vars:
+        pg_cluster: pg-maybe
+        pg_users:
+          - { name: maybe    ,password: MaybeFinance2025 ,pgbouncer: true ,roles: [ dbrole_admin ] ,createdb: true ,comment: admin user for maybe service }
+          - { name: maybe_ro ,password: MaybeFinance2025 ,pgbouncer: true ,roles: [ dbrole_readonly ]  ,comment: read only user for maybe service  }
+          - { name: maybe_rw ,password: MaybeFinance2025 ,pgbouncer: true ,roles: [ dbrole_readwrite ] ,comment: read write user for maybe service }
+        pg_databases:
+          - { name: maybe_production ,owner: maybe ,revokeconn: true ,comment: maybe main database  }
+        pg_hba_rules:
+          - { user: maybe ,db: all ,addr: 172.17.0.0/16  ,auth: pwd ,title: 'allow maybe access from local docker network' }
+          - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
+        node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
+
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
+    #minio: { hosts: { 10.10.10.10: { minio_seq: 1 } }, vars: { minio_cluster: minio } }
+
+  vars:                               # global variables
+    version: v3.6.1                   # pigsty version string
+    admin_ip: 10.10.10.10             # admin node ip address
+    region: default                   # upstream mirror region: default|china|europe
+    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
+    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+
+    docker_enabled: true              # enable docker on app group
+    #docker_registry_mirrors: ["https://docker.1panel.live","https://docker.1ms.run","https://docker.xuanyuan.me","https://registry-1.docker.io"]
+
+    proxy_env:                        # global proxy env when downloading packages & pull docker images
+      no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.tsinghua.edu.cn"
+      #http_proxy:  127.0.0.1:12345 # add your proxy env here for downloading packages or pull images
+      #https_proxy: 127.0.0.1:12345 # usually the proxy is format as http://user:pass@proxy.xxx.com
+      #all_proxy:   127.0.0.1:12345
+
+    infra_portal: # domain names and upstream servers
+      home         : { domain: h.pigsty }
+      grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
+      prometheus   : { domain: p.pigsty ,endpoint: "${admin_ip}:9090" }
+      alertmanager : { domain: a.pigsty ,endpoint: "${admin_ip}:9093" }
+      blackbox     : { endpoint: "${admin_ip}:9115" }
+      loki         : { endpoint: "${admin_ip}:3100" }
+      minio        : { domain: m.pigsty    ,endpoint: "${admin_ip}:9001" ,scheme: https ,websocket: true }
+      maybe:                          # nginx server config for maybe
+        domain: maybe.pigsty          # REPLACE WITH YOUR OWN DOMAIN!
+        endpoint: "10.10.10.10:5002"  # maybe service endpoint: IP:PORT
+        websocket: true               # add websocket support
+
+    #----------------------------------#
+    # Credential: CHANGE THESE PASSWORDS
+    #----------------------------------#
+    #grafana_admin_username: admin
+    grafana_admin_password: pigsty
+    #pg_admin_username: dbuser_dba
+    pg_admin_password: DBUser.DBA
+    #pg_monitor_username: dbuser_monitor
+    pg_monitor_password: DBUser.Monitor
+    #pg_replication_username: replicator
+    pg_replication_password: DBUser.Replicator
+    #patroni_username: postgres
+    patroni_password: Patroni.API
+    #haproxy_admin_username: admin
+    haproxy_admin_password: pigsty
+
+...
