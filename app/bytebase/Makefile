@@ -10,11 +10,11 @@ run: pg
         --restart always --detach \
         --publish 8887:8887 \
         --volume /data/bytebase/data:/var/opt/bytebase \
+        -e PG_URL=postgresql://dbuser_bytebase:DBUser.Bytebase@10.10.10.10:5432/bytebase \
         bytebase/bytebase:latest \
         --data /var/opt/bytebase \
         --external-url http://ddl.pigsty \
-        --port 8887 \
-        --pg=postgresql://dbuser_bytebase:DBUser.Bytebase@10.10.10.10:5432/bytebase
+        --port 8887
 
 view:
 	@echo "visit http://ddl.pigsty  or  http://10.10.10.10:8887"
