@@ -6,7 +6,7 @@
   tags: docker_install
   ignore_errors: true  # HOTFIX for EL8 Docker installation
   package: name={{ item }} state=present
-  with_items:
+  loop:
     - docker-ce
     - docker-compose-plugin
 
@@ -18,7 +18,7 @@
   ignore_errors: true
   tags: docker_admin
   user: name={{ item }} append=true groups=docker
-  with_items:
+  loop:
     - "{% if node_user == 'root' %}{{ node_admin_username }}{% else %}{{ node_user }}{% endif %}"
     - "{{ node_admin_username }}"
 
@@ -30,7 +30,7 @@
   copy: src={{ item.src }} dest={{ item.dest }} mode=0644
   tags: docker_alias
   ignore_errors: false
-  with_items:
+  loop:
     - { src: docker    ,dest: /etc/bash_completion.d/docker }
     - { src: docker.sh ,dest: /etc/profile.d/docker.sh }
 
@@ -73,7 +73,7 @@
   tags: [ docker_register, register_prometheus ]
   ignore_errors: true
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"]|default([]) }}'
+  loop: '{{ groups["infra"]|default([]) }}'
   copy:
     dest: "{{ prometheus_sd_dir }}/docker/{{ inventory_hostname }}.yml"
     owner: prometheus
@@ -94,7 +94,7 @@
     - name: pull docker images
       when: docker_image is defined and docker_image|length > 0
       command: docker pull "{{ item }}"
-      with_items: "{{ docker_image }}"
+      loop: "{{ docker_image }}"
 
     - name: find local docker image cache
       find:

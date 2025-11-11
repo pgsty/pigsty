@@ -4,14 +4,14 @@
 #--------------------------------------------------------------#
 - name: remove pgsql cluster dns for primary
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"] | default([]) }}'
+  loop: '{{ groups["infra"] | default([]) }}'
   when: pg_role == 'primary'
   file: state=absent path=/etc/hosts.d/{{ pg_cluster }}
 
 
 - name: remove pgsql instance dns
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"] | default([]) }}'
+  loop: '{{ groups["infra"] | default([]) }}'
   ignore_errors: true
   file: state=absent path=/etc/hosts.d/{{ pg_cluster }}-{{ pg_seq }}
 ...

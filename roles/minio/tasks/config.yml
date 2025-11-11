@@ -5,7 +5,7 @@
 - name: render minio config
   tags: minio_conf
   template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
-  with_items:
+  loop:
     - { src: "minio.default" , dest: "/etc/default/minio"              ,owner: root, group: minio ,mode: '0644' }
     - { src: "minio.service" , dest: "{{ systemd_dir }}/minio.service" ,owner: root, group: root  ,mode: '0644' }
 
@@ -68,7 +68,7 @@
     - name: copy minio certificates
       when: minio_https|bool
       copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
-      with_items:
+      loop:
         - { src: "files/pki/ca/ca.crt"                       ,dest: "/home/{{ minio_user }}/.minio/certs/CAs/ca.crt"  ,owner: "{{ minio_user }}", group: "minio" ,mode: "0644" }
         - { src: "files/pki/minio/{{ minio_instance }}.crt"  ,dest: "/home/{{ minio_user }}/.minio/certs/public.crt"  ,owner: "{{ minio_user }}", group: "minio" ,mode: "0644" }
         - { src: "files/pki/minio/{{ minio_instance }}.key"  ,dest: "/home/{{ minio_user }}/.minio/certs/private.key" ,owner: "{{ minio_user }}", group: "minio" ,mode: "0600" }
@@ -94,12 +94,12 @@
       lineinfile:
         path: /etc/hosts
         line: "{{ item.strip() }} # minio dns"
-      with_items: "{{ minio_member.split(',') }}"
+      loop: "{{ minio_member.split(',') }}"
 
 - name: write minio instance dns to infra nameserver
   tags: [ minio_dns , register_dns ]
   delegate_to: '{{ item }}'
-  with_items: "{{ groups['infra'] | default([]) }}"
+  loop: "{{ groups['infra'] | default([]) }}"
   copy:
     dest: /etc/hosts.d/{{ minio_instance }}
     mode: 0644
@@ -115,7 +115,7 @@
   delegate_to: '{{ item }}'
   run_once: true
   ignore_errors: true
-  with_items: '{{ groups["infra"] | default([]) }}'
+  loop: '{{ groups["infra"] | default([]) }}'
   systemd: name=dnsmasq state=reloaded enabled=yes daemon_reload=yes
 
 ...

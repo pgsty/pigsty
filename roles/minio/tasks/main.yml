@@ -27,9 +27,9 @@
       set_fact:
         minio_cluster_size={{ minio_meta | json_query("[].inventory_hostname") | unique | length }}
         minio_cluster_members={{ minio_meta | json_query("[].inventory_hostname") | unique | sort }}
-        minio_seq_min={{ minio_meta | json_query('min([].minio_seq)') | int  }}
-        minio_seq_max={{ minio_meta | json_query('max([].minio_seq)') | int  }}
-        minio_seq_range={% raw %}{{% endraw %}{{ minio_meta | json_query('min([].minio_seq)') | int  }}...{{ minio_meta | json_query('max([].minio_seq)') | int  }}{% raw %}}{% endraw %}
+        minio_seq_min={{ (minio_meta | json_query('[].minio_seq') | map('int') | list | min) if (minio_meta | length > 0) else 0 }}
+        minio_seq_max={{ (minio_meta | json_query('[].minio_seq') | map('int') | list | max) if (minio_meta | length > 0) else 0 }}
+        minio_seq_range={% raw %}{{% endraw %}{{ (minio_meta | json_query('[].minio_seq') | map('int') | list | min) if (minio_meta | length > 0) else 0 }}...{{ (minio_meta | json_query('[].minio_seq') | map('int') | list | max) if (minio_meta | length > 0) else 0 }}{% raw %}}{% endraw %}
         minio_member="{% for host in minio_meta %}{% if not loop.first %},{% endif %}{{ host.inventory_hostname }} {{ minio_node|replace('${minio_cluster}', host.minio_cluster)|replace('${minio_seq}', host.minio_seq|string) }}{% endfor %}"
 
     - name: calculate or use minio volumes
@@ -79,7 +79,7 @@
   when: prometheus_enabled|bool
   ignore_errors: true
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"] | default([]) }}'
+  loop: '{{ groups["infra"] | default([]) }}'
   copy:
     dest: "{{ prometheus_sd_dir }}/minio/{{ minio_cluster }}-{{ minio_seq }}.yml"
     owner: prometheus

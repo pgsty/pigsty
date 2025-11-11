@@ -13,7 +13,7 @@
 - name: register postgres to prometheus
   tags: [ pg_register, register_prometheus ]
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"]  | default([]) }}'
+  loop: '{{ groups["infra"]  | default([]) }}'
   ignore_errors: true
   when: pg_exporter_enabled|bool or pgbouncer_exporter_enabled|bool or (patroni_enabled|bool and patroni_mode != 'remove')
   copy:
@@ -41,7 +41,7 @@
 - name: register ssl patroni to prometheus
   tags: [ pg_register, register_prometheus ]
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"] | default([]) }}'
+  loop: '{{ groups["infra"] | default([]) }}'
   ignore_errors: true
   when: patroni_ssl_enabled|bool and patroni_enabled|bool and patroni_mode != 'remove'
   copy:
@@ -56,7 +56,7 @@
 - name: register pg vip ping target to prometheus
   tags: [ pg_register, register_prometheus ]
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"] | default([]) }}'
+  loop: '{{ groups["infra"] | default([]) }}'
   ignore_errors: true
   when: pg_vip_enabled|bool and pg_vip_address is defined and pg_vip_address != ''
   copy:

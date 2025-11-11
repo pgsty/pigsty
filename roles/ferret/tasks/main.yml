@@ -54,12 +54,12 @@
 
     - name: purge mongo/ferretdb config file
       file: path="{{ item }}" state=absent
-      with_items: [ /etc/default/ferretdb, /var/lib/mongod/ca.crt, /var/lib/mongod/server.crt, /var/lib/mongod/server.key ]
+      loop: [ /etc/default/ferretdb, /var/lib/mongod/ca.crt, /var/lib/mongod/server.crt, /var/lib/mongod/server.key ]
 
     - name: remove mongo/ferret register from prometheus target
       tags: [ mongo_deregister ]
       delegate_to: '{{ item }}'
-      with_items: '{{ groups["infra"]|default([]) }}'
+      loop: '{{ groups["infra"]|default([]) }}'
       file:
         path: "{{ prometheus_sd_dir }}/mongo/{{ mongo_cluster }}-{{ mongo_seq }}.yml"
         state: absent
@@ -114,7 +114,7 @@
   tags: [ mongo_register, register_prometheus ]
   ignore_errors: true
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"]|default([]) }}'
+  loop: '{{ groups["infra"]|default([]) }}'
   copy:
     dest: "{{ prometheus_sd_dir }}/mongo/{{ mongo_cluster }}-{{ mongo_seq }}.yml"
     owner: prometheus

@@ -33,14 +33,14 @@
     - name: deregister redis node from prometheus
       when: redis_port is not defined
       delegate_to: '{{ item }}'
-      with_items: '{{ groups["infra"]|default([]) }}'
+      loop: '{{ groups["infra"]|default([]) }}'
       file: path="{{ prometheus_sd_dir }}/redis/{{ redis_cluster }}-{{ redis_node }}.yml" state=absent
 
     # remove single redis instance on that node if redis_port is defined
     - name: deregister redis instance from prometheus # (single instance)
       when: redis_port is defined
       delegate_to: '{{ item }}'
-      with_items: '{{ groups["infra"]|default([]) }}'
+      loop: '{{ groups["infra"]|default([]) }}'
       copy:
         dest: "{{ prometheus_sd_dir }}/redis/{{ redis_cluster }}-{{ redis_node }}.yml"
         owner: prometheus
@@ -113,7 +113,7 @@
   ignore_errors: yes
   tags: redis_pkg
   package: name={{ item }} state=absent
-  with_items:
+  loop:
     - redis
     - "{% if os_package|default('rpm') == 'deb' %}redis-exporter{% else %}redis_exporter{% endif %}"
 

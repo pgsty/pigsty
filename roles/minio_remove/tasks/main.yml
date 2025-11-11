@@ -54,7 +54,7 @@
   tags: [ minio_deregister, prometheus , register ]
   ignore_errors: true
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"]|default([]) }}'
+  loop: '{{ groups["infra"]|default([]) }}'
   file: path="{{ prometheus_sd_dir }}/minio/{{ minio_cluster }}-{{ minio_seq }}.yml" state=absent
 
 
@@ -101,12 +101,12 @@
 
     - name: remove minio data directories
       file: path="{{ item.strip() }}" state=absent
-      with_items: "{{ minio_data_dirs.split(',') }}"
+      loop: "{{ minio_data_dirs.split(',') }}"
 
     - name: remove minio config files
       tags: minio_config
       file: path={{ item }} state=absent
-      with_items:
+      loop:
         - "/etc/default/minio"
         - "/var/lib/minio"
         - "{{ systemd_dir }}/minio.service"
@@ -119,5 +119,5 @@
   tags: minio_pkg
   when: minio_rm_pkg|bool
   package: name={{ item }} state=absent
-  with_items: [ minio , mcli ]
+  loop: [ minio , mcli ]
 ...

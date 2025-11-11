@@ -24,7 +24,7 @@
   delegate_to: '{{ item }}'
   shell: mcli alias set {{ minio_alias }} {% if minio_endpoint is defined and minio_endpoint != '' %}{{ minio_endpoint }}{% else %}{% if minio_https|bool %}https{% else %}http{% endif %}://{{ minio_domain }}:{{ minio_port }}{% endif %} {{ minio_access_key }} {{ minio_secret_key }}
   args: { executable: /bin/bash }
-  with_items: '{{ groups["infra"] | default([]) }}'
+  loop: '{{ groups["infra"] | default([]) }}'
   register: result
   retries: 5
   until: result.rc == 0
@@ -39,7 +39,7 @@
   delegate_to: '{{ item }}'
   shell: mcli alias set {{ minio_alias }} {% if minio_endpoint is defined and minio_endpoint != '' %}{{ minio_endpoint }}{% else %}{% if minio_https|bool %}https{% else %}http{% endif %}://{{ minio_domain }}:{{ minio_port }}{% endif %} {{ minio_access_key }} {{ minio_secret_key }}
   args: { executable: /bin/bash }
-  with_items: '{{ minio_cluster_members }}'
+  loop: '{{ minio_cluster_members }}'
   register: result
   retries: 5
   until: result.rc == 0
@@ -61,19 +61,19 @@
     # render policy.json template for each bucket
     - name: render minio bucket policies
       template: src=policy.json dest=/tmp/{{ item.name }}.json
-      with_items: '{{ minio_buckets }}'
+      loop: '{{ minio_buckets }}'
 
     - name: create minio buckets
       shell: |
         mcli mb --ignore-existing {% if item.lock is defined and item.lock|bool %}--with-lock{% endif %} {% if item.versioning is defined and item.versioning|bool %}--with-versioning{% endif %} {{ minio_alias }}/{{ item.name }}
       args: { executable: /bin/bash }
-      with_items: '{{ minio_buckets }}'
+      loop: '{{ minio_buckets }}'
 
     - name: create minio bucket policies
       shell: |
         mcli admin policy create {{ minio_alias }} {{ item.name }} /tmp/{{ item.name }}.json
       args: { executable: /bin/bash }
-      with_items: '{{ minio_buckets }}'
+      loop: '{{ minio_buckets }}'
 
 
 #--------------------------------------------------------------#
@@ -92,6 +92,6 @@
     {% endif %}
     set -o history
   args: { executable: /bin/bash }
-  with_items: '{{ minio_users }}'
+  loop: '{{ minio_users }}'
   #no_log: true
 ...

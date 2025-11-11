@@ -7,13 +7,13 @@
   become: yes
   ignore_errors: yes
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"] | default([]) }}'
+  loop: '{{ groups["infra"] | default([]) }}'
   file: state=absent path={{ prometheus_sd_dir }}/pgsql/{{ pg_cluster }}-{{ pg_seq }}.yml
 
 # remove /etc/prometheus/targets/patroni/{{ pg_instance }}.yml
 - name: remove ssl patroni target from prometheus
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"] | default([]) }}'
+  loop: '{{ groups["infra"] | default([]) }}'
   ignore_errors: true
   when: patroni_ssl_enabled|bool
   file: state=absent path={{ prometheus_sd_dir }}/patroni/{{ pg_cluster }}-{{ pg_seq }}.yml
@@ -23,7 +23,7 @@
   become: yes
   ignore_errors: yes
   delegate_to: '{{ item }}'
-  with_items: '{{ groups["infra"] | default([]) }}'
+  loop: '{{ groups["infra"] | default([]) }}'
   file: state=absent path={{ prometheus_sd_dir }}/ping/{{ pg_vip_address_ip }}---{{ inventory_hostname }}.yml
   vars:
     pg_vip_address_ip:  "{{ pg_vip_address.split('/')[0] }}"
