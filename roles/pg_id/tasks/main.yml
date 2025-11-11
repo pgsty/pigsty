@@ -26,7 +26,7 @@
         pg_cluster_size={{ pg_meta | json_query("[].inventory_hostname") | unique | length }}
         pg_cluster_members={{ pg_meta | json_query("[].inventory_hostname") | unique | sort }}
         pg_cluster_replicas={{ pg_meta | json_query("[?pg_role!='primary'].inventory_hostname") | unique | sort }}
-        pg_seq_next={{ pg_meta | json_query('max([].pg_seq)') | int + 1 }}
+        pg_seq_next={{ (pg_meta | json_query('[].pg_seq') | map('int') | list | max) + 1 }}
         pg_primary_list={{ pg_meta | json_query("[?pg_role=='primary'].inventory_hostname") | unique | sort }}
         pg_primary_ip={% set plist = (pg_meta | json_query("[?pg_role=='primary'].inventory_hostname") | unique | sort) %}{% if plist|length == 1 %}{{ plist[0] }}{% else %}unknown{% endif %}
         pg_primary_seq={% set plist = (pg_meta | json_query("[?pg_role=='primary'].pg_seq") | unique | sort) %}{% if plist|length == 1 %}{{ plist[0] }}{% else %}unknown{% endif %}
