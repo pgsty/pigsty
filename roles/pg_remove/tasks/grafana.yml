@@ -8,12 +8,12 @@
   delegate_to: "{{ admin_ip }}"
   when: item.register_data_source is not defined or item.register_data_source|bool
   shell: |
-    curl -X DELETE "{{ endpoint }}/api/datasources/name/{{ name }}" -u "{{ username }}:{{ password }}" -H 'Content-Type: application/json'
+    curl -X DELETE "{{ endpoint }}/api/datasources/name/{{ ds_name }}" -u "{{ grafana_user }}:{{ grafana_pass }}" -H 'Content-Type: application/json'
   args: { executable: /bin/bash }
   vars:
-    name: "{{ pg_cluster }}-{{ pg_seq }}.{{ item.name }}"
+    ds_name: "{{ pg_cluster }}-{{ pg_seq }}.{{ item.name }}"
     endpoint: "http://{{ infra_portal.grafana.endpoint|replace('${admin_ip}' ,admin_ip) }}"
-    username: "{{ grafana_admin_username|default('admin') }}"
-    password: "{{ grafana_admin_password|default('pigsty') }}"
+    grafana_user: "{{ grafana_admin_username|default('admin') }}"
+    grafana_pass: "{{ grafana_admin_password|default('pigsty') }}"
   with_items: "{{ pg_databases }}"
 ...

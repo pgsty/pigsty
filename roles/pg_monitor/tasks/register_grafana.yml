@@ -15,14 +15,14 @@
     #--------------------------------------------------------------#
     - name: render grafana datasource for {{ database.name }}
       copy:
-        dest: "/etc/pigsty/datasources/{{ name }}.json"
+        dest: "/etc/pigsty/datasources/{{ ds_name }}.json"
         content: |
           {
             "type": "postgres",
             "access": "proxy",
-            "name": "{{ name }}",
-            "url": "{{ host }}:{{ port }}",
-            "user": "{{ username }}",
+            "name": "{{ ds_name }}",
+            "url": "{{ db_host }}:{{ db_port }}",
+            "user": "{{ db_username }}",
             "database": "{{ dbname }}",
             "typeLogoUrl": "",
             "basicAuth": false,
@@ -41,16 +41,16 @@
               "tlsAuthWithCACert": false
             },
             "secureJsonData":{
-              "password": "{{ password }}"
+              "password": "{{ db_password }}"
             }
           }
         mode: 0600
       vars:
-        name: "{{ pg_cluster }}-{{ pg_seq }}.{{ database.name }}"
-        host: "{{ inventory_hostname }}"
-        port: "{{ pg_port|default(5432) }}"
-        username: "{{ pg_monitor_username|default('dbuser_monitor') }}"
-        password: "{{ pg_monitor_password|default('DBUser.Monitor') }}"
+        ds_name: "{{ pg_cluster }}-{{ pg_seq }}.{{ database.name }}"
+        db_host: "{{ inventory_hostname }}"
+        db_port: "{{ pg_port|default(5432) }}"
+        db_username: "{{ pg_monitor_username|default('dbuser_monitor') }}"
+        db_password: "{{ pg_monitor_password|default('DBUser.Monitor') }}"
         version: "{% if pg_version is defined %}{% if pg_version|int >= 15 %}15{% else %}{{ pg_version }}{% endif %}{% else %}10{% endif %}00"
         dbname: "{{ database.name }}"
 
@@ -61,13 +61,13 @@
       delegate_to: "{{ admin_ip }}"
       ignore_errors: true
       shell: |
-        curl -X DELETE "{{ endpoint }}/api/datasources/name/{{ name }}" -u "{{ username }}:{{ password }}"  -H 'Content-Type: application/json' 
-        curl -X POST   "{{ endpoint }}/api/datasources/" -u "{{ username }}:{{ password }}" -H 'Content-Type: application/json' -d @/etc/pigsty/datasources/{{ name }}.json
+        curl -X DELETE "{{ endpoint }}/api/datasources/name/{{ ds_name }}" -u "{{ grafana_user }}:{{ grafana_pass }}"  -H 'Content-Type: application/json'
+        curl -X POST   "{{ endpoint }}/api/datasources/" -u "{{ grafana_user }}:{{ grafana_pass }}" -H 'Content-Type: application/json' -d @/etc/pigsty/datasources/{{ ds_name }}.json
       args: { executable: /bin/bash }
       vars:
-        name: "{{ pg_cluster }}-{{ pg_seq }}.{{ database.name }}"
+        ds_name: "{{ pg_cluster }}-{{ pg_seq }}.{{ database.name }}"
         endpoint: "{{ 'http://' +  infra_portal.grafana.endpoint|default('${admin_ip}:3000')|replace('${admin_ip}', admin_ip) }}"
-        username: "{{ grafana_admin_username|default('admin') }}"
-        password: "{{ grafana_admin_password|default('pigsty') }}"
+        grafana_user: "{{ grafana_admin_username|default('admin') }}"
+        grafana_pass: "{{ grafana_admin_password|default('pigsty') }}"
 
 ...
