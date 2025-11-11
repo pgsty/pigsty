@@ -39,7 +39,7 @@
       shell: "cd /etc/haproxy; rm -rf {{ pg_cluster }}-*.cfg;"
       args: { executable: /bin/bash }
       delegate_to: "{{ item }}"
-      with_items: "{{ groups[pg_service_provider] }}"
+      loop: "{{ groups[pg_service_provider] if (pg_service_provider != '' and pg_service_provider in groups) else [] }}"
 
     # WARNING: if centralized dedicate haproxy is used, it will fail if haproxy config is not valid!!
     # if the check fails on this step, haproxy will not be reloaded
@@ -48,12 +48,12 @@
       any_errors_fatal: true
       command: /usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg -c -q
       delegate_to: "{{ item }}"
-      with_items: "{{ groups[pg_service_provider] }}"
+      loop: "{{ groups[pg_service_provider] if (pg_service_provider != '' and pg_service_provider in groups) else [] }}"
 
     # even if you perform haproxy reload on junk config, it will not fail
     - name: reload haproxy
       systemd: name=haproxy state=reloaded enabled=yes daemon_reload=yes
       delegate_to: "{{ item }}"
-      with_items: "{{ groups[pg_service_provider] }}"
+      loop: "{{ groups[pg_service_provider] if (pg_service_provider != '' and pg_service_provider in groups) else [] }}"
 
 ...

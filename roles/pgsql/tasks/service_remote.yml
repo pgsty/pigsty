@@ -8,12 +8,14 @@
 
     # remove service definition with pg_cluster are name prefix
     - name: wipe existing postgres service from remote haproxy
+      when: pg_service_provider != '' and pg_service_provider in groups
       shell: "cd /etc/haproxy; rm -rf {{ pg_cluster }}-*.cfg;"
       args: { executable: /bin/bash }
       delegate_to: "{{ item }}"
-      with_items: "{{ groups[pg_service_provider] }}"
+      loop: "{{ groups[pg_service_provider] if (pg_service_provider != '' and pg_service_provider in groups) else [] }}"
 
     - name: render haproxy service on remote haproxy
+      when: pg_service_provider != '' and pg_service_provider in groups
       template: src=service.cfg dest=/etc/haproxy/{{ service_name }}.cfg owner=root mode=0644
       delegate_to: "{{ item[1] }}"
       vars:
@@ -22,7 +24,7 @@
         pg_cluster_members_query: "[@.*][0][?pg_cluster=='{{ pg_cluster }}']"
       with_nested:
         - "{{ pg_default_services + pg_services }}"
-        - "{{ groups[pg_service_provider] }}"
+        - "{{ groups[pg_service_provider] if (pg_service_provider != '' and pg_service_provider in groups) else [] }}"
 
 #--------------------------------------------------------------#
 # Reload Haproxy                             [pg_service_reload]
@@ -35,17 +37,19 @@
 
     # if the check fails on this step, haproxy will not be reloaded
     - name: check remote haproxy config before reload
+      when: pg_service_provider != '' and pg_service_provider in groups
       ignore_errors: false
       any_errors_fatal: true
       command: /usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg -c -q
       delegate_to: "{{ item }}"
-      with_items: "{{ groups[pg_service_provider] }}"
+      loop: "{{ groups[pg_service_provider] if (pg_service_provider != '' and pg_service_provider in groups) else [] }}"
 
     # even if you perform haproxy reload on junk config, it will not fail
     - name: reload remote haproxy
+      when: pg_service_provider != '' and pg_service_provider in groups
       ignore_errors: false
       systemd: name=haproxy state=reloaded enabled=yes daemon_reload=yes
       delegate_to: "{{ item }}"
-      with_items: "{{ groups[pg_service_provider] }}"
+      loop: "{{ groups[pg_service_provider] if (pg_service_provider != '' and pg_service_provider in groups) else [] }}"
 
 ...
