@@ -671,6 +671,10 @@ simu24: csimu del vsimu24 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.u24.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.u24.${ARCH}.tgz 10.10.10.11:/tmp/pkg.tgz ; ssh 10.10.10.11 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 
+rs:
+	rsync -avz --exclude=vagrant ./ ai:~/pigsty/
+ext:
+	psql vonng -c "COPY (select id,name,pkg as alias,category,lead,rpm_repo,rpm_pkg,rpm_pg,deb_repo,deb_pkg,deb_pg FROM pgext.extension ORDER BY id) TO STDOUT CSV HEADER;" > files/extension.csv
 ###############################################################
 
 
