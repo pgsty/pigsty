@@ -38,7 +38,7 @@
 
     # abort becomes user does not provide their ca key & certs
     - name: ABORT if ca key not exists
-      when: not ca_key_exists.stat.exists|bool and not ca_create|bool
+      when: not ca_key_exists.stat.exists and not ca_create|bool
       any_errors_fatal: true
       ignore_errors: false
       fail:
@@ -46,7 +46,7 @@
 
     # generate ca private key on /etc/pki/ when ca_create is true
     - name: generate ca private key
-      when: not ca_key_exists.stat.exists|bool and ca_create|bool
+      when: not ca_key_exists.stat.exists and ca_create|bool
       openssl_privatekey: path=files/pki/ca/ca.key mode=0600
 
 #--------------------------------------------------------------#
@@ -66,7 +66,7 @@
 
     # generate ca self-signing request
     - name: generate ca signing request
-      when: not ca_crt_exists.stat.exists|bool
+      when: not ca_crt_exists.stat.exists
       openssl_csr:
         path: files/pki/csr/ca.csr
         privatekey_path: files/pki/ca/ca.key
@@ -84,7 +84,7 @@
 
     # approve csr and get self-signed ca cert
     - name: generate self-signed ca.crt
-      when: not ca_crt_exists.stat.exists|bool
+      when: not ca_crt_exists.stat.exists
       openssl_certificate:
         path: files/pki/ca/ca.crt
         csr_path: files/pki/csr/ca.csr
