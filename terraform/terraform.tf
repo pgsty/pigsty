@@ -2,7 +2,7 @@
 # File      :   terraform.yml
 # Desc      :   1-node cloud vm env for x86_64/aarch64
 # Ctime     :   2020-05-12
-# Mtime     :   2025-08-15
+# Mtime     :   2025-11-11
 # Path      :   terraform/terraform.yml
 # Docs      :   https://doc.pgsty.com/prepare/terraform
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -47,6 +47,7 @@ locals {
       u22   = "^ubuntu_22_04_x64"
       u24   = "^ubuntu_24_04_x64"
       an8   = "^anolisos_8_9_x64"
+      al3   = "^aliyun_3_0_x64"
     }
     arm64 = {
       el8   = "^rockylinux_8_10_arm64"

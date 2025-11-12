@@ -41,6 +41,7 @@ locals {
       u22   = "^ubuntu_22_04_x64"
       u24   = "^ubuntu_24_04_x64"
       an8   = "^anolisos_8_9_x64"
+      al3   = "^aliyun_3_0_x64"
     }
     arm64 = {
       el8   = "^rockylinux_8_10_arm64"
