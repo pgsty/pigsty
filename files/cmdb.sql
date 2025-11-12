@@ -1253,7 +1253,7 @@ INSERT INTO pigsty.default_var VALUES
 (106, 'ca_cn', '"pigsty-ca"', 'INFRA', 'CA', 'string', 'G', 'ca common name, fixed as pigsty-ca', NULL),
 (107, 'cert_validity', '"7300d"', 'INFRA', 'CA', 'interval', 'G', 'cert validity, 20 years by default', NULL),
 (108, 'infra_seq', NULL, 'INFRA', 'INFRA_ID', 'int', 'I', 'infra node identity, REQUIRED', NULL),
-(109, 'infra_portal', '{"home": {"domain": "h.pigsty"}, "loki": {"endpoint": "${admin_ip}:3100"}, "grafana": {"domain": "g.pigsty", "endpoint": "${admin_ip}:3000", "websocket": true}, "blackbox": {"endpoint": "${admin_ip}:9115"}, "prometheus": {"domain": "p.pigsty", "endpoint": "${admin_ip}:9058"}, "alertmanager": {"domain": "a.pigsty", "endpoint": "${admin_ip}:9093"}}', 'INFRA', 'INFRA_ID', 'dict', 'G', 'infra services exposed via portal', NULL),
+(109, 'infra_portal', '{"home": {"domain": "h.pigsty"}, "loki": {"endpoint": "${admin_ip}:3100"}, "grafana": {"domain": "g.pigsty", "endpoint": "${admin_ip}:3000", "websocket": true}, "blackbox": {"endpoint": "${admin_ip}:9115"}, "prometheus": {"domain": "p.pigsty", "endpoint": "${admin_ip}:9058"}, "alertmanager": {"domain": "a.pigsty", "endpoint": "${admin_ip}:9059"}}', 'INFRA', 'INFRA_ID', 'dict', 'G', 'infra services exposed via portal', NULL),
 
 (110, 'repo_enabled', 'true', 'INFRA', 'REPO', 'bool', 'G/I', 'create a yum repo on this infra node?', NULL),
 (111, 'repo_home', '"/www"', 'INFRA', 'REPO', 'path', 'G', 'repo home dir, `/www` by default', NULL),
@@ -1300,7 +1300,7 @@ INSERT INTO pigsty.default_var VALUES
 (170, 'blackbox_enabled', 'true', 'INFRA', 'PROMETHEUS', 'bool', 'G/I', 'setup blackbox_exporter on this infra node?', NULL),
 (171, 'blackbox_options', '""', 'INFRA', 'PROMETHEUS', 'arg', 'G', 'blackbox_exporter extra server options', NULL),
 (174, 'alertmanager_enabled', 'true', 'INFRA', 'PROMETHEUS', 'bool', 'G/I', 'setup alertmanager on this infra node?', NULL),
-(175, 'alertmanager_port', '9093', 'INFRA', 'PROMETHEUS', 'port', 'G', 'alertmanager listen port, 9093 by default', NULL),
+(175, 'alertmanager_port', '9059', 'INFRA', 'PROMETHEUS', 'port', 'G', 'alertmanager listen port, 9059 by default', NULL),
 (176, 'alertmanager_options', '""', 'INFRA', 'PROMETHEUS', 'arg', 'G', 'alertmanager extra server options', NULL),
 (177, 'exporter_metrics_path', '"/metrics"', 'INFRA', 'PROMETHEUS', 'path', 'G', 'exporter metric path, `/metrics` by default', NULL),
 (178, 'exporter_install', '"none"', 'INFRA', 'PROMETHEUS', 'enum', 'G', 'how to install exporter? none,yum,binary', NULL),
