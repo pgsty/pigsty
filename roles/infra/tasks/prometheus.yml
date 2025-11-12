@@ -102,7 +102,7 @@
         owner: prometheus
         mode: 0755
         content: |
-          PROMETHEUS_OPTS='--config.file=/etc/prometheus/prometheus.yml --web.page-title="Pigsty Metrics" --storage.tsdb.path={{ prometheus_data }}/data {{ prometheus_options }}'
+          PROMETHEUS_OPTS='--config.file=/etc/prometheus/prometheus.yml --web.listen-address=":{{ prometheus_port|default(9058) }}" --web.page-title="Pigsty Metrics" --storage.tsdb.path={{ prometheus_data }}/data {{ prometheus_options }}'
 
     # - prometheus config - #
     - name: render prometheus config
@@ -128,7 +128,7 @@
 #--------------------------------------------------------------#
 # Launch Prometheus                          [prometheus_launch]
 #--------------------------------------------------------------#
-# launch prometheus on port 9090
+# launch prometheus on port 9058
 - name: launch prometheus
   tags: prometheus_launch
   when: prometheus_enabled|bool
@@ -136,7 +136,7 @@
     - name: launch prometheus systemd service
       systemd: name=prometheus state=restarted enabled=yes daemon_reload=yes
     - name: wait for prometheus service online
-      wait_for: host=127.0.0.1 port=9090 state=started
+      wait_for: host=127.0.0.1 port={{ prometheus_port|default(9058) }} state=started
 
 
 #--------------------------------------------------------------#

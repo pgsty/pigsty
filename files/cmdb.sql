@@ -1253,7 +1253,7 @@ INSERT INTO pigsty.default_var VALUES
 (106, 'ca_cn', '"pigsty-ca"', 'INFRA', 'CA', 'string', 'G', 'ca common name, fixed as pigsty-ca', NULL),
 (107, 'cert_validity', '"7300d"', 'INFRA', 'CA', 'interval', 'G', 'cert validity, 20 years by default', NULL),
 (108, 'infra_seq', NULL, 'INFRA', 'INFRA_ID', 'int', 'I', 'infra node identity, REQUIRED', NULL),
-(109, 'infra_portal', '{"home": {"domain": "h.pigsty"}, "loki": {"endpoint": "${admin_ip}:3100"}, "grafana": {"domain": "g.pigsty", "endpoint": "${admin_ip}:3000", "websocket": true}, "blackbox": {"endpoint": "${admin_ip}:9115"}, "prometheus": {"domain": "p.pigsty", "endpoint": "${admin_ip}:9090"}, "alertmanager": {"domain": "a.pigsty", "endpoint": "${admin_ip}:9093"}}', 'INFRA', 'INFRA_ID', 'dict', 'G', 'infra services exposed via portal', NULL),
+(109, 'infra_portal', '{"home": {"domain": "h.pigsty"}, "loki": {"endpoint": "${admin_ip}:3100"}, "grafana": {"domain": "g.pigsty", "endpoint": "${admin_ip}:3000", "websocket": true}, "blackbox": {"endpoint": "${admin_ip}:9115"}, "prometheus": {"domain": "p.pigsty", "endpoint": "${admin_ip}:9058"}, "alertmanager": {"domain": "a.pigsty", "endpoint": "${admin_ip}:9093"}}', 'INFRA', 'INFRA_ID', 'dict', 'G', 'infra services exposed via portal', NULL),
 
 (110, 'repo_enabled', 'true', 'INFRA', 'REPO', 'bool', 'G/I', 'create a yum repo on this infra node?', NULL),
 (111, 'repo_home', '"/www"', 'INFRA', 'REPO', 'path', 'G', 'repo home dir, `/www` by default', NULL),
@@ -1286,7 +1286,8 @@ INSERT INTO pigsty.default_var VALUES
 (151, 'dns_port', '53', 'INFRA', 'DNS', 'port', 'G', 'dns server listen port, 53 by default', NULL),
 (152, 'dns_records', '["${admin_ip} h.pigsty a.pigsty p.pigsty g.pigsty", "${admin_ip} api.pigsty adm.pigsty cli.pigsty ddl.pigsty lab.pigsty git.pigsty sss.pigsty wiki.pigsty"]', 'INFRA', 'DNS', 'string[]', 'G', 'dynamic dns records resolved by dnsmasq', NULL),
 
-(160, 'prometheus_enabled', 'true', 'INFRA', 'PROMETHEUS', 'bool', 'G/I', 'enable prometheus on this infra node?', NULL),
+(155, 'prometheus_enabled', 'true', 'INFRA', 'PROMETHEUS', 'bool', 'G/I', 'enable prometheus on this infra node?', NULL),
+(156, 'prometheus_port', '9058', 'INFRA', 'PROMETHEUS', 'port', 'G', 'prometheus listen port, 9058 by default', NULL),
 (161, 'prometheus_clean', 'true', 'INFRA', 'PROMETHEUS', 'bool', 'G/A', 'clean prometheus data during init?', NULL),
 (162, 'prometheus_data', '"/data/prometheus"', 'INFRA', 'PROMETHEUS', 'path', 'G', 'prometheus data dir, `/data/prometheus` by default', NULL),
 (163, 'prometheus_sd_dir', '"/etc/prometheus/targets"', 'INFRA', 'PROMETHEUS', 'path', 'G', 'prometheus file service discovery directory', NULL),

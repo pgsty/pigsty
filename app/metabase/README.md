@@ -32,7 +32,7 @@ Expose metabase UI with pigsty's Nginx via `infra_portal`:
 infra_portal:                     # domain names and upstream servers
   home         : { domain: h.pigsty }
   grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
-  prometheus   : { domain: p.pigsty ,endpoint: "${admin_ip}:9090" }
+  prometheus   : { domain: p.pigsty ,endpoint: "${admin_ip}:9058" }
   alertmanager : { domain: a.pigsty ,endpoint: "${admin_ip}:9093" }
   blackbox     : { endpoint: "${admin_ip}:9115" }
   loki         : { endpoint: "${admin_ip}:3100" }
