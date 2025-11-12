@@ -19,7 +19,7 @@
         minio_meta: "{{ hostvars|json_query(cluster_query) }}"
         minio_nodename: "{{ minio_node|replace('${minio_cluster}', minio_cluster)|replace('${minio_seq}', minio_seq|string) }}"
         minio_data_dirs: >-
-          {% set minio_multidriver =  minio_data | regex_search('{(\d+)...(\d+)}') %}{% if minio_multidriver and minio_multidriver != '' %}{% set minio_driver_min = (minio_data | regex_findall('{(\d+)...(\d+)}'))[0][0]|int %}{% set minio_driver_max = (minio_data | regex_findall('{(\d+)...(\d+)}'))[0][1]|int %}{% for i in range(minio_driver_min, minio_driver_max+1) %}{% if not loop.first %},{% endif %}{{ minio_data | regex_replace('{(\d+)...(\d+)}', i|string) }}{% endfor %}{% else %}{{ minio_data }}{% endif %}
+          {% set minio_multidriver =  minio_data | regex_search('{(\d+)...(\d+)}') %}{% if minio_multidriver and minio_multidriver != '' %}{% set minio_driver_min = (minio_data | regex_findall('{(\d+)...(\d+)}'))[0][0]|int %}{% set minio_driver_max = (minio_data | regex_findall('{(\d+)...(\d+)}'))[0][1]|int %}{% for i in range(minio_driver_min, minio_driver_max+1) | list %}{% if not loop.first %},{% endif %}{{ minio_data | regex_replace('{(\d+)...(\d+)}', i|string) }}{% endfor %}{% else %}{{ minio_data }}{% endif %}
       vars: { cluster_query: "[@.*][0][?minio_cluster=='{{ minio_cluster }}']" }
 
     - name: building minio params
