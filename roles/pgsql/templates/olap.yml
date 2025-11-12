@@ -25,8 +25,8 @@
 {% set pg_max_parallel_mt_workers = ([(node_cpu|int / 8)|round(0,'ceil'),2])|max|int %}
 {% set pg_allow_list = ( pg_cluster_members|default([]) + groups["infra"]|default([]) )|sort|unique %}
 {% set pg_listen_address = pg_listen | replace('${ip}', inventory_hostname)  | replace('${lo}', '127.0.0.1') %}
-{% if pg_vip_enabled|bool and not pg_vip_address.startswith('127.0.0') and '/' in pg_vip_address %}
-{% set pg_listen_address = pg_listen_address | replace('${vip}', pg_vip_address.split('/')[0]) %}
+{% if pg_vip_enabled|bool and not (pg_vip_address|string).startswith('127.0.0') and '/' in (pg_vip_address|string) %}
+{% set pg_listen_address = pg_listen_address | replace('${vip}', (pg_vip_address|string).split('/')[0]) %}
 {% endif %}
 
 #==============================================================#
@@ -436,6 +436,11 @@ bootstrap:
         # pgsodium
         pgsodium.getkey_script: /pg/bin/pgsodium_getkey
         pgsodium.enable_event_trigger: off
+{% endif %}
+
+{% if 'pg_duckdb' or 'pg_mooncake' in pg_libs | default("pg_stat_statements, auto_explain") %}
+        # pg_duckdb / pg_mooncake
+        duckdb.allow_community_extensions: true
 {% endif %}
 
 {% if pg_mode|default('pgsql') == 'polar' %}
