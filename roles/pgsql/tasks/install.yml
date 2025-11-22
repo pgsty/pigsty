@@ -28,6 +28,14 @@
           
           {% endfor %}
 
+    # postgres pre-install setup: remove conflicting packages on EL 9+
+    - name: postgres pre-install setup
+      ignore_errors: true
+      shell: |
+        dnf remove -y bpftool python3-perf || /bin/true
+      when: os_package|default('rpm') == 'rpm' and os_version|default(8)|int >= 9
+      # the bpftool python3-perf require the system llvm 19 conflict from pgdg-sysupdate llvm20 on el9/el10
+
     # install postgres basic packages
     - name: install postgres packages
       environment: "{{ proxy_env | default({}) }}"
