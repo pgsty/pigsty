@@ -32,7 +32,7 @@ locals {
   spot_policy = "SpotWithPriceLimit"    # NoSpot, SpotWithPriceLimit, SpotAsPriceGo
   spot_price_limit = 5                  # only valid when spot_policy is SpotWithPriceLimit
   instance_type_map = {
-    amd64 = "ecs.c8i.xlarge"
+    amd64 = "ecs.c9i.xlarge"
     arm64 = "ecs.c8y.xlarge"
   }
   image_regex_map = {
