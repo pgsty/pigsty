@@ -535,7 +535,7 @@ cdual:
 ctrio:
 	./configure -s -c ha/trio
 cfull:
-	./configure -s -c full
+	./configure -s -c ha/full
 csimu:
 	cp conf/simu.yml pigsty.yml
 coss:

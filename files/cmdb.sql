@@ -1489,7 +1489,7 @@ INSERT INTO pigsty.default_var VALUES
 (842, 'pg_dbsu_sudo', '"limit"', 'PGSQL', 'PG_INSTALL', 'enum', 'C', 'dbsu sudo privilege, none,limit,all,nopass. limit by default', NULL),
 (843, 'pg_dbsu_home', '"/var/lib/pgsql"', 'PGSQL', 'PG_INSTALL', 'path', 'C', 'postgresql home directory, `/var/lib/pgsql` by default', NULL),
 (844, 'pg_dbsu_ssh_exchange', 'true', 'PGSQL', 'PG_INSTALL', 'bool', 'C', 'exchange postgres dbsu ssh key among same pgsql cluster', NULL),
-(845, 'pg_version', '17', 'PGSQL', 'PG_INSTALL', 'enum', 'C', 'postgres major version to be installed, 15 by default', NULL),
+(845, 'pg_version', '18', 'PGSQL', 'PG_INSTALL', 'enum', 'C', 'postgres major version to be installed, 18 by default', NULL),
 (846, 'pg_bin_dir', '"/usr/pgsql/bin"', 'PGSQL', 'PG_INSTALL', 'path', 'C', 'postgres binary dir, `/usr/pgsql/bin` by default', NULL),
 (847, 'pg_log_dir', '"/pg/log/postgres"', 'PGSQL', 'PG_INSTALL', 'path', 'C', 'postgres log dir, `/pg/log/postgres` by default', NULL),
 (848, 'pg_packages', '["pgsql-main pgsql-common"]', 'PGSQL', 'PG_INSTALL', 'string[]', 'C', 'pg packages to be installed, `$v` will be replaced', NULL),
