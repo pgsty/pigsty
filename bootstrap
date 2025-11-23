@@ -3,7 +3,7 @@
 # File      :   bootstrap
 # Desc      :   setup local repo & install boot utils
 # Ctime     :   2022-10-16
-# Mtime     :   2025-07-01
+# Mtime     :   2025-11-23
 # Path      :   bootstrap
 # Docs      :   https://doc.pgsty.com/install/offline
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -459,21 +459,32 @@ EOF
 }
 
 # Usage: add_el10_repo [region] (default|china|europe)
+# add pigsty repo to fill some missing ansible packages
 function add_el10_repo(){
     local region=${1-"default"}
     local suffix=""
     if [ "${region}" = "china" ]; then
+      pigstyrepo="https://repo.pigsty.cc"
       baseurl="https://mirrors.aliyun.com"
       epelbase="https://mirrors.aliyun.com/epel"
       suffix=linux
     elif [ "${region}" = "europe" ]; then
+      pigstyrepo="https://repo.pigsty.io"
       baseurl="https://mirrors.xtom.de"
       epelbase="https://mirrors.xtom.de/epel"
     else
+      pigstyrepo="https://repo.pigsty.io"
       baseurl="https://dl.rockylinux.org/pub"
       epelbase="https://mirrors.edge.kernel.org/fedora-epel"
     fi
     cat > "/tmp/el${releasever}.repo" <<-EOF
+[pigsty-pgsql]
+name = Pigsty PGSQL \$releasever - \$basearch
+baseurl = ${pigstyrepo}/yum/pgsql/el\$releasever.\$basearch
+gpgcheck = 0
+enabled = 1
+skip_if_unavailable = 1
+module_hotfixes=1
 [baseos-default]
 name = EL ${releasever} BaseOS \$releasever - \$basearch
 baseurl = ${baseurl}/rocky${suffix}/\$releasever/BaseOS/\$basearch/os/
@@ -716,7 +727,7 @@ function check_utils(){
         elif [[ $OS_VERSION == "10" ]]; then
             log_info "install el10 utils"
             sudo dnf install -y createrepo_c unzip wget dnf-utils sshpass
-            sudo dnf install -y ansible-core
+            sudo dnf install -y ansible
         fi
     fi
 
