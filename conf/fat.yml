@@ -3,7 +3,7 @@
 # File      :   full.yml
 # Desc      :   Pigsty 4-node sandbox config template
 # Ctime     :   2020-05-22
-# Mtime     :   2025-07-03
+# Mtime     :   2025-11-22
 # Docs      :   https://doc.pgsty.com/config
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -13,7 +13,7 @@
 #
 # Usage:
 #   curl https://repo.pigsty.io/get | bash
-#   ./configure -c full
+#   ./configure -c conf/full
 #   ./install.yml
 
 all:
@@ -36,7 +36,7 @@ all:
         pg_cluster: pg-meta
 
         # install, load, create pg extensions: https://doc.pgsty.com/pgsql/extension
-        pg_extensions: [ postgis, timescaledb, pgvector, pg_wait_sampling ]
+        pg_extensions: [ pg18-main ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
         pg_libs: 'timescaledb, pg_stat_statements, auto_explain, pg_wait_sampling'
 
         # define business users/roles : https://doc.pgsty.com/pgsql/user
@@ -105,39 +105,6 @@ all:
         pg_vip_address: 10.10.10.2/24
         pg_vip_interface: eth1
 
-    #----------------------------------------------#
-    # PGSQL HA Cluster Example: 3-node pg-test
-    #----------------------------------------------#
-    pg-test:
-      hosts:
-        10.10.10.11: { pg_seq: 1, pg_role: primary }   # primary instance, leader of cluster
-        10.10.10.12: { pg_seq: 2, pg_role: replica }   # replica instance, follower of leader
-        10.10.10.13: { pg_seq: 3, pg_role: replica, pg_offline_query: true } # replica with offline access
-      vars:
-        pg_cluster: pg-test           # define pgsql cluster name
-        pg_users:  [{ name: test , password: test , pgbouncer: true , roles: [ dbrole_admin ] }]
-        pg_databases: [{ name: test }]
-        # define business service here: https://doc.pgsty.com/pgsql/service
-        pg_services:                        # extra services in addition to pg_default_services, array of service definition
-          # standby service will route {ip|name}:5435 to sync replica's pgbouncer (5435->6432 standby)
-          - name: standby                   # required, service name, the actual svc name will be prefixed with `pg_cluster`, e.g: pg-meta-standby
-            port: 5435                      # required, service exposed port (work as kubernetes service node port mode)
-            ip: "*"                         # optional, service bind ip address, `*` for all ip by default
-            selector: "[]"                  # required, service member selector, use JMESPath to filter inventory
-            dest: default                   # optional, destination port, default|postgres|pgbouncer|<port_number>, 'default' by default
-            check: /sync                    # optional, health check url path, / by default
-            backup: "[? pg_role == `primary`]"  # backup server selector
-            maxconn: 3000                   # optional, max allowed front-end connection
-            balance: roundrobin             # optional, haproxy load balance algorithm (roundrobin by default, other: leastconn)
-            options: 'inter 3s fastinter 1s downinter 5s rise 3 fall 3 on-marked-down shutdown-sessions slowstart 30s maxconn 3000 maxqueue 128 weight 100'
-        pg_extensions: [ postgis, timescaledb, pgvector, pg_wait_sampling ]
-        pg_libs: 'timescaledb, pg_stat_statements, auto_explain, pg_wait_sampling'
-        pg_vip_enabled: true
-        pg_vip_address: 10.10.10.3/24
-        pg_vip_interface: eth1
-        node_crontab:  # make a full backup on monday 1am, and an incremental backup during weekdays
-          - '00 01 * * 1 postgres /pg/bin/pg-backup full'
-          - '00 01 * * 2,3,4,5,6,7 postgres /pg/bin/pg-backup'
 
     #----------------------------------------------#
     # INFRA : https://doc.pgsty.com/infra
@@ -147,8 +114,17 @@ all:
         10.10.10.10: { infra_seq: 1 }
       vars:
         repo_enabled: true # build local repo:  https://doc.pgsty.com/admin/repo
-        repo_extra_packages: [ pg17-main ,pg17-time ,pg17-gis ,pg17-rag ,pg17-fts ,pg17-olap ,pg17-feat ,pg17-lang,
-                               pg17-type ,pg17-util ,pg17-func ,pg17-admin ,pg17-stat ,pg17-sec ,pg17-fdw ,pg17-sim ,pg17-etl]
+        #repo_extra_packages: [ pg18-main ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
+        repo_packages: [
+          node-bootstrap, infra-package, infra-addons, node-package1, node-package2, pgsql-utility, extra-modules,
+          pg18-full,pg18-time,pg18-gis,pg18-rag,pg18-fts,pg18-olap,pg18-feat,pg18-lang,pg18-type,pg18-util,pg18-func,pg18-admin,pg18-stat,pg18-sec,pg18-fdw,pg18-sim,pg18-etl,
+          pg17-full,pg17-time,pg17-gis,pg17-rag,pg17-fts,pg17-olap,pg17-feat,pg17-lang,pg17-type,pg17-util,pg17-func,pg17-admin,pg17-stat,pg17-sec,pg17-fdw,pg17-sim,pg17-etl,
+          pg16-full,pg16-time,pg16-gis,pg16-rag,pg16-fts,pg16-olap,pg16-feat,pg16-lang,pg16-type,pg16-util,pg16-func,pg16-admin,pg16-stat,pg16-sec,pg16-fdw,pg16-sim,pg16-etl,
+          pg15-full,pg15-time,pg15-gis,pg15-rag,pg15-fts,pg15-olap,pg15-feat,pg15-lang,pg15-type,pg15-util,pg15-func,pg15-admin,pg15-stat,pg15-sec,pg15-fdw,pg15-sim,pg15-etl,
+          pg14-full,pg14-time,pg14-gis,pg14-rag,pg14-fts,pg14-olap,pg14-feat,pg14-lang,pg14-type,pg14-util,pg14-func,pg14-admin,pg14-stat,pg14-sec,pg14-fdw,pg14-sim,pg14-etl,
+          pg13-full,pg13-time,pg13-gis,pg13-rag,pg13-fts,pg13-olap,pg13-feat,pg13-lang,pg13-type,pg13-util,pg13-func,pg13-admin,pg13-stat,pg13-sec,pg13-fdw,pg13-sim,pg13-etl,
+          infra-extra, kafka, java-runtime, sealos, tigerbeetle, polardb, ivorysql
+        ]
 
     #----------------------------------------------#
     # ETCD : https://doc.pgsty.com/etcd
@@ -156,8 +132,6 @@ all:
     etcd:
       hosts:
         10.10.10.10: { etcd_seq: 1 }
-        10.10.10.11: { etcd_seq: 2 }
-        10.10.10.12: { etcd_seq: 3 }
       vars:
         etcd_cluster: etcd
         etcd_safeguard: false             # prevent purging running etcd instance?
@@ -195,31 +169,6 @@ all:
             conf:
               BB_DOMAIN: http://ddl.pigsty  # replace it with your public domain name and postgres database url
               BB_PGURL: "postgresql://dbuser_bytebase:DBUser.Bytebase@10.10.10.10:5432/bytebase?sslmode=prefer"
-
-    #----------------------------------------------#
-    # REDIS : https://doc.pgsty.com/redis
-    #----------------------------------------------#
-    # OPTIONAL, launch redis clusters with: ./redis.yml
-    redis-ms: # redis classic primary & replica
-      hosts: { 10.10.10.10: { redis_node: 1 , redis_instances: { 6379: { }, 6380: { replica_of: '10.10.10.10 6379' } } } }
-      vars: { redis_cluster: redis-ms ,redis_password: 'redis.ms' ,redis_max_memory: 64MB }
-
-    redis-meta: # redis sentinel x 3
-      hosts: { 10.10.10.11: { redis_node: 1 , redis_instances: { 26379: { } ,26380: { } ,26381: { } } } }
-      vars:
-        redis_cluster: redis-meta
-        redis_password: 'redis.meta'
-        redis_mode: sentinel
-        redis_max_memory: 16MB
-        redis_sentinel_monitor: # primary list for redis sentinel, use cls as name, primary ip:port
-          - { name: redis-ms, host: 10.10.10.10, port: 6379 ,password: redis.ms, quorum: 2 }
-
-    redis-test: # redis native cluster: 3m x 3s
-      hosts:
-        10.10.10.12: { redis_node: 1 ,redis_instances: { 6379: { } ,6380: { } ,6381: { } } }
-        10.10.10.13: { redis_node: 2 ,redis_instances: { 6379: { } ,6380: { } ,6381: { } } }
-      vars: { redis_cluster: redis-test ,redis_password: 'redis.test' ,redis_mode: cluster, redis_max_memory: 32MB }
-
 
 
   #==============================================================#
@@ -291,11 +240,11 @@ all:
     #----------------------------------------------#
     # PGSQL : https://doc.pgsty.com/pgsql/param
     #----------------------------------------------#
-    pg_version: 17                      # default postgres version
+    pg_version: 18                      # default postgres version
     pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
     pg_safeguard: false                 # prevent purging running postgres instance?
     pg_packages: [ pgsql-main, pgsql-common ] # pg kernel and common utils
-    #pg_extensions: [pg17-time ,pg17-gis ,pg17-rag ,pg17-fts ,pg17-feat ,pg17-lang ,pg17-type ,pg17-util ,pg17-func ,pg17-admin ,pg17-stat ,pg17-sec ,pg17-fdw ,pg17-sim ,pg17-etl ,pg17-olap]
+    #pg_extensions: [ pg18-main ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
 
     #----------------------------------------------#
     # BACKUP : https://doc.pgsty.com/pgsql/backup
