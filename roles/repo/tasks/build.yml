@@ -120,7 +120,7 @@
   tags: repo_boot_pkg
   environment: "{{ proxy_env|default({}) }}"
   package: name="{{ repo_boot_packages }}" state=present
-  vars: { repo_boot_packages: "{% if os_package == 'deb' %}dpkg-dev{% elif os_package == 'rpm' %}createrepo_c{% if os_version|int >= 8 %},modulemd-tools,dnf-utils{% else %},yum-utils{% endif %}{% endif %}" }
+  vars: { repo_boot_packages: "{% if os_package == 'deb' %}dpkg-dev{% elif os_package == 'rpm' %}createrepo_c{% if os_version|int >= 8 %}{% if os_version|int < 10 %},modulemd-tools{% endif %},dnf-utils{% else %},yum-utils{% endif %}{% endif %}" }
 
 
 #--------------------------------------------------------------#
@@ -185,7 +185,7 @@
       {% endif %}
       rm -rf patroni*3.0.4*;  # remove duplicated old version
       createrepo_c {{ repo_home }}/{{ repo_name }}
-      {% if os_version|int >= 8 %}
+      {% if os_version|int >= 8 and os_version|int < 10 %}
       repo2module -s stable . modules.yaml;
       modifyrepo_c --mdtype=modules modules.yaml repodata/;
       {% endif %}
