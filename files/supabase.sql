@@ -26,6 +26,8 @@
 -----------------------------------------
 CREATE PUBLICATION supabase_realtime;
 
+grant create on database postgres to supabase_etl_admin;
+
 -- setup schema owner
 ALTER SCHEMA "_analytics"       OWNER TO supabase_admin;
 ALTER SCHEMA "_realtime"        OWNER TO supabase_admin;
@@ -1853,8 +1855,6 @@ revoke all on auth.schema_migrations from dashboard_user, postgres;
 -- migrate:down
 
 
-
-
 ----------------------------------------------------
 -- 20250605172253_grant_with_admin_to_postgres_16_and_above.sql
 ----------------------------------------------------
@@ -1873,9 +1873,6 @@ DO $$
 -- migrate:down
 
 
-
-
-
 ----------------------------------------------------
 -- 20250623125453_tmp_grant_storage_tables_to_postgres_with_grant_option.sql
 ----------------------------------------------------
@@ -1887,7 +1884,50 @@ grant all on storage.buckets, storage.objects to postgres with grant option;
 -- migrate:down
 
 
+----------------------------------------------------
+-- 20250709135250_grant_storage_schema_to_postgres_with_grant_option.sql
+----------------------------------------------------
+-- migrate:up
+grant usage on schema storage to postgres with grant option;
+-- migrate:down
 
+
+----------------------------------------------------
+-- 20250710151649_supabase_read_only_user_default_transaction_read_only.sql
+----------------------------------------------------
+-- migrate:up
+alter role supabase_read_only_user set default_transaction_read_only = on;
+
+-- migrate:down
+
+
+----------------------------------------------------
+-- 20251001204436_predefined_role_grants.sql
+----------------------------------------------------
+-- migrate:up
+grant pg_monitor to supabase_etl_admin, supabase_read_only_user;
+
+do $$
+declare
+    major_version int;
+begin
+    select current_setting('server_version_num')::int / 10000 into major_version;
+
+    if major_version >= 16 then
+        grant pg_create_subscription to postgres with admin option;
+    end if;
+end $$;
+
+-- migrate:down
+
+
+----------------------------------------------------
+-- 20251105172723_grant_pg_reload_conf_to_postgres.sql
+----------------------------------------------------
+-- migrate:up
+grant execute on function pg_catalog.pg_reload_conf() to postgres with grant option;
+
+-- migrate:down
 
 
 ----------------------------------------------------
@@ -1905,18 +1945,18 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA supabase_functions GRANT ALL ON FUNCTIONS TO 
 ALTER DEFAULT PRIVILEGES IN SCHEMA supabase_functions GRANT ALL ON SEQUENCES TO postgres, anon, authenticated, service_role;
 -- supabase_functions.migrations definition
 CREATE TABLE supabase_functions.migrations (
-                                               version text PRIMARY KEY,
-                                               inserted_at timestamptz NOT NULL DEFAULT NOW()
+   version text PRIMARY KEY,
+   inserted_at timestamptz NOT NULL DEFAULT NOW()
 );
 -- Initial supabase_functions migration
 INSERT INTO supabase_functions.migrations (version) VALUES ('initial');
 -- supabase_functions.hooks definition
 CREATE TABLE supabase_functions.hooks (
-                                          id bigserial PRIMARY KEY,
-                                          hook_table_id integer NOT NULL,
-                                          hook_name text NOT NULL,
-                                          created_at timestamptz NOT NULL DEFAULT NOW(),
-                                          request_id bigint
+  id bigserial PRIMARY KEY,
+  hook_table_id integer NOT NULL,
+  hook_name text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT NOW(),
+  request_id bigint
 );
 CREATE INDEX supabase_functions_hooks_request_id_idx ON supabase_functions.hooks USING btree (request_id);
 CREATE INDEX supabase_functions_hooks_h_table_id_h_name_idx ON supabase_functions.hooks USING btree (hook_table_id, hook_name);

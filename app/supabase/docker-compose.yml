@@ -18,6 +18,47 @@ name: supabase
 services:
 
   #--------------------------------------------------------------#
+  # Studio: the admin GUI dashboard for supabase
+  #--------------------------------------------------------------#
+  # https://supabase.com/docs/guides/getting-started/architecture#studio-dashboard
+  studio:
+    container_name: supabase-studio
+    image: supabase/studio:2025.11.10-sha-5291fe3
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "node", "-e", "fetch('http://studio:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})"]
+      timeout: 10s
+      interval: 5s
+      retries: 3
+    depends_on:
+      analytics:
+        condition: service_healthy
+    environment:
+      # Binds nestjs listener to both IPv4 and IPv6 network interfaces
+      HOSTNAME: "::"
+      STUDIO_PG_META_URL: http://meta:8080
+      POSTGRES_PORT: ${POSTGRES_PORT}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
+      DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION}
+      DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      SUPABASE_ANON_KEY: ${ANON_KEY}
+      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      LOGFLARE_PRIVATE_ACCESS_TOKEN: ${LOGFLARE_PRIVATE_ACCESS_TOKEN}
+      LOGFLARE_URL: http://analytics:4000
+      NEXT_PUBLIC_ENABLE_LOGS: true
+      NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
+    extra_hosts:
+      - "${POSTGRES_DOMAIN}:${POSTGRES_HOST}"
+
+
+  #--------------------------------------------------------------#
   # Kong: the API gateway for all supabase services
   #--------------------------------------------------------------#
   # https://supabase.com/docs/guides/getting-started/architecture#kong-api-gateway
@@ -38,7 +79,7 @@ services:
       KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
       # https://github.com/supabase/cli/issues/14
       KONG_DNS_ORDER: LAST,A,CNAME
-      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth,request-termination,ip-restriction
       KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
       KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
       SUPABASE_ANON_KEY: ${ANON_KEY}
@@ -47,39 +88,6 @@ services:
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
     entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
 
-  #--------------------------------------------------------------#
-  # Studio: the admin GUI dashboard for supabase
-  #--------------------------------------------------------------#
-  # https://supabase.com/docs/guides/getting-started/architecture#studio-dashboard
-  studio:
-    container_name: supabase-studio
-    image: supabase/studio:2025.06.16-sha-c4316c3
-    restart: unless-stopped
-    healthcheck:
-      test: [ "CMD", "node", "-e", "fetch('http://studio:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})"]
-      timeout: 10s
-      interval: 5s
-      retries: 3
-    depends_on:
-      analytics:
-        condition: service_healthy
-    environment:
-      STUDIO_PG_META_URL: http://meta:8080
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION}
-      DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      SUPABASE_URL: http://kong:8000
-      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
-      SUPABASE_ANON_KEY: ${ANON_KEY}
-      SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
-      AUTH_JWT_SECRET: ${JWT_SECRET}
-      LOGFLARE_PRIVATE_ACCESS_TOKEN: ${LOGFLARE_PRIVATE_ACCESS_TOKEN}
-      LOGFLARE_URL: http://analytics:4000
-      NEXT_PUBLIC_ENABLE_LOGS: true
-      NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
-    extra_hosts:
-      - "${POSTGRES_DOMAIN}:${POSTGRES_HOST}"
 
   #--------------------------------------------------------------#
   # Auth: JWT-based API for authentication using GoTrue
@@ -87,7 +95,7 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#gotrue-auth
   auth:
     container_name: supabase-auth
-    image: supabase/gotrue:v2.174.0
+    image: supabase/gotrue:v2.182.1
     restart: unless-stopped
     depends_on:
       analytics:
@@ -154,11 +162,11 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#postgrest-api
   rest:
     container_name: supabase-rest
-    image: postgrest/postgrest:v12.2.12
+    image: postgrest/postgrest:v13.0.7
+    restart: unless-stopped
     depends_on:
       analytics:
         condition: service_healthy
-    restart: unless-stopped
     environment:
       PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
@@ -178,7 +186,7 @@ services:
   realtime:
     # This container name looks inconsistent but is correct because realtime constructs tenant id by parsing the subdomain
     container_name: realtime-dev.supabase-realtime
-    image: supabase/realtime:v2.34.47
+    image: supabase/realtime:v2.63.0
     restart: unless-stopped
     depends_on:
       analytics:
@@ -214,7 +222,7 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#storage-api-large-file-storage
   storage:
     container_name: supabase-storage
-    image: supabase/storage-api:v1.23.0
+    image: supabase/storage-api:v1.29.0
     depends_on:
       rest:
         condition: service_started
@@ -232,6 +240,7 @@ services:
       POSTGREST_URL: http://rest:3000
       PGRST_JWT_SECRET: ${JWT_SECRET}
       DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      REQUEST_ALLOW_X_FORWARDED_PATH: "true"
       FILE_SIZE_LIMIT: 52428800
       TENANT_ID: stub
       REGION: ${S3_REGION}
@@ -287,11 +296,11 @@ services:
   #--------------------------------------------------------------#
   meta:
     container_name: supabase-meta
-    image: supabase/postgres-meta:v0.89.3
+    image: supabase/postgres-meta:v0.93.1
+    restart: unless-stopped
     depends_on:
       analytics:
         condition: service_healthy
-    restart: unless-stopped
     environment:
       PG_META_PORT: 8080
       PG_META_DB_HOST: ${POSTGRES_HOST}
@@ -299,6 +308,7 @@ services:
       PG_META_DB_NAME: ${POSTGRES_DB}
       PG_META_DB_USER: supabase_admin
       PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
+      CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
 
 
   #--------------------------------------------------------------#
@@ -307,8 +317,10 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#deno-edge-functions
   functions:
     container_name: supabase-edge-functions
-    image: supabase/edge-runtime:v1.67.4
+    image: supabase/edge-runtime:v1.69.23
     restart: unless-stopped
+    volumes:
+      - ./volumes/functions:/home/deno/functions:Z
     depends_on:
       analytics:
         condition: service_healthy
@@ -321,8 +333,6 @@ services:
       # TODO: Allow configuring VERIFY_JWT per function. This PR might help: https://github.com/supabase/cli/pull/786
       VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
     command: [ "start", "--main-service", "/home/deno/functions/main" ]
-    volumes:
-      - ./volumes/functions:/home/deno/functions:Z
     extra_hosts:
       - "${POSTGRES_DOMAIN}:${POSTGRES_HOST}"
 
@@ -332,7 +342,7 @@ services:
   # https://docs.logflare.app/self-hosting/
   analytics:
     container_name: supabase-analytics
-    image: supabase/logflare:1.15.4
+    image: supabase/logflare:1.22.6
     healthcheck:
       test: [ "CMD", "curl", "http://localhost:4000/health" ]
       timeout: 5s
