@@ -174,6 +174,38 @@ output "el9_ip" {
 
 
 
+#======================================#
+# EL10 AMD64 / ARM64
+#======================================#
+data "alicloud_images" "el10_img" {
+  owners     = "system"
+  name_regex = local.selected_images.el10
+}
+
+resource "alicloud_instance" "pg-el10" {
+  instance_name                 = "pg-el10"
+  host_name                     = "pg-el10"
+  private_ip                    = "10.10.10.10"
+  instance_type                 = local.selected_instype
+  image_id                      = "${data.alicloud_images.el10_img.images.0.id}"
+  vswitch_id                    = "${alicloud_vswitch.vsw.id}"
+  security_groups               = ["${alicloud_security_group.default.id}"]
+  password                      = "PigstyDemo4"
+  instance_charge_type          = "PostPaid"
+  internet_charge_type          = "PayByTraffic"
+  spot_strategy                 = local.spot_policy
+  spot_price_limit              = local.spot_price_limit
+  internet_max_bandwidth_out    = local.bandwidth
+  system_disk_category          = "cloud_essd"
+  system_disk_performance_level = "PL1"
+  system_disk_size              = local.disk_size
+}
+
+output "el10_ip" {
+  value = "${alicloud_instance.pg-el10.public_ip}"
+}
+
+
 
 #======================================#
 # D12 AMD64 / ARM64
