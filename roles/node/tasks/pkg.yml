@@ -38,12 +38,13 @@
           {% for repo in repo_upstream %}
           {% if os_version|int in repo.releases and repo.module == module_name and os_arch in repo.arch %}
           {% if os_package == 'rpm' %}
+          {% if (os_version|int == 10 and os_arch == 'aarch64') and (repo.name | lower | regex_search('^pgdg[0-9]{2}$')) %}{% set target_version = os_version_full|string %}{% else %}{% set target_version = '$releasever' %}{% endif %}
           [{{ repo.name }}]
           name = {{ repo.description }} $releasever - $basearch
           {% if region in repo.baseurl and repo.baseurl[region] != '' %}
-          baseurl = {{ repo.baseurl[region] | replace('${admin_ip}', admin_ip)  }}
+          baseurl = {{ repo.baseurl[region] | replace('${admin_ip}', admin_ip) | replace('$releasever', target_version|string)  }}
           {% else %}
-          baseurl = {{ repo.baseurl.default | replace('${admin_ip}', admin_ip)  }}
+          baseurl = {{ repo.baseurl.default | replace('${admin_ip}', admin_ip) | replace('$releasever', target_version|string) }}
           {% endif %}
           gpgcheck = 0
           enabled = 1
