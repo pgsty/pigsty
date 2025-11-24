@@ -307,6 +307,7 @@ output "u24_ip" {
 
 # sshpass -p PigstyDemo4 ssh-copy-id el8
 # sshpass -p PigstyDemo4 ssh-copy-id el9
+# sshpass -p PigstyDemo4 ssh-copy-id el10
 # sshpass -p PigstyDemo4 ssh-copy-id d12
 # sshpass -p PigstyDemo4 ssh-copy-id u22
 # sshpass -p PigstyDemo4 ssh-copy-id u24
