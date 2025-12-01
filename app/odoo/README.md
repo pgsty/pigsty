@@ -8,6 +8,8 @@ Odoo pigsty installation tutorial: [Self-hosting Odoo](https://doc.pgsty.com/app
 
 Check public demo: http://odoo.pigsty.cc, username: `test@pigsty.cc`, password: `pigsty`
 
+> The default credentials are `admin` : `admin`
+
 
 --------
 
@@ -34,7 +36,7 @@ That's it, YOU ARE ALL SET! Odoo is serving on port 8069 by default, you can acc
 
 You can add a static entry to your `/etc/hosts` file to access odoo via `http://odoo.pigsty` through the nginx 80/443 portal
 
-> The default credentials are `admin` / `admin`, to create another odoo database, you'll have to alter the `odoo` db user to superuser to do so.
+> To create another odoo database, you'll have to alter the `odoo` db user to superuser to do so.
 
 
 
@@ -69,7 +71,7 @@ all:
               ODOO_DATA: /data/odoo/webdata   # odoo webdata
               ODOO_ADDONS: /data/odoo/addons  # odoo plugins
               ODOO_DBNAME: odoo               # odoo database name
-              ODOO_VERSION: 18.0              # odoo image version
+              ODOO_VERSION: 19.0              # odoo image version
 
     # the odoo database
     pg-odoo:
@@ -100,10 +102,10 @@ There are lots of Odoo modules available in the community, you can install them 
 mkdir -p /data/odoo/addons; chown 100:101 /data/odoo/addons
 ```
 
-To enable addon module, first entering the [Developer mode](https://www.odoo.com/documentation/18.0/applications/general/developer_mode.html)
+To enable addon module, first entering the [Developer mode](https://www.odoo.com/documentation/19.0/applications/general/developer_mode.html)
 
 > Settings -> Generic Settings -> Developer Tools -> Activate the developer Mode
 
 Then goes to the > Apps -> Update Apps List, then you can find the extra addons and install from the panel.
 
-Frequently used [free](https://apps.odoo.com/apps/modules/browse?order=Downloads) addons: [Accounting Kit](https://apps.odoo.com/apps/modules/18.0/base_accounting_kit/)
+Frequently used [free](https://apps.odoo.com/apps/modules/browse?order=Downloads) addons: [Accounting Kit](https://apps.odoo.com/apps/modules/19.0/base_accounting_kit/)

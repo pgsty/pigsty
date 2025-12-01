@@ -29,8 +29,6 @@ pull:
 rm:
 	docker compose rm
 logs:
-	docker compose logs
-logs:
 	docker compose logs -f
 port:
 	docker compose port
@@ -42,7 +40,7 @@ info:
 
 save:
 	mkdir -p /tmp/docker
-	docker save odoo/odoo:18.0 | gzip -9 -c > /tmp/docker/odoo.tgz
+	docker save odoo/odoo:19.0 | gzip -9 -c > /tmp/docker/odoo.tgz
 load:
 	cat /tmp/docker/odoo.tgz | gzip -d -c - | docker load
 
