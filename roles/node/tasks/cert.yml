@@ -36,4 +36,10 @@
         /bin/update-ca-trust
         {% endif %}
       args: { executable: /bin/bash }
+      # ubuntu/debian may return non-0 code with warning
+      register: ca_trust_result
+      failed_when:
+        - ca_trust_result.rc != 0
+        - "'warning: skipping' not in ca_trust_result.stderr"
+
 ...
