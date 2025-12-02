@@ -594,16 +594,13 @@ Pigsty runs on bare linux directly, and focuses on active maintained mainstream 
 
 |   Code   | Distro                            |                      `x86_64`                       | Status |                       `aarch64`                       | Status |
 |:--------:|-----------------------------------|:---------------------------------------------------:|:------:|:-----------------------------------------------------:|:------:|
-| **EL10** | RHEL 10 / Rocky10 / Alma10 / ...  | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) |   ✅    | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) |   ⚠️   |
+| **EL10** | RHEL 10 / Rocky10 / Alma10 / ...  | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) |   ✅    | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) |   ✅    |
 | **EL9**  | RHEL 9 / Rocky9 / Alma9 / ...     |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  |   ✅    |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  |   ✅    |
-| **EL8**  | RHEL 8 / Rocky8 / Alma8 / Anolis8 |  [`el8.x86_64`](roles/node_id/vars/el8.x86_64.yml)  |   ✅    |  [`el8.aarch64`](roles/node_id/vars/el8.aarch64.yml)  |   ⚠️   |
+| **EL8**  | RHEL 8 / Rocky8 / Alma8 / Anolis8 |  [`el8.x86_64`](roles/node_id/vars/el8.x86_64.yml)  |   ✅    |  [`el8.aarch64`](roles/node_id/vars/el8.aarch64.yml)  |   ✅    |
 | **U24**  | Ubuntu 24.04 (noble)              |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  |   ✅    |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  |   ✅    |
 | **U22**  | Ubuntu 22.04 (jammy)              |  [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml)  |   ✅    |  [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml)  |   ✅    |
 | **D13**  | Debian 13 (trixie)                |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  |   ✅    |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |   ✅    |
 | **D12**  | Debian 12 (bookworm)              |  [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml)  |   ✅    |  [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml)  |   ✅    |
-
-
->  ✅ = Support , 📦 = Offline Package , ⚠️ Deprecated, ❌ = Unsupported (el10.aarch64 upstream is breaking)
 
 
 --------

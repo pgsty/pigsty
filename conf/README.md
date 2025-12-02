@@ -15,11 +15,11 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c citus            # Distributed HA PostgreSQL with the Citus extension (14~17)
 ./configure -c mssql            # Babelfish kernel with SQL Server wire-compatibility (15)
 ./configure -c polar            # PolarDB PG kernel for Aurora / RAC flavor postgres (15)
-./configure -c ivory            # IvorySQL Kernel for Oracle grammar compatibility (17)
+./configure -c ivory            # IvorySQL Kernel for Oracle grammar compatibility (18)
 ./configure -c mysql            # OpenHalo Kernel for MySQL Compatibility (14)
-./configure -c pgtde            # Percona PostgreSQL Server with TDE (17)
-./configure -c oriole           # OrioleDB Kernel for OLTP Enhancement (17, deb broken)
-./configure -c supabase         # PostgreSQL configured for Supabase self-hosting (15~17)
+./configure -c pgtde            # Percona PostgreSQL Server with TDE (18)
+./configure -c oriole           # OrioleDB Kernel for OLTP Enhancement (17)
+./configure -c supabase         # PostgreSQL configured for Supabase self-hosting (15~18)
 
 # use multi-node HA templates
 ./configure -c ha/dual          # use the 2-node HA template
