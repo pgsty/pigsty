@@ -69,6 +69,7 @@
   tags: verify
   become_user: "{{ pg_dbsu|default('postgres') }}"
   become: true
+  ignore_errors: yes
   block:
 
     # extract pg_controldata summary
@@ -90,7 +91,7 @@
         redo_wal_file:    "{{ (pitr_controldata.stdout | regex_search('Latest checkpoint.s REDO WAL file:\\s+(.+)', '\\1')) | join('') }}"
       debug:
         msg: |-
-          LAST Checkpoint: TIME={{ (checkpoint_time|to_datetime('%a %d %b %Y %I:%M:%S %p %Z')).strftime('%Y-%m-%d %H:%M:%S') }} LSN={{ redo_lsn }} TLI={{ timeline_id }}/{{ prev_timeline_id }} XID={{ next_xid }} FILE={{ redo_wal_file }} STATE={{ cluster_state }} CLS={{ cluster_id }} RAW={{ checkpoint_time }}
+          LAST Checkpoint: TIME={{ checkpoint_time }} LSN={{ redo_lsn }} TLI={{ timeline_id }}/{{ prev_timeline_id }} XID={{ next_xid }} FILE={{ redo_wal_file }} STATE={{ cluster_state }} CLS={{ cluster_id }}
           
           
 #--------------------------------------------------------------#
