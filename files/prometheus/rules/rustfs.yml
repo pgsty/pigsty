@@ -1,0 +1,64 @@
+---
+#==============================================================#
+# File      :   rustfs.yml
+# Ctime     :   2025-12-04
+# Mtime     :   2025-12-04
+# Desc      :   Record rules for rustfs
+# Path      :   /etc/prometheus/rules/rustfs.yml
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+
+groups:
+  ################################################################
+  #                        RustFS Rules                          #
+  ################################################################
+  # - name: rustfs-rules
+  #   rules:
+
+
+  ################################################################
+  #                        RustFS Alert                          #
+  ################################################################
+  - name: rustfs-alert
+    rules:
+
+      #==============================================================#
+      #                         Aliveness                            #
+      #==============================================================#
+      # RustFS server instance down (using MinIO compatible metrics)
+      - alert: RustFSServerDown
+        expr: minio_up{job="rustfs"} < 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: rustfs }
+        annotations:
+          summary: "CRIT RustFSServerDown {{ $labels.ins }}@{{ $labels.instance }}"
+          description: |
+            minio_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
+            http://g.pigsty/d/rustfs-overview
+
+      #==============================================================#
+      #                         Error                                #
+      #==============================================================#
+      # RustFS node offline triggers a p1 alert
+      - alert: RustFSNodeOffline
+        expr: avg_over_time(minio_cluster_nodes_offline_total{job="rustfs"}[5m]) > 0
+        for: 3m
+        labels: { level: 1, severity: WARN, category: rustfs }
+        annotations:
+          summary: "WARN RustFSNodeOffline: {{ $labels.cls }} {{ $value }}"
+          description: |
+            minio_cluster_nodes_offline_total[cls={{ $labels.cls }}] = {{ $value }} > 0
+            http://g.pigsty/d/rustfs-overview?from=now-5m&to=now&var-cls={{$labels.cls}}
+
+      # RustFS disk offline triggers a p1 alert
+      - alert: RustFSDiskOffline
+        expr: avg_over_time(minio_cluster_disk_offline_total{job="rustfs"}[5m]) > 0
+        for: 3m
+        labels: { level: 1, severity: WARN, category: rustfs }
+        annotations:
+          summary: "WARN RustFSDiskOffline: {{ $labels.cls }} {{ $value }}"
+          description: |
+            minio_cluster_disk_offline_total[cls={{ $labels.cls }}] = {{ $value }} > 0
+            http://g.pigsty/d/rustfs-overview?from=now-5m&to=now&var-cls={{$labels.cls}}
