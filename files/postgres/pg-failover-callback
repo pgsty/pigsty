@@ -4,7 +4,7 @@ set -uo pipefail
 # File      :   pg-failover-callback
 # Desc      :   Patroni event callback script
 # Ctime     :   2018-12-06
-# Mtime     :   2022-11-11
+# Mtime     :   2025-12-07
 # Path      :   /pg/bin/pg-failover-callback
 # Deps      :   pg-role
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -45,7 +45,8 @@ function usage() {
 #--------------------------------------------------------------#
 #                             Path                             #
 #--------------------------------------------------------------#
-LOGPATH=$(grep -A2 'log:' /pg/bin/patroni.yml | head -n3 | awk '/dir:/ {print $2}')
+LOGPATH=$(grep -A2 'log:' /pg/bin/patroni.yml 2>/dev/null | head -n3 | awk '/dir:/ {print $2}')
+LOGPATH=${LOGPATH:-/pg/log}  # fallback to /pg/log if not found
 
 
 function on_role_change_handler() {
@@ -76,6 +77,10 @@ function on_start_handler() {
 #                             Main                             #
 #--------------------------------------------------------------#
 function main() {
+	if [[ $# -lt 3 ]]; then
+		echo "[ERROR] pg-failover-callback requires 3 arguments: event role cluster (got $#)" >&2
+		exit 1
+	fi
 	local event=$1
 	local role=$2
 	local cluster=$3
@@ -96,7 +101,7 @@ function main() {
 	esac
 
 	# log event and call handler
-	printf "\033[0;32m[$(date "+%Y-%m-%d %H:%M:%S")][${HOSTNAME}][event=${event}}] [cluster=${cluster}] [role=${role}]\033[0m\n" >>$LOGPATH/callback.log
+	printf "\033[0;32m[$(date "+%Y-%m-%d %H:%M:%S")][${HOSTNAME}][event=${event}] [cluster=${cluster}] [role=${role}]\033[0m\n" >>$LOGPATH/callback.log
 	case ${event} in
 	on_stop)
 		on_stop_handler ${role} ${cluster}
