@@ -8,23 +8,35 @@ sources:
     include:
       - {{ pg_log_dir }}/*.csv
 
-{% if patroni_enabled|default(true) %}
-  # Patroni logs
-  patroni_raw:
-    type: file
-    read_from: end
-    include:
-      - {{ patroni_log_dir }}/patroni.log
-{% endif %}
+  {% if patroni_enabled|default(true) %}
+# Patroni logs
+patroni_raw:
+  type: file
+  read_from: end
+  include:
+    - {{ patroni_log_dir }}/patroni.log
+  {% endif %}
+  
+  {% if pgbackrest_enabled|default(true) %}
+# pgBackRest logs
+# use device_and_inode to avoid fingerprint collision (all pgbackrest logs start with same header)
+pgbackrest_raw:
+  type: file
+  read_from: end
+  include:
+    - {{ pgbackrest_log_dir }}/*.log
+  fingerprint:
+    strategy: device_and_inode
+  {% endif %}
 
-{% if pgbackrest_enabled|default(true) %}
-  # pgBackRest logs
-  pgbackrest_raw:
-    type: file
-    read_from: end
-    include:
-      - {{ pgbackrest_log_dir }}/*.log
-{% endif %}
+  {% if pgbouncer_enabled|default(true) %}
+# pgBouncer logs
+pgbouncer_raw:
+  type: file
+  read_from: end
+  include:
+    - {{ pgbouncer_log_dir }}/pgbouncer.log
+  {% endif %}
 
 transforms:
   # parse PostgreSQL CSV log
@@ -58,7 +70,7 @@ transforms:
     inputs: [pglog]
     source: |
       .ip = "{{ inventory_hostname }}"
-      .src = "pglog"
+      .src = "postgres"
       .ins = "{{ pg_cluster }}-{{ pg_seq }}"
       .cls = "{{ pg_cluster }}"
       .message = truncate(string!(.msg), 4096)
@@ -69,158 +81,177 @@ transforms:
       del(.msg); del(.detail); del(.hint); del(.context); del(.query)
       del(.pid); del(.sid); del(.conn)
 
-{% if patroni_enabled|default(true) %}
-  # parse patroni log: "2024-01-01 12:00:00 +0800 INFO: message"
-  patroni_logs:
-    type: remap
-    inputs: [patroni_raw]
-    drop_on_abort: true
-    source: |
-      m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}) (?P<level>\w+): (?P<msg>.*)$') ?? {}
-      if !exists(m.ts) { abort }
-      .ts = m.ts
-      .level = m.level
-      .message = m.msg
-      .ip = "{{ inventory_hostname }}"
-      .src = "patroni"
-      .ins = "{{ pg_cluster }}-{{ pg_seq }}"
-      .cls = "{{ pg_cluster }}"
-      del(.source_type); del(.file); del(.host)
-{% endif %}
+  {% if patroni_enabled|default(true) %}
+# parse patroni log: "2024-01-01 12:00:00 +0800 INFO: message"
+patroni_logs:
+  type: remap
+  inputs: [patroni_raw]
+  drop_on_abort: true
+  source: |
+    m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}) (?P<level>\w+): (?P<msg>.*)$') ?? {}
+    if !exists(m.ts) { abort }
+    .ts = m.ts
+    .level = m.level
+    .message = m.msg
+    .ip = "{{ inventory_hostname }}"
+    .src = "patroni"
+    .ins = "{{ pg_cluster }}-{{ pg_seq }}"
+    .cls = "{{ pg_cluster }}"
+    del(.source_type); del(.file); del(.host)
+  {% endif %}
 
-{% if pgbackrest_enabled|default(true) %}
-  # parse pgbackrest log: "2024-01-01 12:00:00.000 UTC [pid] INFO: message"
-  pgbackrest_logs:
-    type: remap
-    inputs: [pgbackrest_raw]
-    drop_on_abort: true
-    source: |
-      m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \w+) \[(?P<pid>\d+)\]\s*(?P<level>\w+): (?P<msg>.*)$') ?? {}
-      if !exists(m.ts) { abort }
-      .ts = m.ts
-      .level = m.level
-      .message = m.msg
-      .ip = "{{ inventory_hostname }}"
-      .src = "pgbackrest"
-      .ins = "{{ pg_cluster }}-{{ pg_seq }}"
-      .cls = "{{ pg_cluster }}"
-      del(.source_type); del(.file); del(.host)
-{% endif %}
+  {% if pgbackrest_enabled|default(true) %}
+# parse pgbackrest log: "2024-01-01 12:00:00.000 UTC [pid] INFO: message"
+pgbackrest_logs:
+  type: remap
+  inputs: [pgbackrest_raw]
+  drop_on_abort: true
+  source: |
+    m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \w+) \[(?P<pid>\d+)\]\s*(?P<level>\w+): (?P<msg>.*)$') ?? {}
+    if !exists(m.ts) { abort }
+    .ts = m.ts
+    .level = m.level
+    .message = m.msg
+    .ip = "{{ inventory_hostname }}"
+    .src = "pgbackrest"
+    .ins = "{{ pg_cluster }}-{{ pg_seq }}"
+    .cls = "{{ pg_cluster }}"
+    del(.source_type); del(.file); del(.host)
+  {% endif %}
 
-{% raw %}
-  # metric: log count by level
-  pglog_count_metrics:
-    type: log_to_metric
-    inputs: [pglog]
-    metrics:
-      - type: counter
-        field: level
-        name: logs_total
-        namespace: pg
-        tags:
-          level: "{{level}}"
+  {% if pgbouncer_enabled|default(true) %}
+# parse pgbouncer log: "2024-01-01 12:00:00.000 TZ [pid] LEVEL message"
+pgbouncer_logs:
+  type: remap
+  inputs: [pgbouncer_raw]
+  drop_on_abort: true
+  source: |
+    m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \w+) \[(?P<pid>\d+)\] (?P<level>\w+) (?P<msg>.*)$') ?? {}
+    if !exists(m.ts) { abort }
+    .ts = m.ts
+    .level = m.level
+    .message = m.msg
+    .ip = "{{ inventory_hostname }}"
+    .src = "pgbouncer"
+    .ins = "{{ pg_cluster }}-{{ pg_seq }}"
+    .cls = "{{ pg_cluster }}"
+    del(.source_type); del(.file); del(.host)
+  {% endif %}
 
-  # extract slow query duration
-  pglog_slow:
-    type: remap
-    inputs: [pglog]
-    drop_on_abort: true
-    source: |
-      if .level != "LOG" { abort }
-      m = parse_regex(.msg, r'duration: (?P<ms>\d+\.\d+) ms') ?? {}
-      if !exists(m.ms) { abort }
-      .duration_ms = to_float!(m.ms)
+  {% raw %}
+# metric: log count by level
+pglog_count_metrics:
+  type: log_to_metric
+  inputs: [pglog]
+  metrics:
+    - type: counter
+      field: level
+      name: logs_total
+      namespace: pg
+      tags:
+        level: "{{level}}"
 
-  # metric: slow query histogram
-  pglog_slow_metrics:
-    type: log_to_metric
-    inputs: [pglog_slow]
-    metrics:
-      - type: histogram
-        field: duration_ms
-        name: query_rt_milliseconds
-        namespace: pg
-        buckets: [1, 10, 100, 500, 1000, 2500, 5000, 10000, 30000]
+# extract slow query duration
+pglog_slow:
+  type: remap
+  inputs: [pglog]
+  drop_on_abort: true
+  source: |
+    if .level != "LOG" { abort }
+    m = parse_regex(.msg, r'duration: (?P<ms>\d+\.\d+) ms') ?? {}
+    if !exists(m.ms) { abort }
+    .duration_ms = to_float!(m.ms)
 
-  # classify errors
-  pglog_error:
-    type: remap
-    inputs: [pglog]
-    drop_on_abort: true
-    source: |
-      if .level != "ERROR" { abort }
-      msg = string!(.msg)
-      if contains(msg, "statement timeout") { .err = "timeout" } else if contains(msg, "deadlock detected") { .err = "deadlock" } else if contains(msg, "duplicate key") { .err = "dup_key" } else if contains(msg, "transaction is aborted") { .err = "txn_aborted" } else if contains(msg, "canceling autovacuum") { .err = "autovacuum" } else { .err = "other" }
+# metric: slow query histogram
+pglog_slow_metrics:
+  type: log_to_metric
+  inputs: [pglog_slow]
+  metrics:
+    - type: histogram
+      field: duration_ms
+      name: query_rt_milliseconds
+      namespace: pg
+      buckets: [1, 10, 100, 500, 1000, 2500, 5000, 10000, 30000]
 
-  # metric: error count by type
-  pglog_error_metrics:
-    type: log_to_metric
-    inputs: [pglog_error]
-    metrics:
-      - type: counter
-        field: err
-        name: errors_total
-        namespace: pg
-        tags:
-          error: "{{err}}"
+# classify errors
+pglog_error:
+  type: remap
+  inputs: [pglog]
+  drop_on_abort: true
+  source: |
+    if .level != "ERROR" { abort }
+    msg = string!(.msg)
+    if contains(msg, "statement timeout") { .err = "timeout" } else if contains(msg, "deadlock detected") { .err = "deadlock" } else if contains(msg, "duplicate key") { .err = "dup_key" } else if contains(msg, "transaction is aborted") { .err = "txn_aborted" } else if contains(msg, "canceling autovacuum") { .err = "autovacuum" } else { .err = "other" }
 
-  # detect lock waits
-  pglog_lock:
-    type: remap
-    inputs: [pglog]
-    drop_on_abort: true
-    source: |
-      if .level != "LOG" { abort }
-      m = parse_regex(.msg, r'still waiting for (?P<mode>\w+) on (?P<type>\w+)') ?? {}
-      if !exists(m.mode) { abort }
-      .lock_mode = m.mode
-      .lock_type = m.type
+# metric: error count by type
+pglog_error_metrics:
+  type: log_to_metric
+  inputs: [pglog_error]
+  metrics:
+    - type: counter
+      field: err
+      name: errors_total
+      namespace: pg
+      tags:
+        error: "{{err}}"
 
-  # metric: lock wait count
-  pglog_lock_metrics:
-    type: log_to_metric
-    inputs: [pglog_lock]
-    metrics:
-      - type: counter
-        field: lock_mode
-        name: lock_waits_total
-        namespace: pg
-        tags:
-          mode: "{{lock_mode}}"
-          type: "{{lock_type}}"
+# detect lock waits
+pglog_lock:
+  type: remap
+  inputs: [pglog]
+  drop_on_abort: true
+  source: |
+    if .level != "LOG" { abort }
+    m = parse_regex(.msg, r'still waiting for (?P<mode>\w+) on (?P<type>\w+)') ?? {}
+    if !exists(m.mode) { abort }
+    .lock_mode = m.mode
+    .lock_type = m.type
 
-  # detect temp file usage
-  pglog_temp:
-    type: filter
-    inputs: [pglog]
-    condition: .level == "LOG" && contains(string!(.msg), "temporary file:")
+# metric: lock wait count
+pglog_lock_metrics:
+  type: log_to_metric
+  inputs: [pglog_lock]
+  metrics:
+    - type: counter
+      field: lock_mode
+      name: lock_waits_total
+      namespace: pg
+      tags:
+        mode: "{{lock_mode}}"
+        type: "{{lock_type}}"
 
-  # metric: temp file count
-  pglog_temp_metrics:
-    type: log_to_metric
-    inputs: [pglog_temp]
-    metrics:
-      - type: counter
-        field: msg
-        name: temp_files_total
-        namespace: pg
+# detect temp file usage
+pglog_temp:
+  type: filter
+  inputs: [pglog]
+  condition: .level == "LOG" && contains(string!(.msg), "temporary file:")
 
-  # detect auth failures
-  pglog_auth:
-    type: filter
-    inputs: [pglog]
-    condition: .level == "FATAL" && contains(string!(.msg), "authentication failed")
+# metric: temp file count
+pglog_temp_metrics:
+  type: log_to_metric
+  inputs: [pglog_temp]
+  metrics:
+    - type: counter
+      field: msg
+      name: temp_files_total
+      namespace: pg
 
-  # metric: auth failure count
-  pglog_auth_metrics:
-    type: log_to_metric
-    inputs: [pglog_auth]
-    metrics:
-      - type: counter
-        field: username
-        name: auth_failures_total
-        namespace: pg
-        tags:
-          user: "{{username}}"
-          datname: "{{datname}}"
-{% endraw %}
+# detect auth failures
+pglog_auth:
+  type: filter
+  inputs: [pglog]
+  condition: .level == "FATAL" && contains(string!(.msg), "authentication failed")
+
+# metric: auth failure count
+pglog_auth_metrics:
+  type: log_to_metric
+  inputs: [pglog_auth]
+  metrics:
+    - type: counter
+      field: username
+      name: auth_failures_total
+      namespace: pg
+      tags:
+        user: "{{username}}"
+        datname: "{{datname}}"
+  {% endraw %}

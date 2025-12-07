@@ -469,14 +469,16 @@ pull:
 ss:
 	rsync -avz --exclude=temp --exclude=dist --exclude=vagrant/ --exclude=terraform --delete ./ sv:/data/pigsty/
 gsync:
-	rsync -avz --delete .git/ sv:/data/pigsty/.git
+	rsync -avz --delete .git/ sv:/data/pgsty/pigsty/.git/
+gpull:
+	rsync -avz --delete sv:/data/pgsty/pigsty/.git/ .git/
 grestore:
 	git restore pigsty.yml
 	git restore vagrant/Vagrantfile
 gpush:
-	git push origin master
+	git push origin main
 gpull:
-	git pull origin master
+	git pull origin main
 ###############################################################
 
 
