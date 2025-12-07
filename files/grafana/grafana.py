@@ -24,7 +24,7 @@ DEFAULT_DATASOURCES = {
      'url': 'http://127.0.0.1:9058', 'user': '', 'database': '', 'basicAuth': False, 'isDefault': True, 'jsonData': {'queryTimeout': '60s', 'timeInterval': '2s', 'tlsAuth': False, 'tlsAuthWithCACert': False}, 'readOnly': False},
     'ds-meta': {'uid': 'ds-meta', 'orgId': 1, 'name': 'Meta', 'type': 'postgres', 'typeName': 'PostgreSQL', 'access': 'proxy', 'url': '127.0.0.1:5432', 'user': 'dbuser_view', 'database': 'meta', 'basicAuth': False, 'isDefault': False, 'readOnly': True,
      'jsonData': {'connMaxLifetime': 14400, 'maxIdleConns': 10, 'maxOpenConns': 64,  'postgresVersion': 1500, 'sslmode': 'require', 'tlsAuth': False, 'tlsAuthWithCACert': False}, 'secureJsonData': { 'password': METADB_PASSWORD }},
-    'ds-loki': {'uid': 'ds-loki', 'orgId': 1, 'name': 'Loki', 'type': 'loki', 'typeName': 'Loki', 'access': 'proxy', 'url': 'http://127.0.0.1:3100', 'basicAuth': False, 'isDefault': False, 'jsonData': {}, 'readOnly': False}}
+    'ds-vlogs': {'uid': 'ds-vlogs', 'orgId': 1, 'name': 'Loki', 'type': 'loki', 'typeName': 'Loki', 'access': 'proxy', 'url': 'http://127.0.0.1:3100', 'basicAuth': False, 'isDefault': False, 'jsonData': {}, 'readOnly': False}}
 
 
 ##########################################

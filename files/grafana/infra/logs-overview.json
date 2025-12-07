@@ -62,14 +62,14 @@
     "panels": [
         {
             "datasource": {
-                "type": "loki",
-                "uid": "ds-loki"
+                "type": "victoriametrics-logs-datasource",
+                "uid": "ds-vlogs"
             },
             "fieldConfig": {
                 "defaults": {
                     "color": {
                         "fixedColor": "super-light-blue",
-                        "mode": "fixed"
+                        "mode": "palette-classic-by-name"
                     },
                     "custom": {
                         "axisBorderShow": false,
@@ -96,6 +96,7 @@
                             "type": "linear"
                         },
                         "showPoints": "never",
+                        "showValues": false,
                         "spanNulls": true,
                         "stacking": {
                             "group": "A",
@@ -111,7 +112,8 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "super-light-blue"
+                                "color": "super-light-blue",
+                                "value": 0
                             }
                         ]
                     },
@@ -211,7 +213,7 @@
                 ]
             },
             "gridPos": {
-                "h": 5,
+                "h": 6,
                 "w": 24,
                 "x": 0,
                 "y": 0
@@ -234,17 +236,17 @@
                     "sort": "none"
                 }
             },
-            "pluginVersion": "12.0.0",
+            "pluginVersion": "12.3.0",
             "targets": [
                 {
                     "datasource": {
-                        "type": "loki",
-                        "uid": "ds-loki"
+                        "type": "victoriametrics-logs-datasource",
+                        "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "sum(count_over_time(({src=\"$src\"} |~ \"$search\")[$__interval]))",
-                    "legendFormat": "log rate",
-                    "queryType": "range",
+                    "expr": "src:$src $search | stats by (ins,src) count() as count",
+                    "legendFormat": "{{ ins }}.{{ src }}",
+                    "queryType": "statsRange",
                     "refId": "A"
                 }
             ],
@@ -253,18 +255,14 @@
         },
         {
             "datasource": {
-                "type": "loki",
-                "uid": "ds-loki"
-            },
-            "fieldConfig": {
-                "defaults": {},
-                "overrides": []
+                "type": "victoriametrics-logs-datasource",
+                "uid": "ds-vlogs"
             },
             "gridPos": {
                 "h": 21,
                 "w": 24,
                 "x": 0,
-                "y": 5
+                "y": 6
             },
             "id": 2,
             "options": {
@@ -273,23 +271,22 @@
                 "enableLogDetails": true,
                 "prettifyLogMessage": false,
                 "showCommonLabels": false,
+                "showControls": false,
                 "showLabels": true,
                 "showTime": true,
                 "sortOrder": "Descending",
                 "wrapLogMessage": true
             },
-            "pluginVersion": "12.0.0",
+            "pluginVersion": "12.3.0",
             "targets": [
                 {
                     "datasource": {
-                        "type": "loki",
-                        "uid": "ds-loki"
+                        "type": "victoriametrics-logs-datasource",
+                        "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "{src=\"$src\"} |~ \"$search\"",
-                    "instant": false,
-                    "queryType": "range",
-                    "range": true,
+                    "expr": "{src=\"$src\"} $search",
+                    "queryType": "instant",
                     "refId": "A"
                 }
             ],
@@ -299,7 +296,7 @@
     ],
     "preload": false,
     "refresh": "",
-    "schemaVersion": 41,
+    "schemaVersion": 42,
     "tags": [
         "Pigsty",
         "INFRA",
@@ -311,47 +308,54 @@
                 "allValue": ".*",
                 "current": {},
                 "datasource": {
-                    "type": "loki",
-                    "uid": "ds-loki"
+                    "type": "victoriametrics-logs-datasource",
+                    "uid": "ds-vlogs"
                 },
                 "definition": "",
-                "includeAll": false,
+                "description": "Log Source",
+                "includeAll": true,
                 "label": "Source",
+                "multi": true,
                 "name": "src",
                 "options": [],
                 "query": {
-                    "label": "src",
-                    "refId": "LokiVariableQueryEditor-VariableQuery",
-                    "stream": "{}",
-                    "type": 1
+                    "field": "src",
+                    "limit": 25,
+                    "query": "",
+                    "refId": "VictoriaLogsVariableQueryEditor-VariableQuery",
+                    "type": "fieldValue"
                 },
-                "refresh": 2,
+                "refresh": 1,
                 "regex": "",
+                "sort": 1,
+                "staticOptionsOrder": "sorted",
                 "type": "query"
             },
             {
                 "current": {},
+                "description": "LogsQL Query String: https://docs.victoriametrics.com/victorialogs/logsql/",
                 "label": "Search",
                 "name": "search",
                 "options": [
                     {
                         "selected": true,
-                        "text": "",
-                        "value": ""
+                        "text": "error",
+                        "value": "error"
                     }
                 ],
-                "query": "",
+                "query": "error",
                 "type": "textbox"
             }
         ]
     },
     "time": {
-        "from": "now-24h",
+        "from": "now-1h",
         "to": "now"
     },
     "timepicker": {},
     "timezone": "",
     "title": "Logs Overview",
     "uid": "logs-overview",
-    "version": 1
+    "version": 1,
+    "weekStart": ""
 }

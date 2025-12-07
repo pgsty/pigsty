@@ -477,8 +477,6 @@ grestore:
 	git restore vagrant/Vagrantfile
 gpush:
 	git push origin main
-gpull:
-	git pull origin main
 ###############################################################
 
 
