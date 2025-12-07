@@ -1,0 +1,52 @@
+---
+#--------------------------------------------------------------#
+# Cleanup Victoria Logs                            [vlogs_clean]
+#--------------------------------------------------------------#
+- name: cleanup victoria-logs data
+  tags: vlogs_clean
+  when: vlogs_clean|bool
+  ignore_errors: true
+  block:
+    - name: stop victoria-logs service
+      systemd: name=vlogs state=stopped enabled=no daemon_reload=yes
+    - name: remove victoria-logs data
+      file: path={{ vlogs_data }} state=absent
+
+#--------------------------------------------------------------#
+# Create Victoria Logs Dir                           [vlogs_dir]
+#--------------------------------------------------------------#
+- name: create victoria-logs directories
+  tags: vlogs_dir
+  file: path={{ vlogs_data }} state=directory owner=victoria mode='0700'
+
+#--------------------------------------------------------------#
+# Config Victoria Logs                            [vlogs_config]
+#--------------------------------------------------------------#
+- name: config victoria-logs
+  tags: vlogs_config
+  block:
+    - name: create victoria-logs systemd service
+      copy: src=vlogs.service dest={{ systemd_dir }}/vlogs.service
+
+    - name: create victoria-logs environment file
+      copy:
+        dest: /etc/default/vlogs
+        owner: root
+        mode: '0644'
+        content: |
+          VLOGS_OPTS='-storageDataPath={{ vlogs_data }} -httpListenAddr=:{{ vlogs_port }} {{ vlogs_options }}'
+
+#--------------------------------------------------------------#
+# Launch Victoria Logs                            [vlogs_launch]
+#--------------------------------------------------------------#
+- name: launch victoria-logs
+  tags: vlogs_launch
+  when: vlogs_enabled|bool
+  ignore_errors: yes
+  block:
+    - name: launch victoria-logs systemd service
+      systemd: name=vlogs state=restarted enabled=yes daemon_reload=yes
+    - name: wait for victoria-logs service online
+      wait_for: host=127.0.0.1 port={{ vlogs_port }} state=started timeout=20
+
+...

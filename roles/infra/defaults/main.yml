@@ -8,8 +8,10 @@ infra_portal:                     # infra services exposed via portal
   grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" ,websocket: true }
   prometheus   : { domain: p.pigsty ,endpoint: "${admin_ip}:9058" }
   alertmanager : { domain: a.pigsty ,endpoint: "${admin_ip}:9059" }
+  #vlogs        : { domain: l.pigsty ,endpoint: "${admin_ip}:9428" } # exposing logs ui could be sensitive
   blackbox     : { endpoint: "${admin_ip}:9115" }
-  loki         : { endpoint: "${admin_ip}:3100" }
+  #loki         : { endpoint: "${admin_ip}:3100" }
+  
 
 #-----------------------------------------------------------------
 # INFRA_PACKAGE
@@ -70,13 +72,22 @@ exporter_install: none            # how to install exporter? none,yum,binary
 exporter_repo_url: ''             # exporter repo file url if install exporter via yum
 
 #-----------------------------------------------------------------
+# VLOGS - VictoriaLogs
+#-----------------------------------------------------------------
+vlogs_enabled: true               # enable victoria-logs on this infra node?
+vlogs_clean: false                # whether remove existing victoria-logs data during init?
+vlogs_port: 9428                  # victoria-logs listen port, 9428 by default
+vlogs_data: /data/vlogs           # victoria-logs data dir, `/data/vlogs` by default
+vlogs_options: '-retentionPeriod=15d -retention.maxDiskSpaceUsageBytes=50GiB -insert.maxLineSizeBytes=1MB -search.maxQueryDuration=120s'
+
+#-----------------------------------------------------------------
 # GRAFANA
 #-----------------------------------------------------------------
 grafana_enabled: true             # enable grafana on this infra node?
 grafana_clean: true               # clean grafana data during init?
 grafana_admin_username: admin     # grafana admin username, `admin` by default
 grafana_admin_password: pigsty    # grafana admin password, `pigsty` by default
-loki_enabled: true                # enable loki on this infra node?
+loki_enabled: false               # enable loki on this infra node?
 loki_clean: false                 # whether remove existing loki data?
 loki_data: /data/loki             # loki data dir, `/data/loki` by default
 loki_retention: 15d               # loki log retention period, 15d by default
@@ -88,6 +99,7 @@ node_exporter_port: 9100          # node exporter listen port, 9100 by default
 haproxy_exporter_port: 9101       # haproxy admin/exporter port, 9101 by default
 vip_exporter_port: 9650           # keepalived exporter listen port, 9650 by default
 promtail_port: 9080               # promtail listen port, 9080 by default
+vector_port: 9598                 # vector metrics port, 9598 by default
 pg_exporter_port: 9630            # pg_exporter listen port, 9630 by default
 pgbouncer_exporter_port: 9631     # pgbouncer_exporter listen port, 9631 by default
 pgbackrest_exporter_port: 9854    # pgbackrest_exporter listen port, 9854 by default
