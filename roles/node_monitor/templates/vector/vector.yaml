@@ -1,0 +1,39 @@
+data_dir: {{ vector_data }}
+
+api:
+  enabled: true
+
+sources:
+  # vector internal metrics
+  internal_metrics:
+    type: internal_metrics
+    scrape_interval_secs: 15
+
+sinks:
+  # expose prometheus metrics (internal + custom)
+  prometheus:
+    type: prometheus_exporter
+    inputs: ["*_metrics"]
+    address: 0.0.0.0:{{ vector_port }}
+    default_namespace: vector
+
+  # send logs to victoria logs
+  vlogs:
+    type: http
+    inputs: ["*_logs"]
+    uri: {{ vlogs_endpoint | replace('${admin_ip}', admin_ip) }}
+    encoding:
+      codec: json
+    framing:
+      method: newline_delimited
+    compression: gzip
+    healthcheck:
+      enabled: false
+    request:
+      headers:
+        VL-Stream-Fields: ins,src
+        VL-Time-Field: timestamp
+        VL-Msg-Field: message
+        AccountID: "0"
+        ProjectID: "0"
+ 

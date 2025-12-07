@@ -6,12 +6,25 @@ node_exporter_enabled: true       # setup node_exporter on this node?
 node_exporter_port: 9100          # node exporter listen port, 9100 by default
 node_exporter_options: '--no-collector.softnet --no-collector.nvme --collector.tcpstat --collector.processes'
 #--------------------------------------------------------------#
+# VECTOR
+#--------------------------------------------------------------#
+vector_enabled: true              # enable vector log collector?
+vector_clean: false               # purge vector data dir during init?
+vector_data: /data/vector         # vector data dir, /data/vector by default
+vector_port: 9598                 # vector metrics port, 9598 by default
+vector_sources: [ vector, node ]
+
+#--------------------------------------------------------------#
 # PROMTAIL (Deprecated)
 #--------------------------------------------------------------#
-promtail_enabled: true            # enable promtail logging collector? (deprecated)
+promtail_enabled: false            # enable promtail logging collector? (deprecated)
 promtail_clean: false             # purge the existing promtail status file during init?
 promtail_port: 9080               # promtail listen port, 9080 by default
 promtail_positions: /var/log/positions.yaml # promtail position status file path
+#-----------------------------------------------------------------
+# INFRA (Reference)
+#-----------------------------------------------------------------
+vlogs_endpoint: http://${admin_ip}:9428/insert/jsonline
 #-----------------------------------------------------------------
 # NODE_VIP (Reference)
 #-----------------------------------------------------------------
@@ -47,5 +60,7 @@ pgbackrest_log_dir: /pg/log/pgbackrest # pgbackrest log dir, `/pg/log/pgbackrest
 #-----------------------------------------------------------------
 # INFRA (Reference)
 #-----------------------------------------------------------------
-infra_portal: {loki : {endpoint: "${admin_ip}:3100"}}
+infra_portal:
+  loki:  {endpoint: "${admin_ip}:3100"}
+  vlogs: {endpoint: "${admin_ip}:9428"}
 ...

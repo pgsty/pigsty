@@ -149,14 +149,14 @@
     owner: prometheus
     content: |
       # {{ inventory_hostname }}
-      # node, haproxy, promtail
+      # node, haproxy, vector
       - labels: { ip: {{ inventory_hostname }} , ins: {{ nodename }} , cls: {{ node_cluster|default('nodes') }} }
-        targets: {% if not node_exporter_enabled|bool and not haproxy_enabled|bool and not promtail_enabled|bool %}[]{% endif %} 
+        targets: {% if not node_exporter_enabled|bool and not haproxy_enabled|bool and not vector_enabled|bool %}[]{% endif %} 
           {% if node_exporter_enabled|bool %}- {{ inventory_hostname }}:{{ node_exporter_port }}{% endif %}
       
           {% if haproxy_enabled|bool %}- {{ inventory_hostname }}:{{ haproxy_exporter_port }}{% endif %}
       
-          {% if promtail_enabled|bool %}- {{ inventory_hostname }}:{{ promtail_port }}{% endif %}
+          {% if vector_enabled|bool %}- {{ inventory_hostname }}:{{ vector_port }}{% endif %}
       
       {% if vip_enabled|bool and vip_address is defined and vip_address != '' %}
       # keepalived
@@ -192,14 +192,10 @@
       - labels: { ip: {{ inventory_hostname }} , ins: {{ nodename }} , cls: {{ node_cluster|default('nodes') }}, vip: {{ vip_address }} , job: node-vip }
         targets: [ {{ vip_address }} ]
 
-#--------------------------------------------------------------#
-# Promtail                                            [promtail]
-#--------------------------------------------------------------#
-- import_tasks: promtail.yml
-  when: promtail_enabled|bool
 
 #--------------------------------------------------------------#
-# Vector (TBD)                                          [vector]
+# Vector                                                [vector]
 #--------------------------------------------------------------#
-# - import_tasks: vector.yml
+- import_tasks: vector.yml
+  when: vector_enabled|bool
 ...

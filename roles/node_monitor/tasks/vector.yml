@@ -1,10 +1,61 @@
 ---
 #--------------------------------------------------------------#
-# Install vector                                [vector_install]
+# Install Vector                                [vector_install]
 #--------------------------------------------------------------#
 - name: install vector
-  tags: [vector, vector_install ]
+  tags: [vector, vector_install]
   block:
-    - name: install vector systemd service
+    - name: install vector package
       package: name=vector state=present
+
+
+#--------------------------------------------------------------#
+# Cleanup Vector                                   [vector_clean]
+#--------------------------------------------------------------#
+- name: cleanup vector
+  tags: vector_clean
+  when: vlogs_clean|bool
+  ignore_errors: true
+  block:
+    - name: stop vector service
+      systemd: name=vector state=stopped enabled=no daemon_reload=yes
+    - name: remove vector data
+      file: path="{{ item }}" state=absent
+      with_items:
+        - "{{ vlogs_data }}"
+        - "/etc/vector"
+
+#--------------------------------------------------------------#
+# Config Vector                                   [vector_config]
+#--------------------------------------------------------------#
+- name: config vector
+  tags: [vector, vector_config]
+  block:
+    - name: create vector data directories
+      file: path={{ item }} state=directory mode=0755
+      with_items:
+        - /etc/vector
+        - "{{ vector_data }}"
+
+    - name: create vector systemd service
+      copy: src={{ item.src }} dest={{ item.dest }}
+      with_items:
+        - { src: vector.service, dest: "{{ systemd_dir }}/vector.service" }
+        - { src: vector.default, dest: /etc/default/vector }
+
+    - name: render vector config files
+      template: src=vector/{{ item }}.yaml dest=/etc/vector/{{ item }}.yaml mode=0600
+      with_items: "{{ vector_sources|default([]) }}"
+
+#--------------------------------------------------------------#
+# Launch Vector                                   [vector_launch]
+#--------------------------------------------------------------#
+- name: launch vector
+  tags: [vector, vector_launch]
+  when: vector_enabled|bool
+  block:
+    - name: restart vector systemd service
+      systemd: name=vector state=restarted enabled=yes daemon_reload=yes
+    - name: wait for vector service online
+      wait_for: host=127.0.0.1 port={{ vector_port }} state=started timeout=15
 ...

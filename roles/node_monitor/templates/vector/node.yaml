@@ -1,0 +1,52 @@
+# node log collector
+
+sources:
+  syslog_raw:
+    type: file
+    read_from: end
+    include:
+{% if os_package|default('rpm') == 'deb' %}
+      - /var/log/syslog
+{% else %}
+      - /var/log/messages
+{% endif %}
+
+transforms:
+  # parse and enrich syslog for vlogs
+  syslog_logs:
+    type: remap
+    inputs: [syslog_raw]
+    source: |
+      .ip = "{{ inventory_hostname }}"
+      .src = "syslog"
+      .ins = "{{ nodename }}"
+      .cls = "{{ node_cluster }}"
+
+  # generate syslog rate metric (logs per second)
+  syslog_rate_metrics:
+    type: log_to_metric
+    inputs: [syslog_raw]
+    metrics:
+      - type: counter
+        field: message
+        name: syslog_messages_total
+        namespace: node
+
+  # filter error logs
+  syslog_errors:
+    type: filter
+    inputs: [syslog_raw]
+    condition: |
+      match(string!(.message), r'(?i)(error|fail|crit|alert|emerg)')
+
+  # generate error log counter metric
+  syslog_error_metrics:
+    type: log_to_metric
+    inputs: [syslog_errors]
+    metrics:
+      - type: counter
+        field: message
+        name: syslog_errors_total
+        namespace: node
+
+
