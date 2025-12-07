@@ -468,10 +468,8 @@ pull:
 	rsync -avz sv:~/pigsty/ ./ --exclude-from 'vagrant/Vagrantfile' --exclude-from 'vagrant/.vagrant'
 ss:
 	rsync -avz --exclude=temp --exclude=dist --exclude=vagrant/ --exclude=terraform --delete ./ sv:/data/pigsty/
-	ssh sv 'chown -R root:root /data/pigsty/'
 gsync:
 	rsync -avz --delete .git/ sv:/data/pigsty/.git
-	ssh sv 'chown -R root:root /data/pigsty/.git'
 grestore:
 	git restore pigsty.yml
 	git restore vagrant/Vagrantfile
