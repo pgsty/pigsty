@@ -174,9 +174,12 @@ grafana:
 	./infra.yml --tags=grafana
 	./pgsql.yml --tags=register_grafana
 
-# init loki
-loki:
-	./infra.yml --tags=loki -e loki_clean=true
+# init vlogs
+vv: vlogs vector
+vlogs:
+	./infra.yml --tags=vlogs -e vlogs_clean=true
+vector:
+	./node.yml --tags=vector -e vector_clean=true -e vector_read_from=beginning
 
 # nginx & certbot
 nginx:

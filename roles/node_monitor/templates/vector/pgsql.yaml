@@ -4,7 +4,7 @@ sources:
   # PostgreSQL CSV logs
   pglog_raw:
     type: file
-    read_from: end
+    read_from: {{ vector_read_from|default('beginning') }}
     include:
       - {{ pg_log_dir }}/*.csv
 
@@ -12,7 +12,7 @@ sources:
   # Patroni logs
   patroni_raw:
     type: file
-    read_from: end
+    read_from: {{ vector_read_from|default('beginning') }}
     include:
       - {{ patroni_log_dir }}/patroni.log
 {% endif %}
@@ -22,7 +22,7 @@ sources:
   # use device_and_inode to avoid fingerprint collision (all pgbackrest logs start with same header)
   pgbackrest_raw:
     type: file
-    read_from: end
+    read_from: {{ vector_read_from|default('beginning') }}
     include:
       - {{ pgbackrest_log_dir }}/*.log
     fingerprint:
@@ -33,7 +33,7 @@ sources:
   # pgBouncer logs
   pgbouncer_raw:
     type: file
-    read_from: end
+    read_from: {{ vector_read_from|default('beginning') }}
     include:
       - {{ pgbouncer_log_dir }}/pgbouncer.log
 {% endif %}
@@ -41,16 +41,17 @@ sources:
   # pg_exporter logs (collected via /pg/log/exporter/*.log)
   pgexporter_raw:
     type: file
-    read_from: end
+    read_from: {{ vector_read_from|default('beginning') }}
     include:
       - /pg/log/exporter/*.log
 
-{% if pg_vip_enabled|default(true) %}
-  # vip-manager logs
+{% if pg_vip_enabled|default(false) %}
+  # vip-manager logs (from journald)
   vip_manager_raw:
     type: file
-    read_from: end
-    include: [ /var/log/vip-manager.log ]
+    read_from: {{ vector_read_from|default('beginning') }}
+    include:
+      - /pg/log/vip-manager.log
 {% endif %}
 
 transforms:
@@ -62,7 +63,7 @@ transforms:
     source: |
       row = parse_csv!(.message)
       if length(row) < 23 { abort }
-      .ts = row[0]
+      ._time = row[0]
       .username = row[1]
       .datname = row[2]
       .pid = row[3]
@@ -77,13 +78,14 @@ transforms:
       .context = row[18]
       .query = row[19]
       .appname = row[22]
-      del(.message); del(.source_type); del(.file); del(.host)
+      del(.message); del(.source_type); del(.host)
 
   # logs for vlogs
   pglog_logs:
     type: remap
     inputs: [pglog]
     source: |
+      .job = "pgsql"
       .ip = "{{ inventory_hostname }}"
       .src = "postgres"
       .ins = "{{ pg_cluster }}-{{ pg_seq }}"
@@ -105,33 +107,41 @@ transforms:
     source: |
       m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}) (?P<level>\w+): (?P<msg>.*)$') ?? {}
       if !exists(m.ts) { abort }
-      .ts = m.ts
+      ._time = m.ts
       .level = m.level
       .message = m.msg
+      .job = "pgsql"
       .ip = "{{ inventory_hostname }}"
       .src = "patroni"
       .ins = "{{ pg_cluster }}-{{ pg_seq }}"
       .cls = "{{ pg_cluster }}"
-      del(.source_type); del(.file); del(.host)
+      del(.source_type); del(.host)
 {% endif %}
 
 {% if pgbackrest_enabled|default(true) %}
-  # parse pgbackrest log: "2024-01-01 12:00:00.000 UTC [pid] INFO: message"
+  # parse pgbackrest log: "2024-01-01 12:00:00.123 P00  INFO: message" (timestamp may be optional)
   pgbackrest_logs:
     type: remap
     inputs: [pgbackrest_raw]
-    drop_on_abort: true
     source: |
-      m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \w+) \[(?P<pid>\d+)\]\s*(?P<level>\w+): (?P<msg>.*)$') ?? {}
-      if !exists(m.ts) { abort }
-      .ts = m.ts
-      .level = m.level
-      .message = m.msg
+      .job = "pgsql"
       .ip = "{{ inventory_hostname }}"
       .src = "pgbackrest"
       .ins = "{{ pg_cluster }}-{{ pg_seq }}"
       .cls = "{{ pg_cluster }}"
-      del(.source_type); del(.file); del(.host)
+      m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) P\d+\s+(?P<level>\w+):\s*(?P<msg>.*)$') ?? {}
+      if exists(m.ts) {
+        ._time = m.ts
+        .level = m.level
+        .message = m.msg
+      } else {
+        m = parse_regex(.message, r'^P\d+\s+(?P<level>\w+):\s*(?P<msg>.*)$') ?? {}
+        if exists(m.level) {
+          .level = m.level
+          .message = m.msg
+        }
+      }
+      del(.source_type); del(.host)
 {% endif %}
 
 {% if pgbouncer_enabled|default(true) %}
@@ -143,14 +153,15 @@ transforms:
     source: |
       m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \w+) \[(?P<pid>\d+)\] (?P<level>\w+) (?P<msg>.*)$') ?? {}
       if !exists(m.ts) { abort }
-      .ts = m.ts
+      ._time = m.ts
       .level = m.level
       .message = m.msg
+      .job = "pgsql"
       .ip = "{{ inventory_hostname }}"
       .src = "pgbouncer"
       .ins = "{{ pg_cluster }}-{{ pg_seq }}"
       .cls = "{{ pg_cluster }}"
-      del(.source_type); del(.file); del(.host)
+      del(.source_type); del(.host)
 {% endif %}
 
   # pg_exporter/pgbouncer_exporter logs (logrus format, keep simple)
@@ -158,24 +169,20 @@ transforms:
     type: remap
     inputs: [pgexporter_raw]
     source: |
+      .job = "pgsql"
       .ip = "{{ inventory_hostname }}"
-      .src = "exporter"
+      .src = "pgexporter"
       .ins = "{{ pg_cluster }}-{{ pg_seq }}"
       .cls = "{{ pg_cluster }}"
       del(.source_type); del(.host)
 
-{% if pg_vip_enabled|default(true) %}
-  # parse vip-manager logs: "2024/01/01 12:00:00 message"
+{% if pg_vip_enabled|default(false) %}
+  # vip-manager logs
   vip_manager_logs:
     type: remap
     inputs: [vip_manager_raw]
-    drop_on_abort: true
     source: |
-      m = parse_regex(.message, r'^(?P<ts>\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}) (?P<msg>.*)$') ?? {}
-      if !exists(m.ts) { abort }
-      .ts = m.ts
-      .level = "INFO"
-      .message = m.msg
+      .job = "pgsql"
       .ip = "{{ inventory_hostname }}"
       .src = "vip-manager"
       .ins = "{{ pg_cluster }}-{{ pg_seq }}"

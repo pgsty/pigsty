@@ -10,11 +10,11 @@
 
 
 #--------------------------------------------------------------#
-# Cleanup Vector                                   [vector_clean]
+# Cleanup Vector                                  [vector_clean]
 #--------------------------------------------------------------#
 - name: cleanup vector
-  tags: vector_clean
-  when: vlogs_clean|bool
+  tags: [vector, vector_clean]
+  when: vector_clean|bool
   ignore_errors: true
   block:
     - name: stop vector service
@@ -31,12 +31,14 @@
 - name: config vector
   tags: [vector, vector_config]
   block:
+
     - name: create vector data directories
-      file: path={{ item }} state=directory mode=0755
+      file: path={{ item.path }} state={{ item.state }} mode='0700'
+      tags: vector_dir
       with_items:
         - { path: "/etc/vector"       ,state: directory }
-        - { path: "{{ vector_data }}" ,state: directory }
         - { path: "/etc/vector/examples" ,state: absent }
+        - { path: "{{ vector_data|default('/data/vector') }}" ,state: directory }
 
     - name: create vector systemd service
       copy: src={{ item.src }} dest={{ item.dest }}

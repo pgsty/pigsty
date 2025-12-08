@@ -3,7 +3,7 @@
 sources:
   syslog_raw:
     type: file
-    read_from: end
+    read_from: {{ vector_read_from|default('beginning') }}
     include:
 {% if os_package|default('rpm') == 'deb' %}
       - /var/log/syslog
@@ -17,10 +17,12 @@ transforms:
     type: remap
     inputs: [syslog_raw]
     source: |
+      .job = "node"
       .ip = "{{ inventory_hostname }}"
       .src = "syslog"
       .ins = "{{ nodename }}"
       .cls = "{{ node_cluster }}"
+      del(.source_type); del(.file); del(.host)
 
   # generate syslog rate metric (logs per second)
   syslog_rate_metrics:
