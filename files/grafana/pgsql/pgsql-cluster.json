@@ -13460,6 +13460,7 @@
                 "type": "victoriametrics-logs-datasource",
                 "uid": "ds-vlogs"
             },
+            "description": "Total log events in the current time window",
             "fieldConfig": {
                 "defaults": {
                     "color": {
@@ -13613,7 +13614,7 @@
                     "editorMode": "code",
                     "expr": "cls:$cls src:postgres | stats by (src) count() as count",
                     "legendFormat": "{{ src }}",
-                    "queryType": "statsRange",
+                    "queryType": "stats",
                     "refId": "A",
                     "step": ""
                 },
@@ -13626,7 +13627,7 @@
                     "expr": "cls:$cls src:patroni | stats by (src) count() as count",
                     "hide": false,
                     "legendFormat": "{{ src }}",
-                    "queryType": "statsRange",
+                    "queryType": "stats",
                     "refId": "B"
                 },
                 {
@@ -13638,7 +13639,7 @@
                     "expr": "cls:$cls src:pgbouncer | stats by (src) count() as count",
                     "hide": false,
                     "legendFormat": "{{ src }}",
-                    "queryType": "statsRange",
+                    "queryType": "stats",
                     "refId": "C"
                 },
                 {
@@ -13650,11 +13651,11 @@
                     "expr": "cls:$cls src:pgbackrest | stats by (src) count() as count",
                     "hide": false,
                     "legendFormat": "pgbackrest",
-                    "queryType": "statsRange",
+                    "queryType": "stats",
                     "refId": "D"
                 }
             ],
-            "title": "Logs (5m)",
+            "title": "Logs",
             "type": "stat"
         },
         {
@@ -13810,46 +13811,10 @@
                         "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "cls:$cls src:postgres | stats by (src) count() as count",
+                    "expr": "cls:$cls | stats by (src) count() as count",
                     "legendFormat": "{{ src }}",
                     "queryType": "statsRange",
                     "refId": "A"
-                },
-                {
-                    "datasource": {
-                        "type": "victoriametrics-logs-datasource",
-                        "uid": "ds-vlogs"
-                    },
-                    "editorMode": "code",
-                    "expr": "cls:$cls src:patroni | stats by (src) count() as count",
-                    "hide": false,
-                    "legendFormat": "{{ src }}",
-                    "queryType": "statsRange",
-                    "refId": "B"
-                },
-                {
-                    "datasource": {
-                        "type": "victoriametrics-logs-datasource",
-                        "uid": "ds-vlogs"
-                    },
-                    "editorMode": "code",
-                    "expr": "cls:$cls src:pgbouncer | stats by (src) count() as count",
-                    "hide": false,
-                    "legendFormat": "{{ src }}",
-                    "queryType": "statsRange",
-                    "refId": "C"
-                },
-                {
-                    "datasource": {
-                        "type": "victoriametrics-logs-datasource",
-                        "uid": "ds-vlogs"
-                    },
-                    "editorMode": "code",
-                    "expr": "cls:$cls src:pgbackrest | stats by (src) count() as count",
-                    "hide": false,
-                    "legendFormat": "pgbackrest",
-                    "queryType": "statsRange",
-                    "refId": "D"
                 }
             ],
             "title": "Logs per $__interval",
@@ -13888,8 +13853,9 @@
                         "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "src:~\"postgres|patroni|pgbouncer|pgbackrest\" cls:pg-meta",
+                    "expr": "cls:in($cls)",
                     "instant": false,
+                    "legendFormat": "{{ src }}",
                     "queryType": "instant",
                     "range": true,
                     "refId": "A"
