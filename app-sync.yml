@@ -1,0 +1,227 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   app-sync.yml
+# Desc      :   copy and launch docker compose app with restart handler
+# Ctime     :   2025-01-11
+# Mtime     :   2025-03-21
+# Path      :   app.yml
+# Docs      :   https://pigsty.io/docs/app
+# License   :   AGPLv3 @ https://pigsty.io/docs/about/license
+# Copyright :   2025  B.J. Lawson
+#==============================================================#
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+#  1.  specify the `app` param
+#      by default, it's a docker compose app in the app/ folder
+#      configure it in the pigsty.yml or pass it as `-e app=<name>`
+#
+#  2.  OPTIONAL, specify app details with apps:
+#
+#  This playbook relies on the DOCKER module to work
+#  This playbook will:
+#   1. copy docker compose resource from app/<appname> to /opt/<appname>
+#   2. create required dirs with app.file (optional)
+#   3. overwrite .env config with app.conf (optional)
+#   4. launch app with docker compose up
+#   5. restart docker compose if sources or .env file change
+#
+#--------------------------------------------------------------#
+# Example
+#--------------------------------------------------------------#
+#  ./app.yml -e app=pgweb          # simple app can be launched directly
+#  ./app.yml -e app=pgadmin        # without any further configuration
+#
+#  ./app.yml -e app=bytebase       # sophiscated software that reqire
+#  ./app.yml -e app=supabase       # external postgres and extra config
+#  ./app.yml -e app=odoo           # configure pigsty.yml and apps for
+#  ./app.yml -e app=dify           # fine-grained control
+#--------------------------------------------------------------#
+
+- name: NODE ID
+  become: yes
+  hosts: all
+  gather_facts: no
+  roles:
+    - { role: node_id ,tags: id }
+    #- { role: docker  ,tags: docker }
+
+# Run docker compose application (require the docker module)
+- name: APP SYNC
+  hosts: all
+  gather_facts: no
+  become: yes
+  vars: # Define app variables here for clarity and potential reuse in handlers
+    app_def: "{{ apps[app] | default({}) }}"
+    app_name: "{{ app }}"
+    app_src:  "{{ app_def.src | default(playbook_dir + '/app/' + app) }}" # override src name with app.src
+    app_dest: "{{ app_def.dest | default('/opt/' + app) }}"               # override dest name with app.dest
+    app_conf: "{{ app_def.conf | default({}) }}"                          # application configuration
+    app_file: "{{ app_def.file | default([]) }}"                          # application files & directories
+    app_args: "{{ app_def.args | default('') }}"                          # application make short cut list
+    env_file_path: "{{ app_dest }}/.env"
+
+  tasks:
+
+    #----------------------------------------------------------#
+    # Validate app and app definition                [preflight]
+    #----------------------------------------------------------#
+    - name: preflight
+      tags: [ app_check, preflight, always ]
+      connection: local
+      vars:
+        ansible_python_interpreter: "{{ local_ansible_python_interpreter if local_ansible_python_interpreter is defined else omit }}"
+      block:
+        - name: validate app  parameter
+          assert:
+            that:
+              - app is defined
+              - app != ''
+            fail_msg: "the 'app' arg is not given (-e app=<name>)"
+
+        - name: validate docker exists
+          assert:
+            that:
+              - docker_enabled is defined and docker_enabled
+            fail_msg: "docker_enabled is required to install app"
+
+        - name: fetch app definition
+          set_fact:
+            app_def: "{{ apps[app] | default({}) }}"
+
+        - name: set app properties
+          set_fact:
+            app_name: "{{ app }}"
+            app_src:  "{{ app_def.src | default(playbook_dir + '/app/' + app) }}" # override src name with app.src
+            app_dest: "{{ app_def.dest | default('/opt/' + app) }}"               # override dest name with app.dest
+            app_conf: "{{ app_def.conf | default({}) }}"                          # application configuration
+            app_file: "{{ app_def.file | default([]) }}"                          # application files & directories
+            app_args: "{{ app_def.args | default('') }}"                          # application make short cut list
+
+        - name: check local app folder
+          stat: path={{ app_src }}
+          register: app_folder_stat
+
+        - name: abort if local app not exists
+          fail: {msg: "{{ app_src }} folder not exist"}
+          when: not app_folder_stat.stat.exists
+
+        - name: print app details
+          debug:
+            msg: "app: {{ app_name }}, src: {{ app_src }}, dest: {{ app_dest }}, conf: {{ app_conf }}, file: {{ app_file }}"
+
+    #----------------------------------------------------------#
+    # Prepare files & directories                     [app_file]
+    #----------------------------------------------------------#
+    - name: setup app files & directories
+      tags: app_file
+      when: app_file | length > 0
+      file: "{{ item }}"
+      with_items: "{{ app_file }}"
+
+    #----------------------------------------------------------#
+    # Install app resources to /opt                [app_install]
+    #----------------------------------------------------------#
+    # copy docker app folder to /opt/<app.dest> or /opt/<app.name>
+    - name: install app resources (excluding .env - handled separately) to /opt
+      tags: app_install
+      ansible.posix.synchronize:
+        mode: push
+        src: "{{ app_src }}/"
+        dest: "{{ app_dest }}/" # Ensure trailing slash on dest
+        archive: yes            # Keep file owner and permissions
+        times: no               # Ignore file timestamps in identifying changes
+        recursive: yes
+        delete: no              # Do not delete files since containers manage volumes
+        rsync_opts:
+          - "--exclude=.env"    # Exclude .env, we manage it below
+      notify: restart docker compose
+      register: sync_result
+
+    - name: What changed in file sync?
+      tags: app_install
+      ansible.builtin.debug:
+        var: sync_result
+
+    #----------------------------------------------------------#
+    # Configure app with .env (Hashing Method)      [app_config]
+    #----------------------------------------------------------#
+    - name: Check if destination .env file exists
+      tags: app_config
+      ansible.builtin.stat:
+        path: "{{ env_file_path }}"
+      register: env_dest_stat
+
+    - name: Copy source .env on initial deployment if destination does not exist
+      tags: app_config
+      ansible.builtin.copy:
+        src: "{{ app_src }}/.env" # Source .env with defaults
+        dest: "{{ env_file_path }}"
+        owner: root # Set appropriate owner/group/mode
+        group: root
+        mode: '0640'
+        force: no # Default, but explicit: do not overwrite if dest exists
+      when: not env_dest_stat.stat.exists # Only run if dest .env is missing
+
+    - name: Check checksum of existing .env file
+      tags: app_config
+      ansible.builtin.stat:
+        path: "{{ env_file_path }}"
+        get_checksum: yes
+        checksum_algorithm: sha1
+      register: env_stat_before
+
+    - name: configure app by updating .env
+      tags: app_config
+      when: app_conf | length > 0
+      lineinfile:
+        path: "{{ env_file_path }}"
+        regexp: '^{{ item.key | upper }}='
+        line: '{{ item.key | upper }}={{ item.value if item.value is not boolean else item.value | string | lower }}'
+        create: yes
+      loop: "{{ app_conf | dict2items }}"
+
+    - name: Check checksum of .env file after lineinfile updates
+      tags: app_config
+      ansible.builtin.stat:
+        path: "{{ env_file_path }}"
+        get_checksum: yes
+        checksum_algorithm: sha1
+      register: env_stat_after
+
+    - name: Notify handler ONLY if .env file content changed
+      tags: app_config
+      ansible.builtin.debug:
+        msg: "Checking .env file hashes for changes."
+      changed_when: env_stat_before.stat.checksum | default('before_none') != env_stat_after.stat.checksum | default('after_none')
+      notify: restart docker compose
+
+    #----------------------------------------------------------#
+    # Ensure Docker Compose project is up           [app_launch]
+    #----------------------------------------------------------#
+    # Changed name to avoid confusion with previous launch task
+    - name: ensure app services are running via docker compose module
+      tags: app_launch
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dest }}"  # Correctly points to /opt/supabase
+        env_files:              # Specify the env file relative to project_src
+          - .env
+        state: present          # Equivalent to 'up -d'
+        remove_orphans: yes     # Clean up any old containers not in the compose file
+      become: yes               # Run docker compose with root privileges...
+      register: compose_start_result
+
+  #----------------------------------------------------------#
+  # Handlers: Run only if notified by a task                 #
+  #----------------------------------------------------------#
+  handlers:
+    - name: restart docker compose
+      listen: restart docker compose
+      community.docker.docker_compose_v2:
+        project_src: "{{ app_dest }}"
+        state: present # Ensure state is present before restarting
+        recreate: always # Force stop and start of all services in the project
+      when: not compose_start_result.changed
