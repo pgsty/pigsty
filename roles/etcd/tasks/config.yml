@@ -7,15 +7,15 @@
   block:
     - name: print etcd configuration info
       debug:
-        msg: "ETCDCTL_ENDPOINTS={% for ip in groups['etcd']|sort %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
+        msg: "ETCDCTL_ENDPOINTS={% for ip in groups[etcd_cluster]|sort %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
 
     - name: generate etcd config
       become: yes
       template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
       with_items:
-        - { src: "etcd.conf"     ,dest: "/etc/etcd/etcd.conf"            ,owner: "etcd", group: "etcd" ,mode: "0644" }
-        - { src: "etcd.service"  ,dest: "{{ systemd_dir }}/etcd.service" ,owner: "root", group: "root" ,mode: "0644" }
-        - { src: "etcdctl.sh"    ,dest: "/etc/profile.d/etcdctl.sh"      ,owner: "etcd", group: "etcd" ,mode: "0755" }
+        - { src: "etcd.conf"  ,dest: "/etc/etcd/etcd.conf"            ,owner: "etcd", group: "etcd" ,mode: "0644" }
+        - { src: "etcd.svc"   ,dest: "{{ systemd_dir }}/etcd.service" ,owner: "root", group: "root" ,mode: "0644" }
+        - { src: "etcdctl.sh" ,dest: "/etc/profile.d/etcdctl.sh"      ,owner: "root", group: "root" ,mode: "0755" }
 
 #--------------------------------------------------------------#
 # Issue etcd certs                             [etcd_cert_issue]
@@ -40,7 +40,7 @@
         common_name: "{{ etcd_instance }}"
         organization_name: pigsty
         organizational_unit_name: etcd
-        force: true
+        #force: true
         subject_alt_name:
           - IP:127.0.0.1
           - DNS:localhost
@@ -52,10 +52,10 @@
       openssl_certificate:
         path: "files/pki/etcd/{{ etcd_instance }}.crt"
         csr_path: "files/pki/csr/{{ etcd_instance }}.csr"
+        provider: ownca
         ownca_path: files/pki/ca/ca.crt
         ownca_privatekey_path: files/pki/ca/ca.key
-        provider: ownca
-        selfsigned_not_after: "+{{ cert_validity }}"
+        ownca_not_after: "+{{ cert_validity }}"
         mode: 0644
 
 

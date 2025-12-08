@@ -21,12 +21,13 @@
 #--------------------------------------------------------------#
 - name: create etcd directories
   tags: etcd_dir
-  file: path={{ item.path }} state=directory owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  file: path={{ item.path }} state={{ item.state }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
   loop:
-    - { path: "/etc/etcd"       ,mode: "0750" , owner: "etcd" , group: "etcd"  }
-    - { path: "/var/lib/etcd"   ,mode: "0750" , owner: "etcd" , group: "etcd"  }
-    - { path: "{{ node_data }}" ,mode: "0777" , owner: "root" , group: "root"  }
-    - { path: "{{ etcd_data }}" ,mode: "0700" , owner: "etcd" , group: "etcd"  }
+    - { path: "/etc/etcd"         ,state: "directory" ,mode: "0750" ,owner: "etcd" ,group: "etcd"  }
+    - { path: "/var/lib/etcd"     ,state: "directory" ,mode: "0750" ,owner: "etcd" ,group: "etcd"  }
+    - { path: "/var/log/etcd.log" ,state: "touch"     ,mode: "0640" ,owner: "etcd" ,group: "etcd"  }
+    - { path: "{{ node_data }}"   ,state: "directory" ,mode: "0777" ,owner: "root" ,group: "root"  }
+    - { path: "{{ etcd_data }}"   ,state: "directory" ,mode: "0700" ,owner: "etcd" ,group: "etcd"  }
 
 #--------------------------------------------------------------#
 # Config etcd                                      [etcd_config]
@@ -51,7 +52,7 @@
         ETCDCTL_CACERT: "/etc/etcd/ca.crt"
         ETCDCTL_CERT: "/etc/etcd/server.crt"
         ETCDCTL_KEY: "/etc/etcd/server.key"
-        ETCDCTL_ENDPOINTS: "{{ groups[etcd_cluster] | difference([inventory_hostname]) | map('regex_replace', '^(.*)$', '\\1:' + etcd_port|string) | join(',') }}"
+        ETCDCTL_ENDPOINTS: "{{ groups[etcd_cluster] | difference([inventory_hostname]) | map('regex_replace', '^(.*)$', 'https://\\1:' + etcd_port|string) | join(',') }}"
       register: etcd_member_add_result
       failed_when:
         - etcd_member_add_result.rc != 0
@@ -80,8 +81,9 @@
       wait_for: host=127.0.0.1 port={{ etcd_port }} state=started timeout=10
 
 #--------------------------------------------------------------#
-# Register etcd to prometheus                    [etcd_register]
+# Register Etcd Metrics      [etcd_register,register_prometheus]
 #--------------------------------------------------------------#
+# register_prometheus, register_vector
 - name: register etcd as prometheus target
   tags: [ etcd_register, register_prometheus ]
   when: prometheus_enabled|bool
@@ -96,4 +98,16 @@
       - labels: { ip: {{ inventory_hostname }} , ins: {{ etcd_cluster }}-{{ etcd_seq }} , cls: {{ etcd_cluster }} }
         targets: [ {{ inventory_hostname }}:{{ etcd_port }} ]
 
+#--------------------------------------------------------------#
+# Register Etcd Logs             [etcd_register,register_vector]
+#--------------------------------------------------------------#
+- name: register etcd logs to vector
+  tags: [ etcd_register, register_vector ]
+  when: vector_enabled|default(true)|bool
+  ignore_errors: true
+  block:
+      - name: render etcd vector logging config
+        template: src=etcd.yaml dest=/etc/vector/etcd.yaml mode=0600
+      - name: reload vector to consume etcd log
+        systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
 ...
