@@ -63,7 +63,15 @@ transforms:
     source: |
       row = parse_csv!(.message)
       if length(row) < 23 { abort }
-      ._time = row[0]
+      # PostgreSQL timestamp: "2025-12-08 05:05:47.123456+00" -> RFC3339
+      ts_str = row[0]
+      ts = parse_timestamp(ts_str, "%Y-%m-%d %H:%M:%S%.f%#z") ?? null
+      if ts != null {
+        ._time = format_timestamp!(ts, "%Y-%m-%dT%H:%M:%S%.fZ")
+      } else {
+        # fallback to vector's ingestion timestamp
+        ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+      }
       .username = row[1]
       .datname = row[2]
       .pid = row[3]
@@ -107,7 +115,14 @@ transforms:
     source: |
       m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}) (?P<level>\w+): (?P<msg>.*)$') ?? {}
       if !exists(m.ts) { abort }
-      ._time = m.ts
+      # Patroni timestamp: "2025-12-08 05:05:47 +0000" -> RFC3339
+      ts = parse_timestamp(m.ts, "%Y-%m-%d %H:%M:%S %z") ?? null
+      if ts != null {
+        ._time = format_timestamp!(ts, "%Y-%m-%dT%H:%M:%S%:z")
+      } else {
+        # fallback to vector's ingestion timestamp
+        ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+      }
       .level = m.level
       .message = m.msg
       .job = "pgsql"
@@ -124,21 +139,35 @@ transforms:
     type: remap
     inputs: [pgbackrest_raw]
     source: |
+      # save original message for fallback (e.g. separator lines like "---PROCESS START---")
+      original = string!(.message)
       .job = "pgsql"
       .ip = "{{ inventory_hostname }}"
       .src = "pgbackrest"
       .ins = "{{ pg_cluster }}-{{ pg_seq }}"
       .cls = "{{ pg_cluster }}"
-      m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) P\d+\s+(?P<level>\w+):\s*(?P<msg>.*)$') ?? {}
+      m = parse_regex(original, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) P\d+\s+(?P<level>\w+):\s*(?P<msg>.*)$') ?? {}
       if exists(m.ts) {
-        ._time = m.ts
+        # pgbackrest timestamp: "2024-01-01 12:00:00.123" -> RFC3339 (assume UTC)
+        ts = parse_timestamp(m.ts, "%Y-%m-%d %H:%M:%S%.f") ?? null
+        if ts != null {
+          ._time = format_timestamp!(ts, "%Y-%m-%dT%H:%M:%S%.fZ")
+        } else {
+          ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+        }
         .level = m.level
         .message = m.msg
       } else {
-        m = parse_regex(.message, r'^P\d+\s+(?P<level>\w+):\s*(?P<msg>.*)$') ?? {}
+        # no timestamp in log line, use vector's timestamp
+        ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+        m = parse_regex(original, r'^P\d+\s+(?P<level>\w+):\s*(?P<msg>.*)$') ?? {}
         if exists(m.level) {
           .level = m.level
           .message = m.msg
+        } else {
+          # unrecognized format (separator lines, etc.) - use original as message
+          .message = original
+          .level = "DEBUG"
         }
       }
       del(.source_type); del(.host)
@@ -151,9 +180,16 @@ transforms:
     inputs: [pgbouncer_raw]
     drop_on_abort: true
     source: |
-      m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} \w+) \[(?P<pid>\d+)\] (?P<level>\w+) (?P<msg>.*)$') ?? {}
+      m = parse_regex(.message, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) (?P<tz>\w+) \[(?P<pid>\d+)\] (?P<level>\w+) (?P<msg>.*)$') ?? {}
       if !exists(m.ts) { abort }
-      ._time = m.ts
+      # pgbouncer timestamp: "2024-01-01 12:00:00.000 UTC" -> RFC3339 (assume UTC)
+      ts = parse_timestamp(m.ts, "%Y-%m-%d %H:%M:%S%.f") ?? null
+      if ts != null {
+        ._time = format_timestamp!(ts, "%Y-%m-%dT%H:%M:%S%.fZ")
+      } else {
+        # fallback to vector's ingestion timestamp
+        ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+      }
       .level = m.level
       .message = m.msg
       .job = "pgsql"
@@ -169,6 +205,8 @@ transforms:
     type: remap
     inputs: [pgexporter_raw]
     source: |
+      # use vector's timestamp for exporter logs
+      ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
       .job = "pgsql"
       .ip = "{{ inventory_hostname }}"
       .src = "pgexporter"
@@ -182,6 +220,8 @@ transforms:
     type: remap
     inputs: [vip_manager_raw]
     source: |
+      # use vector's timestamp for vip-manager logs
+      ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
       .job = "pgsql"
       .ip = "{{ inventory_hostname }}"
       .src = "vip-manager"
