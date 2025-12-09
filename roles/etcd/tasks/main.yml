@@ -25,7 +25,6 @@
   loop:
     - { path: "/etc/etcd"         ,state: "directory" ,mode: "0750" ,owner: "etcd" ,group: "etcd"  }
     - { path: "/var/lib/etcd"     ,state: "directory" ,mode: "0750" ,owner: "etcd" ,group: "etcd"  }
-    - { path: "/var/log/etcd.log" ,state: "touch"     ,mode: "0640" ,owner: "etcd" ,group: "etcd"  }
     - { path: "{{ node_data }}"   ,state: "directory" ,mode: "0777" ,owner: "root" ,group: "root"  }
     - { path: "{{ etcd_data }}"   ,state: "directory" ,mode: "0700" ,owner: "etcd" ,group: "etcd"  }
 
@@ -98,16 +97,4 @@
       - labels: { ip: {{ inventory_hostname }} , ins: {{ etcd_cluster }}-{{ etcd_seq }} , cls: {{ etcd_cluster }} }
         targets: [ {{ inventory_hostname }}:{{ etcd_port }} ]
 
-#--------------------------------------------------------------#
-# Register Etcd Logs             [etcd_register,register_vector]
-#--------------------------------------------------------------#
-- name: register etcd logs to vector
-  tags: [ etcd_register, register_vector ]
-  when: vector_enabled|default(true)|bool
-  ignore_errors: true
-  block:
-      - name: render etcd vector logging config
-        template: src=etcd.yaml dest=/etc/vector/etcd.yaml mode=0600
-      - name: reload vector to consume etcd log
-        systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
 ...
