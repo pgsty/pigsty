@@ -1,0 +1,14 @@
+---
+#--------------------------------------------------------------#
+# Register PG Logs                 [pg_register,register_vector]
+#--------------------------------------------------------------#
+- name: register pgsql logs to vector
+  tags: [ pg_register, register_vector ]
+  when: vector_enabled|default(true)|bool
+  ignore_errors: true
+  block:
+    - name: render pgsql vector logging config
+      template: src=pgsql.yaml dest=/etc/vector/pgsql.yaml mode=0600
+    - name: reload vector to consume pgsql log
+      systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
+...

@@ -100,4 +100,17 @@
   tags: pg_pkg
   when: pg_rm_pkg|bool
 
+#--------------------------------------------------------------#
+# remove vector logs                                    [vector]
+#--------------------------------------------------------------#
+- name: remove pgsql logs from vector
+  tags: [ pg_monitor, register, vector ]
+  when: vector_enabled|default(true)|bool
+  ignore_errors: true
+  block:
+    - name: remove pgsql vector logging config
+      file: path=/etc/vector/pgsql.yaml state=absent
+    - name: reload vector to discard pgsql log
+      systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
+
 ...
