@@ -121,4 +121,18 @@
   when: minio_rm_pkg|bool
   package: name={{ item }} state=absent
   loop: [ minio , mcli ]
+
+
+#--------------------------------------------------------------#
+# remove minio targets from vector            [vector][register]
+#--------------------------------------------------------------#
+- name: remove minio logs from vector
+  tags: [ minio_deregister, register, vector ]
+  when: vector_enabled|default(true)|bool
+  ignore_errors: true
+  block:
+    - name: remove minio vector logging config
+      file: path=/etc/vector/minio.yaml state=absent
+    - name: reload vector to discard minio log
+      systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
 ...
