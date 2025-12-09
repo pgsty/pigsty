@@ -2,7 +2,7 @@
 #==============================================================#
 # File      :   pgsql.yml
 # Ctime     :   2020-04-22
-# Mtime     :   2024-08-30
+# Mtime     :   2025-12-09
 # Desc      :   Rules for postgres & pgbouncer
 # Path      :   /etc/prometheus/rules/pgsql.yml
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -427,7 +427,7 @@ groups:
       - record: pg:env:session_time_rate1m
         expr: sum by (job) (pg:cls:session_time_rate1m)
 
-      # Time spent in idle per second, in seconds
+      # Time spent idle in transaction per second (1m/5m/15m)
       - record: pg:db:ixact_time_rate1m
         expr: rate(pg_db_ixact_time[1m])
       - record: pg:ins:ixact_time_rate1m
@@ -436,6 +436,24 @@ groups:
         expr: sum by (job, cls) (pg:ins:ixact_time_rate1m)
       - record: pg:env:ixact_time_rate1m
         expr: sum by (job) (pg:cls:ixact_time_rate1m)
+
+      - record: pg:db:ixact_time_rate5m
+        expr: rate(pg_db_ixact_time[5m])
+      - record: pg:ins:ixact_time_rate5m
+        expr: sum without(datname) (pg:db:ixact_time_rate5m)
+      - record: pg:cls:ixact_time_rate5m
+        expr: sum by (job, cls) (pg:ins:ixact_time_rate5m)
+      - record: pg:env:ixact_time_rate5m
+        expr: sum by (job) (pg:cls:ixact_time_rate5m)
+
+      - record: pg:db:ixact_time_rate15m
+        expr: rate(pg_db_ixact_time[15m])
+      - record: pg:ins:ixact_time_rate15m
+        expr: sum without(datname) (pg:db:ixact_time_rate15m)
+      - record: pg:cls:ixact_time_rate15m
+        expr: sum by (job, cls) (pg:ins:ixact_time_rate15m)
+      - record: pg:env:ixact_time_rate15m
+        expr: sum by (job) (pg:cls:ixact_time_rate15m)
 
       #--------------------------------#
       #         Active Time            #
@@ -462,7 +480,7 @@ groups:
       - record: pg:env:active_time_rate5m
         expr: sum by (job) (pg:cls:active_time_rate5m)
 
-      # active_time_rate1m 
+      # active_time_rate15m
       - record: pg:db:active_time_rate15m
         expr: rate(pg_db_active_time[15m])
       - record: pg:ins:active_time_rate15m
@@ -491,6 +509,43 @@ groups:
         expr: pg:cls:active_time_rate5m / pg:cls:cpu_count or (0 * pg:cls:size - 1)
       - record: pg:cls:load15
         expr: pg:cls:active_time_rate15m / pg:cls:cpu_count or (0 * pg:cls:size - 1)
+
+
+      #--------------------------------#
+      #          iXact Ratio           #
+      #--------------------------------#
+      # idle_in_xact_ratio = ixact_time / (active_time + ixact_time)
+      # measures the proportion of idle time within transaction-related time
+
+      # ixact_ratio_1m
+      - record: pg:db:ixact_ratio_1m
+        expr: pg:db:ixact_time_rate1m / (pg:db:active_time_rate1m + pg:db:ixact_time_rate1m)
+      - record: pg:ins:ixact_ratio_1m
+        expr: pg:ins:ixact_time_rate1m / (pg:ins:active_time_rate1m + pg:ins:ixact_time_rate1m)
+      - record: pg:cls:ixact_ratio_1m
+        expr: pg:cls:ixact_time_rate1m / (pg:cls:active_time_rate1m + pg:cls:ixact_time_rate1m)
+      - record: pg:env:ixact_ratio_1m
+        expr: pg:env:ixact_time_rate1m / (pg:env:active_time_rate1m + pg:env:ixact_time_rate1m)
+
+      # ixact_ratio_5m
+      - record: pg:db:ixact_ratio_5m
+        expr: pg:db:ixact_time_rate5m / (pg:db:active_time_rate5m + pg:db:ixact_time_rate5m)
+      - record: pg:ins:ixact_ratio_5m
+        expr: pg:ins:ixact_time_rate5m / (pg:ins:active_time_rate5m + pg:ins:ixact_time_rate5m)
+      - record: pg:cls:ixact_ratio_5m
+        expr: pg:cls:ixact_time_rate5m / (pg:cls:active_time_rate5m + pg:cls:ixact_time_rate5m)
+      - record: pg:env:ixact_ratio_5m
+        expr: pg:env:ixact_time_rate5m / (pg:env:active_time_rate5m + pg:env:ixact_time_rate5m)
+
+      # ixact_ratio_15m
+      - record: pg:db:ixact_ratio_15m
+        expr: pg:db:ixact_time_rate15m / (pg:db:active_time_rate15m + pg:db:ixact_time_rate15m)
+      - record: pg:ins:ixact_ratio_15m
+        expr: pg:ins:ixact_time_rate15m / (pg:ins:active_time_rate15m + pg:ins:ixact_time_rate15m)
+      - record: pg:cls:ixact_ratio_15m
+        expr: pg:cls:ixact_time_rate15m / (pg:cls:active_time_rate15m + pg:cls:ixact_time_rate15m)
+      - record: pg:env:ixact_ratio_15m
+        expr: pg:env:ixact_time_rate15m / (pg:env:active_time_rate15m + pg:env:ixact_time_rate15m)
 
 
 
