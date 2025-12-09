@@ -21,8 +21,8 @@ node_packages_default:
 
 # default infra packages to be installed (if `infra_packages` is not explicitly set)
 infra_packages_default:
-  - grafana,grafana-victorialogs-ds,victoria-logs,vlogscli,prometheus,alertmanager,pushgateway,grafana-plugins,restic,certbot,python3-certbot-nginx
-  - node_exporter,blackbox_exporter,nginx_exporter,pg_exporter,pev2,nginx,dnsmasq,ansible,etcd,python3-requests,redis,mcli
+  - grafana,grafana-plugins,grafana-victorialogs-ds,grafana-victoriametrics-ds,victoria-metrics,victoria-logs,victoria-traces,vmutils,vlogscli,alertmanager
+  - node_exporter,blackbox_exporter,nginx_exporter,pg_exporter,pev2,nginx,dnsmasq,ansible,etcd,python3-requests,redis,mcli,restic,certbot,python3-certbot-nginx
 
 # postgres home dir in various mode
 pg_home_map:
@@ -88,8 +88,8 @@ package_map:
   #--------------------------------#
   node-bootstrap:          "ansible python3 python3-pip python3-virtualenv python3-requests python3-jmespath python3-cryptography dnf-utils createrepo_c sshpass crypto-policies-scripts"
   infra-package:           "nginx dnsmasq etcd haproxy vip-manager node_exporter keepalived_exporter pg_exporter pgbackrest_exporter redis_exporter redis minio mcli pig"
-  infra-addons:            "grafana grafana-plugins grafana-victorialogs-ds victoria-logs vlogscli vector prometheus alertmanager pushgateway blackbox_exporter nginx_exporter pev2 certbot python3-certbot-nginx"
-  extra-modules:           "docker-ce docker-compose-plugin ferretdb2 duckdb restic juicefs vray grafana-infinity-ds"
+  infra-addons:            "grafana grafana-plugins grafana-victoriametrics-ds grafana-victorialogs-ds victoria-metrics victoria-logs victoria-traces vlogscli vmutils vector alertmanager"
+  extra-modules:           "blackbox_exporter nginx_exporter pev2 certbot python3-certbot-nginx docker-ce docker-compose-plugin ferretdb2 duckdb restic juicefs vray grafana-infinity-ds"
   node-package1:           "lz4 unzip bzip2 zlib yum pv jq git ncdu make patch bash lsof wget uuid tuned nvme-cli numactl grubby sysstat iotop htop rsync tcpdump perf chkconfig"
   node-package2:           "netcat socat ftp lrzsz net-tools ipvsadm bind-utils telnet audit ca-certificates readline vim-minimal keepalived chrony openssl openssh-server openssh-clients"
   pgsql-utility:           "patroni patroni-etcd pgbouncer pgbackrest pgbadger pg_timetable pgFormatter pg_filedump pgxnclient timescaledb-tools timescaledb-event-streamer"
@@ -172,7 +172,7 @@ package_map:
   pgsql-sec:               "passwordcheck_cracklib_$v* supautils_$v pgsodium_$v* vault_$v* pg_session_jwt_$v pg_anon_$v pgsmcrypto_$v pg_enigma_$v pgaudit_$v pgauditlogtofile_$v* pg_auditor_$v logerrors_$v* pg_auth_mon_$v* pg_jobmon_$v credcheck_$v* pgcryptokey_$v login_hook_$v* set_user_$v* pg_snakeoil_$v* pgextwlist_$v* sslutils_$v* noset_$v*"
   pgsql-fdw:               "wrappers_$v multicorn2_$v* mysql_fdw_$v* tds_fdw_$v* pgbouncer_fdw_$v mongo_fdw_$v* redis_fdw_$v* pg_redis_pubsub_$v* kafka_fdw_$v hdfs_fdw_$v* aws_s3_$v log_fdw_$v*"
   pgsql-sim:               "orafce_$v pgtt_$v* session_variable_$v* pg_statement_rollback_$v* pg_dbms_metadata_$v pg_dbms_lock_$v pg_dbms_job_$v pg_dbms_errlog_$v* pgmemcache_$v*"
-  pgsql-etl:               "pglogical_$v* pglogical_ticker_$v* pg_failover_slots_$v* db_migrator_$v pgactive_$v* wal2json_$v* postgres-decoderbufs_$v* decoder_raw_$v* mimeo_$v pg_fact_loader_$v*"
+  pgsql-etl:               "pglogical_$v* pglogical_ticker_$v* pg_failover_slots_$v* db_migrator_$v pgactive_$v* wal2json_$v* postgres-decoderbufs_$v* decoder_raw_$v* mimeo_$v pg_fact_loader_$v*" # repmgr_18*
 
 
 
@@ -203,7 +203,7 @@ package_map:
   pg18-sec:                "passwordcheck_cracklib_18* supautils_18 pgsodium_18* vault_18* pg_session_jwt_18 pg_anon_18 pgsmcrypto_18 pg_enigma_18 pgaudit_18 pgauditlogtofile_18* pg_auditor_18 logerrors_18* pg_auth_mon_18* pg_jobmon_18 credcheck_18* pgcryptokey_18 login_hook_18* set_user_18* pg_snakeoil_18* pgextwlist_18* sslutils_18* noset_18*"
   pg18-fdw:                "wrappers_18 multicorn2_18* mysql_fdw_18* tds_fdw_18* pgbouncer_fdw_18 mongo_fdw_18* redis_fdw_18* pg_redis_pubsub_18* kafka_fdw_18 hdfs_fdw_18* aws_s3_18 log_fdw_18*"
   pg18-sim:                "orafce_18 pgtt_18* session_variable_18* pg_statement_rollback_18* pg_dbms_metadata_18 pg_dbms_lock_18 pg_dbms_job_18 pg_dbms_errlog_18* pgmemcache_18*"
-  pg18-etl:                "pglogical_18* pglogical_ticker_18* pg_failover_slots_18* db_migrator_18 pgactive_18* wal2json_18* postgres-decoderbufs_18* decoder_raw_18* mimeo_18 pg_fact_loader_18*"
+  pg18-etl:                "pglogical_18* pglogical_ticker_18* pg_failover_slots_18* db_migrator_18 pgactive_18* wal2json_18* postgres-decoderbufs_18* decoder_raw_18* mimeo_18 pg_fact_loader_18*" # repmgr_18*
 
 
   #--------------------------------#
@@ -740,7 +740,7 @@ package_map:
   decoderbufs:             "postgres-decoderbufs_$v*"                 # 18 17 16 15 14 13
   decoder_raw:             "decoder_raw_$v*"                          # 18 17            
   mimeo:                   "mimeo_$v"                                 # 18 17 16 15 14 13
-  repmgr:                  "repmgr_$v*"                               #    17 16 15 14 13
+  repmgr:                  "repmgr_$v*"                               # 18 17 16 15 14 13
   pg_fact_loader:          "pg_fact_loader_$v*"                       # 18 17 16 15 14 13
   pg_bulkload:             "pg_bulkload_$v*"                          #    17 16 15 14 13
 
