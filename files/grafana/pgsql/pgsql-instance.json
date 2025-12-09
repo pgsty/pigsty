@@ -8834,6 +8834,194 @@
                 "type": "victoriametrics-logs-datasource",
                 "uid": "ds-vlogs"
             },
+            "description": "PGSQL Logs Event",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "fixedColor": "#346f36cc",
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "bars",
+                        "fillOpacity": 100,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "graph": false,
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "showValues": false,
+                        "spanNulls": true,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "normal"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "#346f36cc",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "none"
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "postgres"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "fixedColor": "#3e668f",
+                                    "mode": "fixed"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 24,
+                "x": 0,
+                "y": 26
+            },
+            "id": 100,
+            "interval": "1s",
+            "options": {
+                "legend": {
+                    "calcs": [
+                        "sum"
+                    ],
+                    "displayMode": "table",
+                    "placement": "right",
+                    "showLegend": true
+                },
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "victoriametrics-logs-datasource",
+                        "uid": "ds-vlogs"
+                    },
+                    "editorMode": "code",
+                    "expr": "ins:$ins job:postgres | stats count() as count",
+                    "legendFormat": "postgres",
+                    "queryType": "statsRange",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "victoriametrics-logs-datasource",
+                        "uid": "ds-vlogs"
+                    },
+                    "editorMode": "code",
+                    "expr": "job:pgbackrest ins:$ins\n| stats count() as count",
+                    "hide": false,
+                    "legendFormat": "pgbackrest",
+                    "queryType": "statsRange",
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "victoriametrics-logs-datasource",
+                        "uid": "ds-vlogs"
+                    },
+                    "editorMode": "code",
+                    "expr": "job:syslog ip:$ip\napp:in(\"postgres\", \"patroni\", \"pgbouncer\", \"pg_exporter\", \"pgbouncer_exporter\", \"pgbackrest_exporter\", \"vip-manager\") \n| stats by (app) count() as count",
+                    "hide": false,
+                    "legendFormat": "{{ app }}",
+                    "queryType": "statsRange",
+                    "refId": "C"
+                }
+            ],
+            "title": "PG Logs",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "ds-vlogs"
+            },
+            "description": "Recent logs for PGSQL components: postgres & patroni & pgbouncer & pgbackrest & exporters & vip-manager",
+            "gridPos": {
+                "h": 12,
+                "w": 24,
+                "x": 0,
+                "y": 33
+            },
+            "id": 102,
+            "options": {
+                "dedupStrategy": "none",
+                "detailsMode": "sidebar",
+                "enableInfiniteScrolling": true,
+                "enableLogDetails": true,
+                "fontSize": "small",
+                "prettifyLogMessage": false,
+                "showCommonLabels": false,
+                "showControls": true,
+                "showLabels": false,
+                "showTime": true,
+                "sortOrder": "Descending",
+                "timestampResolution": "ns",
+                "wrapLogMessage": false
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "victoriametrics-logs-datasource",
+                        "uid": "ds-vlogs"
+                    },
+                    "editorMode": "code",
+                    "expr": "ins:$ins job:postgres",
+                    "instant": false,
+                    "queryType": "instant",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "PGSQL Logs",
+            "type": "logs"
+        },
+        {
+            "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "ds-vlogs"
+            },
             "description": "PGSQL component logs in the current time window",
             "fieldConfig": {
                 "defaults": {
@@ -8958,7 +9146,7 @@
                 "h": 7,
                 "w": 4,
                 "x": 0,
-                "y": 26
+                "y": 45
             },
             "id": 103,
             "interval": "1s",
@@ -8987,7 +9175,7 @@
                         "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "ins:$ins src:postgres | stats by (src) count() as count",
+                    "expr": "ins:$ins src:postgres | stats count() as count",
                     "legendFormat": "{{ src }}",
                     "queryType": "stats",
                     "refId": "A",
@@ -9023,7 +9211,7 @@
                         "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "ins:$ins src:pgbackrest | stats by (src) count() as count",
+                    "expr": "ins:$ins src:pgbackrest | stats count() as count",
                     "hide": false,
                     "legendFormat": "pgbackrest",
                     "queryType": "stats",
@@ -9056,151 +9244,6 @@
             ],
             "title": "Total Logs",
             "type": "stat"
-        },
-        {
-            "datasource": {
-                "type": "victoriametrics-logs-datasource",
-                "uid": "ds-vlogs"
-            },
-            "description": "PGSQL Logs Event",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "fixedColor": "#346f36cc",
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "barAlignment": 0,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "bars",
-                        "fillOpacity": 100,
-                        "gradientMode": "none",
-                        "hideFrom": {
-                            "graph": false,
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "linear",
-                        "lineWidth": 1,
-                        "pointSize": 5,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "never",
-                        "showValues": false,
-                        "spanNulls": true,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "normal"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "off"
-                        }
-                    },
-                    "decimals": 0,
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#346f36cc",
-                                "value": 0
-                            }
-                        ]
-                    },
-                    "unit": "none"
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 7,
-                "w": 20,
-                "x": 4,
-                "y": 26
-            },
-            "id": 100,
-            "interval": "1s",
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "sum"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "single",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "victoriametrics-logs-datasource",
-                        "uid": "ds-vlogs"
-                    },
-                    "editorMode": "code",
-                    "expr": "ins:$ins job:pgsql | stats by (src) count() as count",
-                    "legendFormat": "{{ src }}",
-                    "queryType": "statsRange",
-                    "refId": "A"
-                }
-            ],
-            "title": "PG Logs",
-            "type": "timeseries"
-        },
-        {
-            "datasource": {
-                "type": "victoriametrics-logs-datasource",
-                "uid": "ds-vlogs"
-            },
-            "description": "Recent logs for PGSQL components: postgres & patroni & pgbouncer & pgbackrest & exporters & vip-manager",
-            "gridPos": {
-                "h": 12,
-                "w": 24,
-                "x": 0,
-                "y": 33
-            },
-            "id": 102,
-            "options": {
-                "dedupStrategy": "none",
-                "enableInfiniteScrolling": false,
-                "enableLogDetails": true,
-                "prettifyLogMessage": false,
-                "showCommonLabels": false,
-                "showControls": false,
-                "showLabels": false,
-                "showTime": true,
-                "sortOrder": "Descending",
-                "wrapLogMessage": false
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "victoriametrics-logs-datasource",
-                        "uid": "ds-vlogs"
-                    },
-                    "editorMode": "code",
-                    "expr": "ins:$ins job:pgsql",
-                    "instant": false,
-                    "queryType": "instant",
-                    "range": true,
-                    "refId": "A"
-                }
-            ],
-            "title": "PGSQL Logs",
-            "type": "logs"
         }
     ],
     "preload": false,

@@ -11,14 +11,16 @@ transforms:
     type: remap
     inputs: [syslog_raw]
     source: |
+      unit = replace(string(._SYSTEMD_UNIT) ?? "", ".service", "")
       . = {
         "_time": format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ"),
         "message": .message,
-        "appname": .SYSLOG_IDENTIFIER || ._COMM || "unknown",
+        "app": .SYSLOG_IDENTIFIER || ._COMM || "unknown",
+        "unit": unit,
         "pid": to_string(._PID) ?? "",
         "priority": to_string(.PRIORITY) ?? "",
         "ip": "{{ inventory_hostname }}",
         "ins": "{{ nodename }}",
         "cls": "{{ node_cluster }}",
-        "src": "syslog"
+        "job": "syslog"
       }

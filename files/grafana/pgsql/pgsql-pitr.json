@@ -4328,7 +4328,7 @@
                 "type": "victoriametrics-logs-datasource",
                 "uid": "ds-vlogs"
             },
-            "description": "PGSQL Logs Event",
+            "description": "PostgreSQL / PgBackrest Logs Event",
             "fieldConfig": {
                 "defaults": {
                     "color": {
@@ -4383,37 +4383,10 @@
                     },
                     "unit": "none"
                 },
-                "overrides": [
-                    {
-                        "__systemRef": "hideSeriesFrom",
-                        "matcher": {
-                            "id": "byNames",
-                            "options": {
-                                "mode": "exclude",
-                                "names": [
-                                    "patroni",
-                                    "pgbackrest",
-                                    "postgres"
-                                ],
-                                "prefix": "All except:",
-                                "readOnly": true
-                            }
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.hideFrom",
-                                "value": {
-                                    "legend": false,
-                                    "tooltip": true,
-                                    "viz": true
-                                }
-                            }
-                        ]
-                    }
-                ]
+                "overrides": []
             },
             "gridPos": {
-                "h": 6,
+                "h": 5,
                 "w": 24,
                 "x": 0,
                 "y": 44
@@ -4443,13 +4416,13 @@
                         "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "cls:$cls src:in('pgbackrest','postgres') | stats by (src) count() as count",
-                    "legendFormat": "{{ src }}",
+                    "expr": "job:in(\"postgres\", \"pgbackrest\") ip:in(${members:doublequote}) | stats by (ins,job) count() as count",
+                    "legendFormat": "{{ ins }}.{{ job }}",
                     "queryType": "statsRange",
                     "refId": "A"
                 }
             ],
-            "title": "Logs (count/$__interval)",
+            "title": "Logs",
             "type": "timeseries"
         },
         {
@@ -4462,19 +4435,21 @@
                 "h": 14,
                 "w": 24,
                 "x": 0,
-                "y": 50
+                "y": 49
             },
             "id": 173,
             "options": {
                 "dedupStrategy": "none",
                 "enableInfiniteScrolling": false,
                 "enableLogDetails": true,
+                "fontSize": "small",
                 "prettifyLogMessage": false,
                 "showCommonLabels": false,
-                "showControls": false,
-                "showLabels": false,
+                "showControls": true,
+                "showLabels": true,
                 "showTime": true,
                 "sortOrder": "Descending",
+                "syntaxHighlighting": true,
                 "wrapLogMessage": false
             },
             "pluginVersion": "12.3.0",
@@ -4485,7 +4460,7 @@
                         "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "cls:in($cls) src:~\"pgbackrest|postgres\" $search",
+                    "expr": "job:in(\"postgres\", \"pgbackrest\") ip:in(${members:doublequote}) $search",
                     "instant": false,
                     "queryType": "instant",
                     "range": true,
@@ -4501,7 +4476,7 @@
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 64
+                "y": 63
             },
             "id": 193,
             "panels": [],
@@ -4513,7 +4488,7 @@
                 "h": 33,
                 "w": 24,
                 "x": 0,
-                "y": 65
+                "y": 64
             },
             "id": 194,
             "links": [
