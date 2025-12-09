@@ -174,10 +174,10 @@ grafana:
 	./infra.yml --tags=grafana
 	./pgsql.yml --tags=register_grafana
 
-# init vlogs
+# init victoria (vlogs & vmetrics)
 vv: vlogs vector
 vlogs:
-	./infra.yml --tags=vlogs -e vlogs_clean=true
+	./infra.yml --tags=vlogs -e victoria_clean=true
 vector:
 	./node.yml --tags=vector -e vector_clean=true -e vector_read_from=beginning
 

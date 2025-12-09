@@ -7,20 +7,36 @@
   targets: [ {{ inventory_hostname }}:9113 ]
 {% endif %}
 
-{% if prometheus_enabled|bool %}
+{% if vmetrics_enabled|bool %}
 #--------------------------------------------------------------#
-# Prometheus ({{ prometheus_port|default(9058) }})
+# VictoriaMetrics ({{ vmetrics_port|default(8428) }})
 #--------------------------------------------------------------#
-- labels: { ip: {{ inventory_hostname }}, ins: prometheus-{{ infra_seq }}, cls: prometheus }
-  targets: [ {{ inventory_hostname }}:{{ prometheus_port|default(9058) }} ]
+- labels: { ip: {{ inventory_hostname }}, ins: vmetrics-{{ infra_seq }}, cls: vmetrics }
+  targets: [ {{ inventory_hostname }}:{{ vmetrics_port|default(8428) }} ]
 {% endif %}
 
-{% if pushgateway_enabled|bool %}
+{% if vlogs_enabled|bool %}
 #--------------------------------------------------------------#
-# PushGateway (9091)
+# VictoriaLogs ({{ vlogs_port|default(9428) }})
 #--------------------------------------------------------------#
-- labels: { ip: {{ inventory_hostname }}, ins: pushgateway-{{ infra_seq }}, cls: pushgateway }
-  targets: [ {{ inventory_hostname }}:9091 ]
+- labels: { ip: {{ inventory_hostname }}, ins: vlogs-{{ infra_seq }}, cls: vlogs }
+  targets: [ {{ inventory_hostname }}:{{ vlogs_port|default(9428) }} ]
+{% endif %}
+
+{% if vtraces_enabled|bool %}
+#--------------------------------------------------------------#
+# VictoriaTraces ({{ vtraces_port|default(10428) }})
+#--------------------------------------------------------------#
+- labels: { ip: {{ inventory_hostname }}, ins: vtraces-{{ infra_seq }}, cls: vtraces }
+  targets: [ {{ inventory_hostname }}:{{ vtraces_port|default(10428) }} ]
+{% endif %}
+
+{% if vmalert_enabled|bool and vmetrics_enabled|bool %}
+#--------------------------------------------------------------#
+# VMAlert ({{ vmalert_port|default(8880) }})
+#--------------------------------------------------------------#
+- labels: { ip: {{ inventory_hostname }}, ins: vmalert-{{ infra_seq }}, cls: vmalert }
+  targets: [ {{ inventory_hostname }}:{{ vmalert_port|default(8880) }} ]
 {% endif %}
 
 {% if alertmanager_enabled|bool %}
@@ -47,11 +63,4 @@
   targets: [ {{ inventory_hostname }}:3000 ]
 {% endif %}
 
-{% if vlogs_enabled|bool %}
-#--------------------------------------------------------------#
-# VictoriaLogs (9428)
-#--------------------------------------------------------------#
-- labels: { ip: {{ inventory_hostname }}, ins: vlogs-{{ infra_seq }}, cls: vlogs }
-  targets: [ {{ inventory_hostname }}:9428 ]
-{% endif %}
 ...

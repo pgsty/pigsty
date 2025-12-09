@@ -1,0 +1,168 @@
+---
+#--------------------------------------------------------------#
+# VictoriaMetrics FHS
+#--------------------------------------------------------------#
+# /data/vm/                          # Victoria root directory
+#  ^-----metrics/                    # VictoriaMetrics data dir
+#  ^-----logs/                       # VictoriaLogs data dir
+#  ^-----traces/                     # VictoriaTraces data dir
+#  ^-----targets/                    # File service discovery targets
+#  ^-----rules/                      # Alert and recording rules
+#  ^-----bin/                        # Utility scripts
+#  ^-----prometheus.yml              # VictoriaMetrics scrape config
+#--------------------------------------------------------------#
+
+
+#--------------------------------------------------------------#
+# Cleanup Victoria                              [victoria_clean]
+#--------------------------------------------------------------#
+- name: cleanup victoria data
+  tags: victoria_clean
+  when: victoria_clean|bool
+  ignore_errors: true
+  block:
+    - name: stop victoria services
+      systemd: name={{ item }} state=stopped enabled=no daemon_reload=yes
+      with_items: [ vmetrics, vlogs, vtraces, vmalert ]
+    - name: remove victoria data
+      file: path={{ item }} state=absent
+      with_items:
+        - "{{ victoria_data }}/metrics"
+        - "{{ victoria_data }}/logs"
+        - "{{ victoria_data }}/traces"
+        - "{{ victoria_sd_dir }}"
+        - "{{ victoria_data }}/rules"
+
+#--------------------------------------------------------------#
+# Create Victoria Dirs                            [victoria_dir]
+#--------------------------------------------------------------#
+- name: create victoria directories
+  tags: victoria_dir
+  file: path={{ item }} state=directory owner=victoria group=infra mode='0750'
+  with_items:
+    - "{{ victoria_data }}"
+    - "{{ victoria_data }}/metrics"
+    - "{{ victoria_data }}/logs"
+    - "{{ victoria_data }}/traces"
+    - "{{ victoria_data }}/rules"
+    - "{{ victoria_data }}/bin"
+    - "{{ victoria_sd_dir }}"
+    - "{{ victoria_sd_dir }}/node"
+    - "{{ victoria_sd_dir }}/ping"
+    - "{{ victoria_sd_dir }}/etcd"
+    - "{{ victoria_sd_dir }}/infra"
+    - "{{ victoria_sd_dir }}/pgsql"
+    - "{{ victoria_sd_dir }}/pgrds"
+    - "{{ victoria_sd_dir }}/redis"
+    - "{{ victoria_sd_dir }}/minio"
+    - "{{ victoria_sd_dir }}/mongo"
+    - "{{ victoria_sd_dir }}/mysql"
+    - "{{ victoria_sd_dir }}/kafka"
+    - "{{ victoria_sd_dir }}/docker"
+    - "{{ victoria_sd_dir }}/patroni"
+
+
+#--------------------------------------------------------------#
+# Config VictoriaMetrics             [vmetrics][vmetrics_config]
+#--------------------------------------------------------------#
+- name: config victoria-metrics
+  tags: [vmetrics, vmetrics_config]
+  when: vmetrics_enabled|bool
+  block:
+    - name: render vmetrics config
+      template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+      with_items:
+        - { src: "victoria/vmetrics.svc"      ,dest: "{{ systemd_dir }}/vmetrics.service"  ,owner: root     ,group: root  ,mode: "0644" }
+        - { src: "victoria/vmetrics.env"      ,dest: "/etc/default/vmetrics"               ,owner: victoria ,group: infra ,mode: "0644" }
+        - { src: "victoria/prometheus.yml"    ,dest: "{{ victoria_data }}/prometheus.yml"  ,owner: victoria ,group: infra ,mode: "0644" }
+        - { src: "victoria/agent.yml"         ,dest: "{{ victoria_data }}/rules/agent.yml" ,owner: victoria ,group: infra ,mode: "0644" }
+
+    - name: copy vmetrics rules and scripts
+      copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+      with_items:
+        - { src: "prometheus/bin/"    ,dest: "{{ victoria_data }}/bin/"    ,owner: victoria ,group: infra ,mode: "0755" }
+        - { src: "prometheus/rules/"  ,dest: "{{ victoria_data }}/rules/"  ,owner: victoria ,group: infra ,mode: "0644" }
+
+#--------------------------------------------------------------#
+# Launch VictoriaMetrics             [vmetrics][vmetrics_config]
+#--------------------------------------------------------------#
+- name: launch victoria-metrics
+  tags: [vmetrics, vmetrics_launch]
+  when: vmetrics_enabled|bool
+  block:
+    - name: launch vmetrics systemd service
+      systemd: name=vmetrics state=restarted enabled=yes daemon_reload=yes
+    - name: wait for vmetrics service online
+      wait_for: host=127.0.0.1 port={{ vmetrics_port }} state=started timeout=30
+
+#--------------------------------------------------------------#
+# Config Victoria Logs                     [vlogs][vlogs_config]
+#--------------------------------------------------------------#
+- name: config victoria-logs
+  tags: [vlogs, vlogs_config]
+  when: vlogs_enabled|bool
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+  with_items:
+    - { src: "victoria/vlogs.svc"  ,dest: "{{ systemd_dir }}/vlogs.service"  ,owner: root     ,group: root  ,mode: "0644" }
+    - { src: "victoria/vlogs.env"  ,dest: "/etc/default/vlogs"               ,owner: victoria ,group: infra ,mode: "0644" }
+
+
+#--------------------------------------------------------------#
+# Launch Victoria Logs                     [vlogs][vlogs_launch]
+#--------------------------------------------------------------#
+- name: launch victoria-logs
+  tags: [vlogs, vlogs_launch]
+  when: vlogs_enabled|bool
+  block:
+    - name: launch vlogs systemd service
+      systemd: name=vlogs state=restarted enabled=yes daemon_reload=yes
+    - name: wait for vlogs service online
+      wait_for: host=127.0.0.1 port={{ vlogs_port }} state=started timeout=30
+
+#--------------------------------------------------------------#
+# Config VictoriaTraces                [vtraces][vtraces_config]
+#--------------------------------------------------------------#
+- name: config victoria-traces
+  tags: [vtraces, vtraces_config]
+  when: vtraces_enabled|bool
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+  with_items:
+    - { src: "victoria/vtraces.svc"  ,dest: "{{ systemd_dir }}/vtraces.service"  ,owner: root     ,group: root  ,mode: "0644" }
+    - { src: "victoria/vtraces.env"  ,dest: "/etc/default/vtraces"               ,owner: victoria ,group: infra ,mode: "0644" }
+
+#--------------------------------------------------------------#
+# Launch VictoriaTraces                [vtraces][vtraces_launch]
+#--------------------------------------------------------------#
+- name: launch victoria-traces
+  tags: [vtraces, vtraces_launch]
+  when: vtraces_enabled|bool
+  block:
+    - name: launch vtraces systemd service
+      systemd: name=vtraces state=restarted enabled=yes daemon_reload=yes
+    - name: wait for vtraces service online
+      wait_for: host=127.0.0.1 port={{ vtraces_port }} state=started timeout=30
+
+#--------------------------------------------------------------#
+# Config VMAlert                       [vmalert][vmalert_config]
+#--------------------------------------------------------------#
+- name: config vmalert
+  tags: [vmalert, vmalert_config]
+  when: vmalert_enabled|bool and vmetrics_enabled|bool
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+  with_items:
+    - { src: "victoria/vmalert.svc"  ,dest: "{{ systemd_dir }}/vmalert.service"  ,owner: root     ,group: root  ,mode: "0644" }
+    - { src: "victoria/vmalert.env"  ,dest: "/etc/default/vmalert"               ,owner: victoria ,group: infra ,mode: "0644" }
+
+#--------------------------------------------------------------#
+# Launch VMAlert                       [vmalert][vmalert_launch]
+#--------------------------------------------------------------#
+- name: launch vmalert
+  tags: [vmalert, vmalert_launch]
+  when: vmalert_enabled|bool and vmetrics_enabled|bool
+  block:
+    - name: launch vmalert systemd service
+      systemd: name=vmalert state=restarted enabled=yes daemon_reload=yes
+    - name: wait for vmalert service online
+      wait_for: host=127.0.0.1 port={{ vmalert_port }} state=started timeout=30
+
+...

@@ -4,7 +4,7 @@
 # File      :   infra-rm.yml
 # Desc      :   uninstall pigsty infra module
 # Ctime     :   2022-02-22
-# Mtime     :   2025-12-07
+# Mtime     :   2025-12-09
 # Path      :   infra-rm.yml
 # Docs      :   https://doc.pgsty.com/infra/playbook
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -40,16 +40,15 @@
       tags: service
       with_items:
         - alertmanager
-        - pushgateway
         - blackbox_exporter
-        - prometheus
+        - vmetrics
         - vlogs
-        #- loki
+        - vtraces
+        - vmalert
         - grafana-server
         - nginx_exporter
         - nginx
         - dnsmasq
-
 
     #---------------------------------------------
     # Remove conf
@@ -74,18 +73,21 @@
         - /etc/default/prometheus
         - "{{ systemd_dir }}/prometheus.service"
         - "/etc/default/vlogs"
+        - "/etc/default/vmetrics"
+        - "/etc/default/vtraces"
+        - "/etc/default/vmalert"
         - "{{ systemd_dir }}/vlogs.service"
-        #- /etc/loki.yml
-        #- "{{ systemd_dir }}/loki.service"
+        - "{{ systemd_dir }}/vmetrics.service"
+        - "{{ systemd_dir }}/vtraces.service"
+        - "{{ systemd_dir }}/vmalert.service"
         - /etc/grafana
         - "{{ systemd_dir }}/grafana.service"
         - /etc/nginx/
         - /etc/default/nginx_exporter
         - "{{ systemd_dir }}/nginx.service"
         - "{{ systemd_dir }}/nginx_exporter.service"
-        - /etc/dnsmasq.conf
-        - "{{ systemd_dir }}/dnsmasq.service"
-
+        #- /etc/dnsmasq.conf
+        #- "{{ systemd_dir }}/dnsmasq.service"
 
     #---------------------------------------------
     # Remove Env
@@ -103,18 +105,19 @@
 
 
     #---------------------------------------------
-    # Remove Infra Data
+    # Remove Infra Data （DANGEROUS）
     #---------------------------------------------
     - name: remove infra data
       file: state=absent path="{{ item }}"
       tags: data
       with_items:
+        - "{{ victoria_data|default('/data/vm') }}"
         - "{{ prometheus_data|default('/data/prometheus') }}"
         - "{{ loki_data|default('/data/loki') }}"
-        - "{{ vlogs_data|default('/data/vlogs') }}"
         - "{{ nginx_home|default('/www') }}"
         - /var/lib/grafana
         - /etc/hosts.d
+        - {{ victoria_data|default('/data/vm') }}
 
     #---------------------------------------------
     # Uninstall Packages
@@ -124,16 +127,16 @@
       tags: package
       with_items:
         - alertmanager
-        - pushgateway
         - blackbox_exporter
-        - prometheus
-        - loki
-        - vlogs
         - grafana
         - nginx_exporter
         - nginx
-        - dnsmasq
         - mcli
-        - logcli
+        - victoria-metrics
+        - victoria-logs
+        - victoria-traces
+        - vmutils
+        - vlogscli
+        #- dnsmasq
 
 ...

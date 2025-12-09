@@ -1,0 +1,22 @@
+# -*- mode: conf -*-
+
+[Unit]
+Description=VMAlert - alerting and recording rules evaluation engine
+Documentation=https://docs.victoriametrics.com/vmalert/
+After=network.target vmetrics.service
+Wants=vmetrics.service
+
+[Service]
+User=victoria
+EnvironmentFile=-/etc/default/vmalert
+ExecStart=/usr/bin/vmalert $VMALERT_OPTS
+ExecReload=/bin/kill -HUP $MAINPID
+TimeoutSec=120
+TimeoutStopSec=120
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=16777216
+OOMScoreAdjust=-1000
+
+[Install]
+WantedBy=multi-user.target

@@ -1,7 +1,7 @@
 ---
 #==============================================================#
 # File      :   datasource.yml
-# Mtime     :   2025-12-07
+# Mtime     :   2025-12-09
 # Desc      :   Grafana Data Source Provisioner Definition
 # Path      :  /etc/grafana/provisioning/datasources/pigsty.yml
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -12,19 +12,20 @@ apiVersion: 1
 
 # remove provisioned data sources
 deleteDatasources:
-  - { name: Prometheus , orgId: 1 }
+  - { name: Metrics    , orgId: 1 }
+  - { name: Logs       , orgId: 1 }
+  - { name: Traces     , orgId: 1 }
   - { name: Meta       , orgId: 1 }
-  - { name: Loki       , orgId: 1 }
   - { name: Static     , orgId: 1 }
 
 # install following data sources
 datasources:
 
-  # Pigsty Monitor Database (Prometheus)
-  - name: Prometheus
+  # Pigsty Metrics Database (VictoriaMetrics, Prometheus compatible)
+  - name: Metrics
     uid: ds-prometheus
     type: prometheus
-    url: http://127.0.0.1:{{ prometheus_port|default(9058) }}
+    url: http://127.0.0.1:{{ vmetrics_port|default(8428) }}
     access: proxy
     isDefault: true
     editable: true
@@ -58,11 +59,19 @@ datasources:
     secureJsonData:
       password: DBUser.Viewer
 
-  # Pigsty Logging Database (Victoria-Logs)
+  # Pigsty Logging Database (VictoriaLogs)
   - name: Logs
     type: victoriametrics-logs-datasource
     uid: ds-vlogs
     url: http://127.0.0.1:{{ vlogs_port|default(9428) }}
+    access: proxy
+    editable: true
+
+  # Pigsty Tracing Database (VictoriaTraces, Jaeger compatible)
+  - name: Traces
+    type: jaeger
+    uid: ds-vtraces
+    url: http://127.0.0.1:{{ vtraces_port|default(4318) }}
     access: proxy
     editable: true
 
