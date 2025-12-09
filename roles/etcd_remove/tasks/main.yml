@@ -91,4 +91,16 @@
   ignore_errors: true
   package: name=etcd state=absent
 
+#--------------------------------------------------------------#
+# remove etcd targets from vector             [vector][register]
+#--------------------------------------------------------------#
+- name: remove etcd logs from vector
+  tags: [ etcd_deregister, register, vector ]
+  when: vector_enabled|default(true)|bool
+  ignore_errors: true
+  block:
+    - name: remove etcd vector logging config
+      file: path=/etc/vector/etcd.yaml state=absent
+    - name: reload vector to discard etcd log
+      systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
 ...
