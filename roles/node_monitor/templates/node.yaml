@@ -2,55 +2,23 @@
 
 sources:
   syslog_raw:
-    type: file
-    read_from: {{ vector_read_from|default('beginning') }}
-    include:
-{% if os_package|default('rpm') == 'deb' %}
-      - /var/log/syslog
-{% else %}
-      - /var/log/messages
-{% endif %}
+    type: journald
+    current_boot_only: false
+    since_now: false
 
 transforms:
-  # parse and enrich syslog for vlogs
   syslog_logs:
     type: remap
     inputs: [syslog_raw]
     source: |
-      # use vector's timestamp for syslog
-      ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
-      .job = "node"
-      .ip = "{{ inventory_hostname }}"
-      .src = "syslog"
-      .ins = "{{ nodename }}"
-      .cls = "{{ node_cluster }}"
-      del(.source_type); del(.file); del(.host)
-
-  # generate syslog rate metric (logs per second)
-  syslog_rate_metrics:
-    type: log_to_metric
-    inputs: [syslog_raw]
-    metrics:
-      - type: counter
-        field: message
-        name: syslog_messages_total
-        namespace: node
-
-  # filter error logs
-  syslog_errors:
-    type: filter
-    inputs: [syslog_raw]
-    condition: |
-      match(string!(.message), r'(?i)(error|fail|crit|alert|emerg)')
-
-  # generate error log counter metric
-  syslog_error_metrics:
-    type: log_to_metric
-    inputs: [syslog_errors]
-    metrics:
-      - type: counter
-        field: message
-        name: syslog_errors_total
-        namespace: node
-
-
+      . = {
+        "_time": format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ"),
+        "message": .message,
+        "appname": .SYSLOG_IDENTIFIER || ._COMM || "unknown",
+        "pid": to_string(._PID) ?? "",
+        "priority": to_string(.PRIORITY) ?? "",
+        "ip": "{{ inventory_hostname }}",
+        "ins": "{{ nodename }}",
+        "cls": "{{ node_cluster }}",
+        "src": "syslog"
+      }
