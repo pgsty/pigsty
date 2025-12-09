@@ -80,7 +80,6 @@
         common_name: pigsty
         organization_name: pigsty
         organizational_unit_name: nginx
-        force: yes
         subject_alt_name: "{% set san = [] %}{% for name,srv in infra_portal.items() %}{% if srv.domain is defined and srv.domain != '' %}{{ san.append('DNS:'+srv.domain) }}{% endif %}{% endfor %}{{ san.append('DNS:localhost') }}{{ san.append('IP:' + inventory_hostname) }}{{ san }}"
 
     # since 2025, the max validity of a self-signed certificate in Safari / Chrome: 398 days
@@ -89,10 +88,10 @@
       openssl_certificate:
         path: files/pki/nginx/pigsty.crt
         csr_path: files/pki/csr/pigsty.csr
+        provider: ownca
         ownca_path: files/pki/ca/ca.crt
         ownca_privatekey_path: files/pki/ca/ca.key
-        provider: ownca
-        selfsigned_not_after: "+{{ nginx_cert_validity|default('397d') }}"
+        ownca_not_after: "+{{ nginx_cert_validity|default('397d') }}"
         mode: 0644
 
 - name: copy nginx certs
