@@ -1425,7 +1425,7 @@ INSERT INTO pigsty.default_var VALUES
 (608, 'minio_port', '9000', 'MINIO', 'MINIO', 'port', 'C', 'minio service port, 9000 by default', NULL),
 (609, 'minio_admin_port', '9001', 'MINIO', 'MINIO', 'port', 'C', 'minio console port, 9001 by default', NULL),
 (620, 'minio_access_key', '"minioadmin"', 'MINIO', 'MINIO', 'username', 'C', 'root access key, `minioadmin` by default', NULL),
-(621, 'minio_secret_key', '"minioadmin"', 'MINIO', 'MINIO', 'password', 'C', 'root secret key, `minioadmin` by default', NULL),
+(621, 'minio_secret_key', '"S3User.MinIO"', 'MINIO', 'MINIO', 'password', 'C', 'root secret key, `S3User.MinIO` by default', NULL),
 (622, 'minio_extra_vars', '""', 'MINIO', 'MINIO', 'string', 'C', 'extra environment variables for minio server', NULL),
 (630, 'minio_provision', 'true', 'MINIO', 'MINIO', 'bool', 'G/C', 'run minio provisioning tasks?', NULL),
 (631, 'minio_alias', '"sss"', 'MINIO', 'MINIO', 'string', 'G', 'alias name for local minio deployment', NULL),
