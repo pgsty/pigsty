@@ -1,0 +1,20 @@
+# MinIO log collector for vector
+
+sources:
+  minio_raw:
+    type: file
+    read_from: {{ vector_read_from|default('beginning') }}
+    include: [ "/var/log/minio.log" ]
+    ignore_not_found: true
+
+transforms:
+  minio_logs:
+    type: remap
+    inputs: [minio_raw]
+    source: |
+      ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+      .ip = "{{ inventory_hostname }}"
+      .ins = "{{ minio_cluster }}-{{ minio_seq }}"
+      .cls = "{{ minio_cluster }}"
+      .src = "minio"
+      del(.source_type); del(.file); del(.host); del(.timestamp)

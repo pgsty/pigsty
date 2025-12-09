@@ -40,7 +40,10 @@
         mode: 0750
       with_items: "{{ minio_data_dirs.split(',') }}"
 
-    - name: create minio conf dir
-      file: path=/home/{{ minio_user }}/.minio state=directory owner={{ minio_user }} group=minio mode=0750
+    - name: create minio conf dir and log file
+      file: path={{ item.path }} state={{ item.state }} owner={{ item.owner }} group=minio mode={{ item.mode }}
+      loop:
+        - { path: "/home/{{ minio_user }}/.minio" ,state: directory ,owner: "{{ minio_user }}" ,mode: '0750' }
+        - { path: "/var/log/minio.log"            ,state: touch     ,owner: "{{ minio_user }}" ,mode: '0640' }
 
 ...
