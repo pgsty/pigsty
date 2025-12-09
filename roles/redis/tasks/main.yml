@@ -70,6 +70,20 @@
 
 
 #--------------------------------------------------------------#
+# Register Redis Logs           [redis_register,register_vector]
+#--------------------------------------------------------------#
+- name: register redis logs to vector
+  tags: [ redis_register, register_vector ]
+  when: vector_enabled|default(true)|bool and not redis_port is defined
+  ignore_errors: true
+  block:
+    - name: render redis vector logging config
+      template: src=redis.yaml dest=/etc/vector/redis.yaml mode=0600
+    - name: reload vector to consume redis log
+      systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
+
+
+#--------------------------------------------------------------#
 # Join Redis Native Cluster                         [redis_join]
 #--------------------------------------------------------------#
 # run join task on redis native cluster
