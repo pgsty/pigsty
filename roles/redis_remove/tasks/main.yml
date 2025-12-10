@@ -25,7 +25,7 @@
 #--------------------------------------------------------------#
 # Remove register from prometheus & stop redis-exporter
 - name: remove redis register from prometheus
-  when: not redis_safeguard|bool and prometheus_enabled|bool
+  when: not redis_safeguard|bool and vmetrics_enabled|bool
   tags: [ register, redis_deregister, deregister_prometheus ]
   block:
 
@@ -34,7 +34,7 @@
       when: redis_port is not defined
       delegate_to: '{{ item }}'
       loop: '{{ groups["infra"]|default([]) }}'
-      file: path="{{ prometheus_sd_dir }}/redis/{{ redis_cluster }}-{{ redis_node }}.yml" state=absent
+      file: path="{{ victoria_sd_dir }}/redis/{{ redis_cluster }}-{{ redis_node }}.yml" state=absent
 
     # remove single redis instance on that node if redis_port is defined
     - name: deregister redis instance from prometheus # (single instance)
@@ -42,7 +42,7 @@
       delegate_to: '{{ item }}'
       loop: '{{ groups["infra"]|default([]) }}'
       copy:
-        dest: "{{ prometheus_sd_dir }}/redis/{{ redis_cluster }}-{{ redis_node }}.yml"
+        dest: "{{ victoria_sd_dir }}/redis/{{ redis_cluster }}-{{ redis_node }}.yml"
         owner: prometheus
         content: |
           # {{ redis_cluster }}-{{ redis_node }} @ {{ inventory_hostname }}
