@@ -25,13 +25,8 @@
       systemd: name={{ item }} state=stopped enabled=no daemon_reload=yes
       with_items: [ vmetrics, vlogs, vtraces, vmalert ]
     - name: remove victoria data
-      file: path={{ item }} state=absent
-      with_items:
-        - "{{ victoria_data }}/metrics"
-        - "{{ victoria_data }}/logs"
-        - "{{ victoria_data }}/traces"
-        - "{{ victoria_sd_dir }}"
-        - "{{ victoria_data }}/rules"
+      file: path={{ victoria_data }} state=absent
+
 
 #--------------------------------------------------------------#
 # Create Victoria Dirs                            [victoria_dir]
@@ -61,6 +56,18 @@
     - "{{ victoria_sd_dir }}/docker"
     - "{{ victoria_sd_dir }}/patroni"
 
+
+#--------------------------------------------------------------#
+# Clean Victoria Metrics              [vmetrics][vmetrics_clean]
+#--------------------------------------------------------------#
+- name: clean victoria-metrics data
+  tags: [vmetrics, vmetrics_clean]
+  when: vmetrics_clean|default(false)|bool or victoria_clean|bool
+  block:
+    - name: stop victoria-metrics service
+      systemd: name=vmetrics state=stopped enabled=no daemon_reload=yes
+    - name: remove victoria-metrics data
+      file: path={{ victoria_data }}/metrics state=absent
 
 #--------------------------------------------------------------#
 # Config VictoriaMetrics             [vmetrics][vmetrics_config]
@@ -95,6 +102,20 @@
     - name: wait for vmetrics service online
       wait_for: host=127.0.0.1 port={{ vmetrics_port }} state=started timeout=30
 
+
+
+#--------------------------------------------------------------#
+# Clean Victoria Logs                       [vlogs][vlogs_clean]
+#--------------------------------------------------------------#
+- name: clean victoria-logs data
+  tags: [vlogs, vlogs_clean]
+  when: vlogs_clean|default(false)|bool or victoria_clean|bool
+  block:
+    - name: stop victoria-logs service
+      systemd: name=vlogs state=stopped enabled=no daemon_reload=yes
+    - name: remove victoria-logs data
+      file: path={{ victoria_data }}/logs state=absent
+
 #--------------------------------------------------------------#
 # Config Victoria Logs                     [vlogs][vlogs_config]
 #--------------------------------------------------------------#
@@ -105,7 +126,6 @@
   with_items:
     - { src: "victoria/vlogs.svc"  ,dest: "{{ systemd_dir }}/vlogs.service"  ,owner: root     ,group: root  ,mode: "0644" }
     - { src: "victoria/vlogs.env"  ,dest: "/etc/default/vlogs"               ,owner: victoria ,group: infra ,mode: "0644" }
-
 
 #--------------------------------------------------------------#
 # Launch Victoria Logs                     [vlogs][vlogs_launch]
@@ -118,6 +138,8 @@
       systemd: name=vlogs state=restarted enabled=yes daemon_reload=yes
     - name: wait for vlogs service online
       wait_for: host=127.0.0.1 port={{ vlogs_port }} state=started timeout=30
+
+
 
 #--------------------------------------------------------------#
 # Config VictoriaTraces                [vtraces][vtraces_config]
@@ -141,6 +163,8 @@
       systemd: name=vtraces state=restarted enabled=yes daemon_reload=yes
     - name: wait for vtraces service online
       wait_for: host=127.0.0.1 port={{ vtraces_port }} state=started timeout=30
+
+
 
 #--------------------------------------------------------------#
 # Config VMAlert                       [vmalert][vmalert_config]

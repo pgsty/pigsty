@@ -1,0 +1,96 @@
+# Nginx log collector for infra nodes
+
+sources:
+  # Nginx error log: /var/log/nginx-error.log (well-known format)
+  nginx_error_raw:
+    type: file
+    read_from: {{ vector_read_from|default('beginning') }}
+    include:
+      - /var/log/nginx-error.log
+    ignore_not_found: true
+    glob_minimum_cooldown_ms: 10000
+
+  # Nginx access logs: /var/log/nginx/*.log (one per server)
+  nginx_access_raw:
+    type: file
+    read_from: {{ vector_read_from|default('beginning') }}
+    include:
+      - /var/log/nginx/*.log
+    ignore_not_found: true
+    glob_minimum_cooldown_ms: 10000
+
+transforms:
+  # Parse nginx error log (well-known format)
+  # Format: 2024/01/01 12:00:00 [error] 1234#5678: *9 message, client: 1.2.3.4, server: example.com, ...
+  nginx_error_logs:
+    type: remap
+    inputs: [nginx_error_raw]
+    source: |
+      .job = "nginx-error"
+      .ip = "{{ inventory_hostname }}"
+      .ins = "{{ nodename }}"
+      .cls = "{{ node_cluster }}"
+      original = string!(.message)
+
+      # Try to parse nginx error log with built-in parser
+      parsed, err = parse_nginx_log(original, "error")
+      if err == null {
+        ts, ts_err = parse_timestamp(parsed.timestamp, "%Y/%m/%d %H:%M:%S")
+        if ts_err == null {
+          ._time = format_timestamp!(ts, "%Y-%m-%dT%H:%M:%S%.fZ")
+        } else {
+          ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+        }
+        .level = parsed.severity ?? "error"
+        .message = truncate(parsed.message ?? original, 4096)
+        .pid = parsed.pid ?? ""
+        .client = parsed.client ?? ""
+        .server = parsed.server ?? ""
+        .request = parsed.request ?? ""
+      } else {
+        # Fallback: just use timestamp + raw message
+        ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+        .level = "unknown"
+        .message = truncate(original, 4096)
+      }
+      del(.source_type); del(.host); del(.file)
+
+  # Parse nginx access log (main format)
+  # Format: $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent" "$http_x_forwarded_for"
+  nginx_access_logs:
+    type: remap
+    inputs: [nginx_access_raw]
+    source: |
+      .job = "nginx-access"
+      .ip = "{{ inventory_hostname }}"
+      .ins = "{{ nodename }}"
+      .cls = "{{ node_cluster }}"
+      # Extract server name from file path: /var/log/nginx/xxx.log -> xxx
+      .server = replace(replace(string(.file) ?? "default", "/var/log/nginx/", ""), ".log", "")
+      original = string!(.message)
+
+      # Try to parse nginx access log with built-in parser (main format)
+      parsed, err = parse_nginx_log(original, "main")
+      if err == null {
+        # time_local format: 01/Jan/2024:12:00:00 +0000
+        ts, ts_err = parse_timestamp(parsed.timestamp, "%d/%b/%Y:%H:%M:%S %z")
+        if ts_err == null {
+          ._time = format_timestamp!(ts, "%Y-%m-%dT%H:%M:%S%.fZ")
+        } else {
+          ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+        }
+        .remote_addr = parsed.remote_addr ?? ""
+        .remote_user = parsed.remote_user ?? ""
+        .request = parsed.request ?? ""
+        .status = parsed.status ?? ""
+        .body_bytes = parsed.body_bytes_size ?? ""
+        .referer = parsed.http_referer ?? ""
+        .user_agent = parsed.http_user_agent ?? ""
+        .xff = parsed.http_x_forwarded_for ?? ""
+        .message = truncate(original, 2048)
+      } else {
+        # Fallback: just use timestamp + raw message
+        ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+        .message = truncate(original, 2048)
+      }
+      del(.source_type); del(.host); del(.file)
