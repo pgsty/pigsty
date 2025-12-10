@@ -1,0 +1,41 @@
+# pgbackrest logging collector for vector
+# "2024-01-01 12:00:00.123 P00  INFO: message" (timestamp may be optional)
+
+sources:
+  pgbackrest_raw:
+    type: file
+    read_from: {{ vector_read_from|default('beginning') }}
+    include:
+      - {{ pgbackrest_log_dir }}/*.log
+    fingerprint:
+      strategy: device_and_inode
+
+transforms:
+  pgbackrest_logs:
+    type: remap
+    inputs: [pgbackrest_raw]
+    source: |
+
+      original = string!(.message)
+      .job = "pgbackrest"
+      .ip = "{{ inventory_hostname }}"
+      .ins = "{{ pg_cluster }}-{{ pg_seq }}"
+      .cls = "{{ pg_cluster }}"
+
+      .topic = replace(replace(string(.file) ?? "default", "{{ pgbackrest_log_dir }}/", ""), ".log", "")
+      m = parse_regex(original, r'^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3}) P\d+\s+(?P<level>\w+):\s*(?P<msg>.*)$') ?? {}
+      if exists(m.ts) {
+        ts = parse_timestamp(m.ts, "%Y-%m-%d %H:%M:%S%.f") ?? null
+        if ts != null {
+          ._time = format_timestamp!(ts, "%Y-%m-%dT%H:%M:%S%.fZ")
+        } else {
+          ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+        }
+        lv = downcase(m.level) ?? ""
+        .level = if lv == "error" { "err" } else if lv == "warn" { "warning" } else if lv == "info" { "info" } else { "debug" }
+        .message = m.msg
+      } else {
+        abort
+      }
+      del(.source_type); del(.host); del(.file)
+

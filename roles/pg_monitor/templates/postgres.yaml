@@ -1,0 +1,62 @@
+# PostgreSQL ecosystem log collector
+
+sources:
+  # PostgreSQL CSV logs (multiline: CSV fields may contain newlines, merge until next timestamp)
+  pglog_raw:
+    type: file
+    read_from: {{ vector_read_from|default('beginning') }}
+    include:
+      - {{ pg_log_dir }}/*.csv
+    multiline:
+      start_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC,(?:"|,)'
+      mode: halt_before
+      condition_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}\.\d{3} UTC,(?:"|,)'
+      timeout_ms: 1000
+
+transforms:
+  pglog_logs:
+    type: remap
+    inputs: [pglog_raw]
+    drop_on_abort: true
+    source: |
+      .job = "postgres"
+      .ip = "{{ inventory_hostname }}"
+      .ins = "{{ pg_cluster }}-{{ pg_seq }}"
+      .cls = "{{ pg_cluster }}"
+
+      row = parse_csv!(.message)
+      if length(row) < 23 { abort }
+      ts = parse_timestamp(row[0], "%Y-%m-%d %H:%M:%S%.f %Z") ?? null
+      ._time = if ts != null { format_timestamp!(ts, "%Y-%m-%dT%H:%M:%S%.fZ") } else { format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ") }
+
+      .user   = row[1]
+      .db     = row[2]
+      .pid    = row[3]
+      .addr   = row[4]
+      .sid    = row[5]
+      .sln    = row[6]
+      .cmd    = row[7]
+      .stime  = row[8]
+      .vxid   = row[9]
+      .txid   = row[10]
+      .lv     = row[11]
+      .code   = row[12]
+      .msg    = row[13]
+      .detail = row[14]
+      .hint   = row[15]
+      .iq     = row[16]
+      .iqp    = row[17]
+      .ctx    = row[18]
+      .q      = row[19]
+      .qp     = row[20]
+      .loc    = row[21]
+      .app    = row[22]
+      .btype  = if length(row) > 23 { row[23] } else { "" }
+      .lpid   = if length(row) > 24 { row[24] } else { "" }
+      .query  = if length(row) > 25 { row[25] } else { "" }
+      lv = string(.lv) ?? ""
+      .level = if lv == "PANIC" { "emerg"} else if lv == "FATAL" { "crit"} else if lv == "ERROR" { "err"} else if lv == "WARNING" { "warning"} else if lv == "NOTICE" { "notice"} else if lv == "LOG" || lv == "INFO" { "info"} else if starts_with(lv, "DEBUG") { "debug"} else { "unknown" }
+      dur_match = parse_regex(.msg, r'^duration: (?P<ms>[\d.]+) ms') ?? null
+      if dur_match != null { .duration = to_float(dur_match.ms) ?? null }
+      .message = truncate(join!([.msg, .detail, .hint, .iq, .iqp, .ctx, .q, .qp, .loc], ","), 8192)
+      del(.source_type); del(.host)
