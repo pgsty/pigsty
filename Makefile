@@ -2,7 +2,7 @@
 # File      :   Makefile
 # Desc      :   pigsty shortcuts
 # Ctime     :   2019-04-13
-# Mtime     :   2025-07-01
+# Mtime     :   2025-12-10
 # Path      :   Makefile
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -28,8 +28,10 @@ DOCKER_PKG=pigsty-docker-$(VERSION).tgz
 EL7_PKG=pigsty-pkg-$(VERSION).el7.${ARCH}.tgz
 EL8_PKG=pigsty-pkg-$(VERSION).el8.${ARCH}.tgz
 EL9_PKG=pigsty-pkg-$(VERSION).el9.${ARCH}.tgz
+EL10_PKG=pigsty-pkg-$(VERSION).el10.${ARCH}.tgz
 D11_PKG=pigsty-pkg-$(VERSION).d11.${ARCH}.tgz
 D12_PKG=pigsty-pkg-$(VERSION).d12.${ARCH}.tgz
+D13_PKG=pigsty-pkg-$(VERSION).d13.${ARCH}.tgz
 U20_PKG=pigsty-pkg-$(VERSION).u20.${ARCH}.tgz
 U22_PKG=pigsty-pkg-$(VERSION).u22.${ARCH}.tgz
 U24_PKG=pigsty-pkg-$(VERSION).u24.${ARCH}.tgz
@@ -174,10 +176,10 @@ grafana:
 	./infra.yml --tags=grafana
 	./pgsql.yml --tags=register_grafana
 
-# init victoria (vlogs & vmetrics)
+# init vlogs & vector
 vv: vlogs vector
 vlogs:
-	./infra.yml --tags=vlogs -e victoria_clean=true
+	./infra.yml --tags=vlogs -e vlogs_clean=true
 vector:
 	./node.yml --tags=vector -e vector_clean=true -e vector_read_from=beginning
 
@@ -375,18 +377,16 @@ cc: release copy-src copy-pkg use-src use-pkg
 # copy pigsty source code
 copy-src:
 	scp "dist/${VERSION}/${SRC_PKG}" $(META):~/pigsty.tgz
-copy-el7:
-	scp dist/${VERSION}/$(PKG)${EL7_PKG} $(META):/tmp/pkg.tgz
 copy-el8:
 	scp dist/${VERSION}/$(PKG)${EL8_PKG} $(META):/tmp/pkg.tgz
 copy-el9:
 	scp dist/${VERSION}/$(PKG)${EL9_PKG} $(META):/tmp/pkg.tgz
-copy-d11:
-	scp dist/${VERSION}/$(PKG)${D11_PKG} $(META):/tmp/pkg.tgz
+copy-el10:
+	scp dist/${VERSION}/$(PKG)${EL10_PKG} $(META):/tmp/pkg.tgz
 copy-d12:
 	scp dist/${VERSION}/$(PKG)${D12_PKG} $(META):/tmp/pkg.tgz
-copy-u20:
-	scp dist/${VERSION}/$(PKG)${U20_PKG} $(META):/tmp/pkg.tgz
+copy-d13:
+	scp dist/${VERSION}/$(PKG)${D13_PKG} $(META):/tmp/pkg.tgz
 copy-u22:
 	scp dist/${VERSION}/$(PKG)${U22_PKG} $(META):/tmp/pkg.tgz
 copy-u24:
