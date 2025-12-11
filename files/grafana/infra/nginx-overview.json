@@ -96,7 +96,8 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#3e668f"
+                                "color": "#3e668f",
+                                "value": 0
                             }
                         ]
                     }
@@ -127,7 +128,7 @@
                 "textMode": "auto",
                 "wideLayout": true
             },
-            "pluginVersion": "12.0.0",
+            "pluginVersion": "12.3.0",
             "targets": [
                 {
                     "datasource": {
@@ -179,6 +180,7 @@
                             "type": "linear"
                         },
                         "showPoints": "never",
+                        "showValues": false,
                         "spanNulls": true,
                         "stacking": {
                             "group": "A",
@@ -193,7 +195,8 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc"
+                                "color": "#346f36cc",
+                                "value": 0
                             }
                         ]
                     },
@@ -221,7 +224,7 @@
                     "sort": "none"
                 }
             },
-            "pluginVersion": "12.0.0",
+            "pluginVersion": "12.3.0",
             "targets": [
                 {
                     "datasource": {
@@ -275,6 +278,7 @@
                             "type": "linear"
                         },
                         "showPoints": "never",
+                        "showValues": false,
                         "spanNulls": true,
                         "stacking": {
                             "group": "A",
@@ -290,7 +294,8 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc"
+                                "color": "#346f36cc",
+                                "value": 0
                             },
                             {
                                 "color": "red",
@@ -322,7 +327,7 @@
                     "sort": "none"
                 }
             },
-            "pluginVersion": "12.0.0",
+            "pluginVersion": "12.3.0",
             "targets": [
                 {
                     "datasource": {
@@ -388,6 +393,7 @@
                             "type": "linear"
                         },
                         "showPoints": "never",
+                        "showValues": false,
                         "spanNulls": true,
                         "stacking": {
                             "group": "A",
@@ -403,7 +409,8 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc"
+                                "color": "#346f36cc",
+                                "value": 0
                             },
                             {
                                 "color": "red",
@@ -435,7 +442,7 @@
                     "sort": "none"
                 }
             },
-            "pluginVersion": "12.0.0",
+            "pluginVersion": "12.3.0",
             "targets": [
                 {
                     "datasource": {
@@ -540,6 +547,7 @@
                             "type": "linear"
                         },
                         "showPoints": "auto",
+                        "showValues": false,
                         "spanNulls": false,
                         "stacking": {
                             "group": "A",
@@ -554,7 +562,8 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc"
+                                "color": "#346f36cc",
+                                "value": 0
                             },
                             {
                                 "color": "red",
@@ -642,7 +651,7 @@
                 ]
             },
             "gridPos": {
-                "h": 5,
+                "h": 7,
                 "w": 24,
                 "x": 0,
                 "y": 13
@@ -650,10 +659,14 @@
             "id": 65,
             "options": {
                 "legend": {
-                    "calcs": [],
+                    "calcs": [
+                        "sum"
+                    ],
                     "displayMode": "table",
                     "placement": "right",
-                    "showLegend": true
+                    "showLegend": true,
+                    "sortBy": "Name",
+                    "sortDesc": false
                 },
                 "tooltip": {
                     "hideZeros": false,
@@ -661,7 +674,7 @@
                     "sort": "none"
                 }
             },
-            "pluginVersion": "12.0.0",
+            "pluginVersion": "12.3.0",
             "targets": [
                 {
                     "datasource": {
@@ -669,13 +682,13 @@
                         "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "sum by (status) (count_over_time({src=\"nginx\", ip=\"$ip\"} | pattern `<_> - - <_> \"<method> <_> <_>\" <status> <_> <_> \"<_>\" <_>`[1m])) ",
+                    "expr": "ins:$ins cls:nginx status:!\"\" | stats by (status) count() as count",
                     "legendFormat": "{{ status }}",
-                    "queryType": "range",
+                    "queryType": "statsRange",
                     "refId": "A"
                 }
             ],
-            "title": "Status Code",
+            "title": "Line by Status",
             "type": "timeseries"
         },
         {
@@ -712,6 +725,7 @@
                             "type": "linear"
                         },
                         "showPoints": "auto",
+                        "showValues": false,
                         "spanNulls": false,
                         "stacking": {
                             "group": "A",
@@ -726,7 +740,8 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc"
+                                "color": "#346f36cc",
+                                "value": 0
                             }
                         ]
                     }
@@ -750,10 +765,10 @@
                 ]
             },
             "gridPos": {
-                "h": 4,
+                "h": 7,
                 "w": 24,
                 "x": 0,
-                "y": 18
+                "y": 20
             },
             "id": 68,
             "options": {
@@ -769,7 +784,7 @@
                     "sort": "none"
                 }
             },
-            "pluginVersion": "12.0.0",
+            "pluginVersion": "12.3.0",
             "targets": [
                 {
                     "datasource": {
@@ -777,9 +792,9 @@
                         "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "sum(count_over_time(({src=\"nginx\", ip=\"$ip\"})[$__interval])) by (filename)",
-                    "legendFormat": "{{ filename }}",
-                    "queryType": "range",
+                    "expr": "ins:$ins cls:nginx server:!\"\" | stats by (server) count() as count",
+                    "legendFormat": "{{ server }}",
+                    "queryType": "statsRange",
                     "refId": "A"
                 }
             ],
@@ -792,11 +807,11 @@
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 22
+                "y": 27
             },
             "id": 4,
             "panels": [],
-            "title": "Access Log",
+            "title": "Nginx Access Log",
             "type": "row"
         },
         {
@@ -808,7 +823,7 @@
                 "defaults": {
                     "color": {
                         "fixedColor": "#346f36cc",
-                        "mode": "fixed"
+                        "mode": "palette-classic"
                     },
                     "custom": {
                         "axisBorderShow": false,
@@ -835,6 +850,7 @@
                             "type": "linear"
                         },
                         "showPoints": "never",
+                        "showValues": false,
                         "spanNulls": true,
                         "stacking": {
                             "group": "A",
@@ -850,7 +866,8 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "#346f36cc"
+                                "color": "#346f36cc",
+                                "value": 0
                             }
                         ]
                     },
@@ -953,18 +970,17 @@
                 "h": 5,
                 "w": 24,
                 "x": 0,
-                "y": 23
+                "y": 28
             },
             "id": 27,
             "interval": "1s",
             "options": {
                 "legend": {
                     "calcs": [
-                        "mean",
                         "sum"
                     ],
-                    "displayMode": "list",
-                    "placement": "bottom",
+                    "displayMode": "table",
+                    "placement": "right",
                     "showLegend": true
                 },
                 "tooltip": {
@@ -973,7 +989,7 @@
                     "sort": "none"
                 }
             },
-            "pluginVersion": "12.0.0",
+            "pluginVersion": "12.3.0",
             "targets": [
                 {
                     "datasource": {
@@ -981,13 +997,12 @@
                         "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "sum(count_over_time(({src=\"nginx\", ip=\"$ip\"})[$__interval]))",
-                    "legendFormat": "logs per $__interval",
-                    "queryType": "range",
+                    "expr": "ins:$ins cls:nginx | stats by (server) count() as count",
+                    "legendFormat": "{{ server }}",
+                    "queryType": "statsRange",
                     "refId": "A"
                 }
             ],
-            "title": "",
             "type": "timeseries"
         },
         {
@@ -995,30 +1010,30 @@
                 "type": "victoriametrics-logs-datasource",
                 "uid": "ds-vlogs"
             },
-            "fieldConfig": {
-                "defaults": {},
-                "overrides": []
-            },
             "gridPos": {
-                "h": 10,
+                "h": 12,
                 "w": 24,
                 "x": 0,
-                "y": 28
+                "y": 33
             },
             "id": 2,
             "maxDataPoints": 100,
             "options": {
                 "dedupStrategy": "none",
-                "enableInfiniteScrolling": false,
-                "enableLogDetails": false,
+                "detailsMode": "sidebar",
+                "enableInfiniteScrolling": true,
+                "enableLogDetails": true,
+                "fontSize": "small",
                 "prettifyLogMessage": false,
                 "showCommonLabels": false,
+                "showControls": true,
                 "showLabels": false,
                 "showTime": true,
                 "sortOrder": "Descending",
+                "syntaxHighlighting": true,
                 "wrapLogMessage": false
             },
-            "pluginVersion": "12.0.0",
+            "pluginVersion": "12.3.0",
             "targets": [
                 {
                     "datasource": {
@@ -1026,7 +1041,7 @@
                         "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "{src=\"nginx\", ip=\"$ip\"}",
+                    "expr": "ins:$ins cls:nginx ",
                     "queryType": "range",
                     "refId": "A"
                 }
@@ -1040,11 +1055,11 @@
                 "h": 1,
                 "w": 24,
                 "x": 0,
-                "y": 38
+                "y": 45
             },
             "id": 6,
             "panels": [],
-            "title": "Error Log",
+            "title": "Nginx Error Log",
             "type": "row"
         },
         {
@@ -1056,7 +1071,7 @@
                 "defaults": {
                     "color": {
                         "fixedColor": "#cc4637d9",
-                        "mode": "fixed"
+                        "mode": "palette-classic"
                     },
                     "custom": {
                         "axisBorderShow": false,
@@ -1083,6 +1098,7 @@
                             "type": "linear"
                         },
                         "showPoints": "auto",
+                        "showValues": false,
                         "spanNulls": true,
                         "stacking": {
                             "group": "A",
@@ -1098,7 +1114,8 @@
                         "mode": "absolute",
                         "steps": [
                             {
-                                "color": "red"
+                                "color": "red",
+                                "value": 0
                             }
                         ]
                     },
@@ -1110,18 +1127,17 @@
                 "h": 5,
                 "w": 24,
                 "x": 0,
-                "y": 39
+                "y": 46
             },
             "id": 28,
             "interval": "1s",
             "options": {
                 "legend": {
                     "calcs": [
-                        "mean",
                         "sum"
                     ],
-                    "displayMode": "list",
-                    "placement": "bottom",
+                    "displayMode": "table",
+                    "placement": "right",
                     "showLegend": true
                 },
                 "tooltip": {
@@ -1130,7 +1146,7 @@
                     "sort": "none"
                 }
             },
-            "pluginVersion": "12.0.0",
+            "pluginVersion": "12.3.0",
             "targets": [
                 {
                     "datasource": {
@@ -1138,13 +1154,12 @@
                         "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "sum(count_over_time(({src=\"nginx-error\", ip=\"$ip\"})[$__interval]))",
-                    "legendFormat": "logs per $__interval",
-                    "queryType": "range",
+                    "expr": "ins:$ins cls:nginx-error | stats by (server) count() as count",
+                    "legendFormat": "{{ server }}",
+                    "queryType": "statsRange",
                     "refId": "A"
                 }
             ],
-            "title": "",
             "type": "timeseries"
         },
         {
@@ -1152,28 +1167,29 @@
                 "type": "victoriametrics-logs-datasource",
                 "uid": "ds-vlogs"
             },
-            "fieldConfig": {
-                "defaults": {},
-                "overrides": []
-            },
             "gridPos": {
-                "h": 10,
+                "h": 15,
                 "w": 24,
                 "x": 0,
-                "y": 44
+                "y": 51
             },
             "id": 17,
             "maxDataPoints": 100,
             "options": {
                 "dedupStrategy": "none",
-                "enableLogDetails": false,
+                "enableInfiniteScrolling": true,
+                "enableLogDetails": true,
+                "fontSize": "small",
                 "prettifyLogMessage": false,
                 "showCommonLabels": false,
-                "showLabels": false,
+                "showControls": true,
+                "showLabels": true,
                 "showTime": true,
                 "sortOrder": "Descending",
+                "syntaxHighlighting": true,
                 "wrapLogMessage": false
             },
+            "pluginVersion": "12.3.0",
             "targets": [
                 {
                     "datasource": {
@@ -1181,18 +1197,17 @@
                         "uid": "ds-vlogs"
                     },
                     "editorMode": "code",
-                    "expr": "{src=\"nginx-error\", ip=\"$ip\"}",
+                    "expr": "ins:$ins cls:nginx-error",
                     "queryType": "range",
                     "refId": "A"
                 }
             ],
-            "title": "Nginx Error Log",
             "type": "logs"
         }
     ],
     "preload": false,
     "refresh": "",
-    "schemaVersion": 41,
+    "schemaVersion": 42,
     "tags": [
         "Pigsty",
         "INFRA",
@@ -1265,5 +1280,6 @@
     "timezone": "browser",
     "title": "Nginx Overview",
     "uid": "nginx-overview",
-    "version": 1
+    "version": 1,
+    "weekStart": ""
 }
