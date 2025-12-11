@@ -1,0 +1,43 @@
+# Grafana log collector for infra nodes
+
+sources:
+  grafana_raw:
+    type: file
+    read_from: {{ vector_read_from|default('beginning') }}
+    include:
+      - /var/log/grafana/*.log
+    ignore_not_found: true
+    glob_minimum_cooldown_ms: 10000
+
+transforms:
+  grafana_logs:
+    type: remap
+    inputs: [grafana_raw]
+    drop_on_abort: false
+    source: |
+      original = string!(.message)
+      parsed, err = parse_key_value(original)
+      if err == null {
+        # Merge all kv fields into root
+        . = merge(., parsed)
+        ts, ts_err = parse_timestamp(.t, "%+")
+        if ts_err == null {
+          ._time = format_timestamp!(ts, "%Y-%m-%dT%H:%M:%S%.fZ")
+        } else {
+          ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+        }
+        del(.t)
+
+        .message = .msg || original
+        del(.msg)
+        .level = .level || "info"
+      } else {
+        ._time = format_timestamp!(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ")
+        .level = "unknown"
+      }
+
+      .job = "grafana"
+      .ip = "{{ inventory_hostname }}"
+      .ins = "grafana-{{ infra_seq|default('1') }}"
+      .cls = "grafana"
+      del(.source_type); del(.host); del(.file); del(.timestamp)
