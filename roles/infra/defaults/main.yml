@@ -30,11 +30,19 @@ nginx_home: /www                  # nginx content dir, `/www` by default
 nginx_port: 80                    # nginx listen port, 80 by default
 nginx_ssl_port: 443               # nginx ssl listen port, 443 by default
 nginx_navbar:                     # nginx index page navigation links
-  - { name: CA Cert ,url: '/ca.crt'   ,desc: 'pigsty self-signed ca.crt'   }
-  - { name: Package ,url: '/pigsty'   ,desc: 'local yum repo packages'     }
-  - { name: PG Logs ,url: '/logs'     ,desc: 'postgres raw csv logs'       }
-  - { name: Reports ,url: '/report'   ,desc: 'pgbadger summary report'     }
-  - { name: Explain ,url: '/pev.html' ,desc: 'postgres explain visualizer' }
+  - { name: Metrics WebUI      ,url: '/vmetrics/vmui/'             ,desc: 'victoria-metrics metrics query ui'  }
+  - { name: Logging WebUI      ,url: '/vlogs/select/vmui/'         ,desc: 'victoria-logs logs query ui'        }
+  - { name: Traces WebUI       ,url: '/vtraces/select/vmui/'       ,desc: 'victoria-traces trace query ui'     }
+  - { name: Service Discovery  ,url: '/vmetrics/service-discovery' ,desc: 'victoria-metrics service discovery' }
+  - { name: Monitor Targets    ,url: '/vmetrics/targets'           ,desc: 'victoria-metrics service discovery' }
+  - { name: Alerting Groups    ,url: '/vmalert/vmalert/groups'     ,desc: 'victoria alerting groups'           }
+  - { name: Victoria Metrics   ,url: '/vmetrics/'                  ,desc: 'victoria-metrics Home'              }
+  - { name: Victoria Logging   ,url: '/vlogs/'                     ,desc: 'victoria-logs Home'                 }
+  - { name: Victoria Traces    ,url: '/vtraces/'                   ,desc: 'victoria-traces Home'               }
+  - { name: Pigsty CA Cert     ,url: '/ca.crt'                     ,desc: 'pigsty self-signed ca.crt'          }
+  - { name: Software Repo      ,url: '/pigsty'                     ,desc: 'local software repository'          }
+  - { name: Explain Visualizer ,url: '/pev.html'                   ,desc: 'postgres explain visualizer'        }
+
 certbot_sign: false               # sign nginx cert with certbot during setup?
 certbot_email: your@email.com     # certbot email address, used for free ssl
 certbot_options: ''               # certbot extra options
@@ -49,23 +57,19 @@ dns_records:                      # dynamic dns records resolved by dnsmasq
   - "${admin_ip} api.pigsty adm.pigsty cli.pigsty ddl.pigsty lab.pigsty git.pigsty m.pigsty wiki.pigsty"
 
 #-----------------------------------------------------------------
-# VICTORIA - Victoria Metrics Suite
+# VICTORIA
 #-----------------------------------------------------------------
 victoria_clean: false             # whether clean existing victoria data during init?
 victoria_data: /data/vm           # victoria top level data dir, `/data/vm` by default
 victoria_sd_dir: /data/vm/targets # victoria file service discovery directory
 victoria_scrape_interval: 10s     # victoria global scrape interval, 10s by default
 victoria_scrape_timeout: 8s       # victoria global scrape timeout, 8s by default
-
-# VictoriaMetrics - Time Series Database (replaces Prometheus)
 vmetrics_enabled: true            # enable victoria-metrics on this infra node?
 vmetrics_clean: false             # whether clean existing victoria metrics data during init?
 vmetrics_port: 8428               # victoria-metrics listen port, 8428 by default
 vmetrics_options: >-
   -retentionPeriod=15d
   -promscrape.fileSDCheckInterval=5s
-
-# VictoriaLogs - Log Storage Engine (replaces Loki)
 vlogs_enabled: true               # enable victoria-logs on this infra node?
 vlogs_clean: false                # clean victoria-logs data during init?
 vlogs_port: 9428                  # victoria-logs listen port, 9428 by default
@@ -74,18 +78,14 @@ vlogs_options: >-
   -retention.maxDiskSpaceUsageBytes=50GiB
   -insert.maxLineSizeBytes=1MB
   -search.maxQueryDuration=120s
-
-# VictoriaTraces - Distributed Tracing Backend (OTLP compatible)
 vtraces_enabled: true             # enable victoria-traces on this infra node?
 vtraces_port: 10428               # victoria-traces listen port, 10428 by default
 vtraces_options: >-
   -retentionPeriod=15d
   -retention.maxDiskSpaceUsageBytes=50GiB
-
-# VMAlert - Alerting Engine (replaces Prometheus AlertManager rules evaluation)
 vmalert_enabled: true             # enable vmalert on this infra node?
 vmalert_port: 8880                # vmalert listen port, 8880 by default
-vmalert_options: '-evaluationInterval=15s'
+vmalert_options: ''              # vmalert extra server options
 
 #-----------------------------------------------------------------
 # PROMETHEUS
@@ -125,6 +125,7 @@ nginx_cert_exists: false
 #-----------------------------------------------------------------
 version: v3.7.0                   # pigsty version string
 admin_ip: 10.10.10.10             # admin node ip address, overwritten by configure
+language: en                      # default language, en by default, could be zh
 #-----------------------------------------------------------------
 # CA (Reference)
 #-----------------------------------------------------------------
