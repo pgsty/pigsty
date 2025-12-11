@@ -11,7 +11,7 @@
 import os, sys, json, requests
 
 # grafana access info
-ENDPOINT = os.environ.get("GRAFANA_ENDPOINT", 'http://g.pigsty:3000')
+ENDPOINT = os.environ.get("GRAFANA_ENDPOINT", 'http://h.pigsty/ui')
 USERNAME = os.environ.get("GRAFANA_USERNAME", 'admin')
 PASSWORD = os.environ.get("GRAFANA_PASSWORD", 'pigsty')
 PORTALS = os.environ.get("INFRA_PORTAL", "")

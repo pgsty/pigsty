@@ -6,11 +6,17 @@
   tags: nginx_config
   block:
 
+    - name: clean nginx config dir
+      tags: nginx_clean
+      when: nginx_clean|default(false)|bool and nginx_enabled|bool
+      file: path=/etc/nginx/conf.d state=absent
+
     - name: create nginx dir
       file: path={{ item.path }} state={{ item.state }}
       with_items:
         - { path: "{{ nginx_home }}"             ,state: directory }
         - { path: "{{ nginx_home }}/acme"        ,state: directory }
+        - { path: /etc/nginx/conf.d              ,state: directory }
         - { path: /etc/nginx/conf.d/cert         ,state: directory }
         - { path: /etc/nginx/conf.d/haproxy      ,state: directory }
         - { path: /etc/nginx/conf.d/default.conf ,state: absent    }

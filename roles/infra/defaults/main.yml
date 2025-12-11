@@ -1,17 +1,19 @@
 ---
 #-----------------------------------------------------------------
+# META (Reference)
+#-----------------------------------------------------------------
+version: v4.0.0                   # pigsty version string
+admin_ip: 10.10.10.10             # admin node ip address, overwritten by configure
+language: en                      # default language, en by default, could be zh
+domain: h.pigsty                  # default domain name, h.pigsty by default
+
+#-----------------------------------------------------------------
 # INFRA_IDENTITY
 #-----------------------------------------------------------------
 #infra_seq: 1                     # infra node identity, explicitly required
 infra_portal:                     # infra services exposed via portal
-  home         : { domain: h.pigsty }
-  alertmanager : { domain: a.pigsty  ,endpoint: "${admin_ip}:9059"  }
-  victoria     : { domain: p.pigsty  ,endpoint: "${admin_ip}:8427"  }
-  grafana      : { domain: g.pigsty  ,endpoint: "${admin_ip}:3000" ,websocket: true }
-  #vmetrics     : { domain: vm.pigsty ,endpoint: "${admin_ip}:8428"  }
-  #vlogs        : { domain: vl.pigsty ,endpoint: "${admin_ip}:9428" ,stream: true }
-  #vtraces      : { domain: vt.pigsty ,endpoint: "${admin_ip}:10428" }
-  #vmalert      : { domain: va.pigsty ,endpoint: "${admin_ip}:8880"  }
+  home    : { domain: h.pigsty }
+  grafana : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" ,websocket: true }
 
 #-----------------------------------------------------------------
 # INFRA_PACKAGE
@@ -23,6 +25,7 @@ infra_packages_pip: ''            # pip installed packages for infra nodes
 # NGINX
 #-----------------------------------------------------------------
 nginx_enabled: true               # enable nginx on this infra node?
+nginx_clean: false                # clean existing nginx config during init?
 nginx_exporter_enabled: true      # enable nginx_exporter on this infra node?
 nginx_sslmode: enable             # nginx ssl mode? disable,enable,enforce
 nginx_cert_validity: 397d         # nginx self-signed cert validity, 397d by default
@@ -53,7 +56,7 @@ certbot_options: ''               # certbot extra options
 dns_enabled: true                 # setup dnsmasq on this infra node?
 dns_port: 53                      # dns server listen port, 53 by default
 dns_records:                      # dynamic dns records resolved by dnsmasq
-  - "${admin_ip} h.pigsty a.pigsty p.pigsty g.pigsty vm.pigsty vl.pigsty vt.pigsty va.pigsty"
+  - "${admin_ip} h.pigsty"
   - "${admin_ip} api.pigsty adm.pigsty cli.pigsty ddl.pigsty lab.pigsty git.pigsty m.pigsty wiki.pigsty"
 
 #-----------------------------------------------------------------
@@ -120,12 +123,6 @@ pgbackrest_exporter_port: 9854    # pgbackrest_exporter listen port, 9854 by def
 # INTERNAL
 #-----------------------------------------------------------------
 nginx_cert_exists: false
-#-----------------------------------------------------------------
-# META (Reference)
-#-----------------------------------------------------------------
-version: v4.0.0                   # pigsty version string
-admin_ip: 10.10.10.10             # admin node ip address, overwritten by configure
-language: en                      # default language, en by default, could be zh
 #-----------------------------------------------------------------
 # CA (Reference)
 #-----------------------------------------------------------------
