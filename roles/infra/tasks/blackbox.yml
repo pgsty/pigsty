@@ -4,32 +4,18 @@
 #--------------------------------------------------------------#
 - name: config blackbox
   tags: blackbox_config
-  block:
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+  with_items:
+    - { src: "prometheus/blackbox_exporter.svc" ,dest: "{{ systemd_dir }}/blackbox_exporter.service" ,owner: root       ,group: root  ,mode: "0644" }
+    - { src: "prometheus/blackbox.yml"          ,dest: "/etc/blackbox.yml"                           ,owner: prometheus ,group: infra ,mode: "0644" }
+    - { src: "prometheus/blackbox.env"          ,dest: "/etc/default/blackbox_exporter"              ,owner: prometheus ,group: infra ,mode: "0644" }
 
-    # - blackbox exporter service - #
-    - name: copy blackbox exporter systemd service
-      copy: src=blackbox_exporter.svc dest={{ systemd_dir }}/blackbox_exporter.service
-
-    # - blackbox exporter config - #
-    - name: render blackbox exporter config
-      tags: blackbox_conf
-      template: src=blackbox.yml.j2 dest=/etc/blackbox.yml owner=prometheus mode=0644
-
-    # - opts - #
-    - name: render /etc/default/blackbox
-      copy:
-        dest: /etc/default/blackbox_exporter
-        owner: prometheus
-        mode: 0755
-        content: |
-          BLACKBOX_EXPORTER_OPTS="--config.file=/etc/blackbox.yml {{ blackbox_options }}"
-
-    # - permission - #
-    - name: grant icmp socket permissions to blackbox_exporter
-      when: os_vendor == 'debian'
-      ignore_errors: yes
-      shell: setcap cap_net_raw+ep /usr/bin/blackbox_exporter
-      args: { executable: /bin/bash }
+- name: grant icmp socket permissions to blackbox_exporter
+  tags: blackbox_config
+  when: os_vendor == 'debian'
+  ignore_errors: yes
+  shell: setcap cap_net_raw+ep /usr/bin/blackbox_exporter
+  args: { executable: /bin/bash }
 
 
 #--------------------------------------------------------------#
@@ -43,5 +29,5 @@
     - name: launch blackbox systemd service
       systemd: name=blackbox_exporter state=restarted enabled=yes daemon_reload=yes
     - name: wait for blackbox service online
-      wait_for: host=127.0.0.1 port=9115 state=started
+      wait_for: host=127.0.0.1 port={{ blackbox_port|default(9115) }} state=started
 ...

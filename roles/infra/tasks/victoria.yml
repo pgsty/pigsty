@@ -2,30 +2,16 @@
 #--------------------------------------------------------------#
 # VictoriaMetrics FHS
 #--------------------------------------------------------------#
-# /data/vm/                          # Victoria root directory
-#  ^-----metrics/                    # VictoriaMetrics data dir
-#  ^-----logs/                       # VictoriaLogs data dir
-#  ^-----traces/                     # VictoriaTraces data dir
-#  ^-----targets/                    # File service discovery targets
-#  ^-----rules/                      # Alert and recording rules
-#  ^-----bin/                        # Utility scripts
-#  ^-----prometheus.yml              # VictoriaMetrics scrape config
+# /infra                   # soft link to infra_data (/data/infra)
+#  ^-----metrics/          # VictoriaMetrics data dir
+#  ^-----logs/             # VictoriaLogs data dir
+#  ^-----traces/           # VictoriaTraces data dir
+#  ^-----targets/          # FileSD monitoring targets
+#  ^-----rules/            # Alert and recording rules
+#  ^-----bin/              # Utility Scripts
+#  ^-----prometheus.yml    # VictoriaMetrics main config
+#  ^-----alertmanager.yml  # AlertManager main config
 #--------------------------------------------------------------#
-
-
-#--------------------------------------------------------------#
-# Cleanup Victoria                              [victoria_clean]
-#--------------------------------------------------------------#
-- name: cleanup victoria data
-  tags: victoria_clean
-  when: victoria_clean|bool
-  ignore_errors: true
-  block:
-    - name: stop victoria services
-      systemd: name={{ item }} state=stopped enabled=no daemon_reload=yes
-      with_items: [ vmetrics, vlogs, vtraces, vmalert ]
-    - name: remove victoria data
-      file: path={{ victoria_data }} state=absent
 
 
 #--------------------------------------------------------------#
@@ -35,26 +21,25 @@
   tags: victoria_dir
   file: path={{ item }} state=directory owner=victoria group=infra mode='0750'
   with_items:
-    - "{{ victoria_data }}"
-    - "{{ victoria_data }}/metrics"
-    - "{{ victoria_data }}/logs"
-    - "{{ victoria_data }}/traces"
-    - "{{ victoria_data }}/rules"
-    - "{{ victoria_data }}/bin"
-    - "{{ victoria_sd_dir }}"
-    - "{{ victoria_sd_dir }}/node"
-    - "{{ victoria_sd_dir }}/ping"
-    - "{{ victoria_sd_dir }}/etcd"
-    - "{{ victoria_sd_dir }}/infra"
-    - "{{ victoria_sd_dir }}/pgsql"
-    - "{{ victoria_sd_dir }}/pgrds"
-    - "{{ victoria_sd_dir }}/redis"
-    - "{{ victoria_sd_dir }}/minio"
-    - "{{ victoria_sd_dir }}/mongo"
-    - "{{ victoria_sd_dir }}/mysql"
-    - "{{ victoria_sd_dir }}/kafka"
-    - "{{ victoria_sd_dir }}/docker"
-    - "{{ victoria_sd_dir }}/patroni"
+    - "/infra/metrics"
+    - "/infra/logs"
+    - "/infra/traces"
+    - "/infra/rules"
+    - "/infra/bin"
+    - "/infra/targets/"
+    - "/infra/targets/node"
+    - "/infra/targets/ping"
+    - "/infra/targets/etcd"
+    - "/infra/targets/infra"
+    - "/infra/targets/pgsql"
+    - "/infra/targets/pgrds"
+    - "/infra/targets/redis"
+    - "/infra/targets/minio"
+    - "/infra/targets/mongo"
+    - "/infra/targets/mysql"
+    - "/infra/targets/kafka"
+    - "/infra/targets/docker"
+    - "/infra/targets/patroni"
 
 
 #--------------------------------------------------------------#
@@ -62,12 +47,12 @@
 #--------------------------------------------------------------#
 - name: clean victoria-metrics data
   tags: [vmetrics, vmetrics_clean]
-  when: vmetrics_clean|default(false)|bool or victoria_clean|bool
+  when: vmetrics_clean|default(false)|bool
   block:
     - name: stop victoria-metrics service
       systemd: name=vmetrics state=stopped enabled=no daemon_reload=yes
     - name: remove victoria-metrics data
-      file: path={{ victoria_data }}/metrics state=absent
+      file: path=/infra/metrics state=absent
 
 #--------------------------------------------------------------#
 # Config VictoriaMetrics             [vmetrics][vmetrics_config]
@@ -79,16 +64,16 @@
     - name: render vmetrics config
       template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
       with_items:
-        - { src: "victoria/vmetrics.svc"      ,dest: "{{ systemd_dir }}/vmetrics.service"  ,owner: root     ,group: root  ,mode: "0644" }
-        - { src: "victoria/vmetrics.env"      ,dest: "/etc/default/vmetrics"               ,owner: victoria ,group: infra ,mode: "0644" }
-        - { src: "victoria/prometheus.yml"    ,dest: "{{ victoria_data }}/prometheus.yml"  ,owner: victoria ,group: infra ,mode: "0644" }
-        - { src: "victoria/agent.yml"         ,dest: "{{ victoria_data }}/rules/agent.yml" ,owner: victoria ,group: infra ,mode: "0644" }
+        - { src: "victoria/vmetrics.svc"   ,dest: "{{ systemd_dir }}/vmetrics.service" ,owner: root     ,group: root  ,mode: "0644" }
+        - { src: "victoria/vmetrics.env"   ,dest: "/etc/default/vmetrics"              ,owner: victoria ,group: infra ,mode: "0644" }
+        - { src: "victoria/prometheus.yml" ,dest: "/infra/prometheus.yml"    ,owner: victoria ,group: infra ,mode: "0644" }
+        - { src: "victoria/agent.yml"      ,dest: "/infra/rules/agent.yml"   ,owner: victoria ,group: infra ,mode: "0644" }
 
     - name: copy vmetrics rules and scripts
       copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
       with_items:
-        - { src: "prometheus/bin/"    ,dest: "{{ victoria_data }}/bin/"    ,owner: victoria ,group: infra ,mode: "0755" }
-        - { src: "prometheus/rules/"  ,dest: "{{ victoria_data }}/rules/"  ,owner: victoria ,group: infra ,mode: "0644" }
+        - { src: "prometheus/bin/"   ,dest: "/infra/bin/"   ,owner: victoria ,group: infra ,mode: "0755" }
+        - { src: "prometheus/rules/" ,dest: "/infra/rules/" ,owner: victoria ,group: infra ,mode: "0644" }
 
 #--------------------------------------------------------------#
 # Launch VictoriaMetrics             [vmetrics][vmetrics_config]
@@ -109,12 +94,12 @@
 #--------------------------------------------------------------#
 - name: clean victoria-logs data
   tags: [vlogs, vlogs_clean]
-  when: vlogs_clean|default(false)|bool or victoria_clean|bool
+  when: vlogs_clean|default(false)|bool
   block:
     - name: stop victoria-logs service
       systemd: name=vlogs state=stopped enabled=no daemon_reload=yes
     - name: remove victoria-logs data
-      file: path={{ victoria_data }}/logs state=absent
+      file: path=/infra/logs state=absent
 
 #--------------------------------------------------------------#
 # Config Victoria Logs                     [vlogs][vlogs_config]
@@ -140,6 +125,18 @@
       wait_for: host=127.0.0.1 port={{ vlogs_port }} state=started timeout=30
 
 
+
+#--------------------------------------------------------------#
+# Clean Victoria Traces                 [vtraces][vtraces_clean]
+#--------------------------------------------------------------#
+- name: clean victoria-traces data
+  tags: [traces, traces_clean]
+  when: traces_clean|default(false)|bool
+  block:
+    - name: stop victoria-traces service
+      systemd: name=vlogs state=stopped enabled=no daemon_reload=yes
+    - name: remove victoria-traces data
+      file: path=/infra/traces state=absent
 
 #--------------------------------------------------------------#
 # Config VictoriaTraces                [vtraces][vtraces_config]
@@ -174,8 +171,8 @@
   when: vmalert_enabled|bool and vmetrics_enabled|bool
   template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
   with_items:
-    - { src: "victoria/vmalert.svc"  ,dest: "{{ systemd_dir }}/vmalert.service"  ,owner: root     ,group: root  ,mode: "0644" }
-    - { src: "victoria/vmalert.env"  ,dest: "/etc/default/vmalert"               ,owner: victoria ,group: infra ,mode: "0644" }
+    - { src: "victoria/vmalert.svc"  ,dest: "{{ systemd_dir }}/vmalert.service" ,owner: root     ,group: root  ,mode: "0644" }
+    - { src: "victoria/vmalert.env"  ,dest: "/etc/default/vmalert"              ,owner: victoria ,group: infra ,mode: "0644" }
 
 #--------------------------------------------------------------#
 # Launch VMAlert                       [vmalert][vmalert_launch]

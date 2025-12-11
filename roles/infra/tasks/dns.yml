@@ -8,16 +8,6 @@
 
 
 #--------------------------------------------------------------#
-# Create DNS Dir                                      [dns_user]
-#--------------------------------------------------------------#
-- name: create os group dnsmasq
-  group: name=dnsmasq
-- name: create os user dnsmasq
-  ignore_errors: true
-  user: name=dnsmasq group=dnsmasq
-
-
-#--------------------------------------------------------------#
 # Create DNS Dir                                       [dns_dir]
 #--------------------------------------------------------------#
 - name: create dns records dir
@@ -30,11 +20,10 @@
 #--------------------------------------------------------------#
 - name: copy dnsmasq systemd service
   tags: dns_config
-  copy: src=dnsmasq.svc dest={{ systemd_dir }}/dnsmasq.service
-
-- name: render /etc/dnsmasq.d/config
-  tags: dns_config
-  template: src=dnsmasq.conf.j2 dest=/etc/dnsmasq.conf
+  template: src=dns/{{ item.src }} dest={{ item.dest }}
+  with_items:
+    - { src: dnsmasq.svc  ,dest: "{{ systemd_dir }}/dnsmasq.service" }
+    - { src: dnsmasq.conf ,dest: "/etc/dnsmasq.conf"                 }
 
 
 #--------------------------------------------------------------#

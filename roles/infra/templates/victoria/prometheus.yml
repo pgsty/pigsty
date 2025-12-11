@@ -1,9 +1,9 @@
 ---
 #==============================================================#
 # File      :   prometheus.yml
-# Ctime     :   2025-12-09
+# Ctime     :   2025-12-11
 # Desc      :   VictoriaMetrics Configuration File
-# Path      :   /data/vm/prometheus.yml
+# Path      :   /infra/prometheus.yml
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -15,8 +15,8 @@
 # Globals
 #--------------------------------------------------------------#
 global:
-  scrape_interval: {{ victoria_scrape_interval }}
-  scrape_timeout: {{ victoria_scrape_timeout }}
+  scrape_interval: {{ vmetrics_scrape_interval }}
+  scrape_timeout:  {{ vmetrics_scrape_timeout }}
 
 
 #--------------------------------------------------------------#
@@ -33,7 +33,7 @@ scrape_configs:
     metrics_path: /probe
     params: {module: [icmp]}
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/ping/*.yml ]
+      - files: [ /infra/targets/ping/*.yml ]
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -51,7 +51,7 @@ scrape_configs:
   - job_name: infra
     metrics_path: /metrics
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/infra/*.yml ]
+      - files: [ /infra/targets/infra/*.yml ]
 
   #--------------------------------------------------------------#
   # job: node
@@ -62,7 +62,7 @@ scrape_configs:
   - job_name: node
     metrics_path: {{ exporter_metrics_path }}
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/node/*.yml ]
+      - files: [ /infra/targets/node/*.yml ]
 
   #--------------------------------------------------------------#
   # job: docker
@@ -73,7 +73,7 @@ scrape_configs:
   - job_name: docker
     metrics_path: /metrics
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/docker/*.yml ]
+      - files: [ /infra/targets/docker/*.yml ]
     relabel_configs: # relabel docker metrics job to node
       - source_labels: [job]
         target_label: job
@@ -87,7 +87,7 @@ scrape_configs:
   - job_name: etcd
     metrics_path: /metrics
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/etcd/*.yml ]
+      - files: [ /infra/targets/etcd/*.yml ]
     scheme: https
     tls_config:
       ca_file:   /etc/pki/ca.crt
@@ -102,7 +102,7 @@ scrape_configs:
   - job_name: minio
     metrics_path: /minio/v2/metrics/cluster
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/minio/*.yml ]
+      - files: [ /infra/targets/minio/*.yml ]
     scheme: https
     tls_config:
       ca_file:   /etc/pki/ca.crt
@@ -118,7 +118,7 @@ scrape_configs:
   - job_name: pgsql
     metrics_path: {{ exporter_metrics_path }}
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/pgsql/*.yml ]
+      - files: [ /infra/targets/pgsql/*.yml ]
 
 {% if patroni_ssl_enabled|bool %}
   #--------------------------------------------------------------#
@@ -133,7 +133,7 @@ scrape_configs:
     tls_config:
       ca_file: /etc/pki/ca.crt
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/patroni/*.yml ]
+      - files: [ /infra/targets/patroni/*.yml ]
 {% endif %}
 
   #--------------------------------------------------------------#
@@ -145,7 +145,7 @@ scrape_configs:
   - job_name: pgrds
     metrics_path: {{ exporter_metrics_path }}
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/pgrds/*.yml ]
+      - files: [ /infra/targets/pgrds/*.yml ]
 
   #--------------------------------------------------------------#
   # job: redis
@@ -156,7 +156,7 @@ scrape_configs:
   - job_name: redis
     metrics_path: /scrape
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/redis/*.yml ]
+      - files: [ /infra/targets/redis/*.yml ]
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target
@@ -182,7 +182,7 @@ scrape_configs:
   - job_name: mysql
     metrics_path: {{ exporter_metrics_path }}
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/mysql/*.yml ]
+      - files: [ /infra/targets/mysql/*.yml ]
 
   #--------------------------------------------------------------#
   # job: mongo (ferretdb)
@@ -192,7 +192,7 @@ scrape_configs:
   - job_name: mongo
     metrics_path: /debug/metrics
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/mongo/*.yml ]
+      - files: [ /infra/targets/mongo/*.yml ]
 
   #--------------------------------------------------------------#
   # job: kafka
@@ -202,7 +202,7 @@ scrape_configs:
   - job_name: kafka
     metrics_path: {{ exporter_metrics_path }}
     file_sd_configs:
-      - files: [ {{ victoria_sd_dir }}/kafka/*.yml ]
+      - files: [ /infra/targets/kafka/*.yml ]
 
 
 ...

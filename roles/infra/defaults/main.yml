@@ -1,25 +1,17 @@
 ---
 #-----------------------------------------------------------------
-# META (Reference)
+# INFRA
 #-----------------------------------------------------------------
 version: v4.0.0                   # pigsty version string
 admin_ip: 10.10.10.10             # admin node ip address, overwritten by configure
 language: en                      # default language, en by default, could be zh
-domain: h.pigsty                  # default domain name, h.pigsty by default
-
-#-----------------------------------------------------------------
-# INFRA_IDENTITY
-#-----------------------------------------------------------------
-#infra_seq: 1                     # infra node identity, explicitly required
-infra_portal:                     # infra services exposed via portal
-  home    : { domain: h.pigsty }
-  grafana : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" ,websocket: true }
-
-#-----------------------------------------------------------------
-# INFRA_PACKAGE
-#-----------------------------------------------------------------
+domain_name: i.pigsty             # default domain name, i.pigsty by default
+infra_data: /data/infra           # default data path for infrastructure data
 #infra_packages: []               # packages to be installed on infra nodes
 infra_packages_pip: ''            # pip installed packages for infra nodes
+#infra_seq: 1                     # infra node identity, explicitly required
+infra_portal:                     # infra services exposed via portal
+  home : { domain: i.pigsty }
 
 #-----------------------------------------------------------------
 # NGINX
@@ -27,6 +19,7 @@ infra_packages_pip: ''            # pip installed packages for infra nodes
 nginx_enabled: true               # enable nginx on this infra node?
 nginx_clean: false                # clean existing nginx config during init?
 nginx_exporter_enabled: true      # enable nginx_exporter on this infra node?
+nginx_exporter_port: 9113         # nginx_exporter listen port, 9113 by default
 nginx_sslmode: enable             # nginx ssl mode? disable,enable,enforce
 nginx_cert_validity: 397d         # nginx self-signed cert validity, 397d by default
 nginx_home: /www                  # nginx content dir, `/www` by default
@@ -56,20 +49,17 @@ certbot_options: ''               # certbot extra options
 dns_enabled: true                 # setup dnsmasq on this infra node?
 dns_port: 53                      # dns server listen port, 53 by default
 dns_records:                      # dynamic dns records resolved by dnsmasq
-  - "${admin_ip} h.pigsty"
-  - "${admin_ip} api.pigsty adm.pigsty cli.pigsty ddl.pigsty lab.pigsty git.pigsty m.pigsty wiki.pigsty"
+  - "${admin_ip} i.pigsty"
+  - "${admin_ip} m.pigsty api.pigsty adm.pigsty cli.pigsty ddl.pigsty lab.pigsty git.pigsty wiki.pigsty"
 
 #-----------------------------------------------------------------
 # VICTORIA
 #-----------------------------------------------------------------
-victoria_clean: false             # whether clean existing victoria data during init?
-victoria_data: /data/vm           # victoria top level data dir, `/data/vm` by default
-victoria_sd_dir: /data/vm/targets # victoria file service discovery directory
-victoria_scrape_interval: 10s     # victoria global scrape interval, 10s by default
-victoria_scrape_timeout: 8s       # victoria global scrape timeout, 8s by default
 vmetrics_enabled: true            # enable victoria-metrics on this infra node?
 vmetrics_clean: false             # whether clean existing victoria metrics data during init?
 vmetrics_port: 8428               # victoria-metrics listen port, 8428 by default
+vmetrics_scrape_interval: 10s     # victoria global scrape interval, 10s by default
+vmetrics_scrape_timeout: 8s       # victoria global scrape timeout, 8s by default
 vmetrics_options: >-
   -retentionPeriod=15d
   -promscrape.fileSDCheckInterval=5s
@@ -82,6 +72,7 @@ vlogs_options: >-
   -insert.maxLineSizeBytes=1MB
   -search.maxQueryDuration=120s
 vtraces_enabled: true             # enable victoria-traces on this infra node?
+vtraces_clean: false                # clean victoria-trace data during inti?
 vtraces_port: 10428               # victoria-traces listen port, 10428 by default
 vtraces_options: >-
   -retentionPeriod=15d
@@ -94,9 +85,9 @@ vmalert_options: ''              # vmalert extra server options
 # PROMETHEUS
 #-----------------------------------------------------------------
 blackbox_enabled: true            # setup blackbox_exporter on this infra node?
+blackbox_port: 9115               # blackbox_exporter listen port, 9115 by default
 blackbox_options: ''              # blackbox_exporter extra server options
 alertmanager_enabled: true        # setup alertmanager on this infra node?
-alertmanager_data: /data/alert    # alertmanager data dir, `/data/alert` by default
 alertmanager_port: 9059           # alertmanager listen port, 9059 by default
 alertmanager_options: ''          # alertmanager extra server options
 exporter_metrics_path: /metrics   # exporter metric path, `/metrics` by default
@@ -105,6 +96,7 @@ exporter_metrics_path: /metrics   # exporter metric path, `/metrics` by default
 # GRAFANA
 #-----------------------------------------------------------------
 grafana_enabled: true             # enable grafana on this infra node?
+grafana_port: 3000                # default listen port for grafana
 grafana_clean: true               # clean grafana data during init?
 grafana_admin_username: admin     # grafana admin username, `admin` by default
 grafana_admin_password: pigsty    # grafana admin password, `pigsty` by default

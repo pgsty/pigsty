@@ -137,17 +137,11 @@
       tags: nginx_ca
       copy: src=files/pki/ca/ca.crt dest=/{{ nginx_home }}/ca.crt
 
-    #- name: copy pigsty logo file
-    #  tags: nginx_logo
-    #  copy: src=icon.svg dest=/{{ nginx_home }}/icon.svg
-
     - name: render nginx home page
       tags: nginx_index
       template: src=nginx/index.html.j2 dest=/{{ nginx_home }}/index.html
       ignore_errors: true
-      vars:
-        scheme: "{% if nginx_sslmode == 'enforce' %}https{% else %}http{% endif %}"
-        grafana_prefix: "{% if nginx_sslmode == 'enforce' %}https{% else %}http{% endif %}://{{ infra_portal.grafana.domain }}"
+      vars: { scheme: "{% if nginx_sslmode == 'enforce' %}https{% else %}http{% endif %}" }
 
     - name: copy pev html to nginx home
       tags: nginx_pev
@@ -209,12 +203,12 @@
       copy:
         dest: /etc/default/nginx_exporter
         content: |
-          NGINX_EXPORTER_OPTS="-nginx.scrape-uri http://127.0.0.1:80/nginx"
+          NGINX_EXPORTER_OPTS="-nginx.scrape-uri http://127.0.0.1:80/nginx -web.listen-address=:{{ nginx_exporter_port|default(9113) }}"
 
     - name: restart nginx_exporter service
       systemd: name=nginx_exporter state=restarted enabled=yes daemon_reload=yes
 
     - name: wait for nginx exporter
-      wait_for: host=127.0.0.1 port=9113 state=started timeout=10
+      wait_for: host=127.0.0.1 port={{ nginx_exporter_port|default(9113) }} state=started timeout=10
 
 ...

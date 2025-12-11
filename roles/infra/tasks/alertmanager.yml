@@ -4,25 +4,11 @@
 #--------------------------------------------------------------#
 - name: config alertmanager
   tags: alertmanager_config
-  block:
-
-    # - service - #
-    - name: copy alertmanager systemd service
-      tags: alertmanager_conf
-      copy: src=alertmanager.svc dest={{ systemd_dir }}/alertmanager.service
-
-    # - alertmanager config - #
-    - name: render alertmanager config
-      tags: alertmanager_conf
-      template: src=alertmanager.yml.j2 dest=/etc/alertmanager.yml owner=prometheus mode=0644
-
-    # - alertmanager opts - #
-    - name: render /etc/default/alertmanager
-      tags: alertmanager_conf
-      copy:
-        dest: /etc/default/alertmanager
-        content: |
-          ALERTMANAGER_OPTS="--config.file=/etc/alertmanager.yml --web.listen-address=:{{ alertmanager_port|default(9059) }} --cluster.advertise-address={{ inventory_hostname }}:{{ alertmanager_port|default(9059) }} --storage.path={{ alertmanager_data }} --web.external-url=http://localhost/alert  --web.route-prefix=/ {{ alertmanager_options }}"
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+  with_items:
+    - { src: "prometheus/alertmanager.svc" ,dest: "{{ systemd_dir }}/alertmanager.service" ,owner: root       ,group: root  ,mode: "0644" }
+    - { src: "prometheus/alertmanager.yml" ,dest: "/etc/alertmanager.yml"                  ,owner: prometheus ,group: infra ,mode: "0644" }
+    - { src: "prometheus/alertmanager.env" ,dest: "/etc/default/alertmanager"              ,owner: prometheus ,group: infra ,mode: "0644" }
 
 
 #--------------------------------------------------------------#

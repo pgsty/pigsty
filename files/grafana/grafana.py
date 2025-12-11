@@ -3,7 +3,7 @@
 # File      :   grafana.py
 # Desc      :   dump/load/init grafana dashboards
 # Ctime     :   2022-11-23
-# Mtime     :   2025-06-16
+# Mtime     :   2025-12-11
 # Path      :   files/grafana/grafana.py
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -11,7 +11,7 @@
 import os, sys, json, requests
 
 # grafana access info
-ENDPOINT = os.environ.get("GRAFANA_ENDPOINT", 'http://h.pigsty/ui')
+ENDPOINT = os.environ.get("GRAFANA_ENDPOINT", 'http://i.pigsty/ui')
 USERNAME = os.environ.get("GRAFANA_USERNAME", 'admin')
 PASSWORD = os.environ.get("GRAFANA_PASSWORD", 'pigsty')
 PORTALS = os.environ.get("INFRA_PORTAL", "")
@@ -41,7 +41,7 @@ if USE_HTTPS in ('true', 'True', 'TRUE', 'yes', 'ok', 'y', 'aye'):
 
 def host_replace(s):
     if 'home' in REPLACEMENT and REPLACEMENT['home'] != 'h.pigsty':
-        s = s.replace('http://h.pigsty/', SCHEME + REPLACEMENT['home'] + '/')
+        s = s.replace('http://i.pigsty/', SCHEME + REPLACEMENT['home'] + '/')
     if 'alertmanager' in REPLACEMENT and REPLACEMENT['alertmanager'] != 'a.pigsty':
         s = s.replace('http://a.pigsty', SCHEME + REPLACEMENT['alertmanager'])
     if 'prometheus' in REPLACEMENT and REPLACEMENT['prometheus'] != 'p.pigsty':

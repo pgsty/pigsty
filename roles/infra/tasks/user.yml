@@ -1,15 +1,30 @@
 ---
-- name: create os user group infra
-  group: name=infra
+#--------------------------------------------------------------#
+# Infra Users & Groups                              [infra_user]
+#--------------------------------------------------------------#
+# create infra group for shared access
+- name: create infra os user group
+  tags: infra_user
+  group: name={{ item }} state=present
+  with_items: [ infra, victoria, prometheus, grafana, dnsmasq ]
 
-- name: add infra user to group infra
+# create infra users with same-name primary group, added to infra group
+- name: create infra users
+  tags: infra_user
+  user: name={{ item.name }} group={{ item.name }} groups=infra system=true shell={{ item.shell|default('/sbin/nologin') }} home={{ item.home }} create_home=false
+  with_items:
+    - { name: victoria   ,home: /infra ,shell: /bin/bash }
+    - { name: prometheus ,home: /infra }
+    - { name: grafana    ,home: /var/lib/grafana ,shell: /bin/bash }
+    - { name: dnsmasq    ,home: /var/lib/dnsmasq }
+
+# add admin user to infra group
+- name: add admin user to infra group
+  tags: infra_user
   ignore_errors: true
   user: name={{ item }} append=true groups=infra
   with_items:
-    - prometheus
-    - grafana
-    - victoria
-    - "{% if node_user == 'root' %}{{ node_admin_username }}{% else %}{{ node_user }}{% endif %}"
-    - "{{ node_admin_username }}"
+    - "{{ node_admin_username | default('dba') }}"
+    - "{% if node_user != 'root' %}{{ node_user }}{% else %}{{ node_admin_username }}{% endif %}"
 
 ...

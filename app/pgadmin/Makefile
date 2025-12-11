@@ -41,12 +41,12 @@ list:
 
 # load pigsty server list manually
 servers:
-	docker cp /etc/pigsty/pgadmin/servers.json pgadmin:/tmp/servers.json;
+	docker cp /infra/pgadmin/servers.json pgadmin:/tmp/servers.json;
 	docker exec -u 0 -it pgadmin chown pgadmin /tmp/servers.json;
 	docker exec -it pgadmin /venv/bin/python3 /pgadmin4/setup.py load-servers --replace --user admin@pigsty.cc /tmp/servers.json
 # load pgpass manually
 pgpass:
-	docker cp /etc/pigsty/pgadmin/pgpass pgadmin:/var/lib/pgadmin/storage/admin_pigsty.cc/pgpass;
+	docker cp /infra/pgadmin/pgpass pgadmin:/var/lib/pgadmin/storage/admin_pigsty.cc/pgpass;
 	docker exec -u 0 -it pgadmin chown pgadmin /var/lib/pgadmin/storage/admin_pigsty.cc/pgpass;
 
 
