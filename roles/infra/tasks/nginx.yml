@@ -211,4 +211,18 @@
     - name: wait for nginx exporter
       wait_for: host=127.0.0.1 port=9113 state=started timeout=10
 
+
+#--------------------------------------------------------------#
+# 6. Nginx Exporter                            [register_vector]
+#--------------------------------------------------------------#
+- name: register pgsql logs to vector
+  tags: [ nginx_register, register_vector ]
+  when: vector_enabled|default(true)|bool
+  ignore_errors: true
+  block:
+    - name: render nginx vector logging config
+      template: src=nginx/nginx.yaml dest=/etc/vector/nginx.yaml mode=0600
+    - name: reload vector to consume pgsql log
+      systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
+
 ...
