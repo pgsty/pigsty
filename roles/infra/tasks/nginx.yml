@@ -83,10 +83,17 @@
       openssl_csr:
         path: files/pki/csr/pigsty.csr
         privatekey_path: files/pki/nginx/pigsty.key
+        force: true
         common_name: pigsty
         organization_name: pigsty
         organizational_unit_name: nginx
-        subject_alt_name: "{% set san = [] %}{% for name,srv in infra_portal.items() %}{% if srv.domain is defined and srv.domain != '' %}{{ san.append('DNS:'+srv.domain) }}{% endif %}{% endfor %}{{ san.append('DNS:localhost') }}{{ san.append('IP:' + inventory_hostname) }}{{ san }}"
+        subject_alt_name: "{% set san = ['DNS:i.pigsty'] %}{% for name,srv in infra_portal.items() %}{% if srv.domain is defined and srv.domain != '' %}{{ san.append('DNS:'+srv.domain) }}{% endif %}{% endfor %}{{ san.append('DNS:localhost') }}{{ san.append('IP:' + inventory_hostname) }}{{ san | unique | list }}"
+        key_usage:
+          - digitalSignature
+          - keyEncipherment
+        key_usage_critical: true
+        extended_key_usage:
+          - serverAuth
 
     # since 2025, the max validity of a self-signed certificate in Safari / Chrome: 398 days
     - name: signing nginx cert
@@ -95,23 +102,23 @@
         path: files/pki/nginx/pigsty.crt
         csr_path: files/pki/csr/pigsty.csr
         provider: ownca
+        force: true
         ownca_path: files/pki/ca/ca.crt
         ownca_privatekey_path: files/pki/ca/ca.key
         ownca_not_after: "+{{ nginx_cert_validity|default('397d') }}"
         mode: 0644
 
-- name: copy nginx certs
-  become: yes
+- name: copy nginx ssl certs
   tags: [ nginx_cert, nginx_cert_copy ]
-  block:
-    - name: copy nginx ssl cert
-      copy: src="files/pki/nginx/pigsty.crt" dest="/etc/nginx/conf.d/cert/pigsty.crt" owner=root group=root mode=0644
-    - name: copy nginx ssl key
-      copy: src="files/pki/nginx/pigsty.key" dest="/etc/nginx/conf.d/cert/pigsty.key" owner=root group=root mode=0600
+  copy: src="files/pki/nginx/{{ item.name }}" dest="/etc/nginx/conf.d/cert/{{ item.name }}" owner=root group=root mode={{ item.mode }}
+  with_items:
+    - { name: pigsty.crt , mode: '0644' }
+    - { name: pigsty.key , mode: '0600' }
+
 
 - name: link nginx certs
-  become: yes
   tags: [ nginx_cert, nginx_cert_copy ]
+  become: yes
   ignore_errors: true
   command: /etc/nginx/link-cert
 

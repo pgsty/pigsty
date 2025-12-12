@@ -40,7 +40,7 @@ if USE_HTTPS in ('true', 'True', 'TRUE', 'yes', 'ok', 'y', 'aye'):
     SCHEME = 'https://'
 
 def host_replace(s):
-    if 'home' in REPLACEMENT and REPLACEMENT['home'] != 'h.pigsty':
+    if 'home' in REPLACEMENT and REPLACEMENT['home'] != 'i.pigsty':
         s = s.replace('http://i.pigsty/', SCHEME + REPLACEMENT['home'] + '/')
     if 'alertmanager' in REPLACEMENT and REPLACEMENT['alertmanager'] != 'a.pigsty':
         s = s.replace('http://a.pigsty', SCHEME + REPLACEMENT['alertmanager'])

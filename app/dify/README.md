@@ -88,7 +88,7 @@ Change `infra_portal` in `pigsty.yml`, with the new `dify` line:
 
 ```yaml
 infra_portal:                     # domain names and upstream servers
-  home         : { domain: h.pigsty }
+  home         : { domain: i.pigsty }
   grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
   prometheus   : { domain: p.pigsty ,endpoint: "${admin_ip}:9058" }
   alertmanager : { domain: a.pigsty ,endpoint: "${admin_ip}:9059" }
