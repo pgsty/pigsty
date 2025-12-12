@@ -1283,7 +1283,6 @@ INSERT INTO pigsty.default_var VALUES
 (136, 'nginx_home', '"/www"', 'INFRA', 'NGINX', 'path', 'G', 'nginx content dir, `/www` by default', NULL),
 (137, 'nginx_port', '80', 'INFRA', 'NGINX', 'port', 'G', 'nginx listen port, 80 by default', NULL),
 (138, 'nginx_ssl_port', '443', 'INFRA', 'NGINX', 'port', 'G', 'nginx ssl listen port, 443 by default', NULL),
-(139, 'nginx_navbar', '[]', 'INFRA', 'NGINX', 'index[]', 'G', 'nginx index page navigation links', NULL),
 (140, 'certbot_sign', 'false', 'INFRA', 'NGINX', 'bool', 'G/A', 'sign nginx cert with certbot during setup?', NULL),
 (141, 'certbot_email', '"your@email.com"', 'INFRA', 'NGINX', 'mail', 'G/A', 'certbot email address, used for free ssl', NULL),
 (142, 'certbot_options', '""', 'INFRA', 'NGINX', 'arg', 'G/A', 'certbot extra options', NULL),
