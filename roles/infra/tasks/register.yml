@@ -1,19 +1,19 @@
 ---
 #--------------------------------------------------------------#
-# Register infra service to victoria            [infra_register]
+# Register infra metrics           [add_metrics][infra_register]
 #--------------------------------------------------------------#
-- name: render infra targets for prometheus
-  tags: [ infra_register, register_prometheus ]
+- name: render infra targets to victoria
+  tags: [ infra_register, register, add_metrics ]
   ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
-  template: src=prometheus/infra.yml.j2 dest=/infra/targets/infra/infra-{{ infra_seq }}.yml owner=victoria group=infra mode=0644
+  template: src=prometheus/infra.yml.j2 dest=/infra/targets/infra/infra-{{ infra_seq }}.yml owner=victoria group=infra mode=0640
 
 #--------------------------------------------------------------#
-# Register infra logs to vector                [register_vector]
+# Register infra logs to vector       [add_logs][infra_register]
 #--------------------------------------------------------------#
 - name: register infra logs to vector
-  tags: [ nginx, infra_register, register_vector ]
+  tags: [ infra_register, register, add_logs ]
   when: vector_enabled|default(true)|bool
   ignore_errors: true
   block:

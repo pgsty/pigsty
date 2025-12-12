@@ -56,12 +56,13 @@
       file: path="{{ item }}" state=absent
       loop: [ /etc/default/ferretdb, /var/lib/mongod/ca.crt, /var/lib/mongod/server.crt, /var/lib/mongod/server.key ]
 
-    - name: remove mongo/ferret register from prometheus target
-      tags: [ mongo_deregister ]
+    - name: remove mongo/ferret register from victoria target
+      tags: [ mongo_deregister, deregister , rm_metrics ]
+
       delegate_to: '{{ item }}'
       loop: '{{ groups["infra"]|default([]) }}'
       file:
-        path: "{{ victoria_sd_dir }}/mongo/{{ mongo_cluster }}-{{ mongo_seq }}.yml"
+        path: "/infra/targets/mongo/{{ mongo_cluster }}-{{ mongo_seq }}.yml"
         state: absent
 
 
@@ -110,14 +111,16 @@
 #--------------------------------------------------------------#
 # Register MongoDB                              [mongo_register]
 #--------------------------------------------------------------#
-- name: register mongo/ferretdb as prometheus target
-  tags: [ mongo_register, register_prometheus ]
+- name: register mongo/ferretdb as victoria target
+  tags: [ mongo_register, register , add_metrics ]
   ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   copy:
-    dest: "{{ victoria_sd_dir }}/mongo/{{ mongo_cluster }}-{{ mongo_seq }}.yml"
-    owner: prometheus
+    dest: "/infra/targets/mongo/{{ mongo_cluster }}-{{ mongo_seq }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
     content: |
       # {{ mongo_cluster }}-{{ mongo_seq }} @ {{ inventory_hostname }}
       - labels: { ip: {{ inventory_hostname }} , ins: {{ mongo_cluster }}-{{ mongo_seq }} , cls: {{ mongo_cluster }} }
