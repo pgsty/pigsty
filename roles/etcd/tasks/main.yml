@@ -80,18 +80,18 @@
       wait_for: host=127.0.0.1 port={{ etcd_port }} state=started timeout=10
 
 #--------------------------------------------------------------#
-# Register Etcd Metrics      [etcd_register,register_prometheus]
+# Register Etcd Metrics to VictoriaMetrics       [etcd_register]
 #--------------------------------------------------------------#
-# register_prometheus, register_vector
-- name: register etcd as prometheus target
-  tags: [ etcd_register, register_prometheus ]
-  when: vmetrics_enabled|bool
+- name: register etcd as victoria target
+  tags: [ etcd_register, register, add_metrics ]
   ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   copy:
-    dest: "{{ victoria_sd_dir }}/etcd/{{ etcd_cluster }}-{{ etcd_seq }}.yml"
-    owner: prometheus
+    dest: "/infra/targets/etcd/{{ etcd_cluster }}-{{ etcd_seq }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
     content: |
       # {{ etcd_cluster }}-{{ etcd_seq }} @ {{ inventory_hostname }}
       - labels: { ip: {{ inventory_hostname }} , ins: {{ etcd_cluster }}-{{ etcd_seq }} , cls: {{ etcd_cluster }} }

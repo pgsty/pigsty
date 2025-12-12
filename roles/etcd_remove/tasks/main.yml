@@ -19,14 +19,14 @@
   pause: { seconds: 3 }
 
 #--------------------------------------------------------------#
-# remove etcd targets from prometheus               [prometheus]
+# remove etcd targets from victoria            [etcd_deregister]
 #--------------------------------------------------------------#
-- name: remove etcd from prometheus targets
-  tags: [ etcd_deregister, prometheus , register ]
+- name: remove etcd from victoria targets
+  tags: [ etcd_deregister, deregister , rm_metrics ]
   ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
-  file: path="{{ victoria_sd_dir }}/etcd/{{ etcd_cluster }}-{{ etcd_seq }}.yml" state=absent
+  file: path="/infra/targets/etcd/{{ etcd_cluster }}-{{ etcd_seq }}.yml" state=absent
 
 #--------------------------------------------------------------#
 # leave etcd cluster gracefully                     [etcd_leave]
@@ -91,16 +91,4 @@
   ignore_errors: true
   package: name=etcd state=absent
 
-#--------------------------------------------------------------#
-# remove etcd targets from vector             [vector][register]
-#--------------------------------------------------------------#
-- name: remove etcd logs from vector
-  tags: [ etcd_deregister, register, vector ]
-  when: vector_enabled|default(true)|bool
-  ignore_errors: true
-  block:
-    - name: remove etcd vector logging config
-      file: path=/etc/vector/etcd.yaml state=absent
-    - name: reload vector to discard etcd log
-      systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
 ...

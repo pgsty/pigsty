@@ -72,17 +72,18 @@
 
 
 #--------------------------------------------------------------#
-# Register Minio                                [minio_register]
+# Register MinIO                                [minio_register]
 #--------------------------------------------------------------#
-- name: register minio as prometheus target
-  tags: [ minio_register, register_prometheus ]
-  when: vmetrics_enabled|bool
+- name: register minio as victoria target
+  tags: [ minio_register, register, add_metrics ]
   ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"] | default([]) }}'
   copy:
-    dest: "{{ victoria_sd_dir }}/minio/{{ minio_cluster }}-{{ minio_seq }}.yml"
-    owner: prometheus
+    dest: "/infra/targets/minio/{{ minio_cluster }}-{{ minio_seq }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
     content: |
       # {{ minio_cluster }}-{{ minio_seq }} @ {{ inventory_hostname }}
       - labels: { ip: {{ inventory_hostname }} , ins: {{ minio_cluster }}-{{ minio_seq }} , cls: {{ minio_cluster }} }

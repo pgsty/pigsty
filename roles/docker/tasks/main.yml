@@ -68,15 +68,17 @@
 #--------------------------------------------------------------#
 # Register Node            [docker_register,register_prometheus]
 #--------------------------------------------------------------#
-# /etc/prometheus/targets/docker/{{ ip }}.yml
-- name: register docker as prometheus target
+# /infra/targets/docker/{{ ip }}.yml
+- name: register docker as victoria target
   tags: [ docker_register, register_prometheus ]
   ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   copy:
-    dest: "{{ victoria_sd_dir }}/docker/{{ inventory_hostname }}.yml"
-    owner: prometheus
+    dest: "/infra/targets/docker/{{ inventory_hostname }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
     content: |
       # {{ inventory_hostname }} 
       - labels: { ip: {{ inventory_hostname }} , ins: {{ nodename }} , cls: {{ node_cluster|default('nodes') }}  }
