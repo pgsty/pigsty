@@ -24,26 +24,25 @@
   when: pgbackrest_enabled|bool and pgbackrest_exporter_enabled|bool
 
 #--------------------------------------------------------------#
-# Register Prometheus         [pg_register, register_prometheus]
+# Register Prometheus                 [add_metrics][pg_register]
 #--------------------------------------------------------------#
-- import_tasks: register_prometheus.yml
-  tags: [ pg_register, register_prometheus ]
-  when: vmetrics_enabled|bool
+- import_tasks: register_victoria.yml
+  tags: [ pg_register, register, add_metrics ]
 
 #--------------------------------------------------------------#
-# Register Vector                 [pg_register, register_vector]
+# Register Vector                        [add_logs][pg_register]
 #--------------------------------------------------------------#
 - import_tasks: register_vector.yml
-  tags: [ pg_register, register_vector ]
+  tags: [ pg_register, register, add_logs ]
   when: vector_enabled|bool
 
 #--------------------------------------------------------------#
-# Register Grafana               [pg_register, register_grafana]
+# Register Grafana                         [add_ds][pg_register]
 #--------------------------------------------------------------#
 # the database 'postgres' is registered by default
 # if postgres is explicitly defined, it will be overridden
 - include_tasks: register_grafana.yml
-  tags: [ pg_register, register_grafana ]
+  tags: [ pg_register, register, add_ds ]
   when: grafana_enabled|bool and pg_provision|bool
   vars: { database: "{{ item }}" }
   with_items: "{{ [{'name': 'postgres'}] + pg_databases|default([]) }}"

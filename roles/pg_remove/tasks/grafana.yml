@@ -2,18 +2,22 @@
 #--------------------------------------------------------------#
 # Remove postgres datasource from Grafana              [grafana]
 #--------------------------------------------------------------#
-# only remove those registered databases
-- name: remove postgres datasource from grafana
-  ignore_errors: yes
-  delegate_to: "{{ admin_ip }}"
-  when: item.register_data_source is not defined or item.register_data_source|bool
+# remove datasource using grafana datasource API on all infra nodes
+- name: remove grafana datasource {{ database.name | default(database) }}
+  tags: [ grafana, pg_deregister, deregister, rm_ds ]
+  delegate_to: '{{ infra_host }}'
+  loop: '{{ groups["infra"] | default([]) }}'
+  loop_control:
+    loop_var: infra_host
+  ignore_errors: true
+  when: database.register_datasource is not defined or database.register_datasource|bool
   shell: |
-    curl -X DELETE "{{ endpoint }}/api/datasources/name/{{ ds_name }}" -u "{{ grafana_user }}:{{ grafana_pass }}" -H 'Content-Type: application/json'
+    curl -X DELETE "http://127.0.0.1:{{ gf_port }}/ui/api/datasources/name/{{ ds_name }}" -u "{{ gf_user }}:{{ gf_pass }}" -H 'Content-Type: application/json'
   args: { executable: /bin/bash }
   vars:
-    ds_name: "{{ pg_cluster }}-{{ pg_seq }}.{{ item.name }}"
-    endpoint: "http://{{ infra_portal.grafana.endpoint|replace('${admin_ip}' ,admin_ip) }}"
-    grafana_user: "{{ grafana_admin_username|default('admin') }}"
-    grafana_pass: "{{ grafana_admin_password|default('pigsty') }}"
-  with_items: "{{ pg_databases }}"
+    ds_name: "{{ pg_cluster }}-{{ pg_seq }}.{{ database.name }}"
+    gf_port: "{{ grafana_port|default(3000) }}"
+    gf_user: "{{ grafana_admin_username|default('admin') }}"
+    gf_pass: "{{ grafana_admin_password|default('pigsty') }}"
+
 ...

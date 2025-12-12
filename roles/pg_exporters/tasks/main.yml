@@ -25,13 +25,15 @@
 
 
 # for each cluster defined in pg_exporters
-- name: register pgsql exporter as prometheus target
-  tags: [ pg_exporters, pg_register, register_prometheus ]
+- name: register pgsql exporter as victoria target
+  tags: [ pg_exporters, pg_register, register, add_metrics ]
   with_items: '{{ pg_exporters | json_query("[@.*][0]|[*].pg_cluster") | unique | sort }}'
   when: pg_exporters is defined and pg_exporters|type_debug == "dict" and (clsname == '' or (clsname != '' and clsname == item ))
   copy:
-    dest: "{{ victoria_sd_dir }}/pgrds/{{ item }}.yml"
-    owner: prometheus
+    dest: "/infra/targets/pgrds/{{ item }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
     content: |
       # PGRDS: remote postgres service for {{ item }}
       
@@ -47,7 +49,7 @@
 
 # for each instance, register database as grafana datasource if pg_exporter_include_database is specified
 - include_tasks: register_grafana.yml
-  tags: [ pg_register, register_grafana ]
+  tags: [ pg_register, register, add_ds ]
   when: pg_exporters is defined and pg_exporters|type_debug == "dict" and (clsname == '' or (clsname != '' and clsname == item.value.pg_cluster))
   vars:
     pg_exporter_port: "{{ item.key|int|string }}" # <REQUIRED> pg_exporter_port

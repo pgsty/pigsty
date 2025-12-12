@@ -1,77 +1,12 @@
 ---
 #--------------------------------------------------------------#
-# Register Postgres Datasource to Grafana     [register_grafana]
+# Register Postgres Datasource to Grafana  [add_ds][pg_register]
 #--------------------------------------------------------------#
-- name: register pg database as grafana datasource
-  tags: [ pg_register, register_grafana ]
-  block:
+# iterate over pg_databases and register each to all infra nodes
+- include_tasks: register_grafana_db.yml
+  tags: [ pg_register, register, add_ds ]
+  loop: "{{ pg_databases|default([]) }}"
+  loop_control:
+    loop_var: database
 
-    #--------------------------------------------------------------#
-    # render datasource definition to:
-    # /etc/pigsty/datasources/{{ pg_instance }}.{{ dbname }}.json
-    #--------------------------------------------------------------#
-    - name: render grafana datasource
-      when: database.register_datasource is not defined or database.register_datasource|bool
-      copy:
-        dest: "/etc/pigsty/datasources/{{ ds_name }}.json"
-        content: |
-          {
-            "type": "postgres",
-            "access": "proxy",
-            "uid": "{{ ds_name }}",
-            "name": "{{ ds_name }}",
-            "url": "{{ db_host }}:{{ db_port }}",
-            "user": "{{ db_username }}",
-            "database": "{{ dbname }}",
-            "typeLogoUrl": "",
-            "basicAuth": false,
-            "basicAuthUser": "",
-            "basicAuthPassword": "",
-            "withCredentials": false,
-            "isDefault": false,
-            "jsonData": {
-              "database": "{{ dbname }}",
-              "connMaxLifetime": 3600,
-              "maxIdleConns": 1,
-              "maxOpenConns": 8,
-              "postgresVersion": {{ version }},
-              "sslmode": "disable",
-              "tlsAuth": false,
-              "tlsAuthWithCACert": false
-            },
-            "secureJsonData":{
-              "password": "{{ db_password }}"
-            }
-          }
-        mode: 0600
-      vars:
-        ds_name: "{{ pg_cluster }}-{{ pg_seq }}.{{ database.name }}"
-        db_host: "{{ pg_host }}"
-        db_port: "{{ pg_port|default(5432) }}"
-        db_username: "{{ pg_monitor_username|default('dbuser_monitor') }}"
-        db_password: "{{ pg_monitor_password|default('DBUser.Monitor') }}"
-        version: "{{ pg_version|default(18) }}00"
-        dbname: "{{ database.name }}"
-      loop: "{{ pg_databases|default([]) }}"
-      loop_control:
-        loop_var: database
-
-
-    #--------------------------------------------------------------#
-    # upsert datasource using grafana datasource API
-    #--------------------------------------------------------------#
-    - name: load grafana datasource
-      when: database.register_datasource is not defined or database.register_datasource|bool
-      shell: |
-        curl -X DELETE "{{ endpoint }}/api/datasources/name/{{ ds_name }}" -u "{{ grafana_user }}:{{ grafana_pass }}"  -H 'Content-Type: application/json'
-        curl -X POST   "{{ endpoint }}/api/datasources/" -u "{{ grafana_user }}:{{ grafana_pass }}" -H 'Content-Type: application/json' -d @/etc/pigsty/datasources/{{ ds_name }}.json
-      args: { executable: /bin/bash }
-      vars:
-        ds_name: "{{ pg_cluster }}-{{ pg_seq }}.{{ database.name }}"
-        endpoint: "{{ 'http://' +  infra_portal.grafana.endpoint|default('${admin_ip}:3000')|replace('${admin_ip}', admin_ip) }}"
-        grafana_user: "{{ grafana_admin_username|default('admin') }}"
-        grafana_pass: "{{ grafana_admin_password|default('pigsty') }}"
-      loop: "{{ pg_databases|default([]) }}"
-      loop_control:
-        loop_var: database
 ...

@@ -1,0 +1,35 @@
+---
+#--------------------------------------------------------------#
+# Remove pgsql metrics               [rm_metrics][pg_deregister]
+#--------------------------------------------------------------#
+# remove /infra/targets/pgsql/{{ pg_instance }}.yml
+- name: remove pgsql target from victoria
+  tags: [ pg_monitor, pg_deregister, deregister, rm_metrics ]
+  become: yes
+  ignore_errors: yes
+  delegate_to: '{{ item }}'
+  loop: '{{ groups["infra"] | default([]) }}'
+  file: state=absent path=/infra/targets/pgsql/{{ pg_cluster }}-{{ pg_seq }}.yml
+
+# remove /infra/targets/patroni/{{ pg_instance }}.yml
+- name: remove ssl patroni target from victoria
+  tags: [ pg_monitor, pg_deregister, deregister, rm_metrics ]
+  delegate_to: '{{ item }}'
+  loop: '{{ groups["infra"] | default([]) }}'
+  ignore_errors: true
+  when: patroni_ssl_enabled|bool
+  file: state=absent path=/infra/targets/patroni/{{ pg_cluster }}-{{ pg_seq }}.yml
+
+# remove /infra/targets/ping/{{ pg_vip_address_ip }}---{{ inventory_hostname }}.yml
+- name: remove pg vip ping target from victoria
+  tags: [ pg_monitor, pg_deregister, deregister, rm_metrics ]
+  when: pg_vip_enabled|bool and pg_vip_address is defined and pg_vip_address != ''
+  become: yes
+  ignore_errors: yes
+  delegate_to: '{{ item }}'
+  loop: '{{ groups["infra"] | default([]) }}'
+  file: state=absent path=/infra/targets/ping/{{ pg_vip_address_ip }}---{{ inventory_hostname }}.yml
+  vars:
+    pg_vip_address_ip:  "{{ pg_vip_address.split('/')[0] }}"
+
+...

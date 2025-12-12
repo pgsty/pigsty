@@ -1,24 +1,26 @@
 ---
 #--------------------------------------------------------------#
-# Register postgres to Prometheus          [register_prometheus]
+# Register postgres to victoria                     [rm_metrics]
 #--------------------------------------------------------------#
-#- name: Deregister pgsql exporter from prometheus
-#  tags: [ pg_deregister , deregister_prometheus ]
+#- name: Deregister pgsql exporter from victoria
+#  tags: [ pg_deregister, deregister, rm_metrics ]
 #  delegate_to: '{{ item }}'
 #  with_items: '{{ groups["infra"] | default([]) }}'
-#  file: path="{{ victoria_sd_dir }}/pgsql/{{ pg_cluster }}-{{ pg_seq }}.yml" state=absent
+#  file: path="/infra/targets/pgsql/{{ pg_cluster }}-{{ pg_seq }}.yml" state=absent
 
-# prometheus are idempotent on multiple infra nodes
-# /etc/prometheus/targets/pgsql/{{ pg_instance }}.yml
-- name: register postgres to prometheus
-  tags: [ pg_register, register_prometheus ]
+# victoria-metrics are idempotent on multiple infra nodes
+# /infra/targets/pgsql/{{ pg_instance }}.yml
+- name: register postgres to victoria
+  tags: [ pg_register, register, add_metrics ]
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]  | default([]) }}'
   ignore_errors: true
   when: pg_exporter_enabled|bool or pgbouncer_exporter_enabled|bool or (patroni_enabled|bool and patroni_mode != 'remove')
   copy:
-    dest: "{{ victoria_sd_dir }}/pgsql/{{ pg_cluster }}-{{ pg_seq }}.yml"
-    owner: prometheus
+    dest: "/infra/targets/pgsql/{{ pg_cluster }}-{{ pg_seq }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
     content: |
       # {{ pg_cluster }}-{{ pg_seq }} [{{ pg_role }}] @ {{ inventory_hostname }}
       - labels: { cls: {{ pg_cluster }}, ins: {{ pg_cluster }}-{{ pg_seq }}, ip: {{ inventory_hostname }} }
@@ -38,30 +40,34 @@
       {% endif %}
 
 
-- name: register ssl patroni to prometheus
-  tags: [ pg_register, register_prometheus ]
+- name: register ssl patroni to victoria
+  tags: [ pg_register, register, add_metrics ]
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"] | default([]) }}'
   ignore_errors: true
   when: patroni_ssl_enabled|bool and patroni_enabled|bool and patroni_mode != 'remove'
   copy:
-    dest: "{{ victoria_sd_dir }}/patroni/{{ pg_cluster }}-{{ pg_seq }}.yml"
-    owner: prometheus
+    dest: "/infra/targets/patroni/{{ pg_cluster }}-{{ pg_seq }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
     content: |
       # {{ pg_cluster }}-{{ pg_seq }} [{{ pg_role }}] @ {{ inventory_hostname }}
       - labels: { job: pgsql, cls: {{ pg_cluster }}, ins: {{ pg_cluster }}-{{ pg_seq }}, ip: {{ inventory_hostname }} }
         targets: [ {{ inventory_hostname }}:{{ patroni_port }} ]
 
 
-- name: register pg vip ping target to prometheus
-  tags: [ pg_register, register_prometheus ]
+- name: register pg vip ping target to victoria
+  tags: [ pg_register, register, add_metrics ]
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"] | default([]) }}'
   ignore_errors: true
   when: pg_vip_enabled|bool and pg_vip_address is defined and pg_vip_address != ''
   copy:
-    dest: "{{ victoria_sd_dir }}/ping/{{ pg_vip_address_ip }}---{{ inventory_hostname }}.yml"
-    owner: prometheus
+    dest: "/infra/targets/ping/{{ pg_vip_address_ip }}---{{ inventory_hostname }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
     content: |
       # {{ pg_vip_address_ip }}@{{ inventory_hostname }}
       - labels: { cls: {{ pg_cluster }}, ins: {{ pg_cluster }}-{{ pg_seq }}, ip: {{ inventory_hostname }}, vip: {{ pg_vip_address_ip }}, job: pgsql-vip }

@@ -5,30 +5,33 @@
 - name: ABORT due to pg_safeguard enabled
   connection: local
   when: pg_safeguard|bool
-  tags: [ always , pg_safeguard ]
+  tags: [ always ,pg_safeguard ]
   any_errors_fatal: true
   ignore_errors: false
   fail: msg="Abort due to pg_safeguard for {{ pg_cluster }}-{{ pg_seq }} @ {{ inventory_hostname }} is enabled, override with -e pg_safeguard=false"
 
 #--------------------------------------------------------------#
-# remove targets from prometheus        [pg_monitor][prometheus]
+# remove targets from victoria          [rm_metrics][pg_monitor]
 #--------------------------------------------------------------#
-- import_tasks: prometheus.yml
-  when: vmetrics_enabled|bool
-  tags: [ pg_monitor, prometheus , register ]
+- import_tasks: victoria.yml
+  tags: [ pg_monitor, pg_deregister, deregister, rm_metrics ]
 
 #--------------------------------------------------------------#
-# remove pgsql datasource from grafana     [pg_monitor][grafana]
+# remove pgsql datasource from grafana       [rm_ds][pg_monitor]
 #--------------------------------------------------------------#
-- import_tasks: grafana.yml
+# the database 'postgres' is registered by default
+# if postgres is explicitly defined, it will be overridden
+- include_tasks: grafana.yml
+  tags: [ pg_monitor, pg_deregister, deregister, rm_ds ]
   when: grafana_enabled|bool
-  tags: [ pg_monitor, grafana , register ]
+  vars: { database: "{{ item }}" }
+  with_items: "{{ [{'name': 'postgres'}] + pg_databases|default([]) }}"
 
 #--------------------------------------------------------------#
 # remove postgres monitor              [pg_monitor][pg_exporter]
 #--------------------------------------------------------------#
 - import_tasks: pg_exporter.yml
-  tags: [ pg_monitor, pg_exporter ]
+  tags: [ pg_monitor ,pg_exporter ]
 
 #--------------------------------------------------------------#
 # remove pgbouncer monitor      [pg_monitor][pgbouncer_exporter]
@@ -101,10 +104,10 @@
   when: pg_rm_pkg|bool
 
 #--------------------------------------------------------------#
-# remove vector logs                                    [vector]
+# remove vector logs                       [rm_logs][pg_monitor]
 #--------------------------------------------------------------#
 - name: remove pgsql logs from vector
-  tags: [ pg_monitor, register, vector ]
+  tags: [ pg_monitor, pg_deregister, deregister, rm_logs ]
   when: vector_enabled|default(true)|bool
   ignore_errors: true
   block:
