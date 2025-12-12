@@ -21,29 +21,31 @@
 
 
 #--------------------------------------------------------------#
-# Deregister Redis                                    [register]
+# Deregister Redis from victoria  [rm_metrics][redis_deregister]
 #--------------------------------------------------------------#
-# Remove register from prometheus & stop redis-exporter
-- name: remove redis register from prometheus
-  when: not redis_safeguard|bool and vmetrics_enabled|bool
-  tags: [ register, redis_deregister, deregister_prometheus ]
+# Remove register from victoria & stop redis-exporter
+- name: remove redis register from victoria
+  when: not redis_safeguard|bool
+  tags: [ redis_deregister, deregister, rm_metrics ]
   block:
 
     # remove whole redis instances register on that node
-    - name: deregister redis node from prometheus
+    - name: deregister redis node from victoria
       when: redis_port is not defined
       delegate_to: '{{ item }}'
       loop: '{{ groups["infra"]|default([]) }}'
-      file: path="{{ victoria_sd_dir }}/redis/{{ redis_cluster }}-{{ redis_node }}.yml" state=absent
+      file: path="/infra/targets/redis/{{ redis_cluster }}-{{ redis_node }}.yml" state=absent
 
-    # remove single redis instance on that node if redis_port is defined
-    - name: deregister redis instance from prometheus # (single instance)
+    # IN CASE OF REMOVING SINGLE INSTANCE (with redis_port defined), JUST OVERWRITE THE FILE EXCLUDING THAT INSTANCE
+    - name: deregister redis instance from victoria
       when: redis_port is defined
       delegate_to: '{{ item }}'
       loop: '{{ groups["infra"]|default([]) }}'
       copy:
-        dest: "{{ victoria_sd_dir }}/redis/{{ redis_cluster }}-{{ redis_node }}.yml"
-        owner: prometheus
+        dest: "/infra/targets/redis/{{ redis_cluster }}-{{ redis_node }}.yml"
+        owner: victoria
+        group: infra
+        mode: '0640'
         content: |
           # {{ redis_cluster }}-{{ redis_node }} @ {{ inventory_hostname }}
           
@@ -53,6 +55,21 @@
             targets: [ redis://{{ inventory_hostname }}:{{ port }} ]
           {% endif %}
           {% endfor %}
+
+
+#--------------------------------------------------------------#
+# Deregister Redis from vector       [rm_logs][redis_deregister]
+#--------------------------------------------------------------#
+# ONLY DO THIS WHEN redis_port IS NOT DEFINED (removing entire node)
+- name: remove redis logs from vector
+  tags: [ redis_deregister, deregister, rm_logs ]
+  when: redis_port is not defined and not redis_safeguard|bool and vector_enabled|default(true)|bool
+  ignore_errors: true
+  block:
+    - name: remove redis vector logging config
+      file: path=/etc/vector/redis.yaml state=absent
+    - name: reload vector to discard redis log
+      systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
 
 
 #--------------------------------------------------------------#
@@ -74,16 +91,16 @@
   tags: redis
   block:
 
-    # stop redis instances (whole node)
+    # STOP SINGLE REDIS INSTANCE IF redis_port IS DEFINED
+    - name: stop redis instance systemd service
+      when: redis_port is defined
+      systemd: name="{{ redis_cluster }}-{{ redis_node }}-{{ redis_port }}.service" state=stopped enabled=no
+
+    # STOP ALL REDIS INSTANCES ON THE NODE IF redis_port IS NOT DEFINED
     - name: stop redis node systemd services
       when: not redis_port is defined
       systemd: name="{{ redis_cluster }}-{{ redis_node }}-{{ item.key }}.service" state=stopped enabled=no
       with_dict: "{{ redis_instances }}"
-
-    # stop redis instance (single instance)
-    - name: stop redis instance systemd service
-      when: redis_port is defined
-      systemd: name="{{ redis_cluster }}-{{ redis_node }}-{{ redis_port }}.service" state=stopped enabled=no
 
 
 #--------------------------------------------------------------#
@@ -95,15 +112,16 @@
   tags: redis_data
   block:
 
-    # remove entire redis data dir
+    # REMOVE SINGLE REDIS INSTANCE DATA DIR
+    - name: remove redis instance data dir
+      when: redis_port is defined
+      file: path={{ redis_fs_main }}/redis/{{ redis_cluster }}-{{ redis_node }}-{{ redis_port }} state=absent
+
+    # REMOVE ALL REDIS DATA DIR ON THE NODE
     - name: remove redis data dir
       when: not redis_port is defined
       file: path={{ redis_fs_main }}/redis state=absent owner=root mode=0777
 
-    # remove single instance data
-    - name: remove redis instance data dir
-      when: redis_port is defined
-      file: path={{ redis_fs_main }}/redis/{{ redis_cluster }}-{{ redis_node }}-{{ redis_port }} state=absent
 
 #--------------------------------------------------------------#
 # Remove redis packages                              [redis_pkg]

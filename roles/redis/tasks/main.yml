@@ -48,17 +48,18 @@
 
 
 #--------------------------------------------------------------#
-# Register                                      [redis_register]
+# Register                         [add_metrics][redis_register]
 #--------------------------------------------------------------#
-- name: register redis exporter to prometheus
-  tags: [ redis_register, register_prometheus ]
-  when: vmetrics_enabled|bool
+- name: register redis exporter to victoria
+  tags: [ redis_register, register, add_metrics ]
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   become: yes
   copy:
-    dest: "{{ victoria_sd_dir }}/redis/{{ redis_cluster }}-{{ redis_node }}.yml"
-    owner: prometheus
+    dest: "/infra/targets/redis/{{ redis_cluster }}-{{ redis_node }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
     content: |
       # {{ redis_cluster }}-{{ redis_node }} @ {{ inventory_hostname }}
       
@@ -70,10 +71,10 @@
 
 
 #--------------------------------------------------------------#
-# Register Redis Logs           [redis_register,register_vector]
+# Register Redis Logs                 [add_logs][redis_register]
 #--------------------------------------------------------------#
 - name: register redis logs to vector
-  tags: [ redis_register, register_vector ]
+  tags: [ redis_register, register, add_logs ]
   when: vector_enabled|default(true)|bool and not redis_port is defined
   ignore_errors: true
   block:
