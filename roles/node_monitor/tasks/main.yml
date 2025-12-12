@@ -1,10 +1,10 @@
 ---
 #--------------------------------------------------------------#
-# Register HAProxy to Nginx                     [register_nginx]
+# Register HAProxy to Nginx                   [haproxy_register]
 #--------------------------------------------------------------#
 # nginx are idempotent on multiple meta nodes
 - name: register haproxy instance to nginx
-  tags: [ haproxy_register, register_nginx ]
+  tags: [ haproxy_register, register_nginx, register, add_proxy ]
   when: haproxy_enabled|bool
   become: yes
   block:
@@ -136,17 +136,19 @@
 
 
 #--------------------------------------------------------------#
-# Register Node             [node_register, register_prometheus]
+# Register Node                                  [node_register]
 #--------------------------------------------------------------#
-# /etc/prometheus/targets/node/{{ ip }}.yml
-- name: register node as prometheus target
-  tags: [ node_vip, node_register, register_prometheus ]
+# /infra/targets/node/{{ ip }}.yml
+- name: register node as victoria target
+  tags: [ node_vip, node_register, register, add_metrics ]
   ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   copy:
-    dest: "{{ victoria_sd_dir }}/node/{{ inventory_hostname }}.yml"
-    owner: prometheus
+    dest: "/infra/targets/node/{{ inventory_hostname }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
     content: |
       # {{ inventory_hostname }}
       # node, haproxy, vector
@@ -166,27 +168,31 @@
 
 
 - name: register node as ping target
-  tags: [ node_register, register_prometheus ]
+  tags: [ node_register, register, add_metrics ]
   ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   copy:
-    dest: "{{ victoria_sd_dir }}/ping/{{ inventory_hostname }}.yml"
-    owner: prometheus
+    dest: "/infra/targets/ping/{{ inventory_hostname }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
     content: |
       # {{ inventory_hostname }}
       - labels: { ip: {{ inventory_hostname }} , ins: {{ nodename }} , cls: {{ node_cluster|default('nodes') }} }
         targets: [ {{inventory_hostname }} ]
 
 - name: register node vip as ping target
-  tags: [ node_vip, node_register, register_prometheus ]
+  tags: [ node_vip, node_register, register, add_metrics ]
   when: vip_enabled|bool and vip_address is defined and vip_address != ''
   ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   copy:
-    dest: "{{ victoria_sd_dir }}/ping/{{ vip_address }}---{{ inventory_hostname }}.yml"
-    owner: prometheus
+    dest: "/infra/targets/ping/{{ vip_address }}---{{ inventory_hostname }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
     content: |
       # {{ vip_address }}@{{ inventory_hostname }}
       - labels: { ip: {{ inventory_hostname }} , ins: {{ nodename }} , cls: {{ node_cluster|default('nodes') }}, vip: {{ vip_address }} , job: node-vip }
@@ -197,5 +203,6 @@
 # Vector                                                [vector]
 #--------------------------------------------------------------#
 - import_tasks: vector.yml
+  tags: vector
   when: vector_enabled|bool
 ...

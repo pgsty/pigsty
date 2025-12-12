@@ -40,15 +40,17 @@
         - { path: "/etc/vector/examples" ,state: absent }
         - { path: "{{ vector_data|default('/data/vector') }}" ,state: directory }
 
-    - name: create vector systemd service
-      copy: src={{ item.src }} dest={{ item.dest }}
+    - name: create vector config files
+      template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner|default('root') }} mode={{ item.mode|default('0644') }}
       with_items:
-        - { src: vector.svc ,dest: "{{ systemd_dir }}/vector.service" }
-        - { src: vector.env ,dest: /etc/default/vector }
+        - { src: vector.svc  ,dest: "{{ systemd_dir }}/vector.service" }
+        - { src: vector.env  ,dest: /etc/default/vector }
+        - { src: vector.yaml ,dest: /etc/vector/vector.yaml }
 
-    - name: render vector config files
-      template: src={{ item }}.yaml dest=/etc/vector/{{ item }}.yaml mode=0600
-      with_items: [ vector, node ]
+    - name: register node syslog to vector
+      tags: [ node_register, register ,add_logs ]
+      template: src=node.yaml dest=/etc/vector/node.yaml mode=0600
+
 
 #--------------------------------------------------------------#
 # Launch Vector                                  [vector_launch]

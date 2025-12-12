@@ -1,46 +1,46 @@
 ---
 #--------------------------------------------------------------#
-# remove prometheus register                        [prometheus]
+# remove prometheus register                   [node_deregister]
 #--------------------------------------------------------------#
-- name: remove node target from prometheus
-  tags: [ register, prometheus ]
+- name: remove node target from victoria
+  tags: [ node_deregister, deregister, rm_metrics ]
   become: yes
   ignore_errors: yes
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
-  file: state=absent path={{ victoria_sd_dir }}/node/{{ inventory_hostname }}.yml
+  file: state=absent path=/infra/targets/node/{{ inventory_hostname }}.yml
 
-- name: remove docker target from prometheus
-  tags: [ register, prometheus ]
+- name: remove docker target from victoria
+  tags: [ node_deregister, deregister, rm_metrics ]
   become: yes
   ignore_errors: yes
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
-  file: state=absent path={{ victoria_sd_dir }}/docker/{{ inventory_hostname }}.yml
+  file: state=absent path=/infra/targets/docker/{{ inventory_hostname }}.yml
 
-- name: remove node ping target from prometheus
-  tags: [ register, prometheus ]
+- name: remove node ping target from victoria
+  tags: [ node_deregister, deregister, rm_metrics ]
   become: yes
   ignore_errors: yes
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
-  file: state=absent path={{ victoria_sd_dir }}/ping/{{ inventory_hostname }}.yml
+  file: state=absent path=/infra/targets/ping/{{ inventory_hostname }}.yml
 
-- name: remove vip ping target from prometheus
-  tags: [ register, prometheus ]
+- name: remove vip ping target from victoria
+  tags: [ node_deregister, deregister, rm_metrics ]
   when: vip_enabled|bool and vip_address is defined and vip_address != ''
   become: yes
   ignore_errors: yes
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
-  file: state=absent path={{ victoria_sd_dir }}/ping/{{ vip_address }}---{{ inventory_hostname }}.yml
+  file: state=absent path=/infra/targets/ping/{{ vip_address }}---{{ inventory_hostname }}.yml
 
 
 #--------------------------------------------------------------#
-# remove nginx register (haproxy admin page)             [nginx]
+# remove haproxy from nginx                 [haproxy_deregister]
 #--------------------------------------------------------------#
 - import_tasks: nginx.yml
-  tags: [ register, nginx ]
+  tags: [ haproxy_deregister, deregister, rm_proxy ]
 
 #--------------------------------------------------------------#
 # remove keepalived_exporter                               [vip]
@@ -79,6 +79,18 @@
   when: vip_enabled|bool
   ignore_errors: yes
   systemd: name=keepalived_exporter state=stopped enabled=no daemon_reload=yes
+
+#--------------------------------------------------------------#
+# remove node syslog from vector               [node_deregister]
+#--------------------------------------------------------------#
+- name: remove node logs from vector
+  tags: [ node_deregister, deregister, rm_logs ]
+  ignore_errors: true
+  block:
+    - name: remove node vector logging config
+      file: path=/etc/vector/node.yaml state=absent
+    - name: reload vector to discard node log
+      systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
 
 #--------------------------------------------------------------#
 # remove vector                                         [vector]
