@@ -14,8 +14,6 @@ import os, sys, json, requests
 ENDPOINT = os.environ.get("GRAFANA_ENDPOINT", 'http://i.pigsty/ui')
 USERNAME = os.environ.get("GRAFANA_USERNAME", 'admin')
 PASSWORD = os.environ.get("GRAFANA_PASSWORD", 'pigsty')
-PORTALS = os.environ.get("INFRA_PORTAL", "")
-USE_HTTPS = os.environ.get("USE_HTTPS", "false")
 CREATE_FOLDERS = True
 
 METADB_PASSWORD = 'DBUser.Viewer'
@@ -26,29 +24,6 @@ DEFAULT_DATASOURCES = {
      'jsonData': {'connMaxLifetime': 14400, 'maxIdleConns': 10, 'maxOpenConns': 64,  'postgresVersion': 1500, 'sslmode': 'require', 'tlsAuth': False, 'tlsAuthWithCACert': False}, 'secureJsonData': { 'password': METADB_PASSWORD }},
     'ds-vlogs': {'uid': 'ds-vlogs', 'orgId': 1, 'name': 'Loki', 'type': 'loki', 'typeName': 'Loki', 'access': 'proxy', 'url': 'http://127.0.0.1:3100', 'basicAuth': False, 'isDefault': False, 'jsonData': {}, 'readOnly': False}}
 
-
-##########################################
-# load dashboard
-############################w##############
-# replace all url according to environment
-REPLACEMENT = {}
-if PORTALS != '':
-    REPLACEMENT = {i.split('=')[0]: i.split('=')[1] for i in PORTALS.split(',')}
-
-SCHEME = 'http://'
-if USE_HTTPS in ('true', 'True', 'TRUE', 'yes', 'ok', 'y', 'aye'):
-    SCHEME = 'https://'
-
-def host_replace(s):
-    if 'home' in REPLACEMENT and REPLACEMENT['home'] != 'i.pigsty':
-        s = s.replace('http://i.pigsty/', SCHEME + REPLACEMENT['home'] + '/')
-    if 'alertmanager' in REPLACEMENT and REPLACEMENT['alertmanager'] != 'a.pigsty':
-        s = s.replace('http://a.pigsty', SCHEME + REPLACEMENT['alertmanager'])
-    if 'prometheus' in REPLACEMENT and REPLACEMENT['prometheus'] != 'p.pigsty':
-        s = s.replace('http://p.pigsty', SCHEME + REPLACEMENT['prometheus'])
-    if 'grafana' in REPLACEMENT and REPLACEMENT['grafana'] != 'g.pigsty':
-        s = s.replace('http://g.pigsty', SCHEME + REPLACEMENT['grafana'])
-    return s
 
 
 ##########################################
@@ -232,7 +207,7 @@ def dashboard_raw(d):
 def load_dashboard(path, substitute=False):
     if substitute:
         with open(path) as src:
-            raw = host_replace(src.read())
+            raw = src.read()
             return json.loads(raw)
     else:
         return json.load(open(path))
