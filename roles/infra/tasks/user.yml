@@ -2,25 +2,37 @@
 #--------------------------------------------------------------#
 # Infra Users & Groups                              [infra_user]
 #--------------------------------------------------------------#
-# create infra group for shared access
-- name: create infra os user group
-  tags: infra_user
-  group: name={{ item }} state=present
-  with_items: [ infra, victoria, prometheus, grafana, dnsmasq ]
-
-# create infra users with same-name primary group, added to infra group
-- name: create infra users
-  tags: infra_user
-  user: name={{ item }} group={{ item }} groups=infra
-  with_items: [ victoria, prometheus, grafana, dnsmasq ]
-
-# add admin user to infra group
-- name: add admin user to infra group
+- name: create infra users and groups
   tags: infra_user
   ignore_errors: true
-  user: name={{ item }} append=true groups=infra
-  with_items:
-    - "{{ node_admin_username | default('dba') }}"
-    - "{% if node_user != 'root' %}{{ node_user }}{% else %}{{ node_admin_username }}{% endif %}"
+  vars:
+    infra_group_members: >-
+      {{ (['victoria', 'prometheus', 'grafana', 'dnsmasq', 'nginx']
+          + ([node_admin_username | default('dba')] if node_admin_enabled | default(true) else [])
+          + ([node_user | default('root')]))
+         | reject('equalto', 'root') | unique | list }}
+  shell: |
+    #!/bin/bash
+    getent group infra >/dev/null || groupadd -r infra
+    NOLOGIN=$([ -x /sbin/nologin ] && echo /sbin/nologin || echo /usr/sbin/nologin)
+    add_user() {
+      local user="$1" shell="$2" home="$3"
+      id "$user" &>/dev/null && return 0
+      getent group "$user" >/dev/null || groupadd -r "$user"
+      useradd -r -g "$user" -d "$home" -s "$shell" -M "$user" 2>/dev/null || \
+      useradd -r -g "$user" -d "$home" -s "$shell" "$user"
+    }
+    add_user victoria   /bin/bash    /infra
+    add_user prometheus /bin/bash    /infra
+    add_user grafana    /bin/bash    /var/lib/grafana
+    add_user dnsmasq    "$NOLOGIN"   /var/lib/dnsmasq
+    add_user nginx      "$NOLOGIN"   /var/cache/nginx
+
+    for u in {{ infra_group_members | join(' ') }}; do
+      id "$u" &>/dev/null && usermod -aG infra "$u" 2>/dev/null
+    done
+    exit 0
+  args:
+    executable: /bin/bash
 
 ...
