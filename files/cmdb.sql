@@ -2,7 +2,7 @@
 -- # File      :   cmdb.sql
 -- # Desc      :   Pigsty CMDB baseline
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2025-12-11
+-- # Mtime     :   2025-12-13
 -- # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 -- # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -1251,7 +1251,6 @@ INSERT INTO pigsty.default_var VALUES
 (103, 'region', '"default"', 'INFRA', 'META', 'enum', 'G', 'upstream mirror region: default,china,europe', NULL),
 (104, 'proxy_env', '{"no_proxy": "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.myqcloud.com,*.tsinghua.edu.cn"}', 'INFRA', 'META', 'dict', 'G', 'global proxy env when downloading packages', NULL),
 (105, 'language', '"en"', 'INFRA', 'META', 'enum', 'G', 'default language, en by default, could be zh', NULL),
-(106, 'domain_name', '"i.pigsty"', 'INFRA', 'META', 'string', 'G', 'default domain name, i.pigsty by default', NULL),
 
 (110, 'ca_create', 'true', 'INFRA', 'CA', 'bool', 'G', 'create ca if not exists?', NULL),
 (111, 'ca_cn', '"pigsty-ca"', 'INFRA', 'CA', 'string', 'G', 'ca common name, fixed as pigsty-ca', NULL),
@@ -1280,12 +1279,14 @@ INSERT INTO pigsty.default_var VALUES
 (133, 'nginx_exporter_port', '9113', 'INFRA', 'NGINX', 'port', 'G', 'nginx_exporter listen port, 9113 by default', NULL),
 (134, 'nginx_sslmode', '"enable"', 'INFRA', 'NGINX', 'enum', 'G', 'nginx ssl mode? disable,enable,enforce', NULL),
 (135, 'nginx_cert_validity', '"397d"', 'INFRA', 'NGINX', 'interval', 'G', 'nginx self-signed cert validity, 397d by default', NULL),
-(136, 'nginx_home', '"/www"', 'INFRA', 'NGINX', 'path', 'G', 'nginx content dir, `/www` by default', NULL),
-(137, 'nginx_port', '80', 'INFRA', 'NGINX', 'port', 'G', 'nginx listen port, 80 by default', NULL),
-(138, 'nginx_ssl_port', '443', 'INFRA', 'NGINX', 'port', 'G', 'nginx ssl listen port, 443 by default', NULL),
-(140, 'certbot_sign', 'false', 'INFRA', 'NGINX', 'bool', 'G/A', 'sign nginx cert with certbot during setup?', NULL),
-(141, 'certbot_email', '"your@email.com"', 'INFRA', 'NGINX', 'mail', 'G/A', 'certbot email address, used for free ssl', NULL),
-(142, 'certbot_options', '""', 'INFRA', 'NGINX', 'arg', 'G/A', 'certbot extra options', NULL),
+(136, 'nginx_home', '"/www"', 'INFRA', 'NGINX', 'path', 'G', 'nginx content dir, `/www` by default (soft link to nginx_data)', NULL),
+(137, 'nginx_data', '"/data/nginx"', 'INFRA', 'NGINX', 'path', 'G', 'nginx actual data dir, /data/nginx by default', NULL),
+(138, 'nginx_users', '{"admin": "pigsty"}', 'INFRA', 'NGINX', 'dict', 'G', 'nginx basic auth users: name and pass dict', NULL),
+(139, 'nginx_port', '80', 'INFRA', 'NGINX', 'port', 'G', 'nginx listen port, 80 by default', NULL),
+(140, 'nginx_ssl_port', '443', 'INFRA', 'NGINX', 'port', 'G', 'nginx ssl listen port, 443 by default', NULL),
+(141, 'certbot_sign', 'false', 'INFRA', 'NGINX', 'bool', 'G/A', 'sign nginx cert with certbot during setup?', NULL),
+(142, 'certbot_email', '"your@email.com"', 'INFRA', 'NGINX', 'mail', 'G/A', 'certbot email address, used for free ssl', NULL),
+(143, 'certbot_options', '""', 'INFRA', 'NGINX', 'arg', 'G/A', 'certbot extra options', NULL),
 
 (150, 'dns_enabled', 'true', 'INFRA', 'DNS', 'bool', 'G/I', 'setup dnsmasq on this infra node?', NULL),
 (151, 'dns_port', '53', 'INFRA', 'DNS', 'port', 'G', 'dns server listen port, 53 by default', NULL),
@@ -1302,11 +1303,12 @@ INSERT INTO pigsty.default_var VALUES
 (170, 'vlogs_port', '9428', 'INFRA', 'VICTORIA', 'port', 'G', 'victoria-logs listen port, 9428 by default', NULL),
 (171, 'vlogs_options', '"-retentionPeriod=15d -retention.maxDiskSpaceUsageBytes=50GiB -insert.maxLineSizeBytes=1MB -search.maxQueryDuration=120s"', 'INFRA', 'VICTORIA', 'arg', 'G', 'victoria-logs extra server options', NULL),
 (172, 'vtraces_enabled', 'true', 'INFRA', 'VICTORIA', 'bool', 'G/I', 'enable victoria-traces on this infra node?', NULL),
-(173, 'vtraces_port', '10428', 'INFRA', 'VICTORIA', 'port', 'G', 'victoria-traces listen port, 10428 by default', NULL),
-(174, 'vtraces_options', '"-retentionPeriod=15d -retention.maxDiskSpaceUsageBytes=50GiB"', 'INFRA', 'VICTORIA', 'arg', 'G', 'victoria-traces extra server options', NULL),
-(175, 'vmalert_enabled', 'true', 'INFRA', 'VICTORIA', 'bool', 'G/I', 'enable vmalert on this infra node?', NULL),
-(176, 'vmalert_port', '8880', 'INFRA', 'VICTORIA', 'port', 'G', 'vmalert listen port, 8880 by default', NULL),
-(177, 'vmalert_options', '""', 'INFRA', 'VICTORIA', 'arg', 'G', 'vmalert extra server options', NULL),
+(173, 'vtraces_clean', 'false', 'INFRA', 'VICTORIA', 'bool', 'G/A', 'clean victoria-traces data during init?', NULL),
+(174, 'vtraces_port', '10428', 'INFRA', 'VICTORIA', 'port', 'G', 'victoria-traces listen port, 10428 by default', NULL),
+(175, 'vtraces_options', '"-retentionPeriod=15d -retention.maxDiskSpaceUsageBytes=50GiB"', 'INFRA', 'VICTORIA', 'arg', 'G', 'victoria-traces extra server options', NULL),
+(176, 'vmalert_enabled', 'true', 'INFRA', 'VICTORIA', 'bool', 'G/I', 'enable vmalert on this infra node?', NULL),
+(177, 'vmalert_port', '8880', 'INFRA', 'VICTORIA', 'port', 'G', 'vmalert listen port, 8880 by default', NULL),
+(178, 'vmalert_options', '""', 'INFRA', 'VICTORIA', 'arg', 'G', 'vmalert extra server options', NULL),
 
 (180, 'blackbox_enabled', 'true', 'INFRA', 'PROMETHEUS', 'bool', 'G/I', 'setup blackbox_exporter on this infra node?', NULL),
 (181, 'blackbox_port', '9115', 'INFRA', 'PROMETHEUS', 'port', 'G', 'blackbox_exporter listen port, 9115 by default', NULL),
@@ -1321,6 +1323,8 @@ INSERT INTO pigsty.default_var VALUES
 (192, 'grafana_clean', 'true', 'INFRA', 'GRAFANA', 'bool', 'G/A', 'clean grafana data during init?', NULL),
 (193, 'grafana_admin_username', '"admin"', 'INFRA', 'GRAFANA', 'username', 'G', 'grafana admin username, `admin` by default', NULL),
 (194, 'grafana_admin_password', '"pigsty"', 'INFRA', 'GRAFANA', 'password', 'G', 'grafana admin password, `pigsty` by default', NULL),
+(195, 'grafana_auth_proxy', 'false', 'INFRA', 'GRAFANA', 'bool', 'G', 'enable grafana auth proxy?', NULL),
+(196, 'grafana_pgurl', '""', 'INFRA', 'GRAFANA', 'url', 'G', 'external postgres database url for grafana if given', NULL),
 
 -- NODE PARAMETERS
 (201, 'nodename', NULL, 'NODE', 'NODE_ID', 'string', 'I', 'node instance identity, use hostname if missing, optional', NULL),
@@ -1342,9 +1346,9 @@ INSERT INTO pigsty.default_var VALUES
 (224, 'node_default_packages', '[]', 'NODE', 'NODE_PACKAGE', 'string[]', 'G', 'default packages to be installed on all nodes', NULL),
 
 (230, 'node_selinux_mode', '"permissive"', 'NODE', 'NODE_SEC', 'enum', 'C', 'selinux mode: enforcing,permissive,disabled', NULL),
-(231, 'node_firewall_mode', '"none"', 'NODE', 'NODE_SEC', 'enum', 'C', 'firewall mode: off,none,zone', NULL),
-(232, 'node_firewall_intranet', '["10.0.0.0/8","192.168.0.0/16","172.16.0.0/12"]', 'NODE', 'NODE_SEC', 'cidr[]', 'C', 'intranet cidr list trusted by firewall', NULL),
-(233, 'node_firewall_public_port', '[22,80,443]', 'NODE', 'NODE_SEC', 'port[]', 'C', 'ports open to public in zone mode', NULL),
+(231, 'node_firewall_mode', '"zone"', 'NODE', 'NODE_SEC', 'enum', 'C', 'node firewall mode: off,none,zone', NULL),
+(232, 'node_firewall_intranet', '["10.0.0.0/8","192.168.0.0/16","172.16.0.0/12"]', 'NODE', 'NODE_SEC', 'cidr[]', 'C', 'node trusted intranet cidr list', NULL),
+(233, 'node_firewall_public_port', '[22,80,443,5432]', 'NODE', 'NODE_SEC', 'port[]', 'C', 'ports open to public in zone mode', NULL),
 
 (240, 'node_disable_numa', 'false', 'NODE', 'NODE_TUNE', 'bool', 'C', 'disable node numa, reboot required', NULL),
 (241, 'node_disable_swap', 'false', 'NODE', 'NODE_TUNE', 'bool', 'C', 'disable node swap, use with caution', NULL),
@@ -1395,10 +1399,12 @@ INSERT INTO pigsty.default_var VALUES
 (280, 'node_exporter_enabled', 'true', 'NODE', 'NODE_EXPORTER', 'bool', 'C', 'setup node_exporter on this node?', NULL),
 (281, 'node_exporter_port', '9100', 'NODE', 'NODE_EXPORTER', 'port', 'C', 'node exporter listen port, 9100 by default', NULL),
 (282, 'node_exporter_options', '"--no-collector.softnet --no-collector.nvme --collector.tcpstat --collector.processes"', 'NODE', 'NODE_EXPORTER', 'arg', 'C', 'extra server options for node_exporter', NULL),
-(283, 'promtail_enabled', 'true', 'NODE', 'PROMTAIL', 'bool', 'C', 'enable promtail logging collector?', NULL),
-(284, 'promtail_clean', 'false', 'NODE', 'PROMTAIL', 'bool', 'G/A', 'purge existing promtail status file during init?', NULL),
-(285, 'promtail_port', '9080', 'NODE', 'PROMTAIL', 'port', 'C', 'promtail listen port, 9080 by default', NULL),
-(286, 'promtail_positions', '"/var/log/positions.yaml"', 'NODE', 'PROMTAIL', 'path', 'C', 'promtail position status file path', NULL),
+(290, 'vector_enabled', 'true', 'NODE', 'VECTOR', 'bool', 'C', 'enable vector log collector?', NULL),
+(291, 'vector_clean', 'false', 'NODE', 'VECTOR', 'bool', 'G/A', 'purge vector data dir during init?', NULL),
+(292, 'vector_data', '"/data/vector"', 'NODE', 'VECTOR', 'path', 'C', 'vector data dir, /data/vector by default', NULL),
+(293, 'vector_port', '9598', 'NODE', 'VECTOR', 'port', 'C', 'vector metrics port, 9598 by default', NULL),
+(294, 'vector_read_from', '"beginning"', 'NODE', 'VECTOR', 'enum', 'C', 'vector read from beginning or end', NULL),
+(295, 'vector_log_endpoint', '[ infra ]', 'NODE', 'VECTOR', 'cidr[]', 'C', 'if defined, sending vector log to this endpoint.', NULL),
 
 -- DOCKER PARAMETERS
 (400, 'docker_enabled', 'false', 'NODE', 'DOCKER', 'bool', 'C', 'enable docker on this node?', NULL),
@@ -1555,7 +1561,8 @@ INSERT INTO pigsty.default_var VALUES
 (911, 'pgbackrest_clean', 'true', 'PGSQL', 'PG_BACKUP', 'bool', 'C', 'remove pg backup data during init?', NULL),
 (912, 'pgbackrest_log_dir', '"/pg/log/pgbackrest"', 'PGSQL', 'PG_BACKUP', 'path', 'C', 'pgbackrest log dir, `/pg/log/pgbackrest` by default', NULL),
 (913, 'pgbackrest_method', '"local"', 'PGSQL', 'PG_BACKUP', 'enum', 'C', 'pgbackrest repo method: local,minio,etc...', NULL),
-(914, 'pgbackrest_repo', '{"local": {"path": "/pg/backup", "retention_full": 2, "retention_full_type": "count"}, "minio": {"path": "/pgbackrest", "type": "s3",  "block": "y", "bundle": "y", "bundle_limit": "20MiB", "bundle_size": "128MiB", "s3_ke,,y": "pgbackrest", "s3_bucket": "pgsql", "s3_region": "us-east-1", "cipher_pass": "pgBackRest", "cipher_type": "aes-256-cbc", "s3_endpoint": "sss.pigsty", "s3_uri_style": "path", "storage_port": 9000, "s3_key_secret": "S3User.Backup", "retention_full": 14, "storage_ca_file": "/etc/pki/ca.crt", "retention_full_type": "time"}}', 'PGSQL', 'PG_BACKUP', 'dict', 'G/C', 'pgbackrest repo: https://pgbackrest.org/configuration.html#section-repository', NULL),
+(914, 'pgbackrest_init_backup', 'true', 'PGSQL', 'PG_BACKUP', 'bool', 'C', 'take a full backup after pgbackrest is initialized?', NULL),
+(915, 'pgbackrest_repo', '{"local": {"path": "/pg/backup", "retention_full": 2, "retention_full_type": "count"}, "minio": {"path": "/pgbackrest", "type": "s3",  "block": "y", "bundle": "y", "bundle_limit": "20MiB", "bundle_size": "128MiB", "s3_key": "pgbackrest", "s3_bucket": "pgsql", "s3_region": "us-east-1", "cipher_pass": "pgBackRest", "cipher_type": "aes-256-cbc", "s3_endpoint": "sss.pigsty", "s3_uri_style": "path", "storage_port": 9000, "s3_key_secret": "S3User.Backup", "retention_full": 14, "storage_ca_file": "/etc/pki/ca.crt", "retention_full_type": "time"}}', 'PGSQL', 'PG_BACKUP', 'dict', 'G/C', 'pgbackrest repo: https://pgbackrest.org/configuration.html#section-repository', NULL),
 
 (920, 'pgbouncer_enabled', 'true', 'PGSQL', 'PG_ACCESS', 'bool', 'C', 'if disabled, pgbouncer will not be launched on pgsql host', NULL),
 (921, 'pgbouncer_port', '6432', 'PGSQL', 'PG_ACCESS', 'port', 'C', 'pgbouncer listen port, 6432 by default', NULL),
@@ -1595,5 +1602,5 @@ INSERT INTO pigsty.default_var VALUES
 
 (980, 'pg_safeguard', 'false', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'prevent purging running postgres instance? false by default', NULL),
 (981, 'pg_rm_data', 'true', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'remove postgres data during remove? true by default', NULL),
-(982, 'pg_rm_bkup', 'true', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'remove pgbackrest backup during primary remove? true by default', NULL),
+(982, 'pg_rm_backup', 'true', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'remove pgbackrest backup during primary remove? true by default', NULL),
 (983, 'pg_rm_pkg', 'true',  'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'uninstall postgres packages during remove? true by default', NULL);

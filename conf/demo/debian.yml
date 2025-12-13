@@ -3,7 +3,7 @@
 # File      :   debian.yml
 # Desc      :   Default parameters for Debian/Ubuntu in Pigsty
 # Ctime     :   2020-05-22
-# Mtime     :   2025-12-12
+# Mtime     :   2025-12-13
 # Docs      :   https://doc.pgsty.com/config
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -204,6 +204,7 @@ all:
     version: v4.0.0                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
     region: default                   # upstream mirror region: default,china,europe
+    language: en                      # default language: en, zh
     proxy_env:                        # global proxy env when downloading packages
       no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.myqcloud.com,*.tsinghua.edu.cn"
       # http_proxy:  # set your proxy here: e.g http://user:pass@proxy.xxx.com
@@ -213,7 +214,7 @@ all:
     #-----------------------------------------------------------------
     # CA
     #-----------------------------------------------------------------
-    ca_method: create                 # create,recreate,copy, create by default
+    ca_create: true                   # create ca if not exists? or just abort
     ca_cn: pigsty-ca                  # ca common name, fixed as pigsty-ca
     cert_validity: 7300d              # cert validity, 20 years by default
 
@@ -222,12 +223,8 @@ all:
     #-----------------------------------------------------------------
     #infra_seq: 1                     # infra node identity, explicitly required
     infra_portal:                     # infra services exposed via portal
-      home         : { domain: i.pigsty }
-      grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" ,websocket: true }
-      prometheus   : { domain: p.pigsty ,endpoint: "${admin_ip}:9058" }
-      alertmanager : { domain: a.pigsty ,endpoint: "${admin_ip}:9059" }
-      blackbox     : { endpoint: "${admin_ip}:9115" }
-      loki         : { endpoint: "${admin_ip}:3100" }
+      home : { domain: i.pigsty }     # default domain name
+    infra_data: /data/infra           # default data path for infrastructure data
 
     #-----------------------------------------------------------------
     # REPO
@@ -242,7 +239,7 @@ all:
       - { name: pigsty-local   ,description: 'Pigsty Local'       ,module: local   ,releases: [11,12,13,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://${admin_ip}/pigsty ./' }}
       - { name: pigsty-pgsql   ,description: 'Pigsty PgSQL'       ,module: pgsql   ,releases: [11,12,13,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/apt/pgsql/${distro_codename} ${distro_codename} main', china: 'https://repo.pigsty.cc/apt/pgsql/${distro_codename} ${distro_codename} main' }}
       - { name: pigsty-infra   ,description: 'Pigsty Infra'       ,module: infra   ,releases: [11,12,13,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/apt/infra/ generic main' ,china: 'https://repo.pigsty.cc/apt/infra/ generic main' }}
-      - { name: nginx          ,description: 'Nginx'              ,module: infra   ,releases: [11,12,   20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://nginx.org/packages/${distro_name} ${distro_codename} nginx' }}
+      - { name: nginx          ,description: 'Nginx'              ,module: infra   ,releases: [11,12,13,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://nginx.org/packages/${distro_name} ${distro_codename} nginx' }}
       - { name: docker-ce      ,description: 'Docker'             ,module: infra   ,releases: [11,12,13,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.docker.com/linux/${distro_name} ${distro_codename} stable'                               ,china: 'https://mirrors.aliyun.com/docker-ce/linux/${distro_name} ${distro_codename} stable' }}
       - { name: base           ,description: 'Debian Basic'       ,module: node    ,releases: [11,12,13         ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://deb.debian.org/debian/ ${distro_codename} main non-free-firmware'                                  ,china: 'https://mirrors.aliyun.com/debian/ ${distro_codename} main restricted universe multiverse' }}
       - { name: updates        ,description: 'Debian Updates'     ,module: node    ,releases: [11,12,13         ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://deb.debian.org/debian/ ${distro_codename}-updates main non-free-firmware'                          ,china: 'https://mirrors.aliyun.com/debian/ ${distro_codename}-updates main restricted universe multiverse' }}
@@ -255,17 +252,18 @@ all:
       - { name: updates        ,description: 'Ubuntu Updates'     ,module: node    ,releases: [         20,22,24] ,arch: [        aarch64] ,baseurl: { default: 'http://ports.ubuntu.com/ubuntu-ports/ ${distro_codename}-backports   main restricted universe multiverse' ,china: 'https://mirrors.aliyun.com/ubuntu-ports/ ${distro_codename}-updates   main restricted universe multiverse' }}
       - { name: backports      ,description: 'Ubuntu Backports'   ,module: node    ,releases: [         20,22,24] ,arch: [        aarch64] ,baseurl: { default: 'http://ports.ubuntu.com/ubuntu-ports/ ${distro_codename}-security    main restricted universe multiverse' ,china: 'https://mirrors.aliyun.com/ubuntu-ports/ ${distro_codename}-backports main restricted universe multiverse' }}
       - { name: security       ,description: 'Ubuntu Security'    ,module: node    ,releases: [         20,22,24] ,arch: [        aarch64] ,baseurl: { default: 'http://ports.ubuntu.com/ubuntu-ports/ ${distro_codename}-updates     main restricted universe multiverse' ,china: 'https://mirrors.aliyun.com/ubuntu-ports/ ${distro_codename}-security  main restricted universe multiverse' }}
-      - { name: pgdg           ,description: 'PGDG'               ,module: pgsql   ,releases: [11,12,13,   22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://apt.postgresql.org/pub/repos/apt/ ${distro_codename}-pgdg main' ,china: 'https://repo.pigsty.cc/apt/pgdg/ ${distro_codename}-pgdg main' }}
+      - { name: pgdg           ,description: 'PGDG'               ,module: pgsql   ,releases: [11,12,13,   22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://apt.postgresql.org/pub/repos/apt/ ${distro_codename}-pgdg main' ,china: 'https://mirrors.aliyun.com/postgresql/repos/apt/ ${distro_codename}-pgdg main' }}
       - { name: pgdg-beta      ,description: 'PGDG Beta'          ,module: beta    ,releases: [11,12,13,   22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://apt.postgresql.org/pub/repos/apt/ ${distro_codename}-pgdg-testing main 19' ,china: 'https://mirrors.aliyun.com/postgresql/repos/apt/ ${distro_codename}-pgdg-testing main 19' }}
-      - { name: timescaledb    ,description: 'TimescaleDB'        ,module: extra   ,releases: [11,12,   20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packagecloud.io/timescale/timescaledb/${distro_name}/ ${distro_codename} main' }}
+      - { name: timescaledb    ,description: 'TimescaleDB'        ,module: extra   ,releases: [11,12,13,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packagecloud.io/timescale/timescaledb/${distro_name}/ ${distro_codename} main' }}
       - { name: citus          ,description: 'Citus'              ,module: extra   ,releases: [11,12,   20,22   ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packagecloud.io/citusdata/community/${distro_name}/ ${distro_codename} main' } }
-      - { name: percona        ,description: 'Percona TDE'        ,module: percona ,releases: [11,12,   20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/apt/percona ${distro_codename} main' ,china: 'https://repo.pigsty.cc/apt/percona ${distro_codename} main' ,origin: 'http://repo.percona.com/ppg-17.5/apt ${distro_codename} main' }}
-      - { name: wiltondb       ,description: 'WiltonDB'           ,module: mssql   ,releases: [         20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/apt/mssql/ ${distro_codename} main', china: 'https://repo.pigsty.cc/apt/mssql/ ${distro_codename} main' , origin: 'https://ppa.launchpadcontent.net/wiltondb/wiltondb/ubuntu/ ${distro_codename} main'  }}
+      - { name: percona        ,description: 'Percona TDE'        ,module: percona ,releases: [11,12,13,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/apt/percona ${distro_codename} main' ,china: 'https://repo.pigsty.cc/apt/percona ${distro_codename} main' ,origin: 'http://repo.percona.com/ppg-18.1/apt ${distro_codename} main' }}
+      - { name: wiltondb       ,description: 'WiltonDB'           ,module: mssql   ,releases: [         20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/apt/mssql/ ${distro_codename} main'  ,china: 'https://repo.pigsty.cc/apt/mssql/ ${distro_codename} main'  ,origin: 'https://ppa.launchpadcontent.net/wiltondb/wiltondb/ubuntu/ ${distro_codename} main'  }}
       - { name: groonga        ,description: 'Groonga Debian'     ,module: groonga ,releases: [11,12,13         ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packages.groonga.org/debian/ ${distro_codename} main' }}
       - { name: groonga        ,description: 'Groonga Ubuntu'     ,module: groonga ,releases: [         20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://ppa.launchpadcontent.net/groonga/ppa/ubuntu/ ${distro_codename} main' }}
       - { name: mysql          ,description: 'MySQL'              ,module: mysql   ,releases: [11,12,   20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.mysql.com/apt/${distro_name} ${distro_codename} mysql-8.0 mysql-tools', china: 'https://mirrors.tuna.tsinghua.edu.cn/mysql/apt/${distro_name} ${distro_codename} mysql-8.0 mysql-tools' }}
       - { name: mongo          ,description: 'MongoDB'            ,module: mongo   ,releases: [11,12,   20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.mongodb.org/apt/${distro_name} ${distro_codename}/mongodb-org/8.0 multiverse', china: 'https://mirrors.aliyun.com/mongodb/apt/${distro_name} ${distro_codename}/mongodb-org/8.0 multiverse' }}
       - { name: redis          ,description: 'Redis'              ,module: redis   ,releases: [11,12,   20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packages.redis.io/deb ${distro_codename} main' }}
+      - { name: llvm           ,description: 'LLVM'               ,module: llvm    ,releases: [11,12,13,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://apt.llvm.org/${distro_codename}/ llvm-toolchain-${distro_codename} main' ,china: 'https://mirrors.tuna.tsinghua.edu.cn/llvm-apt/${distro_codename}/ llvm-toolchain-${distro_codename} main' }}
       - { name: haproxyd       ,description: 'Haproxy Debian'     ,module: haproxy ,releases: [11,12            ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://haproxy.debian.net/ ${distro_codename}-backports-3.1 main' }}
       - { name: haproxyu       ,description: 'Haproxy Ubuntu'     ,module: haproxy ,releases: [         20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://ppa.launchpadcontent.net/vbernat/haproxy-3.1/ubuntu/ ${distro_codename} main' }}
       - { name: grafana        ,description: 'Grafana'            ,module: grafana ,releases: [11,12,13,20,22,24] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://apt.grafana.com stable main' ,china: 'https://mirrors.aliyun.com/grafana/apt/ stable main' }}
@@ -282,18 +280,22 @@ all:
     # INFRA_PACKAGE
     #-----------------------------------------------------------------
     infra_packages:                   # packages to be installed on infra nodes
-      - grafana,grafana-plugins,loki,logcli,promtail,prometheus,alertmanager,pushgateway,certbot,restic,python3-certbot-nginx
-      - node-exporter,blackbox-exporter,nginx-exporter,pg-exporter,pev2,nginx,dnsmasq,ansible,etcd,python3-requests,redis,mcli
+      - grafana,grafana-plugins,grafana-victorialogs-ds,grafana-victoriametrics-ds,victoria-metrics,victoria-logs,victoria-traces,vmutils,vlogscli,alertmanager
+      - node-exporter,blackbox-exporter,nginx-exporter,pg-exporter,pev2,nginx,dnsmasq,ansible,etcd,python3-requests,redis,mcli,restic,certbot,python3-certbot-nginx
     infra_packages_pip: ''            # pip installed packages for infra nodes
 
     #-----------------------------------------------------------------
     # NGINX
     #-----------------------------------------------------------------
     nginx_enabled: true               # enable nginx on this infra node?
+    nginx_clean: false                # clean existing nginx config during init?
     nginx_exporter_enabled: true      # enable nginx_exporter on this infra node?
+    nginx_exporter_port: 9113         # nginx_exporter listen port, 9113 by default
     nginx_sslmode: enable             # nginx ssl mode? disable,enable,enforce
     nginx_cert_validity: 397d         # nginx self-signed cert validity, 397d by default
-    nginx_home: /www                  # nginx content dir, `/www` by default
+    nginx_home: /www                  # nginx content dir, `/www` by default (soft link to nginx_data)
+    nginx_data: /data/nginx           # nginx actual data dir, /data/nginx by default
+    nginx_users: { admin : pigsty }   # nginx basic auth users: name and pass dict
     nginx_port: 80                    # nginx listen port, 80 by default
     nginx_ssl_port: 443               # nginx ssl listen port, 443 by default
     certbot_sign: false               # sign nginx cert with certbot during setup?
@@ -306,42 +308,59 @@ all:
     dns_enabled: true                 # setup dnsmasq on this infra node?
     dns_port: 53                      # dns server listen port, 53 by default
     dns_records:                      # dynamic dns records resolved by dnsmasq
-      - "${admin_ip} i.pigsty a.pigsty p.pigsty g.pigsty"
-      - "${admin_ip} api.pigsty adm.pigsty cli.pigsty ddl.pigsty lab.pigsty git.pigsty m.pigsty wiki.pigsty"
+      - "${admin_ip} i.pigsty"
+      - "${admin_ip} m.pigsty supa.pigsty api.pigsty adm.pigsty cli.pigsty ddl.pigsty"
+
+    #-----------------------------------------------------------------
+    # VICTORIA
+    #-----------------------------------------------------------------
+    vmetrics_enabled: true            # enable victoria-metrics on this infra node?
+    vmetrics_clean: false             # whether clean existing victoria metrics data during init?
+    vmetrics_port: 8428               # victoria-metrics listen port, 8428 by default
+    vmetrics_scrape_interval: 10s     # victoria global scrape interval, 10s by default
+    vmetrics_scrape_timeout: 8s       # victoria global scrape timeout, 8s by default
+    vmetrics_options: >-
+      -retentionPeriod=15d
+      -promscrape.fileSDCheckInterval=5s
+    vlogs_enabled: true               # enable victoria-logs on this infra node?
+    vlogs_clean: false                # clean victoria-logs data during init?
+    vlogs_port: 9428                  # victoria-logs listen port, 9428 by default
+    vlogs_options: >-
+      -retentionPeriod=15d
+      -retention.maxDiskSpaceUsageBytes=50GiB
+      -insert.maxLineSizeBytes=1MB
+      -search.maxQueryDuration=120s
+    vtraces_enabled: true             # enable victoria-traces on this infra node?
+    vtraces_clean: false                # clean victoria-trace data during inti?
+    vtraces_port: 10428               # victoria-traces listen port, 10428 by default
+    vtraces_options: >-
+      -retentionPeriod=15d
+      -retention.maxDiskSpaceUsageBytes=50GiB
+    vmalert_enabled: true             # enable vmalert on this infra node?
+    vmalert_port: 8880                # vmalert listen port, 8880 by default
+    vmalert_options: ''              # vmalert extra server options
 
     #-----------------------------------------------------------------
     # PROMETHEUS
     #-----------------------------------------------------------------
-    prometheus_enabled: true          # enable prometheus on this infra node?
-    prometheus_clean: true            # clean prometheus data during init?
-    prometheus_data: /data/prometheus # prometheus data dir, `/data/prometheus` by default
-    prometheus_sd_dir: /etc/prometheus/targets # prometheus file service discovery directory
-    prometheus_sd_interval: 5s        # prometheus target refresh interval, 5s by default
-    prometheus_scrape_interval: 10s   # prometheus scrape & eval interval, 10s by default
-    prometheus_scrape_timeout: 8s     # prometheus global scrape timeout, 8s by default
-    prometheus_options: '--storage.tsdb.retention.time=15d' # prometheus extra server options
-    pushgateway_enabled: true         # setup pushgateway on this infra node?
-    pushgateway_options: '--persistence.interval=1m' # pushgateway extra server options
     blackbox_enabled: true            # setup blackbox_exporter on this infra node?
+    blackbox_port: 9115               # blackbox_exporter listen port, 9115 by default
     blackbox_options: ''              # blackbox_exporter extra server options
     alertmanager_enabled: true        # setup alertmanager on this infra node?
     alertmanager_port: 9059           # alertmanager listen port, 9059 by default
     alertmanager_options: ''          # alertmanager extra server options
     exporter_metrics_path: /metrics   # exporter metric path, `/metrics` by default
-    exporter_install: none            # how to install exporter? none,yum,binary
-    exporter_repo_url: ''             # exporter repo file url if install exporter via yum
 
     #-----------------------------------------------------------------
     # GRAFANA
     #-----------------------------------------------------------------
     grafana_enabled: true             # enable grafana on this infra node?
+    grafana_port: 3000                # default listen port for grafana
     grafana_clean: true               # clean grafana data during init?
     grafana_admin_username: admin     # grafana admin username, `admin` by default
     grafana_admin_password: pigsty    # grafana admin password, `pigsty` by default
-    loki_enabled: true                # enable loki on this infra node?
-    loki_clean: false                 # whether remove existing loki data?
-    loki_data: /data/loki             # loki data dir, `/data/loki` by default
-    loki_retention: 15d               # loki log retention period, 15d by default
+    grafana_auth_proxy: false         # enable grafana auth proxy?
+    grafana_pgurl: ''                 # external postgres database url for grafana if given
 
 
     #================================================================#
@@ -378,13 +397,26 @@ all:
     node_default_packages:            # default packages to be installed on all nodes
       - lz4,unzip,bzip2,pv,jq,git,ncdu,make,patch,bash,lsof,wget,uuid,tuned,nvme-cli,numactl,sysstat,iotop,htop,rsync,tcpdump
       - python3,python3-pip,socat,lrzsz,net-tools,ipvsadm,telnet,ca-certificates,openssl,keepalived,etcd,haproxy,chrony,pig
-      - zlib1g,acl,dnsutils,libreadline-dev,vim-tiny,node-exporter,openssh-server,openssh-client
+      - zlib1g,acl,dnsutils,libreadline-dev,vim-tiny,node-exporter,openssh-server,openssh-client,vector
+
+    #-----------------------------------------------------------------
+    # NODE_SEC
+    #-----------------------------------------------------------------
+    node_selinux_mode: permissive     # set selinux mode: enforcing,permissive,disabled
+    node_firewall_mode: zone          # firewall mode: off, none, zone, zone by default
+    node_firewall_intranet:           # which intranet cidr considered as internal network
+      - 10.0.0.0/8
+      - 192.168.0.0/16
+      - 172.16.0.0/12
+    node_firewall_public_port:        # expose these ports to public network in (zone, strict) mode
+      - 22                            # enable ssh access
+      - 80                            # enable http access
+      - 443                           # enable https access
+      - 5432                          # enable postgresql access (think twice before exposing it!)
 
     #-----------------------------------------------------------------
     # NODE_TUNE
     #-----------------------------------------------------------------
-    node_disable_firewall: true       # disable node firewall? true by default
-    node_disable_selinux: true        # disable node selinux? true by default
     node_disable_numa: false          # disable node numa, reboot required
     node_disable_swap: false          # disable node swap, use with caution
     node_static_network: true         # preserve dns resolver settings after reboot
@@ -406,6 +438,7 @@ all:
     node_admin_ssh_exchange: true     # exchange admin ssh key among node cluster
     node_admin_pk_current: true       # add current user's ssh pk to admin authorized_keys
     node_admin_pk_list: []            # ssh public keys to be added to admin user
+    node_aliases: {}                  # extra shell aliases to be added, k:v dict
 
     #-----------------------------------------------------------------
     # NODE_TIME
@@ -423,7 +456,7 @@ all:
     vip_enabled: false                # enable vip on this node cluster?
     # vip_address:         [IDENTITY] # node vip address in ipv4 format, required if vip is enabled
     # vip_vrid:            [IDENTITY] # required, integer, 1-254, should be unique among same VLAN
-    vip_role: backup                  # optional, `master/backup`, backup by default, use as init role
+    vip_role: backup                  # optional, `master|backup`, backup by default, use as init role
     vip_preempt: false                # optional, `true/false`, false by default, enable vip preemption
     vip_interface: eth0               # node vip network interface to listen, `eth0` by default
     vip_dns_suffix: ''                # node vip dns name suffix, empty string by default
@@ -451,12 +484,14 @@ all:
     node_exporter_options: '--no-collector.softnet --no-collector.nvme --collector.tcpstat --collector.processes'
 
     #-----------------------------------------------------------------
-    # PROMTAIL
+    # VECTOR
     #-----------------------------------------------------------------
-    promtail_enabled: true            # enable promtail logging collector?
-    promtail_clean: false             # purge existing promtail status file during init?
-    promtail_port: 9080               # promtail listen port, 9080 by default
-    promtail_positions: /var/log/positions.yaml # promtail position status file path
+    vector_enabled: true              # enable vector log collector?
+    vector_clean: false               # purge vector data dir during init?
+    vector_data: /data/vector         # vector data dir, /data/vector by default
+    vector_port: 9598                 # vector metrics port, 9598 by default
+    vector_read_from: beginning       # vector read from beginning or end
+    vector_log_endpoint: [ infra ]    # if defined, sending vector log to this endpoint.
 
 
     #================================================================#
@@ -586,7 +621,7 @@ all:
     pg_dbsu_sudo: limit               # dbsu sudo privilege, none,limit,all,nopass. limit by default
     pg_dbsu_home: /var/lib/pgsql      # postgresql home directory, `/var/lib/pgsql` by default
     pg_dbsu_ssh_exchange: true        # exchange postgres dbsu ssh key among same pgsql cluster
-    pg_version: 17                    # postgres major version to be installed, 17 by default
+    pg_version: 18                    # postgres major version to be installed, 18 by default
     pg_bin_dir: /usr/pgsql/bin        # postgres binary dir, `/usr/pgsql/bin` by default
     pg_log_dir: /pg/log/postgres      # postgres log dir, `/pg/log/postgres` by default
     pg_packages:                      # pg packages to be installed, alias can be used

@@ -3,7 +3,7 @@
 # File      :   el.yml
 # Desc      :   Default parameters for EL System in Pigsty
 # Ctime     :   2020-05-22
-# Mtime     :   2025-12-12
+# Mtime     :   2025-12-13
 # Docs      :   https://doc.pgsty.com/config
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -204,6 +204,7 @@ all:
     version: v4.0.0                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
     region: default                   # upstream mirror region: default,china,europe
+    language: en                      # default language: en, zh
     proxy_env:                        # global proxy env when downloading packages
       no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.myqcloud.com,*.tsinghua.edu.cn"
       # http_proxy:  # set your proxy here: e.g http://user:pass@proxy.xxx.com
@@ -213,7 +214,7 @@ all:
     #-----------------------------------------------------------------
     # CA
     #-----------------------------------------------------------------
-    ca_method: create                 # create,recreate,copy, create by default
+    ca_create: true                   # create ca if not exists? or just abort
     ca_cn: pigsty-ca                  # ca common name, fixed as pigsty-ca
     cert_validity: 7300d              # cert validity, 20 years by default
 
@@ -222,12 +223,8 @@ all:
     #-----------------------------------------------------------------
     #infra_seq: 1                     # infra node identity, explicitly required
     infra_portal:                     # infra services exposed via portal
-      home         : { domain: i.pigsty }
-      grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" ,websocket: true }
-      prometheus   : { domain: p.pigsty ,endpoint: "${admin_ip}:9058" }
-      alertmanager : { domain: a.pigsty ,endpoint: "${admin_ip}:9059" }
-      blackbox     : { endpoint: "${admin_ip}:9115" }
-      loki         : { endpoint: "${admin_ip}:3100" }
+      home : { domain: i.pigsty }     # default domain name
+    infra_data: /data/infra           # default data path for infrastructure data
 
     #-----------------------------------------------------------------
     # REPO
@@ -250,24 +247,27 @@ all:
       - { name: powertools     ,description: 'EL 8 PowerTools'    ,module: node    ,releases: [8     ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://dl.rockylinux.org/pub/rocky/$releasever/PowerTools/$basearch/os/' ,china: 'https://mirrors.aliyun.com/rockylinux/$releasever/PowerTools/$basearch/os/'     ,europe: 'https://mirrors.xtom.de/rocky/$releasever/PowerTools/$basearch/os/' }}
       - { name: crb            ,description: 'EL 9 CRB'           ,module: node    ,releases: [  9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://dl.rockylinux.org/pub/rocky/$releasever/CRB/$basearch/os/'        ,china: 'https://mirrors.aliyun.com/rockylinux/$releasever/CRB/$basearch/os/'            ,europe: 'https://mirrors.xtom.de/rocky/$releasever/CRB/$basearch/os/'        }}
       - { name: epel           ,description: 'EL 8+ EPEL'         ,module: node    ,releases: [8,9   ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://mirrors.edge.kernel.org/fedora-epel/$releasever/Everything/$basearch/' ,china: 'https://mirrors.aliyun.com/epel/$releasever/Everything/$basearch/'         ,europe: 'https://mirrors.xtom.de/epel/$releasever/Everything/$basearch/'     }}
-      - { name: epel           ,description: 'EL 10 EPEL'         ,module: node    ,releases: [    10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://mirrors.edge.kernel.org/fedora-epel/$releasever.0/Everything/$basearch/' ,china: 'https://mirrors.aliyun.com/epel/$releasever.0/Everything/$basearch/'         ,europe: 'https://mirrors.xtom.de/epel/$releasever.0/Everything/$basearch/' } }
-      - { name: pgdg-common    ,description: 'PostgreSQL Common'  ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/common/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/common/redhat/rhel-$releasever-$basearch' , europe: 'https://mirrors.xtom.de/postgresql/repos/yum/common/redhat/rhel-$releasever-$basearch' }}
-      - { name: pgdg-el8fix    ,description: 'PostgreSQL EL8FIX'  ,module: pgsql   ,releases: [8     ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/common/pgdg-centos8-sysupdates/redhat/rhel-8-$basearch/' ,china: 'https://repo.pigsty.cc/yum/pgdg/common/pgdg-centos8-sysupdates/redhat/rhel-8-x86_64/' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/common/pgdg-centos8-sysupdates/redhat/rhel-8-x86_64/' }}
-      - { name: pgdg-el9fix    ,description: 'PostgreSQL EL9FIX'  ,module: pgsql   ,releases: [  9   ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/common/pgdg-rocky9-sysupdates/redhat/rhel-9-$basearch/'  ,china: 'https://repo.pigsty.cc/yum/pgdg/common/pgdg-rocky9-sysupdates/redhat/rhel-9-x86_64/'  ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/common/pgdg-rocky9-sysupdates/redhat/rhel-9-x86_64/'  }}
-      - { name: pgdg14         ,description: 'PostgreSQL 14'      ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/14/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/14/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/14/redhat/rhel-$releasever-$basearch' }}
-      - { name: pgdg15         ,description: 'PostgreSQL 15'      ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/15/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/15/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/15/redhat/rhel-$releasever-$basearch' }}
-      - { name: pgdg16         ,description: 'PostgreSQL 16'      ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/16/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/16/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/16/redhat/rhel-$releasever-$basearch' }}
-      - { name: pgdg17         ,description: 'PostgreSQL 17'      ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/17/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/17/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/17/redhat/rhel-$releasever-$basearch' }}
-      - { name: pgdg18         ,description: 'PostgreSQL 18'      ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/18/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/18/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/18/redhat/rhel-$releasever-$basearch' }}
-      - { name: pgdg-beta      ,description: 'PostgreSQL Testing' ,module: beta    ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/testing/19/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/testing/19/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/testing/19/redhat/rhel-$releasever-$basearch' }}
-      - { name: pgdg-extras    ,description: 'PostgreSQL Extra'   ,module: extra   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/common/pgdg-rhel$releasever-extras/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/common/pgdg-rhel$releasever-extras/redhat/rhel-$releasever-$basearch' , europe: 'https://mirrors.xtom.de/postgresql/repos/yum/common/pgdg-rhel$releasever-extras/redhat/rhel-$releasever-$basearch' }}
-      - { name: pgdg13-nonfree ,description: 'PostgreSQL 13+'     ,module: extra   ,releases: [8,9,10] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/13/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/non-free/13/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/13/redhat/rhel-$releasever-$basearch' }}
-      - { name: pgdg14-nonfree ,description: 'PostgreSQL 14+'     ,module: extra   ,releases: [8,9,10] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/14/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/non-free/14/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/14/redhat/rhel-$releasever-$basearch' }}
-      - { name: pgdg15-nonfree ,description: 'PostgreSQL 15+'     ,module: extra   ,releases: [8,9,10] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/15/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/non-free/15/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/15/redhat/rhel-$releasever-$basearch' }}
-      - { name: pgdg16-nonfree ,description: 'PostgreSQL 16+'     ,module: extra   ,releases: [8,9,10] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/16/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/non-free/16/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/16/redhat/rhel-$releasever-$basearch' }}
-      - { name: pgdg17-nonfree ,description: 'PostgreSQL 17+'     ,module: extra   ,releases: [8,9,10] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/17/redhat/rhel-$releasever-$basearch' ,china: 'https://repo.pigsty.cc/yum/pgdg/non-free/17/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/17/redhat/rhel-$releasever-$basearch' }}
+      - { name: epel           ,description: 'EL 10 EPEL'         ,module: node    ,releases: [    10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://mirrors.edge.kernel.org/fedora-epel/$releasever.0/Everything/$basearch/' ,china: 'https://mirrors.aliyun.com/epel/$releasever.0/Everything/$basearch/'     ,europe: 'https://mirrors.xtom.de/epel/$releasever.0/Everything/$basearch/'   }}
+      - { name: pgdg-common    ,description: 'PostgreSQL Common'  ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/common/redhat/rhel-$releasever-$basearch'          ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/common/redhat/rhel-$releasever-$basearch'          ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/common/redhat/rhel-$releasever-$basearch' }}
+      - { name: pgdg-el8fix    ,description: 'PostgreSQL EL8FIX'  ,module: pgsql   ,releases: [8     ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/common/pgdg-centos8-sysupdates/redhat/rhel-8-$basearch/'  ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/common/pgdg-centos8-sysupdates/redhat/rhel-8-$basearch/'  ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/common/pgdg-centos8-sysupdates/redhat/rhel-8-$basearch/'  }}
+      - { name: pgdg-el9fix    ,description: 'PostgreSQL EL9FIX'  ,module: pgsql   ,releases: [  9   ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/common/pgdg-rocky9-sysupdates/redhat/rhel-9-$basearch/'   ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/common/pgdg-rocky9-sysupdates/redhat/rhel-9-$basearch/'   ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/common/pgdg-rocky9-sysupdates/redhat/rhel-9-$basearch/'   }}
+      - { name: pgdg-el10fix   ,description: 'PostgreSQL EL10FIX' ,module: pgsql   ,releases: [    10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/common/pgdg-rocky10-sysupdates/redhat/rhel-10-$basearch/' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/common/pgdg-rocky10-sysupdates/redhat/rhel-10-$basearch/' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/common/pgdg-rocky10-sysupdates/redhat/rhel-10-$basearch/' }}
+      - { name: pgdg13         ,description: 'PostgreSQL 13'      ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/13/redhat/rhel-$releasever-$basearch'          ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/13/redhat/rhel-$releasever-$basearch'          ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/13/redhat/rhel-$releasever-$basearch' }}
+      - { name: pgdg14         ,description: 'PostgreSQL 14'      ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/14/redhat/rhel-$releasever-$basearch'          ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/14/redhat/rhel-$releasever-$basearch'          ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/14/redhat/rhel-$releasever-$basearch' }}
+      - { name: pgdg15         ,description: 'PostgreSQL 15'      ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/15/redhat/rhel-$releasever-$basearch'          ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/15/redhat/rhel-$releasever-$basearch'          ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/15/redhat/rhel-$releasever-$basearch' }}
+      - { name: pgdg16         ,description: 'PostgreSQL 16'      ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/16/redhat/rhel-$releasever-$basearch'          ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/16/redhat/rhel-$releasever-$basearch'          ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/16/redhat/rhel-$releasever-$basearch' }}
+      - { name: pgdg17         ,description: 'PostgreSQL 17'      ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/17/redhat/rhel-$releasever-$basearch'          ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/17/redhat/rhel-$releasever-$basearch'          ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/17/redhat/rhel-$releasever-$basearch' }}
+      - { name: pgdg18         ,description: 'PostgreSQL 18'      ,module: pgsql   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/18/redhat/rhel-$releasever-$basearch'          ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/18/redhat/rhel-$releasever-$basearch'          ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/18/redhat/rhel-$releasever-$basearch' }}
+      - { name: pgdg-beta      ,description: 'PostgreSQL Testing' ,module: beta    ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/testing/19/redhat/rhel-$releasever-$basearch'  ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/testing/19/redhat/rhel-$releasever-$basearch'  ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/testing/19/redhat/rhel-$releasever-$basearch'  }}
+      - { name: pgdg-extras    ,description: 'PostgreSQL Extra'   ,module: extra   ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/extras/redhat/rhel-$releasever-$basearch'      ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/extras/redhat/rhel-$releasever-$basearch'      ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/extras/redhat/rhel-$releasever-$basearch'      }}
+      - { name: pgdg13-nonfree ,description: 'PostgreSQL 13+'     ,module: extra   ,releases: [8,9,10] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/13/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/non-free/13/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/13/redhat/rhel-$releasever-$basearch' }}
+      - { name: pgdg14-nonfree ,description: 'PostgreSQL 14+'     ,module: extra   ,releases: [8,9,10] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/14/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/non-free/14/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/14/redhat/rhel-$releasever-$basearch' }}
+      - { name: pgdg15-nonfree ,description: 'PostgreSQL 15+'     ,module: extra   ,releases: [8,9,10] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/15/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/non-free/15/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/15/redhat/rhel-$releasever-$basearch' }}
+      - { name: pgdg16-nonfree ,description: 'PostgreSQL 16+'     ,module: extra   ,releases: [8,9,10] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/16/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/non-free/16/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/16/redhat/rhel-$releasever-$basearch' }}
+      - { name: pgdg17-nonfree ,description: 'PostgreSQL 17+'     ,module: extra   ,releases: [8,9,10] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/17/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/non-free/17/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/17/redhat/rhel-$releasever-$basearch' }}
+      - { name: pgdg18-nonfree ,description: 'PostgreSQL 18+'     ,module: extra   ,releases: [8,9,10] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/18/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/non-free/18/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/18/redhat/rhel-$releasever-$basearch' }}
       - { name: timescaledb    ,description: 'TimescaleDB'        ,module: extra   ,releases: [8,9   ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packagecloud.io/timescale/timescaledb/el/$releasever/$basearch'  }}
-      - { name: percona        ,description: 'Percona TDE'        ,module: percona ,releases: [8,9   ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/yum/percona/el$releasever.$basearch' ,china: 'https://repo.pigsty.cc/yum/percona/el$releasever.$basearch' ,origin: 'http://repo.percona.com/ppg-17.5/yum/release/$releasever/RPMS/$basearch'  }}
+      - { name: percona        ,description: 'Percona TDE'        ,module: percona ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/yum/percona/el$releasever.$basearch' ,china: 'https://repo.pigsty.cc/yum/percona/el$releasever.$basearch' ,origin: 'http://repo.percona.com/ppg-18.1/yum/release/$releasever/RPMS/$basearch'  }}
       - { name: wiltondb       ,description: 'WiltonDB'           ,module: mssql   ,releases: [8,9   ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/yum/mssql/el$releasever.$basearch', china: 'https://repo.pigsty.cc/yum/mssql/el$releasever.$basearch' , origin: 'https://download.copr.fedorainfracloud.org/results/wiltondb/wiltondb/epel-$releasever-$basearch/' }}
       - { name: groonga        ,description: 'Groonga'            ,module: groonga ,releases: [8,9,10] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packages.groonga.org/almalinux/$releasever/$basearch/' }}
       - { name: mysql          ,description: 'MySQL'              ,module: mysql   ,releases: [8,9   ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.mysql.com/yum/mysql-8.4-community/el/$releasever/$basearch/' }}
@@ -287,18 +287,22 @@ all:
     # INFRA_PACKAGE
     #-----------------------------------------------------------------
     infra_packages:                   # packages to be installed on infra nodes
-      - grafana,loki,logcli,promtail,prometheus,alertmanager,pushgateway,grafana-plugins,restic,certbot,python3-certbot-nginx
-      - node_exporter,blackbox_exporter,nginx_exporter,pg_exporter,pev2,nginx,dnsmasq,ansible,etcd,python3-requests,redis,mcli
+      - grafana,grafana-plugins,grafana-victorialogs-ds,grafana-victoriametrics-ds,victoria-metrics,victoria-logs,victoria-traces,vmutils,vlogscli,alertmanager
+      - node_exporter,blackbox_exporter,nginx_exporter,pg_exporter,pev2,nginx,dnsmasq,ansible,etcd,python3-requests,redis,mcli,restic,certbot,python3-certbot-nginx
     infra_packages_pip: ''            # pip installed packages for infra nodes
 
     #-----------------------------------------------------------------
     # NGINX
     #-----------------------------------------------------------------
     nginx_enabled: true               # enable nginx on this infra node?
+    nginx_clean: false                # clean existing nginx config during init?
     nginx_exporter_enabled: true      # enable nginx_exporter on this infra node?
+    nginx_exporter_port: 9113         # nginx_exporter listen port, 9113 by default
     nginx_sslmode: enable             # nginx ssl mode? disable,enable,enforce
     nginx_cert_validity: 397d         # nginx self-signed cert validity, 397d by default
-    nginx_home: /www                  # nginx content dir, `/www` by default
+    nginx_home: /www                  # nginx content dir, `/www` by default (soft link to nginx_data)
+    nginx_data: /data/nginx           # nginx actual data dir, /data/nginx by default
+    nginx_users: { admin : pigsty }   # nginx basic auth users: name and pass dict
     nginx_port: 80                    # nginx listen port, 80 by default
     nginx_ssl_port: 443               # nginx ssl listen port, 443 by default
     certbot_sign: false               # sign nginx cert with certbot during setup?
@@ -311,42 +315,59 @@ all:
     dns_enabled: true                 # setup dnsmasq on this infra node?
     dns_port: 53                      # dns server listen port, 53 by default
     dns_records:                      # dynamic dns records resolved by dnsmasq
-      - "${admin_ip} i.pigsty a.pigsty p.pigsty g.pigsty"
-      - "${admin_ip} api.pigsty adm.pigsty cli.pigsty ddl.pigsty lab.pigsty git.pigsty m.pigsty wiki.pigsty"
+      - "${admin_ip} i.pigsty"
+      - "${admin_ip} m.pigsty supa.pigsty api.pigsty adm.pigsty cli.pigsty ddl.pigsty"
+
+    #-----------------------------------------------------------------
+    # VICTORIA
+    #-----------------------------------------------------------------
+    vmetrics_enabled: true            # enable victoria-metrics on this infra node?
+    vmetrics_clean: false             # whether clean existing victoria metrics data during init?
+    vmetrics_port: 8428               # victoria-metrics listen port, 8428 by default
+    vmetrics_scrape_interval: 10s     # victoria global scrape interval, 10s by default
+    vmetrics_scrape_timeout: 8s       # victoria global scrape timeout, 8s by default
+    vmetrics_options: >-
+      -retentionPeriod=15d
+      -promscrape.fileSDCheckInterval=5s
+    vlogs_enabled: true               # enable victoria-logs on this infra node?
+    vlogs_clean: false                # clean victoria-logs data during init?
+    vlogs_port: 9428                  # victoria-logs listen port, 9428 by default
+    vlogs_options: >-
+      -retentionPeriod=15d
+      -retention.maxDiskSpaceUsageBytes=50GiB
+      -insert.maxLineSizeBytes=1MB
+      -search.maxQueryDuration=120s
+    vtraces_enabled: true             # enable victoria-traces on this infra node?
+    vtraces_clean: false                # clean victoria-trace data during inti?
+    vtraces_port: 10428               # victoria-traces listen port, 10428 by default
+    vtraces_options: >-
+      -retentionPeriod=15d
+      -retention.maxDiskSpaceUsageBytes=50GiB
+    vmalert_enabled: true             # enable vmalert on this infra node?
+    vmalert_port: 8880                # vmalert listen port, 8880 by default
+    vmalert_options: ''              # vmalert extra server options
 
     #-----------------------------------------------------------------
     # PROMETHEUS
     #-----------------------------------------------------------------
-    prometheus_enabled: true          # enable prometheus on this infra node?
-    prometheus_clean: true            # clean prometheus data during init?
-    prometheus_data: /data/prometheus # prometheus data dir, `/data/prometheus` by default
-    prometheus_sd_dir: /etc/prometheus/targets # prometheus file service discovery directory
-    prometheus_sd_interval: 5s        # prometheus target refresh interval, 5s by default
-    prometheus_scrape_interval: 10s   # prometheus scrape & eval interval, 10s by default
-    prometheus_scrape_timeout: 8s     # prometheus global scrape timeout, 8s by default
-    prometheus_options: '--storage.tsdb.retention.time=15d' # prometheus extra server options
-    pushgateway_enabled: true         # setup pushgateway on this infra node?
-    pushgateway_options: '--persistence.interval=1m' # pushgateway extra server options
     blackbox_enabled: true            # setup blackbox_exporter on this infra node?
+    blackbox_port: 9115               # blackbox_exporter listen port, 9115 by default
     blackbox_options: ''              # blackbox_exporter extra server options
     alertmanager_enabled: true        # setup alertmanager on this infra node?
     alertmanager_port: 9059           # alertmanager listen port, 9059 by default
     alertmanager_options: ''          # alertmanager extra server options
     exporter_metrics_path: /metrics   # exporter metric path, `/metrics` by default
-    exporter_install: none            # how to install exporter? none,yum,binary
-    exporter_repo_url: ''             # exporter repo file url if install exporter via yum
 
     #-----------------------------------------------------------------
     # GRAFANA
     #-----------------------------------------------------------------
     grafana_enabled: true             # enable grafana on this infra node?
+    grafana_port: 3000                # default listen port for grafana
     grafana_clean: true               # clean grafana data during init?
     grafana_admin_username: admin     # grafana admin username, `admin` by default
     grafana_admin_password: pigsty    # grafana admin password, `pigsty` by default
-    loki_enabled: true                # enable loki on this infra node?
-    loki_clean: false                 # whether remove existing loki data?
-    loki_data: /data/loki             # loki data dir, `/data/loki` by default
-    loki_retention: 15d               # loki log retention period, 15d by default
+    grafana_auth_proxy: false         # enable grafana auth proxy?
+    grafana_pgurl: ''                 # external postgres database url for grafana if given
 
 
     #================================================================#
@@ -367,7 +388,7 @@ all:
     #-----------------------------------------------------------------
     node_write_etc_hosts: true        # modify `/etc/hosts` on target node?
     node_default_etc_hosts:           # static dns records in `/etc/hosts`
-      - "${admin_ip} i.pigsty a.pigsty p.pigsty g.pigsty"
+      - "${admin_ip} i.pigsty"
     node_etc_hosts: []                # extra static dns records in `/etc/hosts`
     node_dns_method: add              # how to handle dns servers: add,none,overwrite
     node_dns_servers: ['${admin_ip}'] # dynamic nameserver in `/etc/resolv.conf`
@@ -383,13 +404,26 @@ all:
     node_default_packages:            # default packages to be installed on all nodes
       - lz4,unzip,bzip2,pv,jq,git,ncdu,make,patch,bash,lsof,wget,uuid,tuned,nvme-cli,numactl,sysstat,iotop,htop,rsync,tcpdump
       - python3,python3-pip,socat,lrzsz,net-tools,ipvsadm,telnet,ca-certificates,openssl,keepalived,etcd,haproxy,chrony,pig
-      - zlib,yum,audit,bind-utils,readline,vim-minimal,node_exporter,grubby,openssh-server,openssh-clients,chkconfig
+      - zlib,yum,audit,bind-utils,readline,vim-minimal,node_exporter,grubby,openssh-server,openssh-clients,chkconfig,vector
+
+    #-----------------------------------------------------------------
+    # NODE_SEC
+    #-----------------------------------------------------------------
+    node_selinux_mode: permissive     # set selinux mode: enforcing,permissive,disabled
+    node_firewall_mode: zone          # firewall mode: off, none, zone, zone by default
+    node_firewall_intranet:           # which intranet cidr considered as internal network
+      - 10.0.0.0/8
+      - 192.168.0.0/16
+      - 172.16.0.0/12
+    node_firewall_public_port:        # expose these ports to public network in (zone, strict) mode
+      - 22                            # enable ssh access
+      - 80                            # enable http access
+      - 443                           # enable https access
+      - 5432                          # enable postgresql access (think twice before exposing it!)
 
     #-----------------------------------------------------------------
     # NODE_TUNE
     #-----------------------------------------------------------------
-    node_disable_firewall: true       # disable node firewall? true by default
-    node_disable_selinux: true        # disable node selinux? true by default
     node_disable_numa: false          # disable node numa, reboot required
     node_disable_swap: false          # disable node swap, use with caution
     node_static_network: true         # preserve dns resolver settings after reboot
@@ -411,6 +445,7 @@ all:
     node_admin_ssh_exchange: true     # exchange admin ssh key among node cluster
     node_admin_pk_current: true       # add current user's ssh pk to admin authorized_keys
     node_admin_pk_list: []            # ssh public keys to be added to admin user
+    node_aliases: {}                  # extra shell aliases to be added, k:v dict
 
     #-----------------------------------------------------------------
     # NODE_TIME
@@ -428,7 +463,7 @@ all:
     vip_enabled: false                # enable vip on this node cluster?
     # vip_address:         [IDENTITY] # node vip address in ipv4 format, required if vip is enabled
     # vip_vrid:            [IDENTITY] # required, integer, 1-254, should be unique among same VLAN
-    vip_role: backup                  # optional, `master/backup`, backup by default, use as init role
+    vip_role: backup                  # optional, `master|backup`, backup by default, use as init role
     vip_preempt: false                # optional, `true/false`, false by default, enable vip preemption
     vip_interface: eth0               # node vip network interface to listen, `eth0` by default
     vip_dns_suffix: ''                # node vip dns name suffix, empty string by default
@@ -456,12 +491,14 @@ all:
     node_exporter_options: '--no-collector.softnet --no-collector.nvme --collector.tcpstat --collector.processes'
 
     #-----------------------------------------------------------------
-    # PROMTAIL
+    # VECTOR
     #-----------------------------------------------------------------
-    promtail_enabled: true            # enable promtail logging collector?
-    promtail_clean: false             # purge existing promtail status file during init?
-    promtail_port: 9080               # promtail listen port, 9080 by default
-    promtail_positions: /var/log/positions.yaml # promtail position status file path
+    vector_enabled: true              # enable vector log collector?
+    vector_clean: false               # purge vector data dir during init?
+    vector_data: /data/vector         # vector data dir, /data/vector by default
+    vector_port: 9598                 # vector metrics port, 9598 by default
+    vector_read_from: beginning       # vector read from beginning or end
+    vector_log_endpoint: [ infra ]    # if defined, sending vector log to this endpoint.
 
 
     #================================================================#
