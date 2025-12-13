@@ -43,12 +43,10 @@
 # Deliver Certs                                [infra_cert_copy]
 #--------------------------------------------------------------#
 - name: copy infra certs
-  become: yes
   tags: infra_cert_copy
-  block:
-    - name: copy infra ssl cert
-      copy: src="files/pki/infra/infra-{{ infra_seq }}.crt" dest="/etc/pki/infra.crt" owner=root group=infra mode=0640
-    - name: copy infra ssl key
-      copy: src="files/pki/infra/infra-{{ infra_seq }}.key" dest="/etc/pki/infra.key" owner=root group=infra mode=0640
+  copy: src={{ item.src }} dest={{ item.dest }} owner=root group=infra mode={{ item.mode }}
+  with_items:
+    - { src: "files/pki/infra/infra-{{ infra_seq }}.crt", dest: /etc/pki/infra.crt, mode: '0644' }
+    - { src: "files/pki/infra/infra-{{ infra_seq }}.key", dest: /etc/pki/infra.key, mode: '0640' }
 
 ...

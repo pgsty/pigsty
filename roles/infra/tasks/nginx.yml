@@ -1,6 +1,27 @@
 ---
 #--------------------------------------------------------------#
-# 1. Nginx Config                                 [nginx_config]
+# 1. Nginx Directory                                 [nginx_dir]
+#--------------------------------------------------------------#
+- name: create nginx dir
+  tags: nginx_dir
+  file:
+    path: "{{ item.path }}"
+    state: "{{ item.state | default('directory') }}"
+    owner: "{{ item.owner | default('root') }}"
+    group: "{{ item.group | default('nginx') }}"
+    mode: "{{ item.mode | default('0755') }}"
+  with_items:
+    - { path: "{{ nginx_home }}"         , owner: nginx }
+    - { path: "{{ nginx_home }}/acme"    , owner: nginx }
+    - { path: "{{ nginx_home }}/pigsty"  , owner: nginx }
+    - { path: "{{ nginx_home }}/logs"    , owner: nginx }
+    - { path: "{{ nginx_home }}/schema"  , owner: nginx }
+    - { path: "{{ nginx_home }}/report"  , owner: nginx }
+    - { path: "{{ nginx_home }}/repos"   , owner: nginx }
+
+
+#--------------------------------------------------------------#
+# 2. Nginx Config                                 [nginx_config]
 #--------------------------------------------------------------#
 - name: config nginx server
   tags: nginx_config
@@ -8,59 +29,78 @@
 
     - name: clean nginx config dir
       tags: nginx_clean
-      when: nginx_clean|default(false)|bool and nginx_enabled|bool
+      when: nginx_clean | default(false) | bool and nginx_enabled | bool
       file: path=/etc/nginx/conf.d state=absent
 
-    - name: create nginx dir
-      file: path={{ item.path }} state={{ item.state }}
+    - name: create nginx config dir
+      file:
+        path: "{{ item.path }}"
+        state: "{{ item.state | default('directory') }}"
+        owner: "{{ item.owner | default('root') }}"
+        group: "{{ item.group | default('nginx') }}"
+        mode: "{{ item.mode | default('0750') }}"
       with_items:
-        - { path: "{{ nginx_home }}"             ,state: directory }
-        - { path: "{{ nginx_home }}/acme"        ,state: directory }
-        - { path: /etc/nginx/conf.d              ,state: directory }
-        - { path: /etc/nginx/conf.d/cert         ,state: directory }
-        - { path: /etc/nginx/conf.d/haproxy      ,state: directory }
-        - { path: /etc/nginx/conf.d/default.conf ,state: absent    }
+        - { path: /etc/nginx/conf.d }
+        - { path: /etc/nginx/conf.d/cert }
+        - { path: /etc/nginx/conf.d/haproxy }
+        - { path: /etc/nginx/conf.d/default.conf, state: absent }
 
     - name: render nginx config
-      template: src=nginx/{{ item.src }} dest={{ item.dest }} mode={{ item.mode }}
+      template:
+        src: "nginx/{{ item.src }}"
+        dest: "{{ item.dest }}"
+        owner: root
+        group: nginx
+        mode: "{{ item.mode }}"
       with_items:
-        - { src: nginx.conf.j2 , dest: /etc/nginx/nginx.conf ,mode: '0644' }
-        - { src: link-cert.j2  , dest: /etc/nginx/link-cert  ,mode: '0755' }
-        - { src: sign-cert.j2  , dest: /etc/nginx/sign-cert  ,mode: '0755' }
+        - { src: nginx.conf.j2, dest: /etc/nginx/nginx.conf, mode: '0644' }
+        - { src: link-cert.j2 , dest: /etc/nginx/link-cert , mode: '0750' }
+        - { src: sign-cert.j2 , dest: /etc/nginx/sign-cert , mode: '0750' }
 
-    # server config
-    # infra_portal entries:
-    # conf: ad hoc template
-    # path: local web server
-    # endpoint: proxy pass
-    # home: default server
-    # other: invalid
     - name: render nginx server conf
       when: upstream.domain is defined and upstream.domain != ''
-      template: src=nginx/{{ upstrema_conf }} dest=/etc/nginx/conf.d/{{ upstream_name }}.conf
+      template:
+        src: "nginx/{{ upstream_conf }}"
+        dest: "/etc/nginx/conf.d/{{ upstream_name }}.conf"
+        owner: root
+        group: nginx
+        mode: '0644'
       vars:
         upstream_name: '{{ item.key }}'
         upstream: '{{ item.value }}'
-        upstrema_conf: '{% if "conf" in item.value %}{{ item.value.conf }}{% elif item.key == "home" %}home.conf{% elif "path" in item.value %}path.conf{% elif "endpoint" in item.value %}endpoint.conf{% endif %}'
-      with_dict: "{{ infra_portal|default({}) }}"
+        upstream_conf: '{% if "conf" in item.value %}{{ item.value.conf }}{% elif item.key == "home" %}home.conf{% elif "path" in item.value %}path.conf{% elif "endpoint" in item.value %}endpoint.conf{% endif %}'
+      with_dict: "{{ infra_portal | default({}) }}"
 
-    - name: setup selinux for nginx
+    - name: nginx pre-launch adjustment
       tags: nginx_firewall
-      when: os_package == 'rpm'
       ignore_errors: true
       shell: |
-        setsebool -P httpd_can_network_connect 1 ;
-        setsebool -P httpd_can_network_relay 1 ;
-        semanage fcontext -a -t httpd_sys_content_t "/www(/.*)?" ;
-        /bin/true;
-        #setenforce 0; systemctl stop firewalld; /bin/true;
+        if [[ "{{ os_package }}" == "rpm" ]]; then
+            setsebool -P httpd_can_network_connect on
+            setsebool -P httpd_can_network_relay on
+            semanage fcontext -a -t httpd_sys_content_t "{{ nginx_home }}(/.*)?" 2>/dev/null || \
+            semanage fcontext -m -t httpd_sys_content_t "{{ nginx_home }}(/.*)?"
+            semanage fcontext -a -t httpd_sys_content_t "{{ nginx_data }}(/.*)?" 2>/dev/null || \
+            semanage fcontext -m -t httpd_sys_content_t "{{ nginx_data }}(/.*)?"
+            restorecon -Rv {{ nginx_home }} {{ nginx_data }}
+            if systemctl is-active firewalld &>/dev/null; then
+                firewall-cmd --permanent --add-port={{ nginx_port }}/tcp
+                firewall-cmd --reload
+            fi
+        fi
+        if [[ "{{ os_package }}" == "deb" ]]; then
+            if command -v ufw &>/dev/null && ufw status | grep -q "Status: active"; then
+              ufw allow {{ nginx_port }}/tcp
+            fi
+        fi
+        chown -R root:nginx "{{ nginx_data }}"
+        /bin/true
       args: { executable: /bin/bash }
 
 
 #--------------------------------------------------------------#
-# 2. Nginx Cert                                     [nginx_cert]
+# 3. Nginx Cert                                     [nginx_cert]
 #--------------------------------------------------------------#
-# check nginx cert and the key file exists @ files/pki/nginx/pigsty.{crt|key}
 - name: check nginx cert key exists
   tags: [ nginx_cert, nginx_cert_check ]
   become: no
@@ -75,23 +115,22 @@
       register: nginx_crt_exists
 
     - name: set nginx_cert_exists
-      set_fact: { nginx_cert_exists: "{{ nginx_key_exists.stat.exists|bool and nginx_crt_exists.stat.exists|bool }}" }
+      set_fact:
+        nginx_cert_exists: "{{ nginx_key_exists.stat.exists | bool and nginx_crt_exists.stat.exists | bool }}"
 
 - name: generate nginx cert
   tags: [ nginx_cert, nginx_cert_issue ]
   become: no
   delegate_to: localhost
-  when: not nginx_cert_exists|bool
+  when: not nginx_cert_exists | bool
   block:
 
     - name: generate private key for nginx server
-      connection: local
       openssl_privatekey:
         path: files/pki/nginx/pigsty.key
-        mode: 0600
+        mode: '0600'
 
     - name: generate signing request for nginx
-      connection: local
       openssl_csr:
         path: files/pki/csr/pigsty.csr
         privatekey_path: files/pki/nginx/pigsty.key
@@ -109,7 +148,6 @@
 
     # since 2025, the max validity of a self-signed certificate in Safari / Chrome: 398 days
     - name: signing nginx cert
-      connection: local
       openssl_certificate:
         path: files/pki/nginx/pigsty.crt
         csr_path: files/pki/csr/pigsty.csr
@@ -117,16 +155,20 @@
         force: true
         ownca_path: files/pki/ca/ca.crt
         ownca_privatekey_path: files/pki/ca/ca.key
-        ownca_not_after: "+{{ nginx_cert_validity|default('397d') }}"
-        mode: 0644
+        ownca_not_after: "+{{ nginx_cert_validity | default('397d') }}"
+        mode: '0644'
 
 - name: copy nginx ssl certs
   tags: [ nginx_cert, nginx_cert_copy ]
-  copy: src="files/pki/nginx/{{ item.name }}" dest="/etc/nginx/conf.d/cert/{{ item.name }}" owner=root group=root mode={{ item.mode }}
+  copy:
+    src: "files/pki/nginx/{{ item.name }}"
+    dest: "/etc/nginx/conf.d/cert/{{ item.name }}"
+    owner: root
+    group: nginx
+    mode: "{{ item.mode }}"
   with_items:
-    - { name: pigsty.crt , mode: '0644' }
-    - { name: pigsty.key , mode: '0600' }
-
+    - { name: pigsty.crt, mode: '0644' }
+    - { name: pigsty.key, mode: '0640' }
 
 - name: link nginx certs
   tags: [ nginx_cert, nginx_cert_copy ]
@@ -136,31 +178,28 @@
 
 
 #--------------------------------------------------------------#
-# 3. Nginx Static Content                         [nginx_static]
+# 4. Nginx Static Content                         [nginx_static]
 #--------------------------------------------------------------#
 # nginx_dir, nginx_ca, nginx_logo, nginx_index, nginx_pev
 - name: setup nginx static content
   tags: nginx_static
   block:
 
-    - name: create nginx content directory
-      tags: nginx_dir
-      file: path={{ item }} state=directory
-      with_items:
-        - "{{ nginx_home }}"
-        - "{{ nginx_home }}/logs"
-        - "{{ nginx_home }}/schema"
-        - "{{ nginx_home }}/report"
-
     - name: copy pigsty ca cert
       tags: nginx_ca
-      copy: src=files/pki/ca/ca.crt dest=/{{ nginx_home }}/ca.crt
+      copy: src=files/pki/ca/ca.crt dest={{ nginx_home }}/ca.crt owner=root group=nginx mode=0644
 
     - name: render nginx home page
       tags: nginx_index
-      template: src=nginx/{{ 'index.zh.html.j2' if language|default('en') == 'zh' else 'index.html.j2' }} dest=/{{ nginx_home }}/index.html
       ignore_errors: true
-      vars: { scheme: "{% if nginx_sslmode == 'enforce' %}https{% else %}http{% endif %}" }
+      template:
+        src: "nginx/{{ 'index.zh.html.j2' if language | default('en') == 'zh' else 'index.html.j2' }}"
+        dest: "{{ nginx_home }}/index.html"
+        owner: root
+        group: nginx
+        mode: '0644'
+      vars:
+        scheme: "{% if nginx_sslmode == 'enforce' %}https{% else %}http{% endif %}"
 
     - name: copy pev html to nginx home
       tags: nginx_pev
@@ -168,16 +207,18 @@
       shell: |
         if [ -f /usr/share/pev2.html ]; then
           cp -f /usr/share/pev2.html {{ nginx_home }}/pev.html
+          chown root:nginx {{ nginx_home }}/pev.html
+          chmod 0644 {{ nginx_home }}/pev.html
         fi
-
+      args: { executable: /bin/bash }
 
 
 #--------------------------------------------------------------#
-# 4. Nginx Launch                                 [nginx_launch]
+# 5. Nginx Launch                                 [nginx_launch]
 #--------------------------------------------------------------#
 - name: launch nginx service
   tags: nginx_launch
-  when: nginx_enabled|bool
+  when: nginx_enabled | bool
   block:
 
     - name: restart nginx service
@@ -188,40 +229,35 @@
 
 
 #--------------------------------------------------------------#
-# 5. Nginx Certbot                               [nginx_certbot]
+# 6. Nginx Certbot                               [nginx_certbot]
 #--------------------------------------------------------------#
 - name: sign nginx certs with certbot
   become: yes
   tags: nginx_certbot
-  when: certbot_sign is defined and certbot_sign|bool
+  when: certbot_sign is defined and certbot_sign | bool
   ignore_errors: true
   command: /etc/nginx/sign-cert
 
 - name: reload nginx service
   tags: nginx_reload
-  when: nginx_enabled|bool
+  when: nginx_enabled | bool
   systemd: name=nginx state=reloaded enabled=yes daemon_reload=yes
 
 
 #--------------------------------------------------------------#
-# 6. Nginx Exporter                             [nginx_exporter]
+# 7. Nginx Exporter                             [nginx_exporter]
 #--------------------------------------------------------------#
 - name: setup nginx exporter
   ignore_errors: true
   tags: nginx_exporter
-  when: nginx_exporter_enabled|bool
+  when: nginx_exporter_enabled | bool
   block:
 
     - name: config nginx_exporter
-      copy:
-        dest: /etc/default/nginx_exporter
-        content: |
-          NGINX_EXPORTER_OPTS="-nginx.scrape-uri http://127.0.0.1:80/nginx -web.listen-address=:{{ nginx_exporter_port|default(9113) }}"
-
+      template: src=nginx/nginx_exporter.env dest=/etc/default/nginx_exporter owner=root group=root mode='0644'
     - name: restart nginx_exporter service
       systemd: name=nginx_exporter state=restarted enabled=yes daemon_reload=yes
-
     - name: wait for nginx exporter
-      wait_for: host=127.0.0.1 port={{ nginx_exporter_port|default(9113) }} state=started timeout=10
+      wait_for: host=127.0.0.1 port={{ nginx_exporter_port | default(9113) }} state=started timeout=10
 
 ...
