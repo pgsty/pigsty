@@ -21,12 +21,16 @@
 #--------------------------------------------------------------#
 - name: create etcd directories
   tags: etcd_dir
-  file: path={{ item.path }} state={{ item.state }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
-  loop:
-    - { path: "/etc/etcd"         ,state: "directory" ,mode: "0750" ,owner: "etcd" ,group: "etcd"  }
-    - { path: "/var/lib/etcd"     ,state: "directory" ,mode: "0750" ,owner: "etcd" ,group: "etcd"  }
-    - { path: "{{ node_data }}"   ,state: "directory" ,mode: "0777" ,owner: "root" ,group: "root"  }
-    - { path: "{{ etcd_data }}"   ,state: "directory" ,mode: "0700" ,owner: "etcd" ,group: "etcd"  }
+  block:
+    - name: ensure node_data directory exists
+      file: path={{ node_data }} state=directory owner=root group=root
+      when: etcd_data.startswith(node_data)
+    - name: ensure etcd data directory exists
+      file: path={{ item.path }} state={{ item.state }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+      loop:
+        - { path: "/etc/etcd"       ,state: "directory" ,mode: "0750" ,owner: "etcd" ,group: "etcd"  }
+        - { path: "/var/lib/etcd"   ,state: "directory" ,mode: "0770" ,owner: "etcd" ,group: "etcd"  }
+        - { path: "{{ etcd_data }}" ,state: "directory" ,mode: "0700" ,owner: "etcd" ,group: "etcd"  }
 
 #--------------------------------------------------------------#
 # Config etcd                                      [etcd_config]
