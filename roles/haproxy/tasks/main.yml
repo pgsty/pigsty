@@ -51,6 +51,35 @@
         setsebool -P haproxy_connect_any 1;/bin/true;
       args: { executable: /bin/bash }
 
+    - name: install haproxy selinux policy module
+      tags: haproxy_firewall
+      when: os_package == 'rpm'
+      ignore_errors: true
+      shell: |
+        cd /tmp
+        cat > haproxy_proc.te <<'EOF'
+        module haproxy_proc 1.0;
+    
+        require {
+            type haproxy_t;
+            type proc_t;
+            type kernel_t;
+            class file { open read getattr };
+            class dir { search getattr };
+        }
+    
+        allow haproxy_t proc_t:dir { search getattr };
+        allow haproxy_t proc_t:file { open read getattr };
+        allow haproxy_t kernel_t:dir { search getattr };
+        allow haproxy_t kernel_t:file { open read getattr };
+        EOF
+        checkmodule -M -m -o haproxy_proc.mod haproxy_proc.te
+        semodule_package -o haproxy_proc.pp -m haproxy_proc.mod
+        semodule -i haproxy_proc.pp
+        rm -f haproxy_proc.te haproxy_proc.mod haproxy_proc.pp
+      args:
+        executable: /bin/bash
+
 
 #--------------------------------------------------------------#
 # Launch Haproxy                                [haproxy_launch]
