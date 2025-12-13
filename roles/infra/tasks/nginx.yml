@@ -11,13 +11,9 @@
     group: "{{ item.group | default('nginx') }}"
     mode: "{{ item.mode | default('0755') }}"
   with_items:
-    - { path: "{{ nginx_home }}"         , owner: nginx }
-    - { path: "{{ nginx_home }}/acme"    , owner: nginx }
-    - { path: "{{ nginx_home }}/pigsty"  , owner: nginx }
-    - { path: "{{ nginx_home }}/logs"    , owner: nginx }
-    - { path: "{{ nginx_home }}/schema"  , owner: nginx }
-    - { path: "{{ nginx_home }}/report"  , owner: nginx }
-    - { path: "{{ nginx_home }}/repos"   , owner: nginx }
+    - { path: "{{ nginx_home }}"        ,owner: nginx }
+    - { path: "{{ nginx_home }}/acme"   ,owner: nginx }
+    - { path: "{{ nginx_home }}/pigsty" ,owner: nginx }
 
 
 #--------------------------------------------------------------#
@@ -184,6 +180,19 @@
 - name: setup nginx static content
   tags: nginx_static
   block:
+
+    - name: create nginx content dir
+      file:
+        path: "{{ item.path }}"
+        state: "{{ item.state | default('directory') }}"
+        owner: "{{ item.owner | default('root') }}"
+        group: "{{ item.group | default('nginx') }}"
+        mode: "{{ item.mode | default('0755') }}"
+      with_items:
+        - { path: "{{ nginx_home }}/logs"   ,owner: nginx }
+        - { path: "{{ nginx_home }}/repos"  ,owner: nginx }
+        - { path: "{{ nginx_home }}/schema" ,owner: nginx }
+        - { path: "{{ nginx_home }}/report" ,owner: nginx }
 
     - name: copy pigsty ca cert
       tags: nginx_ca
