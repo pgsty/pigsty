@@ -44,6 +44,18 @@
         upstrema_conf: '{% if "conf" in item.value %}{{ item.value.conf }}{% elif item.key == "home" %}home.conf{% elif "path" in item.value %}path.conf{% elif "endpoint" in item.value %}endpoint.conf{% endif %}'
       with_dict: "{{ infra_portal|default({}) }}"
 
+    - name: setup selinux for nginx
+      tags: nginx_firewall
+      when: os_package == 'rpm'
+      ignore_errors: true
+      shell: |
+        setsebool -P httpd_can_network_connect 1 ;
+        setsebool -P httpd_can_network_relay 1 ;
+        semanage fcontext -a -t httpd_sys_content_t "/www(/.*)?" ;
+        /bin/true;
+        #setenforce 0; systemctl stop firewalld; /bin/true;
+      args: { executable: /bin/bash }
+
 
 #--------------------------------------------------------------#
 # 2. Nginx Cert                                     [nginx_cert]
@@ -159,6 +171,7 @@
         fi
 
 
+
 #--------------------------------------------------------------#
 # 4. Nginx Launch                                 [nginx_launch]
 #--------------------------------------------------------------#
@@ -166,13 +179,6 @@
   tags: nginx_launch
   when: nginx_enabled|bool
   block:
-
-    - name: disable firewall and selinux for nginx
-      tags: nginx_firewall
-      when: os_package == 'rpm'
-      ignore_errors: true
-      shell: setenforce 0; systemctl stop firewalld; /bin/true;
-      args: { executable: /bin/bash }
 
     - name: restart nginx service
       systemd: name=nginx state=restarted enabled=yes daemon_reload=yes

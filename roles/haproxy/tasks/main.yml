@@ -43,6 +43,14 @@
       vars: { service: "{{ item }}" }
       with_items: "{{ haproxy_services }}"
 
+    - name: setup selinux for haproxy
+      tags: haproxy_firewall
+      when: os_package == 'rpm'
+      ignore_errors: true
+      shell: |
+        setsebool -P haproxy_connect_any 1;/bin/true;
+      args: { executable: /bin/bash }
+
 
 #--------------------------------------------------------------#
 # Launch Haproxy                                [haproxy_launch]
