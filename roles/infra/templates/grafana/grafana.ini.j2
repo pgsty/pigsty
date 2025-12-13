@@ -131,6 +131,11 @@ serve_from_sub_path = true
 # You can configure the database connection by specifying type, host, name, user and password
 # as separate properties or as on string using the url properties.
 
+{% if grafana_pgurl is defined and grafana_pgurl != '' %}
+type = postgres
+url = '{{ grafana_pgurl }}'
+{% endif %}
+
 # Either "mysql", "postgres" or "sqlite3", it's your choice
 ;type = sqlite3
 ;host = 127.0.0.1:3306
@@ -897,6 +902,13 @@ org_name = Pigsty
 
 #################################### Auth Proxy ##########################
 [auth.proxy]
+{% if grafana_auth_proxy|default(false)|bool %}
+enabled = true
+header_name = X-WEBAUTH-USER
+header_property  = username
+whitelist = 127.0.0.1, {{ inventory_hostname }}, localhost, ::1
+enable_login_token = true
+{% endif %}
 ;enabled = false
 ;header_name = X-WEBAUTH-USER
 ;header_property = username

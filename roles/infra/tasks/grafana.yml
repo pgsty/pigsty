@@ -68,6 +68,7 @@
   when: grafana_enabled|bool
   block:
     - name: launch grafana systemd service
+      throttle: "{% if grafana_pgurl != '' %}1{% else %}5{% endif %}"
       systemd: name=grafana-server state=restarted enabled=yes daemon_reload=yes
     - name: wait for grafana service online
       wait_for: host=127.0.0.1 port={{ grafana_port|default(3000) }} state=started
@@ -88,21 +89,18 @@
 
     - name: provisioning grafana with grafana.py
       when: inventory_hostname in groups["infra"]|default([])
+      throttle: "{% if grafana_pgurl != '' %}1{% else %}5{% endif %}"
       tags: dashboard_init
       ignore_errors: true
       vars:
-        endpoint: "http://127.0.0.1/ui"
+        endpoint: "http://127.0.0.1:{{ grafana_port|default(3000) }}/ui"
         username: "{{ grafana_admin_username|default('admin') }}"
         password: "{{ grafana_admin_password|default('pigsty') }}"
-        portals: "{% for key,value in infra_portal.items() %}{% if value.domain is defined and value.domain != '' %}{% if not loop.first %},{% endif %}{{ key }}={{ value.domain }}{% endif %}{% endfor %}"
-        use_https: "{% if nginx_sslmode == 'enforce' %}true{% else %}false{% endif %}"
       shell: |
         #!/bin/bash
         export GRAFANA_ENDPOINT={{ endpoint }}
         export GRAFANA_USERNAME={{ username }}
         export GRAFANA_PASSWORD={{ password }}
-        export USE_HTTPS={{ use_https }}
-        export INFRA_PORTAL={{ portals }}
 
         # run provisioning logic
         cd /infra/dashboards/
