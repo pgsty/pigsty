@@ -37,9 +37,9 @@
         firewall-cmd --reload &>/dev/null
     elif command -v ufw &>/dev/null; then
         [[ "$MODE" == "off" ]] && { ufw disable &>/dev/null; exit 0; }
-        ufw status | grep -q "Status: active" || exit 0
         for cidr in $INTRANET; do ufw allow from $cidr &>/dev/null; done
         for port in $PUBLIC;   do ufw allow ${port}/tcp &>/dev/null; done
+        ufw --force enable
     fi
     /bin/true;
   args: { executable: /bin/bash }
