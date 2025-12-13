@@ -16,6 +16,32 @@
     - name: make sure nginx installed
       package: name=nginx state=present
 
+    # prepare nginx to work
+    - name: nginx pre-launch adjustment
+      shell: |
+        if [[ "{{ os_package }}" == "rpm" ]]; then
+            setsebool -P httpd_can_network_connect on
+            setsebool -P httpd_can_network_relay on
+            semanage fcontext -a -t httpd_sys_content_t "{{ nginx_home }}(/.*)?" 2>/dev/null || \
+            semanage fcontext -m -t httpd_sys_content_t "{{ nginx_home }}(/.*)?"
+            semanage fcontext -a -t httpd_sys_content_t "{{ nginx_data }}(/.*)?" 2>/dev/null || \
+            semanage fcontext -m -t httpd_sys_content_t "{{ nginx_data }}(/.*)?"
+            restorecon -Rv {{ nginx_home }} {{ nginx_data }}
+            setenforce 0
+            if systemctl is-active firewalld &>/dev/null; then
+                firewall-cmd --permanent --add-port={{ nginx_port }}/tcp
+                firewall-cmd --reload
+            fi
+        fi
+        if [[ "{{ os_package }}" == "deb" ]]; then
+            if command -v ufw &>/dev/null && ufw status | grep -q "Status: active"; then
+              ufw allow {{ nginx_port }}/tcp
+            fi
+        fi
+        chown -R root:nginx "{{ nginx_data }}";
+        /bin/true
+      args: { executable: /bin/bash }
+
     # copy repo nginx config & content
     - name: render repo nginx files
       template: src={{ item.src }} dest={{ item.dest }} mode=0644
@@ -24,11 +50,6 @@
         - { src: nginx.conf.j2   ,dest: /etc/nginx/nginx.conf }
         - { src: default.conf.j2 ,dest: /etc/nginx/conf.d/default.conf }
         - { src: index.html.j2   ,dest: "{{ nginx_home }}/index.html" }
-
-    - name: disable selinux for repo server
-      when: os_package == 'rpm'
-      shell: setenforce 0; /bin/true
-      args: { executable: /bin/bash }
 
     # launch nginx with systemctl and wait for port 80 online
     - name: launch repo nginx server

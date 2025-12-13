@@ -2,12 +2,27 @@
 #--------------------------------------------------------------#
 # 3.1 Create repo dir                                 [repo_dir]
 #--------------------------------------------------------------#
-- name: create local repo dir
-  tags: [repo_dir,repo_new]
-  file: path={{ item }} state=directory mode=0755
-  with_items:
-    - "{{ repo_home|default('/www') }}/{{ repo_name|default('pigsty') }}"
-    - "{{ repo_home|default('/www') }}/acme"
+# FHS: nginx_home (/www) -> nginx_data (/data/nginx)
+#      /www/pigsty  : local software repo
+#      /www/acme    : ACME cert challenge
+- name: create repo directories
+  tags: [ repo_dir, repo_new ]
+  shell: |
+    NODE_DATA="{{ node_data }}"
+    NGINX_DATA="{{ nginx_data }}"
+    NGINX_HOME="{{ nginx_home }}"
+    REPO_NAME="{{ repo_name }}"
+    [[ "${NGINX_DATA}" == "${NODE_DATA}"* ]] && mkdir -p "${NODE_DATA}"
+    mkdir -p "${NGINX_DATA}"
+    if [ -d "${NGINX_HOME}" ] && [ ! -L "${NGINX_HOME}" ]; then
+      mv -f "${NGINX_HOME}"/* "${NGINX_DATA}/" 2>/dev/null || true
+      rm -rf "${NGINX_HOME}"
+    fi
+    ln -snf "${NGINX_DATA}" "${NGINX_HOME}"
+    mkdir -p "${NGINX_DATA}/${REPO_NAME}" "${NGINX_DATA}/acme"
+    chown -R root:nginx "${NGINX_DATA}";
+    /bin/true
+  args: { executable: /bin/bash }
 
 #--------------------------------------------------------------#
 # 3.2   Remove existing upstream repo files        [repo_remove]
@@ -80,7 +95,7 @@
 #--------------------------------------------------------------#
 # download packages directly via url
 - name: download repo url packages
-  tags: [repo_url_pkg,repo_new]
+  tags:  [repo_url_pkg, repo_new ]
   ignore_errors: true
   environment: "{{ proxy_env }}"
   get_url: dest={{ file_dest }} url={{ package_url | replace('${releasever}', os_version|string) | replace('${arch}', os_arch|string ) | replace('${distro_codename}', os_codename) }}
@@ -95,7 +110,7 @@
 #--------------------------------------------------------------#
 # this usually takes 1~2 minutes, according to your network condition and region & mirrors
 - name: remake repo cache
-  tags: [repo_cache,repo_new]
+  tags: [ repo_cache, repo_new ]
   environment: "{{ proxy_env|default({}) }}"
   shell: |
     {% if os_package == 'rpm' %}
@@ -177,7 +192,7 @@
 #--------------------------------------------------------------#
 # create local yum/apt repo
 - name: create local repo
-  tags: [repo_create,repo_new]
+  tags: [ repo_create, repo_new ]
   shell:
     cmd: |
       {% if os_package|default('rpm') == 'rpm' %}

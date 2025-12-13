@@ -1,0 +1,28 @@
+---
+#--------------------------------------------------------------#
+# NODE SELinux                                    [node_selinux]
+#--------------------------------------------------------------#
+# set selinux mode: enforcing, permissive, disabled (EL only)
+# NOTE: changing from disabled to enforcing/permissive requires reboot
+- name: set node selinux mode
+  tags: node_selinux
+  when: node_selinux_mode|default('permissive')|lower in ['enforcing', 'permissive', 'disabled']
+  ignore_errors: true
+  shell: |
+    MODE="{{ node_selinux_mode|default('permissive')|lower }}"
+    command -v getenforce &>/dev/null || exit 0
+    [ -f /etc/selinux/config ] && sed -i "s/^SELINUX=.*/SELINUX=$MODE/" /etc/selinux/config
+    [ "$(getenforce 2>/dev/null)" = "Disabled" ] && exit 0
+    [ "$MODE" = "enforcing" ] && setenforce 1 || setenforce 0
+  args: { executable: /bin/bash }
+
+#--------------------------------------------------------------#
+# Firewall                                       [node_firewall]
+#--------------------------------------------------------------#
+- name: disable node firewall
+  tags: node_firewall
+  when: node_disable_firewall|bool and (os_package == 'rpm' or os_vendor == 'ubuntu')
+  ignore_errors: true
+  systemd: name={{ firewall_service_name }} state=stopped enabled=no
+  vars: { firewall_service_name: "{% if os_package == 'deb' %}ufw{% else %}firewalld{% endif %}" }
+...
