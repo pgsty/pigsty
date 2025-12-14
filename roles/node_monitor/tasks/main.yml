@@ -49,20 +49,29 @@
 #--------------------------------------------------------------#
 # Register Instance DNS Name                           [vip_dns]
 #--------------------------------------------------------------#
-- name: register node vip dns name
+# render to temp file first, then atomic mv to avoid dnsmasq inotify race
+# use {{ node_cluster }}.vip as filename to avoid conflict with pg_cluster dns
+- name: render node vip dns name
   tags: [ node_vip, vip_dns, add_dns ]
   when: vip_enabled|bool
   delegate_to: '{{ item }}'
   loop: "{{ groups['infra'] | default([]) }}"
   ignore_errors: true
   copy:
-    dest: /infra/hosts/{{ dnsname }}
+    dest: /infra/hosts/.{{ node_cluster }}.vip.tmp
     mode: 0644
     owner: root
     group: root
-    content: "{{ vip_address }} {{ dnsname }}"
-  vars:
-    dnsname: "{{ node_cluster }}{{ vip_dns_suffix|default('') }}"
+    content: "{{ vip_address }} {{ node_cluster }}{{ vip_dns_suffix|default('') }}"
+
+- name: activate node vip dns name
+  tags: [ node_vip, vip_dns, add_dns ]
+  when: vip_enabled|bool
+  delegate_to: '{{ item }}'
+  loop: "{{ groups['infra'] | default([]) }}"
+  ignore_errors: true
+  shell: chcon -t dnsmasq_etc_t /infra/hosts/.{{ node_cluster }}.vip.tmp 2>/dev/null; mv /infra/hosts/.{{ node_cluster }}.vip.tmp /infra/hosts/{{ node_cluster }}.vip || true
+  args: { executable: /bin/bash }
 
 
 #--------------------------------------------------------------#

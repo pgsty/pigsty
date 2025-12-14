@@ -2,40 +2,52 @@
 #--------------------------------------------------------------#
 # Register Instance DNS Name                       [register_dns]
 #--------------------------------------------------------------#
-- name: register postgres instance dns
+# render to temp file first, then atomic mv to avoid dnsmasq inotify race
+- name: render postgres instance dns
   tags: [ pg_dns_ins, add_dns ]
   delegate_to: '{{ item }}'
   loop: "{{ groups['infra'] | default([]) }}"
   ignore_errors: true
   copy:
-    dest: /infra/hosts/{{ pg_instance }}
+    dest: /infra/hosts/.{{ pg_instance }}.tmp
     mode: 0644
     owner: root
     group: root
     content: "{{ inventory_hostname }} {{ pg_instance }}"
 
-# write dns records to infra nodes' /infra/hosts/<pg_cluster>
-- name: register postgres cluster dns
+- name: activate postgres instance dns
+  tags: [ pg_dns_ins, add_dns ]
+  delegate_to: '{{ item }}'
+  loop: "{{ groups['infra'] | default([]) }}"
+  ignore_errors: true
+  shell: chcon -t dnsmasq_etc_t /infra/hosts/.{{ pg_instance }}.tmp 2>/dev/null; mv /infra/hosts/.{{ pg_instance }}.tmp /infra/hosts/{{ pg_instance }} || true
+  args: { executable: /bin/bash }
+
+#--------------------------------------------------------------#
+# Register Cluster DNS Name                       [register_dns]
+#--------------------------------------------------------------#
+# render to temp file first, then atomic mv to avoid dnsmasq inotify race
+- name: render postgres cluster dns
   tags: [ pg_dns_cls, add_dns ]
   delegate_to: '{{ item }}'
   loop: "{{ groups['infra'] | default([]) }}"
   ignore_errors: true
   copy:
-    dest: /infra/hosts/{{ pg_cluster }}
+    dest: /infra/hosts/.{{ pg_cluster }}.tmp
     mode: 0644
     owner: root
     group: root
     content: |
       {% set pg_dns_name = pg_cluster + pg_dns_suffix|default('') %}
       {% if pg_dns_target == 'vip' and pg_vip_enabled|bool %}
-      # [VIP] {{ pg_dns_name }} -> {{ pg_vip_address.split('/')[0] }} 
+      # [VIP] {{ pg_dns_name }} -> {{ pg_vip_address.split('/')[0] }}
       {{ pg_vip_address.split('/')[0] }} {{ pg_dns_name }}
       {% elif pg_dns_target == 'primary' %}
       # [PRIMARY] {{ pg_dns_name }} -> {{ pg_primary_ip }}
       {{ pg_primary_ip }} {{ pg_dns_name }}
       {% elif pg_dns_target == 'auto' %}
       {% if pg_vip_enabled|bool %}
-      # [VIP] {{ pg_dns_name }} -> {{ pg_vip_address.split('/')[0] }} 
+      # [VIP] {{ pg_dns_name }} -> {{ pg_vip_address.split('/')[0] }}
       {{ pg_vip_address.split('/')[0] }} {{ pg_dns_name }}
       {% else %}
       # [PRIMARY] {{ pg_dns_name }} -> {{ pg_primary_ip }}
@@ -45,4 +57,12 @@
       # [ADHOC] {{ pg_dns_name }} -> {{ pg_primary_ip }}
       {{ pg_dns_target }} {{ pg_dns_name }}
       {% endif %}
+
+- name: activate postgres cluster dns
+  tags: [ pg_dns_cls, add_dns ]
+  delegate_to: '{{ item }}'
+  loop: "{{ groups['infra'] | default([]) }}"
+  ignore_errors: true
+  shell: chcon -t dnsmasq_etc_t /infra/hosts/.{{ pg_cluster }}.tmp 2>/dev/null; mv /infra/hosts/.{{ pg_cluster }}.tmp /infra/hosts/{{ pg_cluster }} || true
+  args: { executable: /bin/bash }
 ...

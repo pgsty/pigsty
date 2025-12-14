@@ -22,17 +22,23 @@
 #--------------------------------------------------------------#
 # Write DNS Records                                 [dns_record]
 #--------------------------------------------------------------#
+# render to temp file first, then atomic mv to avoid dnsmasq inotify race
 - name: render default dns records
   tags: dns_record
   copy:
-    dest: /infra/hosts/default
+    dest: /infra/hosts/.default.tmp
     owner: root
     group: root
     mode: 0644
     content: |
       {% for rec in dns_records|default([]) %}
       {{ rec|replace('${admin_ip}', admin_ip) }}
-      {% endfor %} 
+      {% endfor %}
+
+- name: activate default dns records
+  tags: dns_record
+  shell: chcon -t dnsmasq_etc_t /infra/hosts/.default.tmp 2>/dev/null; mv /infra/hosts/.default.tmp /infra/hosts/default || true
+  args: { executable: /bin/bash } 
 
 #--------------------------------------------------------------#
 # Setup SELinux for Dnsmasq                        [dns_selinux]
@@ -44,6 +50,7 @@
   shell: |
     # set context on the real path (not symlink)
     semanage fcontext -m -t dnsmasq_etc_t "{{ infra_data }}/hosts(/.*)?" 2>/dev/null || semanage fcontext -a -t dnsmasq_etc_t "{{ infra_data }}/hosts(/.*)?"
+    semanage fcontext -a -t dnsmasq_etc_t "/data/infra/hosts"
     semanage permissive -a dnsmasq_t
     restorecon -Rv {{ infra_data }}/hosts
   args: { executable: /bin/bash }

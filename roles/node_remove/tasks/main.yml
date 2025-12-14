@@ -35,6 +35,15 @@
   loop: '{{ groups["infra"]|default([]) }}'
   file: state=absent path=/infra/targets/ping/{{ vip_address }}---{{ inventory_hostname }}.yml
 
+- name: remove node vip dns record
+  tags: [ node_deregister, deregister, rm_dns ]
+  when: vip_enabled|bool
+  become: yes
+  ignore_errors: yes
+  delegate_to: '{{ item }}'
+  loop: '{{ groups["infra"]|default([]) }}'
+  file: state=absent path=/infra/hosts/{{ node_cluster }}.vip
+
 
 #--------------------------------------------------------------#
 # remove haproxy from nginx                 [haproxy_deregister]

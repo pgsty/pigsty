@@ -98,17 +98,23 @@
       loop: "{{ minio_member.split(',') }}"
 
 # add minio cluster static dns entries to infra nameserver
-- name: write minio instance dns to infra nameserver
+# render to temp file first, then atomic mv to avoid dnsmasq inotify race
+- name: render minio instance dns to infra nameserver
   tags: [ minio_dns, register, add_dns ]
   delegate_to: '{{ item }}'
   loop: "{{ groups['infra'] | default([]) }}"
   copy:
-    dest: /infra/hosts/{{ minio_instance }}
+    dest: /infra/hosts/.{{ minio_instance }}.tmp
     mode: 0644
-    owner: root
-    group: root
     content: |
       {{ inventory_hostname }} {{ minio_nodename }}
       {{ inventory_hostname }} {{ minio_cluster }}-{{ minio_seq }}
+
+- name: activate minio instance dns on infra nameserver
+  tags: [ minio_dns, register, add_dns ]
+  delegate_to: '{{ item }}'
+  loop: "{{ groups['infra'] | default([]) }}"
+  shell: chcon -t dnsmasq_etc_t /infra/hosts/.{{ minio_instance }}.tmp 2>/dev/null; mv /infra/hosts/.{{ minio_instance }}.tmp /infra/hosts/{{ minio_instance }} || true
+  args: { executable: /bin/bash }
 
 ...
