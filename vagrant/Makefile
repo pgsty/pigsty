@@ -2,7 +2,7 @@
 # File      :   Makefile
 # Desc      :   vagrant shortcuts
 # Ctime     :   2023-07-29
-# Mtime     :   2024-12-16
+# Mtime     :   2025-12-14
 # Path      :   vagrant/Makefile
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -189,6 +189,38 @@ vfull22:
 	./config full ubuntu22
 vfull24:
 	./config full ubuntu24
+
+#------------------------------#
+# deci, 10 nodes, the 10-node
+#------------------------------#
+# complex 10-node simubox for small simulation
+
+deci:   del vdeci   up ssh
+deci8:  del vdeci8  up ssh
+deci9:  del vdeci9  up ssh
+deci10: del vdeci10  up ssh
+deci12: del vdeci12 up ssh
+deci13: del vdeci12 up ssh
+deci22: del vdeci22 up ssh
+deci24: del vdeci24 up ssh
+
+vdc: vdeci
+vdeci:
+	./config deci
+vdeci8:
+	./config deci el8
+vdeci9:
+	./config deci el9
+vdeci10:
+	./config deci el10
+vdeci12:
+	./config deci debian12
+vdeci13:
+	./config deci debian13
+vdeci22:
+	./config deci ubuntu22
+vdeci24:
+	./config deci ubuntu24
 
 #------------------------------#
 # simu, 36 nodes, the simubox
