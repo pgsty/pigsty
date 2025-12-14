@@ -50,29 +50,19 @@
 # Register Instance DNS Name                           [vip_dns]
 #--------------------------------------------------------------#
 - name: register node vip dns name
-  tags: [ node_vip, vip_dns, vip_dns_config ]
+  tags: [ node_vip, vip_dns, add_dns ]
   when: vip_enabled|bool
   delegate_to: '{{ item }}'
   loop: "{{ groups['infra'] | default([]) }}"
   ignore_errors: true
   copy:
-    dest: /etc/hosts.d/{{ dnsname }}
+    dest: /infra/hosts/{{ dnsname }}
     mode: 0644
     owner: root
     group: root
     content: "{{ vip_address }} {{ dnsname }}"
   vars:
     dnsname: "{{ node_cluster }}{{ vip_dns_suffix|default('') }}"
-
-# reload meta node nginx (maybe not appropriate here)
-- name: reload dnsmasq on infra node for node vip
-  tags: [ node_vip, vip_dns, vip_dns_reload ]
-  when: vip_enabled|bool
-  delegate_to: '{{ item }}'
-  run_once: true
-  ignore_errors: true
-  loop: '{{ groups["infra"]|default([]) }}'
-  systemd: name=dnsmasq state=reloaded enabled=yes daemon_reload=yes
 
 
 #--------------------------------------------------------------#

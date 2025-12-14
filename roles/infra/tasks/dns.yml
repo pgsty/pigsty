@@ -1,18 +1,11 @@
 ---
 #--------------------------------------------------------------#
-# Create DNS Dir                                   [dns_install]
-#--------------------------------------------------------------#
-#- name: make sure dnsmasq installed
-#  tags: dns_install
-#  package: name=grafana state=latest
-
-
-#--------------------------------------------------------------#
 # Create DNS Dir                                       [dns_dir]
 #--------------------------------------------------------------#
+# dnsmasq runs as dnsmasq:dnsmasq, owns this directory to read it
 - name: create dns records dir
   tags: dns_dir
-  file: path=/etc/hosts.d/ state=directory mode=0755 owner=root group=dnsmasq
+  file: path={{ infra_data }}/hosts state=directory mode=0755 owner=dnsmasq group=dnsmasq
 
 
 #--------------------------------------------------------------#
@@ -20,7 +13,7 @@
 #--------------------------------------------------------------#
 - name: copy dnsmasq systemd service
   tags: dns_config
-  template: src=dns/{{ item.src }} dest={{ item.dest }}
+  template: src=dns/{{ item.src }} dest={{ item.dest }} owner=root group=root mode=0644
   with_items:
     - { src: dnsmasq.svc  ,dest: "{{ systemd_dir }}/dnsmasq.service" }
     - { src: dnsmasq.conf ,dest: "/etc/dnsmasq.conf"                 }
@@ -32,7 +25,7 @@
 - name: render default dns records
   tags: dns_record
   copy:
-    dest: /etc/hosts.d/default
+    dest: /infra/hosts/default
     owner: root
     group: root
     mode: 0644
@@ -40,6 +33,20 @@
       {% for rec in dns_records|default([]) %}
       {{ rec|replace('${admin_ip}', admin_ip) }}
       {% endfor %} 
+
+#--------------------------------------------------------------#
+# Setup SELinux for Dnsmasq                        [dns_selinux]
+#--------------------------------------------------------------#
+# dnsmasq needs to read hostsdir, set proper SELinux context
+- name: setup selinux for dnsmasq
+  tags: [ dns_selinux ]
+  ignore_errors: true
+  shell: |
+    # set context on the real path (not symlink)
+    semanage fcontext -m -t dnsmasq_etc_t "{{ infra_data }}/hosts(/.*)?" 2>/dev/null || semanage fcontext -a -t dnsmasq_etc_t "{{ infra_data }}/hosts(/.*)?"
+    semanage permissive -a dnsmasq_t
+    restorecon -Rv {{ infra_data }}/hosts
+  args: { executable: /bin/bash }
 
 
 #--------------------------------------------------------------#

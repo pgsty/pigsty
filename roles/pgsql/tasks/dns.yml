@@ -3,24 +3,25 @@
 # Register Instance DNS Name                       [register_dns]
 #--------------------------------------------------------------#
 - name: register postgres instance dns
-  tags: pg_dns_ins
+  tags: [ pg_dns_ins, add_dns ]
   delegate_to: '{{ item }}'
   loop: "{{ groups['infra'] | default([]) }}"
+  ignore_errors: true
   copy:
-    dest: /etc/hosts.d/{{ pg_instance }}
+    dest: /infra/hosts/{{ pg_instance }}
     mode: 0644
     owner: root
     group: root
     content: "{{ inventory_hostname }} {{ pg_instance }}"
 
-# write dns records to infra nodes' /etc/hosts.d/<pg_cluster>
+# write dns records to infra nodes' /infra/hosts/<pg_cluster>
 - name: register postgres cluster dns
-  tags: pg_dns_cls
+  tags: [ pg_dns_cls, add_dns ]
   delegate_to: '{{ item }}'
   loop: "{{ groups['infra'] | default([]) }}"
   ignore_errors: true
   copy:
-    dest: /etc/hosts.d/{{ pg_cluster }}
+    dest: /infra/hosts/{{ pg_cluster }}
     mode: 0644
     owner: root
     group: root
@@ -44,13 +45,4 @@
       # [ADHOC] {{ pg_dns_name }} -> {{ pg_primary_ip }}
       {{ pg_dns_target }} {{ pg_dns_name }}
       {% endif %}
-
-# reload meta node nginx (maybe not appropriate here)
-- name: reload dnsmasq on infra node
-  tags: pg_dns_reload
-  delegate_to: '{{ item }}'
-  run_once: true
-  ignore_errors: true
-  loop: '{{ groups["infra"] | default([]) }}'
-  systemd: name=dnsmasq state=reloaded enabled=yes daemon_reload=yes
 ...

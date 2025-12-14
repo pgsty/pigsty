@@ -14,7 +14,7 @@
 # Issue MinIO Certs                           [minio_cert_issue]
 #--------------------------------------------------------------#
 - name: generate certs for minio
-  tags: [ minio_cert , minio_cert_issue ]
+  tags: [ minio_cert, minio_cert_issue ]
   when: minio_https|bool
   become: no
   delegate_to: localhost
@@ -81,7 +81,9 @@
 #--------------------------------------------------------------#
 # Write MinIO DNS Entry                              [minio_dns]
 #--------------------------------------------------------------#
+# add minio cluster static dns entries to /etc/hosts
 - name: write minio instance dns to local dns records
+  when: node_write_etc_hosts|default(true)|bool
   tags: [ minio_dns , minio_dns_local ]
   block:
 
@@ -95,26 +97,18 @@
         line: "{{ item.strip() }} # minio dns"
       loop: "{{ minio_member.split(',') }}"
 
+# add minio cluster static dns entries to infra nameserver
 - name: write minio instance dns to infra nameserver
-  tags: [ minio_dns , register_dns ]
+  tags: [ minio_dns, register, add_dns ]
   delegate_to: '{{ item }}'
   loop: "{{ groups['infra'] | default([]) }}"
   copy:
-    dest: /etc/hosts.d/{{ minio_instance }}
+    dest: /infra/hosts/{{ minio_instance }}
     mode: 0644
     owner: root
     group: root
     content: |
       {{ inventory_hostname }} {{ minio_nodename }}
       {{ inventory_hostname }} {{ minio_cluster }}-{{ minio_seq }}
-
-# reload meta node nginx (maybe not appropriate here)
-- name: reload dnsmasq on infra node
-  tags: [ minio_dns, register_dns ]
-  delegate_to: '{{ item }}'
-  run_once: true
-  ignore_errors: true
-  loop: '{{ groups["infra"] | default([]) }}'
-  systemd: name=dnsmasq state=reloaded enabled=yes daemon_reload=yes
 
 ...

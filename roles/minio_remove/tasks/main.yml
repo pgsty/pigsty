@@ -57,6 +57,16 @@
   loop: '{{ groups["infra"]|default([]) }}'
   file: path="/infra/targets/minio/{{ minio_cluster }}-{{ minio_seq }}.yml" state=absent
 
+#--------------------------------------------------------------#
+# remove minio dns from infra dnsmasq [rm_dns][minio_deregister]
+#--------------------------------------------------------------#
+- name: remove minio dns from infra nameserver
+  tags: [ minio_deregister, deregister, rm_dns ]
+  ignore_errors: true
+  delegate_to: '{{ item }}'
+  loop: '{{ groups["infra"]|default([]) }}'
+  file: path=/infra/hosts/{{ minio_cluster }}-{{ minio_seq }} state=absent
+
 
 #--------------------------------------------------------------#
 # Remove minio service                               [minio_svc]

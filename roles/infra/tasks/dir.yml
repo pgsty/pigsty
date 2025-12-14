@@ -29,10 +29,10 @@
 #--------------------------------------------------------------#
 # Create infra data directories                 [infra_dir_data]
 #--------------------------------------------------------------#
-# main data directory owned by victoria
+# main data directory, mode=0771 allows services like dnsmasq to traverse
 - name: create infra data directories
   tags: [ infra_dir, infra_dir_data ]
-  file: path={{ infra_data }} state=directory owner=root group=infra mode='0770'
+  file: path={{ infra_data }} state=directory owner=root group=infra mode='0771'
 
 #--------------------------------------------------------------#
 # Create infra data directories                 [infra_dir_link]
@@ -48,7 +48,7 @@
   tags: [ infra_dir, infra_dir_create ]
   file: path={{ item.path }} state={{ item.state|default('directory') }} owner={{ item.owner|default(root) }} group={{ item.group|default('infra') }} mode={{ item.mode|default('0750') }}
   with_items:
-    - { path: /infra/pgadmin ,owner: 5050 ,group: 5050 ,mode: '0700' }
+    - { path: /infra/pgadmin ,owner: 5050 ,group: 5050  ,mode: '0700' }
     - { path: /infra/alertmgr        ,owner: prometheus ,mode: '0700' }
     - { path: /infra/conf            ,owner: root     }
     - { path: /infra/datasources     ,owner: root     }

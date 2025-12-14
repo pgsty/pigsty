@@ -3,15 +3,17 @@
 # Remove pgsql DNS from DNSMASQ                            [dns]
 #--------------------------------------------------------------#
 - name: remove pgsql cluster dns for primary
+  tags: [ pg_deregister, deregister, rm_dns ]
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"] | default([]) }}'
   when: pg_role == 'primary'
-  file: state=absent path=/etc/hosts.d/{{ pg_cluster }}
-
+  ignore_errors: true
+  file: state=absent path=/infra/hosts/{{ pg_cluster }}
 
 - name: remove pgsql instance dns
+  tags: [ pg_deregister, deregister, rm_dns ]
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"] | default([]) }}'
   ignore_errors: true
-  file: state=absent path=/etc/hosts.d/{{ pg_cluster }}-{{ pg_seq }}
+  file: state=absent path=/infra/hosts/{{ pg_cluster }}-{{ pg_seq }}
 ...
