@@ -2,17 +2,17 @@
 ---
 #==============================================================#
 # File      :   slim.yml
-# Desc      :   slim install minimal version of pigsty (no infra)
+# Desc      :   pure postgres installation with out infra
 # Ctime     :   2024-09-02
-# Mtime     :   2024-11-24
-# Path      :   pgsql-min.yml
+# Mtime     :   2025-12-15
+# Path      :   slim.yml
 # Docs      :   https://doc.pgsty.com/install/minimal
-# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
+# License   :   Apache-2.0 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
 
-# The slim installation focus on Pure HA-PostgreSQL Cluster
+# The minimal installation focus on Pure HA-PostgreSQL Cluster
 # It only install essential components for this purpose
 #
 # There's NO Infra modules, No monitoring, No software repo
@@ -45,7 +45,7 @@
   roles: [ { role: ca } ]
 
 #---------------------------------------------------------------
-# init node , ca, docker
+# init node and haproxy
 #---------------------------------------------------------------
 - name: NODE INIT
   become: yes
@@ -55,20 +55,6 @@
   roles:
     - { role: node    , tags: node     }  # prepare node for pigsty
     - { role: haproxy , tags: haproxy  }  # init haproxy optional
-
-#---------------------------------------------------------------
-# init infra cert
-#---------------------------------------------------------------
-- name: INFRA INIT
-  become: yes
-  hosts: infra
-  gather_facts: no
-  tags: infra
-  tasks:
-    - group: name=infra
-    - user: name={% if node_user == 'root' %}{{ node_admin_username|default('dba') }}{% else %}{{ node_user }}{% endif %} append=true groups=infra
-    - user: name={{ node_admin_username|default('dba') }} append=true groups=infra
-    - include_tasks: roles/infra/tasks/cert.yml
 
 #---------------------------------------------------------------
 # ETCD INIT

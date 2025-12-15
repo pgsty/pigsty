@@ -3,9 +3,9 @@
 # File      :   slim.yml
 # Desc      :   Pigsty slim installation config template
 # Ctime     :   2020-05-22
-# Mtime     :   2025-12-12
+# Mtime     :   2025-12-15
 # Docs      :   https://doc.pgsty.com/config
-# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
+# License   :   Apache-2.0 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
@@ -19,8 +19,14 @@
 
 all:
   children:
-    infra: { hosts: { 10.10.10.10: { infra_seq: 1 }} ,vars: { repo_enabled: false }}
-    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1  }} ,vars: { etcd_cluster: etcd  }}
+
+    etcd: # dcs service for postgres/patroni ha consensus
+      hosts: # 1 node for testing, 3 or 5 for production
+        10.10.10.10: { etcd_seq: 1 }  # etcd_seq required
+        #10.10.10.11: { etcd_seq: 2 }  # assign from 1 ~ n
+        #10.10.10.12: { etcd_seq: 3 }  # odd number please
+      vars: # cluster level parameter override roles/etcd
+        etcd_cluster: etcd  # mark etcd cluster name etcd
 
     #----------------------------------------------#
     # PostgreSQL Cluster
@@ -28,6 +34,8 @@ all:
     pg-meta:
       hosts:
         10.10.10.10: { pg_seq: 1, pg_role: primary }
+        #10.10.10.11: { pg_seq: 2, pg_role: replica } # you can add more!
+        #10.10.10.12: { pg_seq: 3, pg_role: replica, pg_offline_query: true }
       vars:
         pg_cluster: pg-meta
         pg_users:
@@ -35,49 +43,17 @@ all:
           - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
         pg_databases:
           - { name: meta, baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [ vector ]}
-        pg_hba_rules:
-          - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
         node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
 
   vars:
-    #----------------------------------------------#
-    # INFRA : https://doc.pgsty.com/infra/param
-    #----------------------------------------------#
     version: v4.0.0                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
     region: default                   # upstream mirror region: default,china,europe
-    infra_portal:                     # domain names and upstream servers
-      home         : { domain: i.pigsty }
-      grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
-      prometheus   : { domain: p.pigsty ,endpoint: "${admin_ip}:9058" }
-      alertmanager : { domain: a.pigsty ,endpoint: "${admin_ip}:9059" }
-      blackbox     : { endpoint: "${admin_ip}:9115" }
-      loki         : { endpoint: "${admin_ip}:3100" }
-
-    #----------------------------------------------#
-    # NODE : https://doc.pgsty.com/node/param
-    #----------------------------------------------#
     nodename_overwrite: false           # do not overwrite node hostname on single node mode
     node_repo_modules: node,infra,pgsql # add these repos directly to the singleton node
     node_tune: oltp                     # node tuning specs: oltp,olap,tiny,crit
-
-    #----------------------------------------------#
-    # PGSQL : https://doc.pgsty.com/pgsql/param
-    #----------------------------------------------#
-    pg_version: 18                      # Default PostgreSQL Major Version is 18
     pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+    pg_version: 18                      # Default PostgreSQL Major Version is 18
     pg_packages: [ pgsql-main, pgsql-common ]   # pg kernel and common utils
     #pg_extensions: [ pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
-
-    #----------------------------------------------#
-    # SLIM: http://localhost:3000/docs/install/minimal
-    #----------------------------------------------#
-    nginx_enabled: false              # nginx not exists
-    dns_enabled: false                # dnsmasq not exists
-    prometheus_enabled: false         # prometheus not exists
-    grafana_enabled: false            # grafana not exists
-    pg_exporter_enabled: false        # disable pg_exporter
-    pgbouncer_exporter_enabled: false # disable pgbouncer_exporter
-    pgbackrest_exporter_enabled: false # disable pgbackrest_exporter
-    pg_vip_enabled: false             # disable pg_vip
 ...
