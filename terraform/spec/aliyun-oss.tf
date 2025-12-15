@@ -2,7 +2,7 @@
 # File      :   aliyun-oss.yml
 # Desc      :   3-node building env for x86_64/aarch64
 # Ctime     :   2024-12-12
-# Mtime     :   2025-11-24
+# Mtime     :   2025-12-24
 # Path      :   terraform/spec/aliyun-oss.yml
 # Docs      :   https://doc.pgsty.com/prepare/terraform
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -37,6 +37,7 @@ locals {
       el10  = "^rockylinux_10_0_x64"
       d11   = "^debian_11_11_x64"
       d12   = "^debian_12_11_x64"
+      d13   = "^debian_13_1_x64"
       u20   = "^ubuntu_20_04_x64"
       u22   = "^ubuntu_22_04_x64"
       u24   = "^ubuntu_24_04_x64"
@@ -48,6 +49,7 @@ locals {
       el9   = "^rockylinux_9_6_arm64"
       el10   = "^rockylinux_10_0_arm64"
       d12   = "^debian_12_11_arm64"
+      d13   = "^debian_13_1_arm64"
       u22   = "^ubuntu_22_04_arm64"
       u24   = "^ubuntu_24_04_arm64"
     }
@@ -209,6 +211,39 @@ output "d12_ip" {
 
 
 #======================================#
+# D13 AMD64 / ARM64
+#======================================#
+data "alicloud_images" "d13_img" {
+  owners     = "system"
+  name_regex = local.selected_images.d13
+}
+
+resource "alicloud_instance" "pg-d13" {
+  instance_name                 = "pg-d13"
+  host_name                     = "pg-d13"
+  private_ip                    = "10.10.10.13"
+  instance_type                 = local.selected_instype
+  image_id                      = "${data.alicloud_images.d13_img.images.0.id}"
+  vswitch_id                    = "${alicloud_vswitch.vsw.id}"
+  security_groups               = ["${alicloud_security_group.default.id}"]
+  password                      = "PigstyDemo4"
+  instance_charge_type          = "PostPaid"
+  internet_charge_type          = "PayByTraffic"
+  spot_strategy                 = local.spot_policy
+  spot_price_limit              = local.spot_price_limit
+  internet_max_bandwidth_out    = local.bandwidth
+  system_disk_category          = "cloud_essd"
+  system_disk_performance_level = "PL1"
+  system_disk_size              = local.disk_size
+}
+
+output "d13_ip" {
+  value = "${alicloud_instance.pg-d13.public_ip}"
+}
+
+
+
+#======================================#
 # U24 AMD64 / ARM64
 #======================================#
 data "alicloud_images" "u24_img" {
@@ -241,4 +276,5 @@ output "u24_ip" {
 
 # sshpass -p PigstyDemo4 ssh-copy-id el9
 # sshpass -p PigstyDemo4 ssh-copy-id d12
+# sshpass -p PigstyDemo4 ssh-copy-id d13
 # sshpass -p PigstyDemo4 ssh-copy-id u24

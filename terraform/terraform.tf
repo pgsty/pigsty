@@ -2,7 +2,7 @@
 # File      :   terraform.yml
 # Desc      :   1-node cloud vm env for x86_64/aarch64
 # Ctime     :   2020-05-12
-# Mtime     :   2025-11-11
+# Mtime     :   2025-12-15
 # Path      :   terraform/terraform.yml
 # Docs      :   https://doc.pgsty.com/prepare/terraform
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -21,9 +21,9 @@ variable "architecture" {
 }
 
 variable "distro" {
-  description = "The distro code (el8,el9,u22,u24,d12)"
+  description = "The distro code (el8,el9,u22,u24,d12,d13)"
   type        = string
-  default     = "el9"       # el7/el8/el9/el10/d11/d12/u20/u22/an8
+  default     = "el9"       # el7/el8/el9/el10/d11/d12/d13/u20/u22/an8
 }
 
 locals {
@@ -43,6 +43,7 @@ locals {
       el10  = "^rockylinux_10_0_x64"
       d11   = "^debian_11_11_x64"
       d12   = "^debian_12_11_x64"
+      d13   = "^debian_13_1_x64"
       u20   = "^ubuntu_20_04_x64"
       u22   = "^ubuntu_22_04_x64"
       u24   = "^ubuntu_24_04_x64"
@@ -54,6 +55,7 @@ locals {
       el9   = "^rockylinux_9_6_arm64"
       el10   = "^rockylinux_10_0_arm64"
       d12   = "^debian_12_11_arm64"
+      d13   = "^debian_13_1_arm64"
       u22   = "^ubuntu_22_04_arm64"
       u24   = "^ubuntu_24_04_arm64"
     }
