@@ -1,9 +1,9 @@
 #==============================================================#
 # Desc      :   pgbouncer_exporter metrics collector definition
-# Ver       :   pgbouncer 1.9 ~ 1.24+
+# Ver       :   pgbouncer 1.9 ~ 1.25+
 # Ctime     :   2019-12-09
-# Mtime     :   2025-04-24
-# Homepage  :   https://pigsty.io
+# Mtime     :   2025-12-15
+# Homepage  :   https://exp.pgsty.com
 # Author    :   Ruohang Feng (rh@vonng.com)
 # License   :   Apache-2.0 @ https://github.com/pgsty/pg_exporter
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -11,14 +11,14 @@
 
 
 #==============================================================#
-# 910 pgbouncer_list
+# 0910 pgbouncer_list
 #==============================================================#
 # http://www.pgbouncer.org/usage.html#show-lists
 pgbouncer_list:
   name: pgbouncer_list
   desc: Pgbouncer entry list
   query: SHOW LISTS;
-  ttl: {{ ttl_norm }}
+  ttl: 10
   min_version: 10800
   fatal: true
   tags: [ pgbouncer ]
@@ -26,8 +26,9 @@ pgbouncer_list:
     - list:                { usage: LABEL                 ,description: Pgbouncer internal list name }
     - items:               { usage: GAUGE                 ,description: Number of corresponding pgbouncer object }
 
+
 #==============================================================#
-# 920 pgbouncer_database
+# 0920 pgbouncer_database
 #==============================================================#
 # http://www.pgbouncer.org/usage.html#show-databases
 pgbouncer_database_124:
@@ -39,8 +40,8 @@ pgbouncer_database_124:
   tags: [ pgbouncer ]
   metrics:
     - name:                       { usage: LABEL  ,rename: datname       ,description: Name of configured database entry }
-    - host:                       { usage: LABEL                         ,description: Host that pgbouncer will connect to }
-    - port:                       { usage: LABEL                         ,description: Port that pgbouncer will connect to }
+    - host:                       { usage: LABEL                         ,description: Host that pgbouncer will connects to }
+    - port:                       { usage: LABEL                         ,description: Port that pgbouncer will connects to }
     - database:                   { usage: LABEL  ,rename: real_datname  ,description: The real database name pgbouncer connects to }
     - force_user:                 { usage: DISCARD }
     - pool_size:                  { usage: GAUGE                         ,description: Maximum number of server connections }
@@ -66,8 +67,8 @@ pgbouncer_database_123:
   tags: [ pgbouncer ]
   metrics:
     - name:                { usage: LABEL ,rename: datname      ,description: Name of configured database entry }
-    - host:                { usage: LABEL                       ,description: Host that pgbouncer will connect to }
-    - port:                { usage: LABEL                       ,description: Port that pgbouncer will connect to }
+    - host:                { usage: LABEL                       ,description: Host that pgbouncer will connects to }
+    - port:                { usage: LABEL                       ,description: Port that pgbouncer will connects to }
     - database:            { usage: LABEL ,rename: real_datname ,description: The real database name pgbouncer connects to }
     - force_user:          { usage: DISCARD }
     - pool_size:           { usage: GAUGE                       ,description: Maximum number of server connections }
@@ -90,8 +91,8 @@ pgbouncer_database_116:
   tags: [ pgbouncer ]
   metrics:
     - name:                { usage: LABEL ,rename: datname      ,description: Name of configured database entry }
-    - host:                { usage: LABEL                       ,description: Host that pgbouncer will connect to }
-    - port:                { usage: LABEL                       ,description: Port that pgbouncer will connect to }
+    - host:                { usage: LABEL                       ,description: Host that pgbouncer will connects to }
+    - port:                { usage: LABEL                       ,description: Port that pgbouncer will connects to }
     - database:            { usage: LABEL ,rename: real_datname ,description: The real database name pgbouncer connects to }
     - force_user:          { usage: DISCARD }
     - pool_size:           { usage: GAUGE                       ,description: Maximum number of server connections }
@@ -113,19 +114,21 @@ pgbouncer_database_108:
   tags: [ pgbouncer ]
   metrics:
     - name:                { usage: LABEL ,rename: datname      ,description: Name of configured database entry }
-    - host:                { usage: LABEL                       ,description: Host that pgbouncer will connect to }
-    - port:                { usage: LABEL                       ,description: Port that pgbouncer will connect to }
+    - host:                { usage: LABEL                       ,description: Host that pgbouncer will connects to }
+    - port:                { usage: LABEL                       ,description: Port that pgbouncer will connects to }
     - database:            { usage: LABEL ,rename: real_datname ,description: The real database name pgbouncer connects to }
     - force_user:          { usage: DISCARD }
-    - pool_size:           { usage: COUNTER                     ,description: Maximum number of server connections }
+    - pool_size:           { usage: GAUGE                       ,description: Maximum number of server connections }
     - reserve_pool:        { usage: GAUGE                       ,description: Maximum number of additional connections for this database }
     - pool_mode:           { usage: DISCARD }
     - max_connections:     { usage: GAUGE                       ,description: Maximum number of allowed connections for this database }
     - current_connections: { usage: GAUGE                       ,description: Current number of connections for this database }
     - paused:              { usage: GAUGE                       ,description: True(1) if this database is currently paused, else 0 }
     - disabled:            { usage: GAUGE                       ,description: True(1) if this database is currently disabled, else 0 }
+
+
 #==============================================================#
-# 930 pgbouncer_stat
+# 0930 pgbouncer_stat
 #==============================================================#
 # http://www.pgbouncer.org/usage.html#show-stats
 pgbouncer_stat_124:
@@ -156,9 +159,9 @@ pgbouncer_stat_124:
     - avg_xact_time:                 { usage: GAUGE   ,scale: 1e-6     ,description: Average transaction duration, in seconds }
     - avg_query_time:                { usage: GAUGE   ,scale: 1e-6     ,description: Average query duration, in seconds }
     - avg_wait_time:                 { usage: GAUGE   ,scale: 1e-6     ,description: Time spent by clients waiting for a server, in seconds (average per second). }
-    - avg_client_parse_count:        { usage: COUNTER                  ,description: Average number of prepared statements created by clients }
-    - avg_server_parse_count:        { usage: COUNTER                  ,description: Average number of prepared statements created on a server. }
-    - avg_bind_count:                { usage: COUNTER                  ,description: Average number of prepared statements readied for execution by clients and forwarded to postgres }
+    - avg_client_parse_count:        { usage: GAUGE                    ,description: Average number of prepared statements created by clients }
+    - avg_server_parse_count:        { usage: GAUGE                    ,description: Average number of prepared statements created on a server. }
+    - avg_bind_count:                { usage: GAUGE                    ,description: Average number of prepared statements readied for execution by clients and forwarded to postgres }
 
 pgbouncer_stat_123:
   name: pgbouncer_stat
@@ -214,7 +217,7 @@ pgbouncer_stat_108:
 
 
 #==============================================================#
-# 940 pgbouncer_pool
+# 0940 pgbouncer_pool
 #==============================================================#
 # http://www.pgbouncer.org/usage.html#show-pools
 pgbouncer_pool_124:
@@ -313,5 +316,4 @@ pgbouncer_pool_108:
     - maxwait:               { usage: GAUGE,                           description: How long the first(oldest) client in the queue has waited, in seconds, key metric }
     - maxwait_us:            { usage: GAUGE,                           description: Microsecond part of the maximum waiting time. }
     - pool_mode:             { usage: LABEL,                           description: Pooling mode in use }
-
 
