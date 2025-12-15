@@ -72,7 +72,7 @@
       tags: nginx_firewall
       ignore_errors: true
       shell: |
-        if [[ "{{ os_package }}" == "rpm" ]]; then
+        if command -v semanage &>/dev/null; then
             setsebool -P httpd_can_network_connect on
             setsebool -P httpd_can_network_relay on
             semanage fcontext -a -t httpd_sys_content_t "{{ nginx_home }}(/.*)?" 2>/dev/null || \
@@ -80,17 +80,17 @@
             semanage fcontext -a -t httpd_sys_content_t "{{ nginx_data }}(/.*)?" 2>/dev/null || \
             semanage fcontext -m -t httpd_sys_content_t "{{ nginx_data }}(/.*)?"
             restorecon -Rv {{ nginx_home }} {{ nginx_data }}
-            if systemctl is-active firewalld &>/dev/null; then
-                firewall-cmd --permanent --add-port={{ nginx_port }}/tcp
-                firewall-cmd --reload
-            fi
+        fi
+        if systemctl is-active firewalld &>/dev/null; then
+            firewall-cmd --permanent --add-port={{ nginx_port }}/tcp
+            firewall-cmd --reload
         fi
         if [[ "{{ os_package }}" == "deb" ]]; then
             if command -v ufw &>/dev/null && ufw status | grep -q "Status: active"; then
               ufw allow {{ nginx_port }}/tcp
             fi
         fi
-        chown -R root:nginx "{{ nginx_data }}"
+        chown -R root:nginx "{{ nginx_data }}";
         /bin/true
       args: { executable: /bin/bash }
 

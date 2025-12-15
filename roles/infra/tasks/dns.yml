@@ -48,11 +48,13 @@
   tags: [ dns_selinux ]
   ignore_errors: true
   shell: |
-    # set context on the real path (not symlink)
-    semanage fcontext -m -t dnsmasq_etc_t "{{ infra_data }}/hosts(/.*)?" 2>/dev/null || semanage fcontext -a -t dnsmasq_etc_t "{{ infra_data }}/hosts(/.*)?"
-    semanage fcontext -a -t dnsmasq_etc_t "/data/infra/hosts"
-    semanage permissive -a dnsmasq_t
-    restorecon -Rv {{ infra_data }}/hosts
+    command -v semanage &>/dev/null || exit 0
+    semanage fcontext -m -t dnsmasq_etc_t "{{ infra_data }}/hosts(/.*)?" 2>/dev/null || \
+    semanage fcontext -a -t dnsmasq_etc_t "{{ infra_data }}/hosts(/.*)?" 2>/dev/null
+    semanage fcontext -a -t dnsmasq_etc_t "/data/infra/hosts" 2>/dev/null
+    semanage permissive -a dnsmasq_t 2>/dev/null
+    restorecon -Rv {{ infra_data }}/hosts 2>/dev/null
+    /bin/true
   args: { executable: /bin/bash }
 
 
