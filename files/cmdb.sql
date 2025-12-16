@@ -1281,7 +1281,7 @@ INSERT INTO pigsty.default_var VALUES
 (135, 'nginx_cert_validity', '"397d"', 'INFRA', 'NGINX', 'interval', 'G', 'nginx self-signed cert validity, 397d by default', NULL),
 (136, 'nginx_home', '"/www"', 'INFRA', 'NGINX', 'path', 'G', 'nginx content dir, `/www` by default (soft link to nginx_data)', NULL),
 (137, 'nginx_data', '"/data/nginx"', 'INFRA', 'NGINX', 'path', 'G', 'nginx actual data dir, /data/nginx by default', NULL),
-(138, 'nginx_users', '{"admin": "pigsty"}', 'INFRA', 'NGINX', 'dict', 'G', 'nginx basic auth users: name and pass dict', NULL),
+(138, 'nginx_users', '{}', 'INFRA', 'NGINX', 'dict', 'G', 'nginx basic auth users: name and pass dict', NULL),
 (139, 'nginx_port', '80', 'INFRA', 'NGINX', 'port', 'G', 'nginx listen port, 80 by default', NULL),
 (140, 'nginx_ssl_port', '443', 'INFRA', 'NGINX', 'port', 'G', 'nginx ssl listen port, 443 by default', NULL),
 (141, 'certbot_sign', 'false', 'INFRA', 'NGINX', 'bool', 'G/A', 'sign nginx cert with certbot during setup?', NULL),
