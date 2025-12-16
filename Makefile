@@ -331,7 +331,7 @@ test-rh:
 #------------------------------#
 # show patroni status for pg-test cluster
 test-st:
-	ssh -t node-1 "sudo -iu postgres patronictl -c /pg/bin/patroni.yml list -W"
+	ssh -t node-1 "sudo -iu postgres patronictl -c /etc/patroni/patroni.yml list -W"
 # reboot node 1,2,3
 test-rb1:
 	ssh -t node-1 "sudo reboot"

@@ -31,25 +31,22 @@
       vars:
         node_fs_bytes: "{{ pg_fs_size_res.stdout|trim|int * 1024 }}"
       with_items:
-        - { src: "{{ pg_conf }}"   ,dest: "/pg/conf/{{ pg_instance }}.yml"     ,owner: "{{ pg_dbsu }}" ,group: "postgres", mode: "0750" }
-        - { src: "patroni.svc"     ,dest: "{{ systemd_dir }}/patroni.service"  ,owner: root, group: root, mode: "0644" }
-        - { src: "postgres.svc"    ,dest: "{{ systemd_dir }}/postgres.service" ,owner: root, group: root, mode: "0644" }
+        - { src: "{{ pg_conf }}" ,dest: "/pg/conf/{{ pg_instance }}.yml"     ,owner: "{{ pg_dbsu }}" ,group: "postgres", mode: "0640" }
+        - { src: "patroni.svc"   ,dest: "{{ systemd_dir }}/patroni.service"  ,owner: root, group: root, mode: "0644" }
+        - { src: "postgres.svc"  ,dest: "{{ systemd_dir }}/postgres.service" ,owner: root, group: root, mode: "0644" }
 
     - name: config pgbackrest for patroni
       when: pgbackrest_enabled|bool
       template: src=pgbackrest.conf dest=/etc/pgbackrest/pgbackrest.conf owner={{ pg_dbsu }} group=postgres mode=0600
 
-    # /etc/patroni/patroni.yml & /pg/bin/patroni.yml -> /pg/conf/{{ pg_instance }}.yml
+    # /etc/patroni/patroni.yml -> /pg/conf/{{ pg_instance }}.yml
     - name: link patroni config
       file:
-        src: "{{ item.src }}"
-        dest: "{{ item.dest }}"
+        src: "/pg/conf/{{ pg_instance }}.yml"
+        dest: "/etc/patroni/patroni.yml"
         owner: "{{ pg_dbsu }}"
         group: postgres
         state: link
-      with_items:
-        - { src: "/pg/conf/{{ pg_instance }}.yml" ,dest: "/pg/bin/patroni.yml"      }
-        - { src: "/pg/conf/{{ pg_instance }}.yml" ,dest: "/etc/patroni/patroni.yml" }
 
 #--------------------------------------------------------------#
 # Generate pgSodium Key                                 [pg_key]
