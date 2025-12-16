@@ -1,0 +1,88 @@
+#!/bin/bash
+set -euo pipefail
+#==============================================================#
+# File      :   boot-pkg
+# Desc      :   boot pigsty building environment with offline pkg
+# Ctime     :   2023-10-15
+# Mtime     :   2025-12-16
+# Path      :   bin/boot-pkg
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+PROG_NAME="$(basename $0)"
+PROG_DIR="$(cd $(dirname $0) && pwd)"
+VERSION=${1-'v4.0.0'}
+ARCH=${2-'x86_64'}
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+# bin/boot-pkg [version] [arch]
+# arch: x86_64 (default) or aarch64
+
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+__CN='\033[0m';__CK='\033[0;30m';__CR='\033[0;31m';__CG='\033[0;32m';
+__CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';__CC='\033[0;36m';__CW='\033[0;37m';
+function log_info() {  printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n";   }
+function log_warn() {  printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n";   }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n";   }
+function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n";   }
+function log_input() { printf "[${__CM} IN ${__CN}] ${__CM}$*\n=> ${__CN}"; }
+function log_hint()  { printf "${__CB}$*${__CN}\n"; }
+
+#log_info "copy source packages to building VMs"
+#scp "dist/${VERSION}/pigsty-${VERSION}.tgz" el8:~/pigsty.tgz  &
+#scp "dist/${VERSION}/pigsty-${VERSION}.tgz" el9:~/pigsty.tgz  &
+#scp "dist/${VERSION}/pigsty-${VERSION}.tgz" el10:~/pigsty.tgz &
+#scp "dist/${VERSION}/pigsty-${VERSION}.tgz" d12:~/pigsty.tgz  &
+#scp "dist/${VERSION}/pigsty-${VERSION}.tgz" d13:~/pigsty.tgz  &
+#scp "dist/${VERSION}/pigsty-${VERSION}.tgz" u22:~/pigsty.tgz  &
+#scp "dist/${VERSION}/pigsty-${VERSION}.tgz" u24:~/pigsty.tgz  &
+#wait
+#
+#log_info "copy offline packages to building VMs (${ARCH})"
+#scp "dist/${VERSION}/pigsty-pkg-${VERSION}.el8.${ARCH}.tgz"  el8:/tmp/pkg.tgz  &
+#scp "dist/${VERSION}/pigsty-pkg-${VERSION}.el9.${ARCH}.tgz"  el9:/tmp/pkg.tgz  &
+#scp "dist/${VERSION}/pigsty-pkg-${VERSION}.el10.${ARCH}.tgz" el10:/tmp/pkg.tgz &
+#scp "dist/${VERSION}/pigsty-pkg-${VERSION}.d12.${ARCH}.tgz"  d12:/tmp/pkg.tgz  &
+#scp "dist/${VERSION}/pigsty-pkg-${VERSION}.d13.${ARCH}.tgz"  d13:/tmp/pkg.tgz  &
+#scp "dist/${VERSION}/pigsty-pkg-${VERSION}.u22.${ARCH}.tgz"  u22:/tmp/pkg.tgz  &
+#scp "dist/${VERSION}/pigsty-pkg-${VERSION}.u24.${ARCH}.tgz"  u24:/tmp/pkg.tgz  &
+#wait
+
+log_info "extract /tmp/pkg.tgz tarball"
+ssh -t el8  "sudo mkdir -p /www; sudo rm -rf /www/pigsty; sudo tar -xf /tmp/pkg.tgz -C /www;" &
+ssh -t el9  "sudo mkdir -p /www; sudo rm -rf /www/pigsty; sudo tar -xf /tmp/pkg.tgz -C /www;" &
+ssh -t el10 "sudo mkdir -p /www; sudo rm -rf /www/pigsty; sudo tar -xf /tmp/pkg.tgz -C /www;" &
+ssh -t d12  "sudo mkdir -p /www; sudo rm -rf /www/pigsty; sudo tar -xf /tmp/pkg.tgz -C /www;" &
+ssh -t d13  "sudo mkdir -p /www; sudo rm -rf /www/pigsty; sudo tar -xf /tmp/pkg.tgz -C /www;" &
+ssh -t u22  "sudo mkdir -p /www; sudo rm -rf /www/pigsty; sudo tar -xf /tmp/pkg.tgz -C /www;" &
+ssh -t u24  "sudo mkdir -p /www; sudo rm -rf /www/pigsty; sudo tar -xf /tmp/pkg.tgz -C /www;" &
+wait
+
+log_info "configure building environment"
+ssh -t el8  "rm -rf ~/pigsty; tar -xf pigsty.tgz; cd ~/pigsty && ./configure -s -i 10.10.10.8"   &
+ssh -t el9  "rm -rf ~/pigsty; tar -xf pigsty.tgz; cd ~/pigsty && ./configure -s -i 10.10.10.9"   &
+ssh -t el10 "rm -rf ~/pigsty; tar -xf pigsty.tgz; cd ~/pigsty && ./configure -s -i 10.10.10.10"  &
+ssh -t d12  "rm -rf ~/pigsty; tar -xf pigsty.tgz; cd ~/pigsty && ./configure -s -i 10.10.10.12"  &
+ssh -t d13  "rm -rf ~/pigsty; tar -xf pigsty.tgz; cd ~/pigsty && ./configure -s -i 10.10.10.13"  &
+ssh -t u22  "rm -rf ~/pigsty; tar -xf pigsty.tgz; cd ~/pigsty && ./configure -s -i 10.10.10.22"  &
+ssh -t u24  "rm -rf ~/pigsty; tar -xf pigsty.tgz; cd ~/pigsty && ./configure -s -i 10.10.10.24"  &
+wait
+
+log_info "bootstrap building environment"
+ssh -t el8  "cd ~/pigsty && ./bootstrap" &
+ssh -t el9  "cd ~/pigsty && ./bootstrap" &
+ssh -t el10 "cd ~/pigsty && ./bootstrap" &
+ssh -t d12  "cd ~/pigsty && ./bootstrap" &
+ssh -t d13  "cd ~/pigsty && ./bootstrap" &
+ssh -t u22  "cd ~/pigsty && ./bootstrap" &
+ssh -t u24  "cd ~/pigsty && ./bootstrap" &
+wait
+
+
+#log_info "building bootstrap complete"
+#log_info "extracted, now proceed with:"
+#log_hint "./install.yml -i conf/build/pro.yml"

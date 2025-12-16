@@ -5,7 +5,7 @@
 [![Version: v3.7.0](https://img.shields.io/badge/version-v3.7.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases/tag/v3.7.0)
 [![License: AGPLv3](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://doc.pgsty.com/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
-[![Extensions: 437](https://img.shields.io/badge/extensions-437-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pgext.cloud/list)
+[![Extensions: 440](https://img.shields.io/badge/extensions-440-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pgext.cloud/list)
 
 Battery-Included, Local-First **PostgreSQL** Distribution as a Free & Better **RDS** Alternative!
 
@@ -25,7 +25,7 @@ curl -fsSL https://repo.pigsty.io/get | bash -s v3.7.0
 
 ## Features
 
-- [**Extensible**](https://pgsty.com/about/extensibility/): **437** [**PG Extensions**](https://pgext.cloud/list) & **8** [**PG Kernel**](https://doc.pgsty.com/feat/kernel) available, with [**MsSQL**](https://doc.pgsty.com/pgsql/kernel/babelfish/), [**Oracle**](https://doc.pgsty.com/pgsql/kernel/ivorysql/), [**MySQL**](https://doc.pgsty.com/pgsql/kernel/openhalo/), [**Mongo**](https://doc.pgsty.com/ferret) compatibility.
+- [**Extensible**](https://pgsty.com/about/extensibility/): **440** [**PG Extensions**](https://pgext.cloud/list) & **8** [**PG Kernel**](https://doc.pgsty.com/feat/kernel) available, with [**MsSQL**](https://doc.pgsty.com/pgsql/kernel/babelfish/), [**Oracle**](https://doc.pgsty.com/pgsql/kernel/ivorysql/), [**MySQL**](https://doc.pgsty.com/pgsql/kernel/openhalo/), [**Mongo**](https://doc.pgsty.com/ferret) compatibility.
 - [**Reliable**](https://pgsty.com/about/reliability/): Self-healing [**HA**](https://doc.pgsty.com/feat/ha/) clusters with pre-configured [**PITR**](https://doc.pgsty.com/pgsql/backup/) and built-in [**ACL**](https://doc.pgsty.com/pgsql/acl), [**CA & SSL**](https://doc.pgsty.com/admin/cert/) secure best practice.
 - [**Observable**](https://pgsty.com/about/observability/): SOTA monitoring for [**PG**](https://g.pgsty.com/d/pgrds-instance/pgrds-instance) / [**Infra**](https://doc.pgsty.com/infra) / [**Node**](https://doc.pgsty.com/node) based on **Prometheus** & **Grafana** stack: [**Demo**](https://g.pgsty.com) & [**Gallery**](https://github.com/pgsty/pigsty/wiki/Gallery).
 - [**Scalable**](https://pgsty.com/about/scalability/): Auto-routed & pooled customizable database [**Services**](https://doc.pgsty.com/pgsql/service) [**Access**](https://doc.pgsty.com/pgsql/service#access-service) with **haproxy**, **pgbouncer**, and **VIP**.
@@ -40,7 +40,7 @@ You can even use exotic [PG kernel forks](https://doc.pgsty.com/pgsql/kernel) as
 
 | Kernel                                                    |           Key Feature           | Description                                    |
 |-----------------------------------------------------------|:-------------------------------:|------------------------------------------------|
-| [PostgreSQL](https://doc.pgsty.com/pgsql/kernel/postgres) |       **Original Flavor**       | Vanilla PostgreSQL with 437 extensions         |
+| [PostgreSQL](https://doc.pgsty.com/pgsql/kernel/postgres) |       **Original Flavor**       | Vanilla PostgreSQL with 440 extensions         |
 | [Citus](https://doc.pgsty.com/pgsql/kernel/citus)         |     **Horizontal Scaling**      | Distributive PostgreSQL via native extension   |
 | [WiltonDB](https://doc.pgsty.com/pgsql/kernel/babelfish)  |    **SQL Server Migration**     | Microsoft SQL Server wire-compatibility        |
 | [IvorySQL](https://doc.pgsty.com/pgsql/kernel/ivorysql)   |      **Oracle Migration**       | Oracle Grammar and PL/SQL compatible           |
@@ -486,7 +486,7 @@ pg-citus: # citus group
 
 
 You can deploy different kinds of PostgreSQL instance such as [`primary`](https://doc.pgsty.com/pgsql/config/#primary), [`replica`](https://doc.pgsty.com/pgsql/config/#replica), [`offline`](https://doc.pgsty.com/pgsql/config/#offline), [`delayed`](https://doc.pgsty.com/pgsql/config/#delayed-cluster), [`sync standby`](https://doc.pgsty.com/pgsql/config/#sync-standby), etc.,
-and customize with scene-optimize [**config templates**](https://doc.pgsty.com/config/template) and all **437** [**extensions**](https://pgext.cloud/list) out-of-the-box.
+and customize with scene-optimize [**config templates**](https://doc.pgsty.com/config/template) and all **440** [**extensions**](https://pgext.cloud/list) out-of-the-box.
 
 You can define [**Users**](https://doc.pgsty.com/pgsql/user), [**Databases**](https://doc.pgsty.com/pgsql/db), [**Service**](https://doc.pgsty.com/pgsql/service), [**HBAs**](https://doc.pgsty.com/pgsql/hba) and other entities with code and provision them in one pass.
 

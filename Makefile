@@ -562,10 +562,8 @@ vd: # deb building environment
 	vagrant/config deb
 va: # all building environment
 	vagrant/config all
-boot-oss:
-	bin/boot-oss $(VERSION)
-boot-pro:
-	bin/boot-pro $(VERSION)
+boot-pkg:
+	bin/boot $(VERSION)
 
 #------------------------------#
 # meta, single node, the devbox
@@ -697,7 +695,7 @@ ext:
         copy-app copy-all use-src use-pkg use-all cmdb \
         csa copy-src-all csr copy-src-rpm csd copy-src-deb df deb-fix push pull git-sync git-restore \
         r release rr remote-release ross release-oss rpro release-pro pb publish \
-        oss pro all boot-oss boot-pro rpm deb vb vr vd vm vf vs vp all old va vo ve \
+        oss pro all boot-pkg rpm deb vb vr vd vm vf vs vp all old va vo ve \
         meta meta7 meta8 meta9 meta11 meta12 meta20 meta22 vmeta vmeta7 vmeta8 vmeta9 vfull11 vmeta12 vmeta20 vmeta22 vmeta24 \
         full full7 full8 full9 full11 full12 full20 full22 vfull vfull7 vfull8 vfull9 vfull11 vfull12 vfull20 vfull22 vfull24 \
         simu simu8 simu9 simu12 simu20 simu22 simu simu8 simu9 simu12 simu20 simu22 \
