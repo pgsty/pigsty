@@ -384,17 +384,27 @@ bootstrap:
         log_truncate_on_rotation: 'on'          # truncate on rotate
         log_checkpoints: 'on'                   # log checkpoint info
         log_lock_waits: 'on'                    # log lock wait info
+{% if pg_version|int >= 18 %}
+        log_lock_failures: 'on'                 # log lock failures (NOWAIT)
+{% endif %}
         log_temp_files: 1024                    # log temp file > 1MB
         log_replication_commands: 'on'          # log replication info
         log_statement: ddl                      # log ddl change
         log_min_duration_statement: 100         # log slow query (>100ms)
+{% if pg_version|int >= 18 %}
+        log_connections: 'receipt,authentication,authorization'  # full audit
+{% else %}
         log_connections: 'on'                   # log conn for compliance
+{% endif %}
         log_disconnections: 'on'                # log disconn for compliance
 
         #------------------------------------------------------#
         # STATISTICS
         #------------------------------------------------------#
         track_io_timing: 'on'                   # collect io statistics
+{% if pg_version|int >= 18 %}
+        track_cost_delay_timing: 'on'           # track vacuum/analyze cost delay timing
+{% endif %}
         track_functions: all                    # track all functions (none|pl|all)
         track_activity_query_size: 32768        # show full query on critical database
 
