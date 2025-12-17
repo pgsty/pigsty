@@ -320,6 +320,9 @@ bootstrap:
         min_wal_size: {{ ([pg_size_twentieth, 200])|min }}GB                      # 1/20 disk size, max 200GB
         max_wal_size: {{ ([pg_size_twentieth * 4, 2000])|min }}GB                     # 2/10 disk size, max 2000GB
         max_slot_wal_keep_size: {{ ([pg_size_twentieth * 6, 3000])|min }}GB           # 3/10 disk size, max 3000GB
+{% if pg_version|int >= 17 %}
+        idle_replication_slot_timeout: 7d       # drop idle replication slot after 7 days
+{% endif %}
         wal_buffers: 16MB                       # max to 16MB
         wal_writer_delay: 20ms                  # wait period
         wal_writer_flush_after: 1MB             # max allowed data loss
