@@ -69,11 +69,12 @@
 # Remove ETCD Meta Data                                [pg_meta]
 #--------------------------------------------------------------#
 # when cleanup primary, remove etcd metadata, too
+# delegate to first etcd node (which has etcdctl and certs)
 - name: remove postgres metadata from etcd
   tags: pg_meta
   ignore_errors: true
-  when: pg_role == 'primary' and pg_cluster != ''
-  delegate_to: '{{ admin_ip }}'
+  when: pg_role == 'primary' and  pg_cluster != '' and groups['etcd'] is defined and groups['etcd'] | length > 0
+  delegate_to: '{{ groups["etcd"][0] }}'
   become: yes
   shell: |
     {% if pg_mode == 'citus' %}
@@ -82,11 +83,10 @@
     META_DIR="{{ pg_namespace|default('/pg') }}/{{ pg_cluster }}"
     {% endif %}
     export ETCDCTL_ENDPOINTS="{% for ip in groups['etcd']|sort %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
-    export ETCDCTL_CACERT=/etc/pki/ca.crt
-    export ETCDCTL_CERT=/etc/pki/infra.crt
-    export ETCDCTL_KEY=/etc/pki/infra.key
+    export ETCDCTL_CACERT=/etc/etcd/ca.crt
+    export ETCDCTL_CERT=/etc/etcd/server.crt
+    export ETCDCTL_KEY=/etc/etcd/server.key
     etcdctl del "${META_DIR}" --prefix=true
-    /bin/true
   args: { executable: /bin/bash }
 
 ...
