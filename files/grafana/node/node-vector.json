@@ -1,0 +1,3775 @@
+{
+    "annotations": {
+        "list": [
+            {
+                "builtIn": 1,
+                "datasource": {
+                    "type": "datasource",
+                    "uid": "grafana"
+                },
+                "enable": true,
+                "hide": true,
+                "iconColor": "rgba(0, 211, 255, 1)",
+                "name": "Annotations & Alerts",
+                "target": {
+                    "limit": 100,
+                    "matchAny": false,
+                    "tags": [],
+                    "type": "dashboard"
+                },
+                "type": "dashboard"
+            }
+        ]
+    },
+    "author": "Ruohang Feng (rh@vonng.com)",
+    "description": "Node Vector Logging Collector",
+    "editable": true,
+    "fiscalYearStartMonth": 0,
+    "graphTooltip": 0,
+    "id": null,
+    "license": "https://doc.pgsty.com/about/license",
+    "links": [
+        {
+            "asDropdown": true,
+            "icon": "external link",
+            "includeVars": true,
+            "keepTime": true,
+            "tags": [
+                "Pigsty",
+                "NODE"
+            ],
+            "targetBlank": false,
+            "title": "NODE",
+            "tooltip": "",
+            "type": "dashboards",
+            "url": ""
+        }
+    ],
+    "panels": [
+        {
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 0
+            },
+            "id": 125,
+            "panels": [],
+            "title": "Overview",
+            "type": "row"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "mappings": [],
+                    "max": 2.5,
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "#3e668f",
+                                "value": 0
+                            }
+                        ]
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Cluster"
+                        },
+                        "properties": [
+                            {
+                                "id": "links",
+                                "value": [
+                                    {
+                                        "title": "Node Cluster : ${cls}",
+                                        "url": "/d/node-cluster?var-cls=${cls}&${__url_time_range}"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Instance"
+                        },
+                        "properties": [
+                            {
+                                "id": "links",
+                                "value": [
+                                    {
+                                        "title": "PGSQL Instance : ${pg_ins}",
+                                        "url": "/d/pgsql-instance?var-ins=${pg_ins}&${__url_time_range}"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Node IP"
+                        },
+                        "properties": [
+                            {
+                                "id": "links",
+                                "value": [
+                                    {
+                                        "title": "Node Instance : ${ip}",
+                                        "url": "/d/node-instance?var-id=${ip}&${__url_time_range}"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "VIP"
+                        },
+                        "properties": [
+                            {
+                                "id": "links",
+                                "value": [
+                                    {
+                                        "title": "Node VIP : ${vip}",
+                                        "url": "/d/node-vip?var-vip=${vip}&${__url_time_range}"
+                                    }
+                                ]
+                            }
+                        ]
+                    }
+                ]
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 6,
+                "x": 0,
+                "y": 1
+            },
+            "id": 273,
+            "options": {
+                "colorMode": "background",
+                "graphMode": "area",
+                "justifyMode": "auto",
+                "orientation": "horizontal",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "/.*/",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 20,
+                    "valueSize": 16
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "node_up{ip=\"$ip\"}",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "Instance",
+                    "queryType": "measurements",
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "min by (job,ip,vip) (probe_success{ip=\"$ip\", job=~'(node|pgsql)-vip'})",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "interval": "",
+                    "legendFormat": "{{ job }} : {{ vip }}",
+                    "queryType": "measurements",
+                    "refId": "A"
+                }
+            ],
+            "transformations": [
+                {
+                    "id": "joinByField",
+                    "options": {
+                        "byField": "ip",
+                        "mode": "outer"
+                    }
+                },
+                {
+                    "id": "organize",
+                    "options": {
+                        "excludeByName": {
+                            "Time": true,
+                            "Time 1": true,
+                            "Time 2": true,
+                            "Value": true,
+                            "Value #A": true,
+                            "Value #B": true,
+                            "__name__": true,
+                            "domainname": true,
+                            "instance": true,
+                            "job": true,
+                            "job 1": true,
+                            "job 2": false,
+                            "machine": true,
+                            "release": true,
+                            "sysname": true,
+                            "version": true
+                        },
+                        "indexByName": {
+                            "Time": 4,
+                            "Value": 13,
+                            "__name__": 5,
+                            "cls": 1,
+                            "domainname": 8,
+                            "ins": 0,
+                            "instance": 6,
+                            "ip": 2,
+                            "job": 7,
+                            "machine": 10,
+                            "nodename": 3,
+                            "release": 11,
+                            "sysname": 9,
+                            "version": 12
+                        },
+                        "renameByName": {
+                            "Value #B": "",
+                            "cls": "Cluster",
+                            "domainname": "Domain",
+                            "ins": "Instance",
+                            "ip": "Node IP",
+                            "job": "",
+                            "job 2": "VIP Type",
+                            "machine": "Arch",
+                            "nodename": "Hostname",
+                            "release": "Release",
+                            "sysname": "System",
+                            "version": "Version",
+                            "vip": "VIP"
+                        }
+                    }
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Vector Instance Overview Table\n\n**Columns:**\n- **Alive**: Vector service health status (UP/Down)\n- **IP**: Instance IP address (click to view instance details)\n- **Instance**: Vector instance endpoint\n- **Components**: Number of active components in the pipeline\n- **Utilization**: Average utilization across all components\n- **Events/s**: Aggregate event output rate (1m average)\n- **Bytes/s**: Aggregate byte output rate (1m average)\n- **Uptime**: Time since Vector process started",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "custom": {
+                        "align": "center",
+                        "cellOptions": {
+                            "type": "auto"
+                        },
+                        "footer": {
+                            "reducers": []
+                        },
+                        "inspect": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgba(108, 108, 108, 0.88)",
+                                "value": 0
+                            }
+                        ]
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Alive"
+                        },
+                        "properties": [
+                            {
+                                "id": "custom.width",
+                                "value": 70
+                            },
+                            {
+                                "id": "mappings",
+                                "value": [
+                                    {
+                                        "options": {
+                                            "0": {
+                                                "color": "rgba(204, 70, 55, 0.85)",
+                                                "index": 0,
+                                                "text": "Down"
+                                            },
+                                            "1": {
+                                                "color": "rgba(52, 111, 54, 0.8)",
+                                                "index": 1,
+                                                "text": "UP"
+                                            }
+                                        },
+                                        "type": "value"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-background"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "IP"
+                        },
+                        "properties": [
+                            {
+                                "id": "links",
+                                "value": [
+                                    {
+                                        "title": "Vector Instance: ${__data.fields.IP}",
+                                        "url": "/d/node-vector?var-ip=${__data.fields.IP}&${__url_time_range}"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "custom.minWidth",
+                                "value": 140
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Instance"
+                        },
+                        "properties": [
+                            {
+                                "id": "links",
+                                "value": [
+                                    {
+                                        "title": "Vector Instance: ${__data.fields.Instance}",
+                                        "url": "/d/node-vector?var-ip=${__data.fields.IP}&${__url_time_range}"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "custom.minWidth",
+                                "value": 140
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Components"
+                        },
+                        "properties": [
+                            {
+                                "id": "custom.width",
+                                "value": 120
+                            },
+                            {
+                                "id": "unit",
+                                "value": "short"
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 0
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "rgb(62, 102, 143)",
+                                            "value": 0
+                                        },
+                                        {
+                                            "color": "rgba(52, 111, 54, 0.8)",
+                                            "value": 1
+                                        },
+                                        {
+                                            "color": "rgba(75, 179, 156, 0.88)",
+                                            "value": 5
+                                        },
+                                        {
+                                            "color": "rgb(252, 219, 114)",
+                                            "value": 10
+                                        },
+                                        {
+                                            "color": "rgb(245, 166, 115)",
+                                            "value": 20
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-background"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Utilization"
+                        },
+                        "properties": [
+                            {
+                                "id": "custom.width",
+                                "value": 120
+                            },
+                            {
+                                "id": "unit",
+                                "value": "percentunit"
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 1
+                            },
+                            {
+                                "id": "min",
+                                "value": 0
+                            },
+                            {
+                                "id": "max",
+                                "value": 1
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "rgb(62, 102, 143)",
+                                            "value": 0
+                                        },
+                                        {
+                                            "color": "rgba(52, 111, 54, 0.8)",
+                                            "value": 0.1
+                                        },
+                                        {
+                                            "color": "rgb(252, 219, 114)",
+                                            "value": 0.5
+                                        },
+                                        {
+                                            "color": "rgb(245, 166, 115)",
+                                            "value": 0.7
+                                        },
+                                        {
+                                            "color": "rgba(204, 70, 55, 0.85)",
+                                            "value": 0.9
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "mode": "gradient",
+                                    "type": "gauge"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Events/s"
+                        },
+                        "properties": [
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "unit",
+                                "value": "cps"
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 1
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "rgb(62, 102, 143)",
+                                            "value": 0
+                                        },
+                                        {
+                                            "color": "rgba(52, 111, 54, 0.8)",
+                                            "value": 1
+                                        },
+                                        {
+                                            "color": "rgba(75, 179, 156, 0.88)",
+                                            "value": 100
+                                        },
+                                        {
+                                            "color": "rgb(252, 219, 114)",
+                                            "value": 1000
+                                        },
+                                        {
+                                            "color": "rgb(245, 166, 115)",
+                                            "value": 10000
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-text"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Bytes/s"
+                        },
+                        "properties": [
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "unit",
+                                "value": "Bps"
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 1
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "rgb(62, 102, 143)",
+                                            "value": 0
+                                        },
+                                        {
+                                            "color": "rgba(52, 111, 54, 0.8)",
+                                            "value": 1024
+                                        },
+                                        {
+                                            "color": "rgba(75, 179, 156, 0.88)",
+                                            "value": 102400
+                                        },
+                                        {
+                                            "color": "rgb(252, 219, 114)",
+                                            "value": 1048576
+                                        },
+                                        {
+                                            "color": "rgb(245, 166, 115)",
+                                            "value": 10485760
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-text"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Uptime"
+                        },
+                        "properties": [
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "unit",
+                                "value": "dtdurations"
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 0
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "rgba(52, 111, 54, 0.8)",
+                                            "value": 0
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-text"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 18,
+                "x": 6,
+                "y": 1
+            },
+            "id": 276,
+            "options": {
+                "cellHeight": "sm",
+                "showHeader": true,
+                "sortBy": []
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "max by (ip, instance) (vector_up{cls=\"$cls\"})",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "count by (ip) (vector_component_received_events_total{cls=\"$cls\"})",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "avg by (ip) (vector_utilization{cls=\"$cls\"})",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "C"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "sum by (ip) (rate(vector_component_sent_events_total{cls=\"$cls\"}[1m]))",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "D"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "sum by (ip) (rate(vector_component_sent_bytes_total{cls=\"$cls\"}[1m]))",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "E"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "vector_uptime_seconds{cls=\"$cls\"}",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "F"
+                }
+            ],
+            "transformations": [
+                {
+                    "id": "seriesToColumns",
+                    "options": {
+                        "byField": "ip"
+                    }
+                },
+                {
+                    "id": "organize",
+                    "options": {
+                        "excludeByName": {
+                            "Time": true,
+                            "Time 1": true,
+                            "Time 2": true,
+                            "Time 3": true,
+                            "Time 4": true,
+                            "Time 5": true,
+                            "Time 6": true,
+                            "__name__": true,
+                            "cls": true,
+                            "host": true,
+                            "ins": false,
+                            "instance 1": true,
+                            "instance 2": true,
+                            "job": true
+                        },
+                        "includeByName": {},
+                        "indexByName": {
+                            "Time 1": 8,
+                            "Time 2": 10,
+                            "Time 3": 11,
+                            "Time 4": 12,
+                            "Time 5": 13,
+                            "Time 6": 14,
+                            "Value #A": 0,
+                            "Value #B": 3,
+                            "Value #C": 4,
+                            "Value #D": 5,
+                            "Value #E": 6,
+                            "Value #F": 7,
+                            "__name__": 15,
+                            "cls": 16,
+                            "host": 17,
+                            "ins": 2,
+                            "instance 1": 9,
+                            "instance 2": 18,
+                            "ip": 1,
+                            "job": 19
+                        },
+                        "renameByName": {
+                            "Value #A": "Alive",
+                            "Value #B": "Components",
+                            "Value #C": "Utilization",
+                            "Value #D": "Events/s",
+                            "Value #E": "Bytes/s",
+                            "Value #F": "Uptime",
+                            "ins": "Instance",
+                            "instance": "Instance",
+                            "ip": "IP"
+                        }
+                    }
+                }
+            ],
+            "type": "table"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Vector process uptime - how long the Vector instance has been running since last restart. A sudden reset indicates the process was restarted.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgba(52, 111, 54, 0.8)",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "dtdurations"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 2,
+                "x": 0,
+                "y": 8
+            },
+            "id": 75,
+            "options": {
+                "colorMode": "background_solid",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 12,
+                    "valueSize": 18
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "vector_uptime_seconds{ip=\"$ip\"}",
+                    "legendFormat": "Uptime",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Average utilization across all Vector components. Indicates how busy the pipeline is. High utilization (>70%) may indicate bottlenecks or need for scaling.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 1,
+                    "mappings": [],
+                    "max": 1,
+                    "min": 0,
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgb(62, 102, 143)",
+                                "value": 0
+                            },
+                            {
+                                "color": "rgba(52, 111, 54, 0.8)",
+                                "value": 0.1
+                            },
+                            {
+                                "color": "rgb(252, 219, 114)",
+                                "value": 0.5
+                            },
+                            {
+                                "color": "rgb(245, 166, 115)",
+                                "value": 0.7
+                            },
+                            {
+                                "color": "rgba(204, 70, 55, 0.85)",
+                                "value": 0.9
+                            }
+                        ]
+                    },
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 2,
+                "x": 2,
+                "y": 8
+            },
+            "id": 145,
+            "options": {
+                "colorMode": "background_solid",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 12,
+                    "valueSize": 18
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "avg(vector_utilization{ip=\"$ip\"})",
+                    "legendFormat": "Utilization",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Total number of active Vector components (sources, transforms, and sinks). Reflects the complexity of your Vector pipeline configuration.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgba(52, 111, 54, 0.8)",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 2,
+                "x": 4,
+                "y": 8
+            },
+            "id": 155,
+            "options": {
+                "colorMode": "background_solid",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 12,
+                    "valueSize": 18
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "count(vector_component_received_events_total{ip=\"$ip\"})",
+                    "legendFormat": "Components",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Total errors encountered across all components since startup. Investigate component-level errors if this number is high or increasing rapidly.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "noValue": "No Errs",
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgba(52, 111, 54, 0.8)",
+                                "value": 0
+                            },
+                            {
+                                "color": "rgb(252, 219, 114)",
+                                "value": 1
+                            },
+                            {
+                                "color": "rgb(245, 166, 115)",
+                                "value": 10
+                            },
+                            {
+                                "color": "rgba(204, 70, 55, 0.85)",
+                                "value": 100
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 2,
+                "x": 6,
+                "y": 8
+            },
+            "id": 175,
+            "options": {
+                "colorMode": "background_solid",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 12,
+                    "valueSize": 18
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(vector_component_errors_total{ip=\"$ip\"})",
+                    "legendFormat": "Errors",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Aggregate event ingestion rate across all source components. Measured in events per second (1m average). Indicates overall data intake volume.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 1,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgb(62, 102, 143)",
+                                "value": 0
+                            },
+                            {
+                                "color": "rgba(52, 111, 54, 0.8)",
+                                "value": 1
+                            },
+                            {
+                                "color": "rgba(75, 179, 156, 0.88)",
+                                "value": 100
+                            },
+                            {
+                                "color": "rgb(252, 219, 114)",
+                                "value": 1000
+                            },
+                            {
+                                "color": "rgb(245, 166, 115)",
+                                "value": 10000
+                            }
+                        ]
+                    },
+                    "unit": "cps"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 2,
+                "x": 8,
+                "y": 8
+            },
+            "id": 148,
+            "options": {
+                "colorMode": "background_solid",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 12,
+                    "valueSize": 18
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(rate(vector_component_received_events_total{ip=\"$ip\"}[1m]))",
+                    "legendFormat": "Event In/s",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Aggregate event emission rate across all sink components. Measured in events per second (1m average). Should roughly match In Rate in a healthy pipeline.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 1,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgb(62, 102, 143)",
+                                "value": 0
+                            },
+                            {
+                                "color": "rgba(52, 111, 54, 0.8)",
+                                "value": 1
+                            },
+                            {
+                                "color": "rgba(75, 179, 156, 0.88)",
+                                "value": 100
+                            },
+                            {
+                                "color": "rgb(252, 219, 114)",
+                                "value": 1000
+                            },
+                            {
+                                "color": "rgb(245, 166, 115)",
+                                "value": 10000
+                            }
+                        ]
+                    },
+                    "unit": "cps"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 2,
+                "x": 10,
+                "y": 8
+            },
+            "id": 158,
+            "options": {
+                "colorMode": "background_solid",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 12,
+                    "valueSize": 18
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(rate(vector_component_sent_events_total{ip=\"$ip\"}[1m]))",
+                    "legendFormat": "Event Out/s",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Aggregate data ingestion rate in bytes per second (1m average). Useful for capacity planning and network bandwidth estimation.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 1,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgb(62, 102, 143)",
+                                "value": 0
+                            },
+                            {
+                                "color": "rgba(52, 111, 54, 0.8)",
+                                "value": 1024
+                            },
+                            {
+                                "color": "rgba(75, 179, 156, 0.88)",
+                                "value": 102400
+                            },
+                            {
+                                "color": "rgb(252, 219, 114)",
+                                "value": 1048576
+                            },
+                            {
+                                "color": "rgb(245, 166, 115)",
+                                "value": 10485760
+                            }
+                        ]
+                    },
+                    "unit": "Bps"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 2,
+                "x": 12,
+                "y": 8
+            },
+            "id": 149,
+            "options": {
+                "colorMode": "background_solid",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 12,
+                    "valueSize": 18
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(rate(vector_component_received_bytes_total{ip=\"$ip\"}[1m]))",
+                    "legendFormat": "Bytes In",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Aggregate data emission rate in bytes per second (1m average). May differ from Bytes In due to encoding, compression, or enrichment.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 1,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgb(62, 102, 143)",
+                                "value": 0
+                            },
+                            {
+                                "color": "rgba(52, 111, 54, 0.8)",
+                                "value": 1024
+                            },
+                            {
+                                "color": "rgba(75, 179, 156, 0.88)",
+                                "value": 102400
+                            },
+                            {
+                                "color": "rgb(252, 219, 114)",
+                                "value": 1048576
+                            },
+                            {
+                                "color": "rgb(245, 166, 115)",
+                                "value": 10485760
+                            }
+                        ]
+                    },
+                    "unit": "Bps"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 2,
+                "x": 14,
+                "y": 8
+            },
+            "id": 154,
+            "options": {
+                "colorMode": "background_solid",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 12,
+                    "valueSize": 18
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(rate(vector_component_sent_bytes_total{ip=\"$ip\"}[1m]))",
+                    "legendFormat": "Bytes Out",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Cumulative count of all events received by Vector since startup. This counter increases monotonically and resets on restart.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgba(52, 111, 54, 0.8)",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 2,
+                "x": 16,
+                "y": 8
+            },
+            "id": 147,
+            "options": {
+                "colorMode": "background_solid",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 12,
+                    "valueSize": 18
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(vector_component_received_events_total{ip=\"$ip\"})",
+                    "legendFormat": "Events In",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Cumulative count of all events sent by Vector since startup. Compare with Events In to identify data loss or filtering effects.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgba(52, 111, 54, 0.8)",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 2,
+                "x": 18,
+                "y": 8
+            },
+            "id": 150,
+            "options": {
+                "colorMode": "background_solid",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 12,
+                    "valueSize": 18
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(vector_component_sent_events_total{ip=\"$ip\"})",
+                    "legendFormat": "Events Out",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Events currently queued in buffers. High values indicate downstream sinks are slower than sources. May lead to backpressure if buffers fill up.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgba(52, 111, 54, 0.8)",
+                                "value": 0
+                            },
+                            {
+                                "color": "rgb(252, 219, 114)",
+                                "value": 1000
+                            },
+                            {
+                                "color": "rgb(245, 166, 115)",
+                                "value": 10000
+                            },
+                            {
+                                "color": "rgba(204, 70, 55, 0.85)",
+                                "value": 100000
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 2,
+                "x": 20,
+                "y": 8
+            },
+            "id": 160,
+            "options": {
+                "colorMode": "background_solid",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 12,
+                    "valueSize": 18
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(vector_buffer_events{ip=\"$ip\"})",
+                    "legendFormat": "Buffered",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Total checkpoint operations performed. Checkpoints track file read positions and ensure data isn't lost or duplicated during restarts.",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "rgba(52, 111, 54, 0.8)",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "short"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 3,
+                "w": 2,
+                "x": 22,
+                "y": 8
+            },
+            "id": 156,
+            "options": {
+                "colorMode": "background_solid",
+                "graphMode": "none",
+                "justifyMode": "auto",
+                "orientation": "auto",
+                "percentChangeColorMode": "standard",
+                "reduceOptions": {
+                    "calcs": [
+                        "lastNotNull"
+                    ],
+                    "fields": "",
+                    "values": false
+                },
+                "showPercentChange": false,
+                "text": {
+                    "titleSize": 12,
+                    "valueSize": 18
+                },
+                "textMode": "value_and_name",
+                "wideLayout": true
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "sum(vector_checkpoints_total{ip=\"$ip\"})",
+                    "legendFormat": "Checkpoints",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "type": "stat"
+        },
+        {
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 11
+            },
+            "id": 278,
+            "panels": [],
+            "title": "Components",
+            "type": "row"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "description": "Vector Components Table - Similar to 'vector top' CLI command.\n\n**Columns:**\n- **ID**: Component identifier as defined in Vector configuration\n- **Kind**: Component category - source (data ingestion), transform (data processing), or sink (data output)\n- **Type**: Specific component type (e.g., file, journald, remap, http, prometheus_exporter)\n- **Util**: Component utilization ratio (0-1), indicates how busy the component is\n- **Errors**: Total errors encountered by this component\n\n**Throughput Rate (1m average):**\n- **Event In/s**: Events received per second\n- **Event Out/s**: Events sent per second\n- **Byte In/s**: Bytes received per second\n- **Byte Out/s**: Bytes sent per second\n\n**Cumulative Totals:**\n- **Event In**: Total events received since startup\n- **Event Out**: Total events sent since startup\n- **Byte In**: Total bytes received since startup\n- **Byte Out**: Total bytes sent since startup",
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "thresholds"
+                    },
+                    "custom": {
+                        "align": "center",
+                        "cellOptions": {
+                            "type": "auto"
+                        },
+                        "footer": {
+                            "reducers": []
+                        },
+                        "inspect": false
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "#c8c8c8",
+                                "value": 0
+                            }
+                        ]
+                    }
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "ID"
+                        },
+                        "properties": [
+                            {
+                                "id": "custom.align",
+                                "value": "left"
+                            },
+                            {
+                                "id": "custom.minWidth",
+                                "value": 160
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-text"
+                                }
+                            },
+                            {
+                                "id": "color",
+                                "value": {
+                                    "fixedColor": "text",
+                                    "mode": "fixed"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Kind"
+                        },
+                        "properties": [
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "mappings",
+                                "value": [
+                                    {
+                                        "options": {
+                                            "sink": {
+                                                "color": "rgba(52, 111, 54, 0.8)",
+                                                "index": 2,
+                                                "text": "sink"
+                                            },
+                                            "source": {
+                                                "color": "rgb(91, 156, 213)",
+                                                "index": 0,
+                                                "text": "source"
+                                            },
+                                            "transform": {
+                                                "color": "rgb(252, 219, 114)",
+                                                "index": 1,
+                                                "text": "transform"
+                                            }
+                                        },
+                                        "type": "value"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-background"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Type"
+                        },
+                        "properties": [
+                            {
+                                "id": "custom.width",
+                                "value": 160
+                            },
+                            {
+                                "id": "mappings",
+                                "value": [
+                                    {
+                                        "options": {
+                                            "aggregate": {
+                                                "color": "rgb(245, 166, 115)"
+                                            },
+                                            "amqp": {
+                                                "color": "rgba(75, 179, 156, 0.88)"
+                                            },
+                                            "blackhole": {
+                                                "color": "rgb(119, 113, 164)"
+                                            },
+                                            "clickhouse": {
+                                                "color": "rgb(252, 219, 114)"
+                                            },
+                                            "console": {
+                                                "color": "rgba(52, 111, 54, 0.8)"
+                                            },
+                                            "datadog_logs": {
+                                                "color": "rgb(183, 131, 175)"
+                                            },
+                                            "dedupe": {
+                                                "color": "rgb(252, 219, 114)"
+                                            },
+                                            "docker_logs": {
+                                                "color": "rgb(91, 156, 213)"
+                                            },
+                                            "elasticsearch": {
+                                                "color": "rgb(252, 219, 114)"
+                                            },
+                                            "file": {
+                                                "color": "rgb(62, 102, 143)"
+                                            },
+                                            "filter": {
+                                                "color": "rgb(245, 166, 115)"
+                                            },
+                                            "host_metrics": {
+                                                "color": "rgb(183, 131, 175)"
+                                            },
+                                            "http": {
+                                                "color": "rgba(52, 111, 54, 0.8)"
+                                            },
+                                            "http_server": {
+                                                "color": "rgba(52, 111, 54, 0.8)"
+                                            },
+                                            "internal_metrics": {
+                                                "color": "rgb(183, 131, 175)"
+                                            },
+                                            "journald": {
+                                                "color": "rgb(91, 156, 213)"
+                                            },
+                                            "kafka": {
+                                                "color": "rgba(75, 179, 156, 0.88)"
+                                            },
+                                            "kubernetes_logs": {
+                                                "color": "rgb(91, 156, 213)"
+                                            },
+                                            "log_to_metric": {
+                                                "color": "rgb(183, 131, 175)"
+                                            },
+                                            "loki": {
+                                                "color": "rgba(75, 179, 156, 0.88)"
+                                            },
+                                            "lua": {
+                                                "color": "rgb(119, 113, 164)"
+                                            },
+                                            "prometheus_exporter": {
+                                                "color": "rgb(245, 166, 115)"
+                                            },
+                                            "prometheus_remote_write": {
+                                                "color": "rgb(245, 166, 115)"
+                                            },
+                                            "prometheus_scrape": {
+                                                "color": "rgb(245, 166, 115)"
+                                            },
+                                            "redis": {
+                                                "color": "rgba(204, 70, 55, 0.85)"
+                                            },
+                                            "reduce": {
+                                                "color": "rgb(245, 166, 115)"
+                                            },
+                                            "remap": {
+                                                "color": "rgb(252, 219, 114)"
+                                            },
+                                            "route": {
+                                                "color": "rgb(245, 166, 115)"
+                                            },
+                                            "sample": {
+                                                "color": "rgb(252, 219, 114)"
+                                            },
+                                            "socket": {
+                                                "color": "rgb(62, 102, 143)"
+                                            },
+                                            "splunk_hec": {
+                                                "color": "rgba(204, 70, 55, 0.85)"
+                                            },
+                                            "stdin": {
+                                                "color": "rgb(62, 102, 143)"
+                                            },
+                                            "syslog": {
+                                                "color": "rgb(91, 156, 213)"
+                                            },
+                                            "throttle": {
+                                                "color": "rgb(252, 219, 114)"
+                                            }
+                                        },
+                                        "type": "value"
+                                    }
+                                ]
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-background"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Util"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "percentunit"
+                            },
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 1
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "rgb(62, 102, 143)",
+                                            "value": 0
+                                        },
+                                        {
+                                            "color": "rgba(52, 111, 54, 0.8)",
+                                            "value": 0.1
+                                        },
+                                        {
+                                            "color": "rgb(252, 219, 114)",
+                                            "value": 0.5
+                                        },
+                                        {
+                                            "color": "rgb(245, 166, 115)",
+                                            "value": 0.7
+                                        },
+                                        {
+                                            "color": "rgba(204, 70, 55, 0.85)",
+                                            "value": 0.9
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-text"
+                                }
+                            },
+                            {
+                                "id": "max",
+                                "value": 1
+                            },
+                            {
+                                "id": "min",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Errors"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "short"
+                            },
+                            {
+                                "id": "custom.width",
+                                "value": 80
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 0
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "rgba(52, 111, 54, 0.8)",
+                                            "value": 0
+                                        },
+                                        {
+                                            "color": "rgb(252, 219, 114)",
+                                            "value": 1
+                                        },
+                                        {
+                                            "color": "rgb(245, 166, 115)",
+                                            "value": 10
+                                        },
+                                        {
+                                            "color": "rgba(204, 70, 55, 0.85)",
+                                            "value": 100
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-background"
+                                }
+                            },
+                            {
+                                "id": "mappings",
+                                "value": [
+                                    {
+                                        "options": {
+                                            "match": "null+nan",
+                                            "result": {
+                                                "color": "rgba(52, 111, 54, 0.8)",
+                                                "text": "0"
+                                            }
+                                        },
+                                        "type": "special"
+                                    }
+                                ]
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Event In/s"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "cps"
+                            },
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 1
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "rgb(62, 102, 143)",
+                                            "value": 0
+                                        },
+                                        {
+                                            "color": "rgb(91, 156, 213)",
+                                            "value": 1
+                                        },
+                                        {
+                                            "color": "rgba(75, 179, 156, 0.88)",
+                                            "value": 10
+                                        },
+                                        {
+                                            "color": "rgba(52, 111, 54, 0.8)",
+                                            "value": 100
+                                        },
+                                        {
+                                            "color": "rgb(252, 219, 114)",
+                                            "value": 1000
+                                        },
+                                        {
+                                            "color": "rgb(245, 166, 115)",
+                                            "value": 10000
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-text"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Event Out/s"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "cps"
+                            },
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 1
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "rgb(62, 102, 143)",
+                                            "value": 0
+                                        },
+                                        {
+                                            "color": "rgb(91, 156, 213)",
+                                            "value": 1
+                                        },
+                                        {
+                                            "color": "rgba(75, 179, 156, 0.88)",
+                                            "value": 10
+                                        },
+                                        {
+                                            "color": "rgba(52, 111, 54, 0.8)",
+                                            "value": 100
+                                        },
+                                        {
+                                            "color": "rgb(252, 219, 114)",
+                                            "value": 1000
+                                        },
+                                        {
+                                            "color": "rgb(245, 166, 115)",
+                                            "value": 10000
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-text"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Byte In/s"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "Bps"
+                            },
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 1
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "rgb(62, 102, 143)",
+                                            "value": 0
+                                        },
+                                        {
+                                            "color": "rgb(91, 156, 213)",
+                                            "value": 1024
+                                        },
+                                        {
+                                            "color": "rgba(75, 179, 156, 0.88)",
+                                            "value": 10240
+                                        },
+                                        {
+                                            "color": "rgba(52, 111, 54, 0.8)",
+                                            "value": 102400
+                                        },
+                                        {
+                                            "color": "rgb(252, 219, 114)",
+                                            "value": 1048576
+                                        },
+                                        {
+                                            "color": "rgb(245, 166, 115)",
+                                            "value": 10485760
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-text"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Byte Out/s"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "Bps"
+                            },
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 1
+                            },
+                            {
+                                "id": "thresholds",
+                                "value": {
+                                    "mode": "absolute",
+                                    "steps": [
+                                        {
+                                            "color": "rgb(62, 102, 143)",
+                                            "value": 0
+                                        },
+                                        {
+                                            "color": "rgb(91, 156, 213)",
+                                            "value": 1024
+                                        },
+                                        {
+                                            "color": "rgba(75, 179, 156, 0.88)",
+                                            "value": 10240
+                                        },
+                                        {
+                                            "color": "rgba(52, 111, 54, 0.8)",
+                                            "value": 102400
+                                        },
+                                        {
+                                            "color": "rgb(252, 219, 114)",
+                                            "value": 1048576
+                                        },
+                                        {
+                                            "color": "rgb(245, 166, 115)",
+                                            "value": 10485760
+                                        }
+                                    ]
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "color-text"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Event In"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "short"
+                            },
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 0
+                            },
+                            {
+                                "id": "color",
+                                "value": {
+                                    "fixedColor": "text",
+                                    "mode": "fixed"
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "auto"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Event Out"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "short"
+                            },
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 0
+                            },
+                            {
+                                "id": "color",
+                                "value": {
+                                    "fixedColor": "text",
+                                    "mode": "fixed"
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "auto"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Byte In"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "bytes"
+                            },
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 1
+                            },
+                            {
+                                "id": "color",
+                                "value": {
+                                    "fixedColor": "text",
+                                    "mode": "fixed"
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "auto"
+                                }
+                            }
+                        ]
+                    },
+                    {
+                        "matcher": {
+                            "id": "byName",
+                            "options": "Byte Out"
+                        },
+                        "properties": [
+                            {
+                                "id": "unit",
+                                "value": "bytes"
+                            },
+                            {
+                                "id": "custom.width",
+                                "value": 100
+                            },
+                            {
+                                "id": "decimals",
+                                "value": 1
+                            },
+                            {
+                                "id": "color",
+                                "value": {
+                                    "fixedColor": "text",
+                                    "mode": "fixed"
+                                }
+                            },
+                            {
+                                "id": "custom.cellOptions",
+                                "value": {
+                                    "type": "auto"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "gridPos": {
+                "h": 15,
+                "w": 24,
+                "x": 0,
+                "y": 12
+            },
+            "id": 280,
+            "options": {
+                "cellHeight": "sm",
+                "showHeader": true,
+                "sortBy": [
+                    {
+                        "desc": true,
+                        "displayName": "Events Out"
+                    }
+                ]
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "max by (component_id, component_kind, component_type) (vector_component_received_events_total{ip=\"$ip\"} * 0 + 1)",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "max by (component_id) (vector_utilization{ip=\"$ip\"})",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "B"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "sum by (component_id) (vector_component_errors_total{ip=\"$ip\"})",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "C"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "sum by (component_id) (rate(vector_component_received_events_total{ip=\"$ip\"}[1m]))",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "D"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "sum by (component_id) (rate(vector_component_sent_events_total{ip=\"$ip\"}[1m]))",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "E"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "sum by (component_id) (rate(vector_component_received_bytes_total{ip=\"$ip\"}[1m]))",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "F"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "sum by (component_id) (rate(vector_component_sent_bytes_total{ip=\"$ip\"}[1m]))",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "G"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "sum by (component_id) (vector_component_received_events_total{ip=\"$ip\"})",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "H"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "sum by (component_id) (vector_component_sent_events_total{ip=\"$ip\"})",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "I"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "sum by (component_id) (vector_component_received_bytes_total{ip=\"$ip\"})",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "J"
+                },
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "exemplar": false,
+                    "expr": "sum by (component_id) (vector_component_sent_bytes_total{ip=\"$ip\"})",
+                    "format": "table",
+                    "hide": false,
+                    "instant": true,
+                    "legendFormat": "",
+                    "refId": "K"
+                }
+            ],
+            "title": "Vector Components",
+            "transformations": [
+                {
+                    "id": "seriesToColumns",
+                    "options": {
+                        "byField": "component_id"
+                    }
+                },
+                {
+                    "id": "organize",
+                    "options": {
+                        "excludeByName": {
+                            "Time": true,
+                            "Time 1": true,
+                            "Time 10": true,
+                            "Time 11": true,
+                            "Time 2": true,
+                            "Time 3": true,
+                            "Time 4": true,
+                            "Time 5": true,
+                            "Time 6": true,
+                            "Time 7": true,
+                            "Time 8": true,
+                            "Time 9": true,
+                            "Value #A": true
+                        },
+                        "indexByName": {
+                            "Value #B": 3,
+                            "Value #C": 4,
+                            "Value #D": 5,
+                            "Value #E": 6,
+                            "Value #F": 7,
+                            "Value #G": 8,
+                            "Value #H": 9,
+                            "Value #I": 10,
+                            "Value #J": 11,
+                            "Value #K": 12,
+                            "component_id": 0,
+                            "component_kind": 1,
+                            "component_type": 2
+                        },
+                        "renameByName": {
+                            "Value #B": "Util",
+                            "Value #C": "Errors",
+                            "Value #D": "Event In/s",
+                            "Value #E": "Event Out/s",
+                            "Value #F": "Byte In/s",
+                            "Value #G": "Byte Out/s",
+                            "Value #H": "Event In",
+                            "Value #I": "Event Out",
+                            "Value #J": "Byte In",
+                            "Value #K": "Byte Out",
+                            "component_id": "ID",
+                            "component_kind": "Kind",
+                            "component_type": "Type"
+                        }
+                    }
+                }
+            ],
+            "type": "table"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "showValues": false,
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "decimals": 2,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "percentunit"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 27
+            },
+            "id": 281,
+            "options": {
+                "legend": {
+                    "calcs": [
+                        "mean"
+                    ],
+                    "displayMode": "table",
+                    "placement": "right",
+                    "showLegend": true,
+                    "sortBy": "Mean",
+                    "sortDesc": true
+                },
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "vector_utilization{ip=\"$ip\"}",
+                    "legendFormat": "{{ component_id }}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Utilization",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "showValues": false,
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "cps"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 27
+            },
+            "id": 283,
+            "options": {
+                "legend": {
+                    "calcs": [
+                        "mean"
+                    ],
+                    "displayMode": "table",
+                    "placement": "right",
+                    "showLegend": true,
+                    "sortBy": "Mean",
+                    "sortDesc": true
+                },
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "rate(vector_component_errors_total{ip=\"$ip\"}[$__rate_interval])",
+                    "legendFormat": "{{ component_id }}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Error Rate",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "showValues": false,
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "decimals": 2,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "cps"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 35
+            },
+            "id": 286,
+            "options": {
+                "legend": {
+                    "calcs": [
+                        "mean"
+                    ],
+                    "displayMode": "table",
+                    "placement": "right",
+                    "showLegend": true,
+                    "sortBy": "Mean",
+                    "sortDesc": true
+                },
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "rate(vector_component_received_events_total{ip=\"$ip\"}[$__rate_interval])",
+                    "legendFormat": "{{ component_id }}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Events In Rate",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "showValues": false,
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "decimals": 2,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "cps"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 35
+            },
+            "id": 287,
+            "options": {
+                "legend": {
+                    "calcs": [
+                        "mean"
+                    ],
+                    "displayMode": "table",
+                    "placement": "right",
+                    "showLegend": true,
+                    "sortBy": "Mean",
+                    "sortDesc": true
+                },
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "rate(vector_component_sent_events_total{ip=\"$ip\"}[$__rate_interval])",
+                    "legendFormat": "{{ component_id }}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Events Out Rate",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "showValues": false,
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "binBps"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 0,
+                "y": 43
+            },
+            "id": 288,
+            "options": {
+                "legend": {
+                    "calcs": [
+                        "mean"
+                    ],
+                    "displayMode": "table",
+                    "placement": "right",
+                    "showLegend": true,
+                    "sortBy": "Mean",
+                    "sortDesc": true
+                },
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "rate(vector_component_received_bytes_total{ip=\"$ip\"}[1m])",
+                    "legendFormat": "{{ component_id }}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Bytes In Rate",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "prometheus",
+                "uid": "ds-prometheus"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "line",
+                        "fillOpacity": 10,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "showValues": false,
+                        "spanNulls": false,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "none"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "decimals": 2,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "green",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "Bps"
+                },
+                "overrides": []
+            },
+            "gridPos": {
+                "h": 8,
+                "w": 12,
+                "x": 12,
+                "y": 43
+            },
+            "id": 289,
+            "options": {
+                "legend": {
+                    "calcs": [
+                        "mean"
+                    ],
+                    "displayMode": "table",
+                    "placement": "right",
+                    "showLegend": true,
+                    "sortBy": "Mean",
+                    "sortDesc": true
+                },
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "multi",
+                    "sort": "desc"
+                }
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "prometheus",
+                        "uid": "ds-prometheus"
+                    },
+                    "editorMode": "code",
+                    "expr": "rate(vector_component_sent_bytes_total{ip=\"$ip\"}[1m])",
+                    "legendFormat": "{{ component_id }}",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "Bytes Out Rate",
+            "type": "timeseries"
+        },
+        {
+            "collapsed": false,
+            "gridPos": {
+                "h": 1,
+                "w": 24,
+                "x": 0,
+                "y": 51
+            },
+            "id": 241,
+            "panels": [],
+            "title": "Logs",
+            "type": "row"
+        },
+        {
+            "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "ds-vlogs"
+            },
+            "fieldConfig": {
+                "defaults": {
+                    "color": {
+                        "fixedColor": "#346f36cc",
+                        "mode": "palette-classic"
+                    },
+                    "custom": {
+                        "axisBorderShow": false,
+                        "axisCenteredZero": false,
+                        "axisColorMode": "text",
+                        "axisLabel": "",
+                        "axisPlacement": "auto",
+                        "barAlignment": 0,
+                        "barWidthFactor": 0.6,
+                        "drawStyle": "bars",
+                        "fillOpacity": 100,
+                        "gradientMode": "none",
+                        "hideFrom": {
+                            "graph": false,
+                            "legend": false,
+                            "tooltip": false,
+                            "viz": false
+                        },
+                        "insertNulls": false,
+                        "lineInterpolation": "linear",
+                        "lineWidth": 1,
+                        "pointSize": 5,
+                        "scaleDistribution": {
+                            "type": "linear"
+                        },
+                        "showPoints": "never",
+                        "showValues": false,
+                        "spanNulls": true,
+                        "stacking": {
+                            "group": "A",
+                            "mode": "normal"
+                        },
+                        "thresholdsStyle": {
+                            "mode": "off"
+                        }
+                    },
+                    "decimals": 0,
+                    "mappings": [],
+                    "thresholds": {
+                        "mode": "absolute",
+                        "steps": [
+                            {
+                                "color": "#346f36cc",
+                                "value": 0
+                            }
+                        ]
+                    },
+                    "unit": "none"
+                },
+                "overrides": [
+                    {
+                        "matcher": {
+                            "id": "byFrameRefID",
+                            "options": "C"
+                        },
+                        "properties": [
+                            {
+                                "id": "color",
+                                "value": {
+                                    "fixedColor": "#f5a673",
+                                    "mode": "fixed"
+                                }
+                            }
+                        ]
+                    }
+                ]
+            },
+            "gridPos": {
+                "h": 7,
+                "w": 24,
+                "x": 0,
+                "y": 52
+            },
+            "id": 243,
+            "interval": "1s",
+            "options": {
+                "legend": {
+                    "calcs": [
+                        "mean",
+                        "sum"
+                    ],
+                    "displayMode": "table",
+                    "placement": "right",
+                    "showLegend": true,
+                    "sortBy": "Total",
+                    "sortDesc": true
+                },
+                "tooltip": {
+                    "hideZeros": false,
+                    "mode": "single",
+                    "sort": "none"
+                }
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "victoriametrics-logs-datasource",
+                        "uid": "ds-vlogs"
+                    },
+                    "editorMode": "code",
+                    "expr": "ip:$ip job:syslog app:vector | stats count() as count",
+                    "legendFormat": "vector",
+                    "queryType": "statsRange",
+                    "refId": "A"
+                },
+                {
+                    "datasource": {
+                        "type": "victoriametrics-logs-datasource",
+                        "uid": "ds-vlogs"
+                    },
+                    "editorMode": "code",
+                    "expr": "ip:$ip job:syslog _msg:~\"vector\" NOT app:vector | stats by (app) count() as count",
+                    "hide": false,
+                    "legendFormat": "{{ app }}",
+                    "queryType": "statsRange",
+                    "refId": "B"
+                }
+            ],
+            "title": "Syslog",
+            "type": "timeseries"
+        },
+        {
+            "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "ds-vlogs"
+            },
+            "description": "syslog of vector app",
+            "gridPos": {
+                "h": 12,
+                "w": 24,
+                "x": 0,
+                "y": 59
+            },
+            "id": 245,
+            "options": {
+                "dedupStrategy": "none",
+                "detailsMode": "inline",
+                "enableInfiniteScrolling": true,
+                "enableLogDetails": true,
+                "fontSize": "small",
+                "prettifyLogMessage": false,
+                "showCommonLabels": false,
+                "showControls": true,
+                "showLabels": true,
+                "showTime": true,
+                "sortOrder": "Descending",
+                "syntaxHighlighting": true,
+                "wrapLogMessage": false
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "victoriametrics-logs-datasource",
+                        "uid": "ds-vlogs"
+                    },
+                    "editorMode": "code",
+                    "expr": "ip:$ip job:syslog app:vector",
+                    "instant": false,
+                    "queryType": "instant",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "syslog: vector",
+            "type": "logs"
+        },
+        {
+            "datasource": {
+                "type": "victoriametrics-logs-datasource",
+                "uid": "ds-vlogs"
+            },
+            "description": "search vector keyword from syslog",
+            "gridPos": {
+                "h": 12,
+                "w": 24,
+                "x": 0,
+                "y": 71
+            },
+            "id": 290,
+            "options": {
+                "dedupStrategy": "none",
+                "detailsMode": "inline",
+                "enableInfiniteScrolling": true,
+                "enableLogDetails": true,
+                "fontSize": "small",
+                "prettifyLogMessage": false,
+                "showCommonLabels": false,
+                "showControls": true,
+                "showLabels": true,
+                "showTime": true,
+                "sortOrder": "Descending",
+                "syntaxHighlighting": true,
+                "wrapLogMessage": false
+            },
+            "pluginVersion": "12.3.0",
+            "targets": [
+                {
+                    "datasource": {
+                        "type": "victoriametrics-logs-datasource",
+                        "uid": "ds-vlogs"
+                    },
+                    "editorMode": "code",
+                    "expr": "ip:$ip job:syslog vector",
+                    "instant": false,
+                    "queryType": "instant",
+                    "range": true,
+                    "refId": "A"
+                }
+            ],
+            "title": "syslog: search vector",
+            "type": "logs"
+        }
+    ],
+    "preload": false,
+    "refresh": "",
+    "schemaVersion": 42,
+    "tags": [
+        "Pigsty",
+        "NODE",
+        "Instance"
+    ],
+    "templating": {
+        "list": [
+            {
+                "current": {},
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "ds-prometheus"
+                },
+                "definition": "label_values(node:ins, id)",
+                "description": "IP Address or Hostname",
+                "includeAll": false,
+                "label": "Node ID",
+                "name": "id",
+                "options": [],
+                "query": {
+                    "query": "label_values(node:ins, id)",
+                    "refId": "StandardVariableQuery"
+                },
+                "refresh": 2,
+                "regex": "",
+                "sort": 1,
+                "type": "query"
+            },
+            {
+                "current": {},
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "ds-prometheus"
+                },
+                "definition": "label_values(node:ins{id=\"$id\"}, ip)",
+                "description": "Node IP address",
+                "hide": 2,
+                "includeAll": false,
+                "label": "IP Address",
+                "name": "ip",
+                "options": [],
+                "query": {
+                    "query": "label_values(node:ins{id=\"$id\"}, ip)",
+                    "refId": "StandardVariableQuery"
+                },
+                "refresh": 2,
+                "regex": "",
+                "sort": 1,
+                "type": "query"
+            },
+            {
+                "current": {},
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "ds-prometheus"
+                },
+                "definition": "label_values(node:ins{id=\"$id\"}, nodename)",
+                "description": "NodeName or hostname",
+                "hide": 2,
+                "includeAll": false,
+                "label": "Hostname",
+                "name": "node",
+                "options": [],
+                "query": {
+                    "query": "label_values(node:ins{id=\"$id\"}, nodename)",
+                    "refId": "StandardVariableQuery"
+                },
+                "refresh": 2,
+                "regex": "",
+                "sort": 1,
+                "type": "query"
+            },
+            {
+                "current": {},
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "ds-prometheus"
+                },
+                "definition": "label_values(node:ins{id=\"$id\"}, ins)",
+                "description": "Node Instance",
+                "hide": 2,
+                "includeAll": false,
+                "label": "Instance",
+                "name": "ins",
+                "options": [],
+                "query": {
+                    "query": "label_values(node:ins{id=\"$id\"}, ins)",
+                    "refId": "StandardVariableQuery"
+                },
+                "refresh": 2,
+                "regex": "",
+                "sort": 1,
+                "type": "query"
+            },
+            {
+                "current": {},
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "ds-prometheus"
+                },
+                "definition": "label_values(node:ins{id=\"$id\"}, cls)",
+                "description": "Node Cluster",
+                "hide": 2,
+                "includeAll": false,
+                "label": "Cluster",
+                "name": "cls",
+                "options": [],
+                "query": {
+                    "query": "label_values(node:ins{id=\"$id\"}, cls)",
+                    "refId": "StandardVariableQuery"
+                },
+                "refresh": 2,
+                "regex": "",
+                "sort": 1,
+                "type": "query"
+            },
+            {
+                "current": {},
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "ds-prometheus"
+                },
+                "definition": "label_values(pg_up{ip=\"$ip\"},ins)",
+                "description": "PG Instance Identifier",
+                "hide": 2,
+                "includeAll": false,
+                "label": "PG Instance",
+                "name": "pg_ins",
+                "options": [],
+                "query": {
+                    "query": "label_values(pg_up{ip=\"$ip\"},ins)",
+                    "refId": "PrometheusVariableQueryEditor-VariableQuery"
+                },
+                "refresh": 2,
+                "regex": "",
+                "sort": 1,
+                "type": "query"
+            },
+            {
+                "current": {},
+                "datasource": {
+                    "type": "prometheus",
+                    "uid": "ds-prometheus"
+                },
+                "definition": "label_values(probe_success{ip=\"$ip\"},vip)",
+                "description": "VIP address",
+                "hide": 2,
+                "includeAll": false,
+                "label": "VIP Address",
+                "name": "vip",
+                "options": [],
+                "query": {
+                    "query": "label_values(probe_success{ip=\"$ip\"},vip)",
+                    "refId": "PrometheusVariableQueryEditor-VariableQuery"
+                },
+                "refresh": 2,
+                "regex": "",
+                "sort": 1,
+                "type": "query"
+            }
+        ]
+    },
+    "time": {
+        "from": "now-1h",
+        "to": "now"
+    },
+    "timepicker": {
+        "refresh_intervals": [
+            "2s",
+            "5s",
+            "10s",
+            "30s",
+            "1m",
+            "5m",
+            "15m",
+            "30m",
+            "1h",
+            "2h",
+            "1d"
+        ]
+    },
+    "timezone": "browser",
+    "title": "Node Vector",
+    "uid": "node-vector",
+    "version": 1,
+    "weekStart": ""
+}
