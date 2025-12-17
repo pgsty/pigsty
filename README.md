@@ -21,6 +21,9 @@ Battery-Included, Local-First **PostgreSQL** Distribution as a Free & Better **R
 curl -fsSL https://repo.pigsty.io/get | bash -s v3.7.0
 ```
 
+> [v4.0.0-beta1](https://github.com/pgsty/pigsty/releases/tag/v4.0.0-b1) release is available, get with `curl -fsSL https://repo.pigsty.io/beta`  
+
+
 --------
 
 ## Features
