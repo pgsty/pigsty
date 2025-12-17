@@ -357,7 +357,10 @@ bootstrap:
         # enable_partitionwise_join: on
 {% if pg_storage_type == 'SSD' %}
         random_page_cost: 1.1                   # 4 for HDD, 1.1 for SSD
-        effective_io_concurrency: 1000          # 1000 for SSD
+        effective_io_concurrency: 200           # 200 for SSD
+{% if pg_version|int >= 17 %}
+        maintenance_io_concurrency: 100        # 100 for SSD maintenance
+{% endif %}
 {% endif %}
         effective_cache_size: {{ pg_effective_cache_size }}MB           # max mem - shared buffer
         default_statistics_target: 200          # stat bucket 100 -> 200
