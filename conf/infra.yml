@@ -1,0 +1,37 @@
+---
+#==============================================================#
+# File      :   infra.yml
+# Desc      :   Infra Only Config
+# Ctime     :   2025-12-16
+# Mtime     :   2025-12-16
+# Docs      :   https://doc.pgsty.com/infra
+# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+# This is the config template for deploy victoria stack alone
+# tutorial: https://doc.pgsty.com/infra
+#
+# Usage:
+#   curl https://repo.pigsty.io/get | bash
+#   ./configure -c infra
+#   ./infra.yml
+
+all:
+  children:
+    infra:
+      hosts:
+        10.10.10.10: { infra_seq: 1 }
+        #10.10.10.11: { infra_seq: 2 } # you can add more nodes if you want
+        #10.10.10.12: { infra_seq: 3 } # don't forget to assign unique infra_seq for each node
+
+  vars:                               # global variables
+    version: v4.0.0                   # pigsty version string
+    admin_ip: 10.10.10.10             # admin node ip address
+    region: default                   # upstream mirror region: default,china,europe
+    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
+    infra_portal:                     # infra services exposed via portal
+      home : { domain: i.pigsty }     # default domain name
+    repo_enabled: false                 # online installation
+    node_repo_modules: node,infra,pgsql # add these repos directly to the singleton node
+...

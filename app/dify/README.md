@@ -87,13 +87,8 @@ all:
 Change `infra_portal` in `pigsty.yml`, with the new `dify` line:
 
 ```yaml
-infra_portal:                     # domain names and upstream servers
-  home         : { domain: i.pigsty }
-  grafana      : { domain: g.pigsty ,endpoint: "${admin_ip}:3000" , websocket: true }
-  prometheus   : { domain: p.pigsty ,endpoint: "${admin_ip}:9058" }
-  alertmanager : { domain: a.pigsty ,endpoint: "${admin_ip}:9059" }
-  blackbox     : { endpoint: "${admin_ip}:9115" }
-  loki         : { endpoint: "${admin_ip}:3100" }
+infra_portal:                     # infra services exposed via portal
+  home : { domain: i.pigsty }     # default domain name
   
   dify         : { domain: dify.pigsty ,endpoint: "10.10.10.10:8001", websocket: true }
 ```
