@@ -28,6 +28,8 @@
 {% if pg_vip_enabled|bool and not (pg_vip_address|string).startswith('127.0.0') and '/' in (pg_vip_address|string) %}
 {% set pg_listen_address = pg_listen_address | replace('${vip}', (pg_vip_address|string).split('/')[0]) %}
 {% endif %}
+{% set pg_effective_io_method = pg_io_method if pg_io_method|default('auto') != 'auto' else ('io_uring' if (os_package|default('rpm') == 'deb' or os_version|default(9)|int >= 10) else 'worker') %}
+{% set pg_io_workers = ([[(node_cpu|int * 0.25)|round(0,'ceil')|int, 4]|max, 8])|min|int %}
 
 #==============================================================#
 # Summary for patroni CRIT config template (4-128 cpu cores)
@@ -307,6 +309,10 @@ bootstrap:
         hash_mem_multiplier: 8.0                # use 8x work mem in hash-based operations
 {% endif %}
         huge_pages: try                         # try huge pages
+{% if pg_version|int >= 17 %}
+        io_method: {{ pg_effective_io_method }}            # io method: sync, worker, io_uring
+        io_workers: {{ pg_io_workers }}                    # number of io workers: {{ pg_io_workers }}
+{% endif %}
         temp_file_limit: {{ ([pg_size_twentieth, 200])|min }}GB                  # 1/20 of disk size, max 200GB
         vacuum_cost_delay: 20ms                 # wait 20ms per 2000 cost
         vacuum_cost_limit: 2000                 # 2000 cost each round
