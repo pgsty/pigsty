@@ -158,6 +158,8 @@ bootstrap:
   initdb:
 {% if pg_checksum != '' and pg_checksum|bool %}
     - data-checksums
+{% elif pg_version|int >= 17 and not pg_checksum|bool %}
+    - no-data-checksums
 {% endif %}
 {% if pg_version|default(18)|int >= 17 and pg_encoding|default('UTF8') in ['UTF8','UTF-8'] and pg_locale|default('C')|upper in ['C', 'C.UTF-8'] %}
     # use postgres built-in C or C.UTF-8 locale since PG 17 by default
@@ -460,7 +462,7 @@ bootstrap:
         pgsodium.enable_event_trigger: off
 {% endif %}
 
-{% if 'pg_duckdb' or 'pg_mooncake' in pg_libs | default("pg_stat_statements, auto_explain") %}
+{% if 'pg_duckdb' in pg_libs | default("pg_stat_statements, auto_explain") %}
         # pg_duckdb / pg_mooncake
         duckdb.allow_community_extensions: true
 {% endif %}
