@@ -23,7 +23,7 @@
 {% set pg_max_parallel_workers = ([(node_cpu|int * 0.5)|round(0,'ceil')|int, 2])|max|int %}
 {% set pg_max_parallel_workers_per_gather = 0 %}
 {% set pg_max_parallel_mt_workers = ([(node_cpu|int * 0.33)|round(0,'ceil')|int, 2])|max|int %}
-{% set pg_allow_list = ( pg_cluster_members|default([]) + groups["infra"]|default([]) )|sort|unique %}
+{% set pg_allow_list = ( [admin_ip] + pg_cluster_members|default([]) + groups["infra"]|default([]) )|sort|unique %}
 {% set pg_listen_address = pg_listen | replace('${ip}', inventory_hostname)  | replace('${lo}', '127.0.0.1') %}
 {% if pg_vip_enabled|bool and not (pg_vip_address|string).startswith('127.0.0') and '/' in (pg_vip_address|string) %}
 {% set pg_listen_address = pg_listen_address | replace('${vip}', (pg_vip_address|string).split('/')[0]) %}

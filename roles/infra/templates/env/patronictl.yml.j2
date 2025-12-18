@@ -3,12 +3,13 @@
 # File      :   patronictl.yml
 # Desc      :   init postgres cluster/instance
 # Ctime     :   2020-05-12
-# Mtime     :   2022-12-04
+# Mtime     :   2025-12-18
 # Path      :   /infra/conf/patronictl.yml
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 # {{ ansible_managed }}
+{% set pg_allow_list = ( [admin_ip] + groups["infra"]|default([]) )|sort|unique %}
 
 #--------------------------------------------------------------#
 # dcs: etcd
@@ -16,7 +17,7 @@
 namespace: {{ pg_namespace }}/          # namespace
 etcd3:
 {% if 'etcd' in groups %}
-  hosts: '{% for ip in groups['etcd']|sort %}{% if not loop.first %},{% endif %}{{ ip }}:{{ etcd_port }}{% endfor %}'
+  hosts: '{% for ip in groups['etcd']|default([])|sort %}{% if not loop.first %},{% endif %}{{ ip }}:{{ etcd_port }}{% endfor %}'
 {% else %}
   hosts: '{{ admin_ip|default('10.10.10.10') }}:2379'
 {% endif %}
@@ -24,6 +25,8 @@ etcd3:
   cacert: /etc/pki/ca.crt
   cert:   /etc/pki/infra.crt
   key:    /etc/pki/infra.key
+  username: "root"
+  password: "{{ etcd_root_password|default('Etcd.Root') }}"
 
 #--------------------------------------------------------------#
 # api
@@ -44,7 +47,7 @@ restapi:
     verify_client: optional  # none|optional|required
     username: '{{ patroni_username }}'
     password: '{{ patroni_password }}'
-  allowlist: [ {% for v in groups["infra"]|default([])|sort %}{% if not loop.first %}, {% endif %}{{ v }}{% endfor %} ]
+  allowlist: [ {{ pg_allow_list|join(', ') }} ]
 
 #--------------------------------------------------------------#
 # ctl
