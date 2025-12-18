@@ -1325,6 +1325,7 @@ INSERT INTO pigsty.default_var VALUES
 (194, 'grafana_admin_password', '"pigsty"', 'INFRA', 'GRAFANA', 'password', 'G', 'grafana admin password, `pigsty` by default', NULL),
 (195, 'grafana_auth_proxy', 'false', 'INFRA', 'GRAFANA', 'bool', 'G', 'enable grafana auth proxy?', NULL),
 (196, 'grafana_pgurl', '""', 'INFRA', 'GRAFANA', 'url', 'G', 'external postgres database url for grafana if given', NULL),
+(197, 'grafana_view_password', '"DBUser.Viewer"', 'INFRA', 'GRAFANA', 'password', 'G', 'password for grafana meta pg datasource', NULL),
 
 -- NODE PARAMETERS
 (201, 'nodename', NULL, 'NODE', 'NODE_ID', 'string', 'I', 'node instance identity, use hostname if missing, optional', NULL),
