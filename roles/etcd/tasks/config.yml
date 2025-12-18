@@ -12,8 +12,12 @@
     - name: generate etcd config
       become: yes
       template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+      vars:
+        etcdctl_endpoints: "{% for ip in groups[etcd_cluster]|default([]) %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
+        etcdctl_user:      "root:{{ etcd_root_password }}"
       with_items:
         - { src: "etcd.conf"  ,dest: "/etc/etcd/etcd.conf"            ,owner: "etcd", group: "etcd" ,mode: "0644" }
+        - { src: "etcd.pass"  ,dest: "/etc/etcd/etcd.pass"            ,owner: "root", group: "etcd" ,mode: "0640" }
         - { src: "etcd.svc"   ,dest: "{{ systemd_dir }}/etcd.service" ,owner: "root", group: "root" ,mode: "0644" }
         - { src: "etcdctl.sh" ,dest: "/etc/profile.d/etcdctl.sh"      ,owner: "root", group: "root" ,mode: "0755" }
 
