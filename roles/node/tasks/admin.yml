@@ -63,22 +63,27 @@
 #--------------------------------------------------------------#
 # Stage 6: Create default users/groups              [node_admin]
 #--------------------------------------------------------------#
+# always create admin group
+- name: create os user group admin
+  tags: node_admin
+  group: name=admin gid={{ node_admin_uid }}
+
 - name: create os node users and groups
   tags: node_admin
   when: node_admin_enabled
   block:
-
     # admin user , group, privileges
-    - name: create os user group admin
-      group: name=admin gid={{ node_admin_uid }}
     - name: create os user admin
-      user: name={{ node_admin_username }} uid={{ node_admin_uid }} home=/home/{{ node_admin_username }} shell=/bin/bash group=admin generate_ssh_key=yes
+      user: name={{ node_admin_username }} uid={{ node_admin_uid }} home=/home/{{ node_admin_username }} shell=/bin/bash groups=admin generate_ssh_key=yes
 
-    - name: grant admin group nopass sudo
+    # node_admin_sudo: all = require password, nopass = no password required
+    - name: grant admin user sudo privilege
       copy:
-        content: "%admin ALL=(ALL) NOPASSWD: ALL"
         dest: /etc/sudoers.d/{{ node_admin_username }}
         mode: 0440
+        content: |
+          {% if node_admin_sudo == 'nopass' %}%admin ALL=(ALL) NOPASSWD: ALL{% endif %}
+          {% if node_admin_sudo == 'all' %}%admin ALL=(ALL) ALL{% endif %}
 
     - name: touch admin user ssh config
       copy: src=ssh.config dest=/home/{{ node_admin_username }}/.ssh/config mode=0600 owner={{ node_admin_username }} group=admin
