@@ -6,12 +6,14 @@
   shell: |
     etcdctl member list -w json
   environment:
-    ETCDCTL_CACERT: "/etc/etcd/ca.crt"
-    ETCDCTL_CERT: "/etc/etcd/server.crt" 
-    ETCDCTL_KEY: "/etc/etcd/server.key"
     ETCDCTL_ENDPOINTS: "{% for ip in groups[etcd_cluster] %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
+    ETCDCTL_CACERT: "/etc/etcd/ca.crt"
+    ETCDCTL_CERT: "/etc/etcd/server.crt"
+    ETCDCTL_KEY: "/etc/etcd/server.key"
+    ETCDCTL_USER: "root:{{ etcd_root_password }}"
   register: member_list_result
   ignore_errors: true
+  no_log: true
 
 - name: parse member list and find current member ID
   set_fact:
@@ -38,10 +40,12 @@
   shell: |
     etcdctl member remove {{ current_member_id }}
   environment:
+    ETCDCTL_ENDPOINTS: "{% for ip in groups[etcd_cluster]|default([]) %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
     ETCDCTL_CACERT: "/etc/etcd/ca.crt"
     ETCDCTL_CERT: "/etc/etcd/server.crt"
     ETCDCTL_KEY: "/etc/etcd/server.key"
-    ETCDCTL_ENDPOINTS: "{% for ip in groups[etcd_cluster]|default([]) %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
+    ETCDCTL_USER: "root:{{ etcd_root_password }}"
   ignore_errors: true
+  no_log: true
 
 ...

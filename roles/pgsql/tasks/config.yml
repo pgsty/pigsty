@@ -1,5 +1,51 @@
 ---
 #--------------------------------------------------------------#
+# Create etcd user for PG cluster                      [pg_etcd]
+#--------------------------------------------------------------#
+# Note: run_once without pg_role condition to ensure execution
+# The task is idempotent so running on any host is safe
+- name: create etcd user for pg cluster
+  tags: [ pg_conf, pg_etcd ]
+  when:
+    - groups['etcd'] is defined
+    - groups['etcd'] | length > 0
+    - pg_role == 'primary'
+    - pg_cluster != 'root' # fail if you use root as pg cluster name
+    - etcd_root_password is defined
+  delegate_to: "{{ groups['etcd'][0] }}"
+  environment:
+    ETCDCTL_ENDPOINTS: "{{ groups['etcd'] | map('regex_replace', '^(.*)$', 'https://\\1:' + etcd_port|string) | join(',') }}"
+    ETCDCTL_CACERT: "/etc/etcd/ca.crt"
+    ETCDCTL_CERT: "/etc/etcd/server.crt"
+    ETCDCTL_KEY: "/etc/etcd/server.key"
+    ETCDCTL_USER: "root:{{ etcd_root_password }}"
+  vars:
+    _etcd_user: "{{ pg_shard if pg_mode == 'citus' else pg_cluster }}"
+    _etcd_pass: "{{ pg_etcd_password if pg_etcd_password != '' else (pg_shard if pg_mode == 'citus' else pg_cluster) }}"
+  shell: |
+    ETCD_USER="{{ _etcd_user }}"
+    ETCD_PASS="{{ _etcd_pass }}"
+    KEY_PREFIX="{{ pg_namespace }}/{{ _etcd_user }}/"
+
+    # create role (idempotent)
+    etcdctl role add "${ETCD_USER}" 2>/dev/null || true
+
+    # grant prefix permission (idempotent)
+    etcdctl role grant-permission "${ETCD_USER}" --prefix=true readwrite "${KEY_PREFIX}" 2>/dev/null || true
+
+    # create or update user
+    if etcdctl user get "${ETCD_USER}" >/dev/null 2>&1; then
+      echo "${ETCD_PASS}" | etcdctl user passwd "${ETCD_USER}" --interactive=false 2>/dev/null || true
+    else
+      etcdctl user add "${ETCD_USER}" --new-user-password="${ETCD_PASS}"
+    fi
+
+    # binding role to user (idempotent)
+    etcdctl user grant-role "${ETCD_USER}" "${ETCD_USER}" 2>/dev/null || true
+  args: { executable: /bin/bash }
+  no_log: true
+
+#--------------------------------------------------------------#
 # Config Patroni                                       [pg_conf]
 #--------------------------------------------------------------#
 - name: config patroni

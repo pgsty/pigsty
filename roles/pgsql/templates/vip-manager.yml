@@ -4,7 +4,7 @@
 # Desc      :   bind a l2 vip to postgres primary according to etcd
 # Time      :   {{ '%Y-%m-%d %H:%M' |strftime }}
 # Host      :   {{ nodename }} @ {{ inventory_hostname }}
-# Path      :   /etc/vip-manager.yml
+# Path      :   /etc/default/vip-manager.yml
 # Note      :   ANSIBLE MANAGED, CHANGE WITH CAUTIONS!
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -59,8 +59,9 @@ etcd-ca-file: "/pg/cert/ca.crt"
 etcd-cert-file: "/pg/cert/server.crt"
 etcd-key-file: "/pg/cert/server.key"
 
-#etcd-user: "patroni"
-#etcd-password: "Pigsty"
+# etcd RBAC authentication
+etcd-user: "{{ pg_shard if pg_mode == 'citus' else pg_cluster }}"
+etcd-password: "{{ pg_etcd_password | default(pg_shard if pg_mode == 'citus' else pg_cluster, true) }}"
 
 # don't worry about parameter with a prefix that doesn't match the endpoint_type. You can write anything there, I won't even look at it.
 #consul-token: "Pigsty"

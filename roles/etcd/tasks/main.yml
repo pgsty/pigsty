@@ -42,7 +42,7 @@
 #--------------------------------------------------------------#
 # Add new member                                   [etcd_member]
 #--------------------------------------------------------------#
-# use etcd member add
+# use etcd member add (with RBAC authentication)
 - name: add new member to etcd cluster
   tags: etcd_member
   when: etcd_init == 'existing'
@@ -56,10 +56,12 @@
         ETCDCTL_CERT: "/etc/etcd/server.crt"
         ETCDCTL_KEY: "/etc/etcd/server.key"
         ETCDCTL_ENDPOINTS: "{{ groups[etcd_cluster] | difference([inventory_hostname]) | map('regex_replace', '^(.*)$', 'https://\\1:' + etcd_port|string) | join(',') }}"
+        ETCDCTL_USER: "root:{{ etcd_root_password|default('Etcd.Root') }}"
       register: etcd_member_add_result
       failed_when:
         - etcd_member_add_result.rc != 0
         - "'Peer URLs already exists' not in etcd_member_add_result.stderr"
+      no_log: true
 
     - name: display member add result
       debug:
@@ -82,6 +84,33 @@
       systemd: name=etcd state=restarted enabled=yes daemon_reload=yes
     - name: wait for etcd server online
       wait_for: host=127.0.0.1 port={{ etcd_port }} state=started timeout=10
+
+#--------------------------------------------------------------#
+# Enable etcd RBAC authentication                    [etcd_auth]
+#--------------------------------------------------------------#
+- name: enable etcd authentication
+  tags: etcd_auth
+  delegate_to: "{{ groups[etcd_cluster][0] }}"
+  run_once: true
+  environment:
+    ETCDCTL_ENDPOINTS: "https://127.0.0.1:{{ etcd_port }}"
+    ETCDCTL_CACERT: "/etc/etcd/ca.crt"
+    ETCDCTL_CERT: "/etc/etcd/server.crt"
+    ETCDCTL_KEY: "/etc/etcd/server.key"
+  shell: |
+    # check if auth is already enabled
+    if etcdctl auth status 2>/dev/null | grep -q "Authentication Status: true"; then
+      echo "etcd auth already enabled, skipping"
+      exit 0
+    fi
+    # create root user and enable auth
+    etcdctl user add root --new-user-password='{{ etcd_root_password }}' 2>/dev/null || true
+    etcdctl auth enable
+    echo "etcd auth enabled successfully"
+  args: { executable: /bin/bash }
+  register: etcd_auth_result
+  changed_when: "'enabled successfully' in etcd_auth_result.stdout"
+  no_log: true
 
 #--------------------------------------------------------------#
 # Register Etcd Metrics to VictoriaMetrics       [etcd_register]
