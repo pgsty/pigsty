@@ -114,6 +114,10 @@ all:
         10.10.10.25: {}
       vars:
         minio_data: '/data{1...4}' # 5 node x 4 disk
+        minio_users:                      # list of minio user to be created
+          - { access_key: pgbackrest  ,secret_key: S3User.Backup ,policy: pgsql }
+          - { access_key: s3user_meta ,secret_key: S3User.Meta   ,policy: meta  }
+          - { access_key: s3user_data ,secret_key: S3User.Data   ,policy: data  }
 
     #==========================================================#
     # proxy: 2 nodes used as dedicated haproxy server
@@ -536,4 +540,17 @@ all:
         cipher_pass: pgBackRest       # AES encryption password, default is 'pgBackRest'
         retention_full_type: time     # retention full backup by time on minio repo
         retention_full: 14            # keep full backup for last 14 days
+
+    #----------------------------------------------#
+    # PASSWORD : https://doc.pgsty.com/config/security
+    #----------------------------------------------#
+    grafana_admin_password: pigsty
+    grafana_view_password: DBUser.Viewer
+    pg_admin_password: DBUser.DBA
+    pg_monitor_password: DBUser.Monitor
+    pg_replication_password: DBUser.Replicator
+    patroni_password: Patroni.API
+    haproxy_admin_password: pigsty
+    minio_secret_key: S3User.MinIO
+    etcd_root_password: Etcd.Root
 ...

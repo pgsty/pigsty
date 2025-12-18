@@ -3,7 +3,7 @@
 # File      :   configure
 # Desc      :   generate pigsty.yml config according to env
 # Ctime     :   2021-05-17
-# Mtime     :   2025-11-30
+# Mtime     :   2025-12-18
 # Path      :   configure
 # Docs      :   https://doc.pgsty.com/config/configure
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
@@ -24,6 +24,7 @@ PIGSTY_VERSION=v4.0.0
 #    [-x|--proxy]            # write proxy env from environment
 #    [-n|--non-interactive]  # non-interactively mode
 #    [-p|--port <port>]      # specify SSH port (only used if set)
+#    [-g|--generate]         # generate random passwords for security
 #==============================================================#
 INTERACTIVE=true                  # run configure with interactive mode
 OUTPUT=pigsty.yml                 # output config file path
@@ -34,6 +35,7 @@ REGION=""                         # default region (default|china|europe)
 USE_PROXY=false                   # use global env http_proxy, https_proxy, all_proxy, no_proxy
 SKIP=false                        # skip ip probe (convenient if using fixed templates)
 SSH_PORT=""                       # default SSH port
+GENERATE_PASSWORD=false           # generate random passwords for security
 DEFAULT_NO_PROXY="localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,mirror.*,*.myqcloud.com,*.tsinghua.edu.cn,*.fedoraproject.org"
 
 
@@ -678,8 +680,71 @@ function check_config(){
         rm -rf "${config_dst}e"
     fi
 
+    # replace default passwords with random ones if -g is specified
+    replace_passwords "${config_dst}"
+
     return 0
 }
+
+#----------------------------------------------#
+# random password generation
+#----------------------------------------------#
+# generate random password with alphanumeric chars
+# works on Linux (Debian/Ubuntu/EL) and macOS
+function generate_password(){
+    local length=${1:-24}
+    LC_ALL=C tr -dc 'A-Za-z0-9' < /dev/urandom | head -c "${length}"
+}
+
+# replace default passwords with random generated ones
+function replace_passwords(){
+    local config_dst="${1}"
+
+    if [[ "${GENERATE_PASSWORD}" != "true" ]]; then
+        return 0
+    fi
+
+    log_info "generating random passwords..."
+
+    # prefix match replacement: replace value after the key
+    local -a prefix_keys=(
+        "grafana_admin_password"
+        "pg_admin_password"
+        "pg_monitor_password"
+        "pg_replication_password"
+        "patroni_password"
+        "haproxy_admin_password"
+        "minio_secret_key"
+        "etcd_root_password"
+    )
+
+    for key in "${prefix_keys[@]}"; do
+        local new_pass
+        new_pass=$(generate_password 24)
+        sed -i'' -e "s|^\([[:space:]]*${key}:\)[[:space:]]*.*|\1 ${new_pass}|" "${config_dst}"
+        printf "    ${__CG}%-24s${__CN} : ${__CC}%s${__CN}\n" "${key}" "${new_pass}"
+    done
+
+    # global string replacement: replace all occurrences
+    local -a global_passwords=(
+        "DBUser.Meta"
+        "DBUser.Viewer"
+        "S3User.Backup"
+        "S3User.Meta"
+        "S3User.Data"
+    )
+
+    for old_pass in "${global_passwords[@]}"; do
+        local new_pass
+        new_pass=$(generate_password 24)
+        sed -i'' -e "s|${old_pass}|${new_pass}|g" "${config_dst}"
+        printf "    ${__CG}%-24s${__CN} : ${__CC}%s${__CN}\n" "${old_pass}" "${new_pass}"
+    done
+
+    rm -rf "${config_dst}-e"  # cleanup macOS sed backup
+    log_info "random passwords generated, check and save them"
+}
+
 
 #----------------------------------------------#
 # check utils
@@ -702,7 +767,7 @@ function main(){
     while [ $# -gt 0 ]; do
         case $1 in
             -h|--help)
-                echo './configure [-c|--conf <confname>] [-i|--ip <ipaddr>] [-v|--version 18] [-r|--region <region>] [-n|--non-interactive] [-s|--skip] [-x|--proxy] [-p|--port <ssh_port>]'
+                echo './configure [-c|--conf <confname>] [-i|--ip <ipaddr>] [-v|--version 18] [-r|--region <region>] [-n|--non-interactive] [-s|--skip] [-x|--proxy] [-p|--port <ssh_port>] [-g|--generate]'
                 exit 0;;
             -c|--conf|--config) MODE="$2" ; shift;;
             -i|--ip) PRIMARY_IP="$2" ; shift;;
@@ -713,6 +778,7 @@ function main(){
             -n|--non-interactive) INTERACTIVE=false ;;
             -x|--proxy) USE_PROXY=true ;;
             -p|--port) SSH_PORT="$2"; shift;;
+            -g|--generate|--generate-password) GENERATE_PASSWORD=true ;;
             (--) shift; break;;
             (-*) echo "$0: error - unrecognized option $1" 1>&2; exit 1;;
             (*) break;;

@@ -38,6 +38,10 @@ all:
         10.10.10.10: { minio_seq: 1 }
       vars:
         minio_cluster: minio
+        minio_users:                      # list of minio user to be created
+          - { access_key: pgbackrest  ,secret_key: S3User.Backup ,policy: pgsql }
+          - { access_key: s3user_meta ,secret_key: S3User.Meta   ,policy: meta  }
+          - { access_key: s3user_data ,secret_key: S3User.Data   ,policy: data  }
 
     # postgres cluster: pg-meta
     pg-meta:
@@ -120,32 +124,32 @@ all:
     #----------------------------------#
     # MinIO Related Options
     #----------------------------------#
-    #pgbackrest_repo:                  # pgbackrest repo: https://pgbackrest.org/configuration.html#section-repository
-    #  minio: ...                      # optional minio repo for pgbackrest ...
-    #    s3_key: pgbackrest            # minio user access key for pgbackrest
-    #    s3_key_secret: S3User.Backup  # minio user secret key for pgbackrest
-    #    cipher_pass: pgBackRest       # AES encryption password, default is 'pgBackRest'
-    # if you want to use minio as backup repo instead of 'local' fs, uncomment this, and configure `pgbackrest_repo`
-    pgbackrest_method: minio
     node_etc_hosts: [ '${admin_ip} i.pigsty sss.pigsty' ]
-
-    #----------------------------------#
-    # Credential: CHANGE THESE PASSWORDS
-    #----------------------------------#
-    #grafana_admin_username: admin
-    grafana_admin_password: pigsty
-    #pg_admin_username: dbuser_dba
-    pg_admin_password: DBUser.DBA
-    #pg_monitor_username: dbuser_monitor
-    pg_monitor_password: DBUser.Monitor
-    #pg_replication_username: replicator
-    pg_replication_password: DBUser.Replicator
-    #patroni_username: postgres
-    patroni_password: Patroni.API
-    #haproxy_admin_username: admin
-    haproxy_admin_password: pigsty
-    #minio_access_key: minioadmin
-    minio_secret_key: S3User.MinIO
+    pgbackrest_method: minio          # if you want to use minio as backup repo instead of 'local' fs, uncomment this
+    pgbackrest_repo:                  # pgbackrest repo: https://pgbackrest.org/configuration.html#section-repository
+      local:                          # default pgbackrest repo with local posix fs
+        path: /pg/backup              # local backup directory, `/pg/backup` by default
+        retention_full_type: count    # retention full backups by count
+        retention_full: 2             # keep 2, at most 3 full backup when using local fs repo
+      minio:                          # optional minio repo for pgbackrest
+        type: s3                      # minio is s3-compatible, so s3 is used
+        s3_endpoint: sss.pigsty       # minio endpoint domain name, `sss.pigsty` by default
+        s3_region: us-east-1          # minio region, us-east-1 by default, useless for minio
+        s3_bucket: pgsql              # minio bucket name, `pgsql` by default
+        s3_key: pgbackrest            # minio user access key for pgbackrest
+        s3_key_secret: S3User.Backup  # minio user secret key for pgbackrest
+        s3_uri_style: path            # use path style uri for minio rather than host style
+        path: /pgbackrest             # minio backup path, default is `/pgbackrest`
+        storage_port: 9000            # minio port, 9000 by default
+        storage_ca_file: /etc/pki/ca.crt  # minio ca file path, `/etc/pki/ca.crt` by default
+        block: y                      # Enable block incremental backup
+        bundle: y                     # bundle small files into a single file
+        bundle_limit: 20MiB           # Limit for file bundles, 20MiB for object storage
+        bundle_size: 128MiB           # Target size for file bundles, 128MiB for object storage
+        cipher_type: aes-256-cbc      # enable AES encryption for remote backup repo
+        cipher_pass: pgBackRest       # AES encryption password, default is 'pgBackRest'
+        retention_full_type: time     # retention full backup by time on minio repo
+        retention_full: 14            # keep full backup for last 14 days
 
     #----------------------------------#
     # Repo, Node, Packages
@@ -156,4 +160,16 @@ all:
     pg_version: 18                    # default postgres version
     #pg_extensions: [pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl ,pg18-olap]
 
+    #----------------------------------------------#
+    # PASSWORD : https://doc.pgsty.com/config/security
+    #----------------------------------------------#
+    grafana_admin_password: pigsty
+    grafana_view_password: DBUser.Viewer
+    pg_admin_password: DBUser.DBA
+    pg_monitor_password: DBUser.Monitor
+    pg_replication_password: DBUser.Replicator
+    patroni_password: Patroni.API
+    haproxy_admin_password: pigsty
+    minio_secret_key: S3User.MinIO
+    etcd_root_password: Etcd.Root
 ...
