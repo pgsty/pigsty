@@ -21,7 +21,7 @@ Battery-Included, Local-First **PostgreSQL** Distribution as a Free & Better **R
 curl -fsSL https://repo.pigsty.io/get | bash -s v3.7.0
 ```
 
-> [v4.0.0-beta1](https://github.com/pgsty/pigsty/releases/tag/v4.0.0-b1) release is available, get with `curl -fsSL https://repo.pigsty.io/beta`  
+> [v4.0.0-beta1](https://github.com/pgsty/pigsty/releases/tag/v4.0.0-b1) release is available, get with `curl -fsSL https://repo.pigsty.io/beta | bash`  
 
 
 --------
@@ -30,7 +30,7 @@ curl -fsSL https://repo.pigsty.io/get | bash -s v3.7.0
 
 - [**Extensible**](https://pgsty.com/about/extensibility/): **440** [**PG Extensions**](https://pgext.cloud/list) & **8** [**PG Kernel**](https://doc.pgsty.com/feat/kernel) available, with [**MsSQL**](https://doc.pgsty.com/pgsql/kernel/babelfish/), [**Oracle**](https://doc.pgsty.com/pgsql/kernel/ivorysql/), [**MySQL**](https://doc.pgsty.com/pgsql/kernel/openhalo/), [**Mongo**](https://doc.pgsty.com/ferret) compatibility.
 - [**Reliable**](https://pgsty.com/about/reliability/): Self-healing [**HA**](https://doc.pgsty.com/feat/ha/) clusters with pre-configured [**PITR**](https://doc.pgsty.com/pgsql/backup/) and built-in [**ACL**](https://doc.pgsty.com/pgsql/acl), [**CA & SSL**](https://doc.pgsty.com/admin/cert/) secure best practice.
-- [**Observable**](https://pgsty.com/about/observability/): SOTA monitoring for [**PG**](https://g.pgsty.com/d/pgrds-instance/pgrds-instance) / [**Infra**](https://doc.pgsty.com/infra) / [**Node**](https://doc.pgsty.com/node) based on **Prometheus** & **Grafana** stack: [**Demo**](https://g.pgsty.com) & [**Gallery**](https://github.com/pgsty/pigsty/wiki/Gallery).
+- [**Observable**](https://pgsty.com/about/observability/): SOTA monitoring for [**PG**](https://g.pgsty.com/d/pgrds-instance/pgrds-instance) / [**Infra**](https://doc.pgsty.com/infra) / [**Node**](https://doc.pgsty.com/node) based on **Victoria** & **Grafana** stack: [**Demo**](https://g.pgsty.com) & [**Gallery**](https://github.com/pgsty/pigsty/wiki/Gallery).
 - [**Scalable**](https://pgsty.com/about/scalability/): Auto-routed & pooled customizable database [**Services**](https://doc.pgsty.com/pgsql/service) [**Access**](https://doc.pgsty.com/pgsql/service#access-service) with **haproxy**, **pgbouncer**, and **VIP**.
 - [**Maintainable**](https://pgsty.com/about/maintainability/): [**One-Cmd Install**](https://doc.pgsty.com/install/start), [**Admin SOP**](https://doc.pgsty.com/pgsql/admin), **Auto-Tune**, **Local Repo**, [**IaC**](https://doc.pgsty.com/pgsql/config) and [**Vagrant**](https://doc.pgsty.com/prepare/vagrant) / [**Terraform**](https://doc.pgsty.com/prepare/terraform) support.
 - [**Composable**](https://pgsty.com/about/composability/): Bonus [**Modules**](https://doc.pgsty.com/intro/modules) such as [**Redis**](https://doc.pgsty.com/redis), [**MinIO**](https://doc.pgsty.com/minio), [**Etcd**](https://doc.pgsty.com/etcd), [**Docker**](https://doc.pgsty.com/app), [**DuckDB**](https://doc.pgsty.com/pro/duckdb), [**FerretDB**](https://doc.pgsty.com/ferret), [**Supabase**](https://doc.pgsty.com/app/supabase/), [**& More**](https://doc.pgsty.com/intro/module)!
@@ -177,7 +177,7 @@ Pigsty uses a [**modular**](https://doc.pgsty.com/intro/arch) design. There are 
 
 [![PGSQL](https://img.shields.io/badge/PGSQL-%233E668F?style=flat&logo=postgresql&labelColor=3E668F&logoColor=white)](https://doc.pgsty.com/pgsql) Self-healing PostgreSQL HA cluster powered by Patroni, Pgbouncer, PgBackrest & HAProxy
 
-[![INFRA](https://img.shields.io/badge/INFRA-%23009639?style=flat&logo=nginx&labelColor=009639&logoColor=white)](https://doc.pgsty.com/infra) Nginx, Local Repo, DNSMasq, and the entire Prometheus & Grafana observability stack.
+[![INFRA](https://img.shields.io/badge/INFRA-%23009639?style=flat&logo=nginx&labelColor=009639&logoColor=white)](https://doc.pgsty.com/infra) Nginx, Local Repo, DNSMasq, and the entire Victoria & Grafana observability stack.
 
 [![NODE](https://img.shields.io/badge/NODE-%23FCC624?style=flat&logo=linux&labelColor=FCC624&logoColor=black)](https://doc.pgsty.com/node) Init node name, repo, pkg, NTP, ssh, admin, tune, expose services, collect logs & metrics.
 
@@ -598,7 +598,7 @@ Pigsty runs on bare linux directly, and focuses on active maintained mainstream 
 |   Code   | Distro                            |                      `x86_64`                       | Status |                       `aarch64`                       | Status |
 |:--------:|-----------------------------------|:---------------------------------------------------:|:-------|:-----------------------------------------------------:|:-------|
 | **EL10** | RHEL 10 / Rocky10 / Alma10 / ...  | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) | ✅📦    | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) | ✅📦    |
-| **EL9**  | RHEL 9 / Rocky9 / Alma9 / ...     |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  | ✅📦    |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  | ✅📦⚠️  |
+| **EL9**  | RHEL 9 / Rocky9 / Alma9 / ...     |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  | ✅📦    |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  | ✅📦    |
 | **EL8**  | RHEL 8 / Rocky8 / Alma8 / Anolis8 |  [`el8.x86_64`](roles/node_id/vars/el8.x86_64.yml)  | ✅📦    |  [`el8.aarch64`](roles/node_id/vars/el8.aarch64.yml)  | ✅📦    |
 | **U24**  | Ubuntu 24.04 (noble)              |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  | ✅📦    |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  | ✅📦    |
 | **U22**  | Ubuntu 22.04 (jammy)              |  [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml)  | ✅📦    |  [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml)  | ✅📦    |
