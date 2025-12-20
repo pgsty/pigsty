@@ -167,10 +167,6 @@ node-repo:
 reinstall: repo-clean
 	./install.yml
 
-# init prometheus
-prometheus:
-	./infra.yml --tags=prometheus
-
 # init grafana
 grafana:
 	./infra.yml --tags=grafana
@@ -685,7 +681,7 @@ ext:
         src pkg \
         c \
         infra pgsql repo repo-upstream repo-build repo-add node-repo repo-clean pgsql-add pgsql-rm pgsql-ext \
-        prometheus grafana loki nginx cert docker app \
+        grafana nginx cert docker app \
         deps dns start ssh tssh \
         up dw del new clean up-test dw-test del-test new-test clean \
         st status suspend resume v1 v4 v7 v8 v9 vb vr vd vm vo vc vu vp vp7 vp9 \
