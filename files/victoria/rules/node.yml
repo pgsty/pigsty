@@ -2,8 +2,8 @@
 #==============================================================#
 # File      :   node.yml
 # Ctime     :   2020-04-22
-# Mtime     :   2024-08-30
-# Desc      :   Node Record Rules (Node/Haproxy/Promtail)
+# Mtime     :   2025-12-20
+# Desc      :   Node Record Rules (Node/Haproxy)
 # Path      :   /etc/prometheus/rules/node.yml
 # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -707,10 +707,6 @@ groups:
       #                          Docker                              #
       ################################################################
 
-      ################################################################
-      #                          Promtail                            #
-      ################################################################
-
 
 
   ################################################################
@@ -744,15 +740,15 @@ groups:
             haproxy_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
             http://g.pigsty/d/node-haproxy?var-ins={{ $labels.ins }}
 
-      # promtail the logging agent
-      - alert: PromtailDown
-        expr: promtail_up < 1
+      # vector the logging agent
+      - alert: VectorDown
+        expr: vector_up < 1
         for: 1m
         labels: { level: 1, severity: WARN, category: node }
         annotations:
-          summary: "WARN PromtailDown {{ $labels.ins }}@{{ $labels.instance }}"
+          summary: "WARN VectorDown {{ $labels.ins }}@{{ $labels.instance }}"
           description: |
-            promtail_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
+            vector_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
             http://g.pigsty/d/node-instance?var-ins={{ $labels.ins }}
 
       # docker the container engine
