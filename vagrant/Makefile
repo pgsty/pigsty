@@ -223,9 +223,9 @@ vdeci24:
 	./config deci ubuntu24
 
 #------------------------------#
-# simu, 36 nodes, the simubox
+# simu, 20 nodes, the simubox
 #------------------------------#
-# complex 36-node simubox for production simulation & complete testing
+# complex 20-node simubox for production simulation & complete testing
 
 simu:   del vsimu   up ssh
 simu7:  del vsimu7  up ssh

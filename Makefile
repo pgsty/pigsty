@@ -534,7 +534,7 @@ ctrio:
 cfull:
 	./configure -s -c ha/full
 csimu:
-	cp conf/simu.yml pigsty.yml
+	cp conf/ha/simu.yml pigsty.yml
 coss:
 	cp conf/build/oss.yml pigsty.yml
 cpro:
@@ -630,11 +630,11 @@ vfull24:
 	vagrant/config full ubuntu24
 
 #------------------------------#
-# simu, 36 nodes, the simubox
+# simu, 20 nodes, the simubox
 #------------------------------#
-# complex 36-node simubox for production simulation & complete testing
+# complex 20-node simubox for production simulation & complete testing
 simu-conf:
-	cp conf/simu.yml pigsty.yml
+	cp conf/ha/simu.yml pigsty.yml
 vsimu:
 	vagrant/config simu
 vsimu8:
@@ -652,19 +652,14 @@ vs: simu
 simu: simu9
 simu8: csimu del vsimu8 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.el8.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
-	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.el8.${ARCH}.tgz 10.10.10.11:/tmp/pkg.tgz ; ssh 10.10.10.11 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 simu9: csimu del vsimu9 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.el9.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
-	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.el9.${ARCH}.tgz 10.10.10.11:/tmp/pkg.tgz ; ssh 10.10.10.11 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 simu12: csimu del vsimu12 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.d12.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
-	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.d12.${ARCH}.tgz 10.10.10.11:/tmp/pkg.tgz ; ssh 10.10.10.11 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 simu22: csimu del vsimu22 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.u22.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
-	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.u22.${ARCH}.tgz 10.10.10.11:/tmp/pkg.tgz ; ssh 10.10.10.11 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 simu24: csimu del vsimu24 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.u24.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
-	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.u24.${ARCH}.tgz 10.10.10.11:/tmp/pkg.tgz ; ssh 10.10.10.11 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 
 rs:
 	rsync -avz --exclude=vagrant ./ ai:~/pigsty/

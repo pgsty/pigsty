@@ -27,7 +27,7 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c ha/full          # use the 4-node HA template
 ```
 
-Pigsty will use the `meta.yml` single node config template if you do not specify a conf. 
+Pigsty will use the `meta.yml` single node config template if you do not specify a conf.
 
 
 ----------
@@ -65,7 +65,7 @@ You can configure pigsty to run on multiple nodes to form a high availability (H
 * [ha/trio.yml](ha/trio.yml) : 3-node standard ha deployment
 * [ha/full.yml](ha/full.yml) : 4-node standard deployment
 * [ha/safe.yml](ha/safe.yml) : 4-node security enhanced setup with delayed replica
-* [ha/simu.yml](ha/simu.yml) : 36-node Production simulation
+* [ha/simu.yml](ha/simu.yml) : 20-node Production simulation
 
 
 ----------

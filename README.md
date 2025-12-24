@@ -450,8 +450,6 @@ pg-meta-delay:                    # delayed instance for pg-meta (1 hour ago)
 
 You can perform horizontal sharding on vanilla postgres with [**`CITUS`**](https://doc.pgsty.com/pgsql/kernel/citus/).
 
-The [`conf/simu.yml`](https://github.com/pgsty/pigsty/blob/main/conf/ha/simu.yml) provision a 10-node [**Citus**](https://doc.pgsty.com/pgsql/kernel/citus/) cluster as below:
-
 ```yaml
 # pg-citus: 10 node citus cluster (5 x primary-replica pair)
 pg-citus: # citus group

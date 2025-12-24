@@ -15,7 +15,7 @@ Create pre-configured environment with `make` shortcuts:
 ```bash
 make meta       # 1-node devbox for quick start, dev, test & playground
 make full       # 4-node sandbox for HA-testing & feature demonstration
-make simu       # 36-node simubox for production environment simulation
+make simu       # 20-node simubox for production environment simulation
 
 # seldom used templates:
 make dual       # 2-node env
@@ -27,8 +27,8 @@ You can use variant alias to create environment with different base image:
 ```bash
 make meta9      # create singleton-meta node with bento/rockylinux-9 image
 make full22     # create 4-node sandbox with generic/ubuntu2204 image
-make simu12     # create 36-node simulation env with generic/debian12 image
-...             # available suffix: 7,8,9,11,12,20,22,24
+make simu12     # create 20-node simulation env with generic/debian12 image
+...             # available suffix: 8,9,10,12,13,22,24
 ```
 
 You can also launch pigsty building env with these alias, base image will not be substituted:
@@ -84,7 +84,7 @@ vagrant/config meta                # use the 1-node spec, default el8 image
 vagrant/config dual el9            # use the 2-node spec, use el9 image instead 
 vagrant/config trio d12 2          # use the 3-node spec, use debian12 image, double the cpu/mem resource
 vagrant/config full u22 4          # use the 4-node spec, use ubuntu22 image instead, use 4x cpu/mem resource         
-vagrant/config simu u24 1 libvirt  # use the 36-node spec, use ubuntu24 image instead, use libvirt as provider instead of virtualbox 
+vagrant/config simu u24 1 libvirt  # use the 20-node spec, use ubuntu24 image instead, use libvirt as provider instead of virtualbox 
 ```
 
 You can scale the resource unit with environment variable `VM_SCALE`, the default value is `1`.
@@ -151,8 +151,8 @@ u24 :  bento/ubuntu-24.04     (libvirt, 20250316.0.0, (amd64))
 
 ## Caveat
 
-If you are using virtualbox as vagrant provider, 
-you have to add `10.0.0.0/8` to `/etc/vbox/networks.conf`, 
+If you are using virtualbox as vagrant provider,
+you have to add `10.0.0.0/8` to `/etc/vbox/networks.conf`,
 so you can use the `10.x.x.x` CIDR as host-only networks.
 
 ```bash
