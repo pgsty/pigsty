@@ -23,21 +23,34 @@
 - name: create postgres business database
   tags: [ pg_db, pg_db_create ]
   when: pg_role == 'primary'
+  vars:
+    # which database to connect for admin operations (use template1 when template is postgres)
+    admin_db: "{{ 'template1' if (database.template is defined and database.template == 'postgres') else 'postgres' }}"
+    # need to kill template connections? (yes if using user database as template)
+    need_kill: "{{ database.template is defined and database.template not in ['', 'template0', 'template1'] }}"
   block:
-    # create the database with shell command, treat the database exists as a success
+
     - name: create database {{ database.name }}
       tags: pg_db_create
       ignore_errors: true
       become_user: "{{ pg_dbsu|default('postgres') }}"
       shell: |
-        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/createdb -w -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} {% if 'owner' in  database and database.owner != '' %}-O "{{ database.owner }}" {% endif %}
-        {% if 'template'   in  database and database.template != ''   %}-T '{{ database.template   }}' {% endif %}
-        {% if 'encoding'   in  database and database.encoding != ''   %}-E '{{ database.encoding   }}' {% endif %}
-        {% if 'locale'     in  database and database.locale != ''     %}-l '{{ database.locale     }}' {% endif %}
-        {% if 'tablespace' in  database and database.tablespace != '' %}-D '{{ database.tablespace }}' {% endif %}
-        '{{ database.name }}' || true
-        db_exists=$({{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -AXtwq postgres -c "SELECT true WHERE EXISTS(SELECT * FROM pg_database WHERE datname = '{{ database.name }}' LIMIT 1);")
-        [[ -z "${db_exists}" ]] && exit 1 || exit 0
+        # check if database already exists
+        db_exists=$({{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -d postgres -AXtwq -c "SELECT 1 FROM pg_database WHERE datname = '{{ database.name }}' LIMIT 1;")
+        if [[ -n "${db_exists}" ]]; then echo "database {{ database.name }} already exists, skip"; exit 0; fi
+        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -d {{ admin_db }} -AXtw <<-'EOSQL'
+        {% if need_kill %}SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{{ database.template }}' AND pid <> pg_backend_pid();{% endif %}
+        CREATE DATABASE "{{ database.name }}"
+        {%- if database.owner      is defined and database.owner != ''      %} OWNER "{{ database.owner }}"{% endif %}
+        {%- if database.template   is defined and database.template != ''   %} TEMPLATE "{{ database.template }}"{% endif %}
+        {%- if database.encoding   is defined and database.encoding != ''   %} ENCODING '{{ database.encoding }}'{% endif %}
+        {%- if database.locale     is defined and database.locale != ''     %} LOCALE '{{ database.locale }}'{% endif %}
+        {%- if database.lc_collate is defined and database.lc_collate != '' %} LC_COLLATE '{{ database.lc_collate }}'{% endif %}
+        {%- if database.lc_ctype   is defined and database.lc_ctype != ''   %} LC_CTYPE '{{ database.lc_ctype }}'{% endif %}
+        {%- if database.tablespace is defined and database.tablespace != '' %} TABLESPACE "{{ database.tablespace }}"{% endif %}
+        {%- if database.strategy   is defined and database.strategy != '' and pg_version|default(18)|int >= 15 %} STRATEGY {{ database.strategy|upper }}{% endif %}
+        ;
+        EOSQL
       args: { executable: /bin/bash }
 
     - name: provision database {{ database.name }}
@@ -45,14 +58,14 @@
       ignore_errors: true
       become_user: "{{ pg_dbsu|default('postgres') }}"
       shell: |
-        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql {{ database.name }} -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -AXtwf /pg/tmp/pg-db-{{ database.name }}.sql >> /pg/tmp/pg-db-{{ database.name }}.log
+        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql {{ database.name }} -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -AXtwf /pg/tmp/pg-db-{{ database.name }}.sql >> /pg/tmp/pg-db-{{ database.name }}.log 2>&1
 
     - name: load database {{ database.name }} baseline
       tags: pg_db_create
       ignore_errors: true
       become_user: "{{ pg_dbsu|default('postgres') }}"
       shell: |
-        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql {{ database.name }} -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -AXtwf /pg/tmp/pg-db-{{ database.name }}-baseline.sql >> /pg/tmp/pg-db-{{ database.name }}-baseline.log
+        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql {{ database.name }} -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -AXtwf /pg/tmp/pg-db-{{ database.name }}-baseline.sql >> /pg/tmp/pg-db-{{ database.name }}-baseline.log 2>&1
       when: database.baseline is defined
 
 ...
