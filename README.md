@@ -3,7 +3,7 @@
 [![Webite: pgsty.com](https://img.shields.io/badge/website-pgsty.com-slategray?style=flat&logo=cilium&logoColor=white)](https://pgsty.com)
 [![Docs](https://img.shields.io/badge/docs-slategray?style=flat&logo=cilium&logoColor=white)](https://doc.pgsty.com)
 [![Version: v3.7.0](https://img.shields.io/badge/version-v3.7.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases/tag/v3.7.0)
-[![License: AGPLv3](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://doc.pgsty.com/about/license/)
+[![License: Apache-2.0](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://pigsty.io/docs/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
 [![Extensions: 440](https://img.shields.io/badge/extensions-440-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pgext.cloud/list)
 
@@ -11,7 +11,7 @@ Battery-Included, Local-First **PostgreSQL** Distribution as a Free & Better **R
 
 > "**P**ostgreSQL **I**n **G**reat **STY**le": **P**ostgres, **I**nfras, **G**raphics, **S**ervice, **T**oolbox, it's all **Y**ours.
 
-[Website](https://pgsty.com) | [Docs](https://doc.pgsty.com) | [Org](https://github.com/pgsty) | [PGEXT.CLOUD](https://pgext.cloud) | [Values](https://pgsty.com/about/values) | [Demo](https://g.pgsty.com) | [Blog](https://vonng.com/en/) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pgsty.com/price) | [中文站点](https://doc.pgsty.com/zh/) | [博客](https://vonng.com)
+[Website](https://pgsty.com) | [Docs](https://doc.pgsty.com) | [Org](https://github.com/pgsty) | [PGEXT.CLOUD](https://pgext.cloud) | [Values](https://pgsty.com/about/values) | [Demo](https://g.pgsty.com) | [Blog](https://vonng.com/en/) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pgsty.com/price) | [中文站](https://pigsty.cc/) | [博客](https://vonng.com)
 
 [![banner](https://github.com/user-attachments/assets/c0bb8d27-2cea-4203-bce5-f297c5167baf)](https://pgsty.com)
 
@@ -63,7 +63,7 @@ You can even use exotic [PG kernel forks](https://doc.pgsty.com/pgsql/kernel) as
 [![Linux](https://img.shields.io/badge/Linux-AMD64-%23FCC624?style=flat&logo=linux&labelColor=FCC624&logoColor=black)](https://doc.pgsty.com/node)
 [![Linux](https://img.shields.io/badge/Linux-ARM64-%23FCC624?style=flat&logo=linux&labelColor=FCC624&logoColor=black)](https://doc.pgsty.com/node)
 [![EL Support: 8/9/10](https://img.shields.io/badge/EL-8/9/10-red?style=flat&logo=redhat&logoColor=red)](https://doc.pgsty.com/docs/prepare/linux#el)
-[![Debian Support: 12](https://img.shields.io/badge/Debian-12/13-%23A81D33?style=flat&logo=debian&logoColor=%23A81D33)](https://doc.pgsty.com/docs/prepare/linux#debian)
+[![Debian Support: 12/13](https://img.shields.io/badge/Debian-12/13-%23A81D33?style=flat&logo=debian&logoColor=%23A81D33)](https://doc.pgsty.com/docs/prepare/linux#debian)
 [![Ubuntu Support: 22/24](https://img.shields.io/badge/Ubuntu-22/24-%23E95420?style=flat&logo=ubuntu&logoColor=%23E95420)](https://doc.pgsty.com/docs/prepare/linux#ubuntu)
 
 [**Prepare**](https://doc.pgsty.com/prepare) a fresh `x86_64` / `aarch64` node runs any [**compatible**](https://doc.pgsty.com/prepare/linux) **Linux** OS Distros, then [**Download**](https://doc.pgsty.com/software#pigsty) **Pigsty** with:
@@ -591,7 +591,7 @@ There are other pro, beta, or pilot modules, and there will be more coming in th
 
 ## Compatibility
 
-We recommend using RockyLinux 9.6, Debian 12.11, and Ubuntu 24.04.2 for production use.
+We recommend using RockyLinux 10, Debian 13, and Ubuntu 24.04 for production use.
 
 Pigsty runs on bare linux directly, and focuses on active maintained mainstream LTS [Linux distros](https://doc.pgsty.com/prepare/linux):
 
@@ -622,13 +622,9 @@ Special thanks to MiraclePlus for fund, to Cloudflare for hosting the Pigsty rep
 
 ## License
 
-Pigsty is free and open source software licensed under the [AGPLv3](https://doc.pgsty.com/about/license/) license. 
-While often misunderstood, this license allows anyone to use Pigsty internally without sharing source code or any other work related.
-
-We also extend exemptions to common end users under terms akin to the [Apache 2.0 license](https://doc.pgsty.com/about/license/).
-But if you plan to offer Pigsty as a public service (e.g., a database cloud offering), 
-please make sure to share any modifications you make to pigsty source code,
-so the whole community can benefit from your knowledge and expertise.  
+Pigsty is licensed under [Apache-2.0](LICENSE) (since v4.0). 
+Two **optional** modules ( [`INFRA`](roles/infra/LICENSE) and [`MINIO`](roles/infra/LICENSE)) are licensed under [AGPL-3.0](https://www.gnu.org/licenses/agpl-3.0.html) 
+due to upstream dependencies (Grafana & MinIO). See [NOTICE](NOTICE) and [docs](https://pigsty.io/docs/about/license) for details.  
 
 
 ----------------
@@ -644,6 +640,6 @@ so the whole community can benefit from your knowledge and expertise.
 [![Author: RuohangFeng](https://img.shields.io/badge/Author-Ruohang_Feng-steelblue?style=flat)](https://vonng.com/)
 [![About: @Vonng](https://img.shields.io/badge/%40Vonng-steelblue?style=flat)](https://vonng.com/en/)
 [![Mail: rh@vonng.com](https://img.shields.io/badge/rh%40vonng.com-steelblue?style=flat)](mailto:rh@vonng.com)
-[![Copyright: 2018-2025 rh@Vonng.com](https://img.shields.io/badge/Copyright-2018--2025_(rh%40vonng.com)-red?logo=c&color=steelblue)](https://github.com/Vonng)
-[![License: AGPLv3](https://img.shields.io/badge/License-AGPLv3-steelblue?style=flat&logo=opensourceinitiative&logoColor=green)](https://doc.pgsty.com/about/license/)
-[![Service: PGSTY PRO](https://img.shields.io/badge/Service-PGSTY-steelblue?style=flat)](https://pigsty.io/price)
+[![Copyright: 2018-2026 rh@Vonng.com](https://img.shields.io/badge/Copyright-2018--2026_(rh%40vonng.com)-red?logo=c&color=steelblue)](https://github.com/Vonng)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-steelblue?style=flat&logo=opensourceinitiative&logoColor=green)](https://pigsty.io/docs/about/license/)
+[![Service: PGSTY PRO](https://img.shields.io/badge/Service-PGSTY-steelblue?style=flat)](https://pigsty.cc/docs/about/service)

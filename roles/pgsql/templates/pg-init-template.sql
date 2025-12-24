@@ -5,8 +5,8 @@
 -- Host      :   {{ pg_instance }} @ {{ inventory_hostname }}:{{ pg_port }}
 -- Path      :   /pg/tmp/pg-init-template.sql
 -- Note      :   ANSIBLE MANAGED, DO NOT CHANGE!
--- License   :   AGPLv3 @ https://doc.pgsty.com/about/license
--- Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+-- License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+-- Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 ----------------------------------------------------------------------
 
 --==================================================================--

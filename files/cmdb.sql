@@ -3,8 +3,8 @@
 -- # Desc      :   Pigsty CMDB baseline
 -- # Ctime     :   2021-04-21
 -- # Mtime     :   2025-12-13
--- # License   :   AGPLv3 @ https://doc.pgsty.com/about/license
--- # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+-- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+-- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
 
 

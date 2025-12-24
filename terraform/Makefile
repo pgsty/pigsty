@@ -5,7 +5,7 @@
 # Mtime     :   2024-12-24
 # Path      :   Makefile
 # Author    :   Ruohang Feng (rh@vonng.com)
-# License   :   AGPLv3
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 #==============================================================#
 
 

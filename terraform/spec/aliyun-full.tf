@@ -5,8 +5,8 @@
 # Mtime     :   2025-12-15
 # Path      :   terraform/spec/aliyun-full.yml
 # Docs      :   https://doc.pgsty.com/prepare/terraform
-# License   :   AGPLv3 @ https://doc.pgsty.com/about/license
-# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
 
