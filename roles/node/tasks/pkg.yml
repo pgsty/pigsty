@@ -38,15 +38,24 @@
           {% for repo in repo_upstream %}
           {% if os_version|int in repo.releases and repo.module == module_name and os_arch in repo.arch %}
           {% if os_package == 'rpm' %}
+          {% set target_version = '$releasever' %}
+          {% if (os_version|int >= 10) and (repo.name | lower | regex_search('^epel')) %}{% set target_version = os_version_full|string %}{% endif %}
+          {% if repo.minor is defined and repo.minor|bool %}{% set target_version = os_version_full|string %}{% endif %}
           [{{ repo.name }}]
           name = {{ repo.description }} $releasever - $basearch
           {% if region in repo.baseurl and repo.baseurl[region] != '' %}
-          baseurl = {{ repo.baseurl[region] | replace('${admin_ip}', admin_ip) | replace('${os_version_full}', os_version_full) }}
+          baseurl = {{ repo.baseurl[region] | replace('${admin_ip}', admin_ip) | replace('$releasever', target_version|string) }}
           {% else %}
-          baseurl = {{ repo.baseurl.default | replace('${admin_ip}', admin_ip) | replace('${os_version_full}', os_version_full) }}
+          baseurl = {{ repo.baseurl.default | replace('${admin_ip}', admin_ip) | replace('$releasever', target_version|string) }}
           {% endif %}
           gpgcheck = 0
           enabled = 1
+          {% if repo.priority is defined and repo.priority|int >= 1 and repo.priority|int <= 99 %}
+          priority = {{ repo.priority }}
+          {% endif %}
+          {% if repo.skip_ifna is defined and repo.skip_ifna|bool %}
+          skip_if_unavailable = 1
+          {% endif %}
           {% if os_version|int >= 8 %}
           module_hotfixes=1
           {% endif %}
