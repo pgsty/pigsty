@@ -10,38 +10,23 @@
 
 
 #--------------------------------------------------------------#
-# Infra PIP Packages                             [infra_pkg_pip]
+# UV Config for China Region                          [infra_uv]
 #--------------------------------------------------------------#
-- name: install python pip packages
-  tags: infra_pkg_pip
-  when: inventory_hostname in groups["infra"]|default([]) and infra_packages_pip != '' and nginx_enabled|bool
-  ignore_errors: yes
-  environment: "{{ proxy_env | default({}) }}"
-  shell: |
-    #!/bin/bash
-    PYTHON_BIN="$(which python3)"
-    PYTHON_DIR="{{ nginx_home }}/{{ repo_name }}/python"
-    OS_RELEASE=$(rpm -q --qf "%{VERSION}" $(rpm -q --whatprovides redhat-release) | grep -o '^[^.]\+')
-    # python3 & python3-pip is installed 
-    if [ ${OS_RELEASE} -ge 9 ]; then
-        PYTHON_BIN="$(which python3.9)"
-    elif [ ${OS_RELEASE} -ge 8 ]; then
-        PYTHON_BIN="$(which python3.8)"
-    elif [ ${OS_RELEASE} -ge 7 ]; then
-        PYTHON_BIN="$(which python3.6)"
-    else
-        PYTHON_BIN="$(which python3)"
-    fi
-    
-    mkdir -p ${PYTHON_DIR}; cd ${PYTHON_DIR}
-    if ! compgen -G ${PYTHON_DIR}/pip*.whl ; then
-        ${PYTHON_BIN} -m pip install --upgrade pip
-        ${PYTHON_BIN} -m pip download pip
-        ${PYTHON_BIN} -m pip download {{ infra_packages_pip }}
-    fi
-    ${PYTHON_BIN} -m pip install ${PYTHON_DIR}/pip* || /bin/true
-    ${PYTHON_BIN} -m pip install ${PYTHON_DIR}/*    || /bin/true
-  args: { executable: /bin/bash }
+- name: create uv config directory
+  tags: infra_uv
+  when: region is defined and region == 'china'
+  file: path=/etc/uv state=directory mode=0755
+
+- name: render uv config for china region
+  tags: infra_uv
+  when: region is defined and region == 'china'
+  copy:
+    dest: /etc/uv/uv.toml
+    mode: '0644'
+    content: |
+      [[index]]
+      url = "https://mirrors.aliyun.com/pypi/simple/"
+      default = true
 
 
 ...
