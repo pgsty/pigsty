@@ -76,6 +76,12 @@
     - name: create os user admin
       user: name={{ node_admin_username }} uid={{ node_admin_uid }} home=/home/{{ node_admin_username }} shell=/bin/bash groups=admin generate_ssh_key=yes
 
+    - name: grant current admin user admin group
+      when: node_user is defined and node_user != '' and node_user != 'root' and node_user != node_admin_username
+      ignore_errors: true
+      shell: |
+        usermod -aG admin "{{ node_user | default('root') }}" || /bin/true;
+
     # node_admin_sudo: all = require password, nopass = no password required
     - name: grant admin user sudo privilege
       copy:
