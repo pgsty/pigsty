@@ -2,7 +2,7 @@
 # File      :   aliyun-oss.yml
 # Desc      :   3-node building env for x86_64/aarch64
 # Ctime     :   2024-12-12
-# Mtime     :   2025-12-24
+# Mtime     :   2025-12-25
 # Path      :   terraform/spec/aliyun-oss.yml
 # Docs      :   https://doc.pgsty.com/prepare/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -37,7 +37,7 @@ locals {
       el10  = "^rockylinux_10_0_x64"
       d11   = "^debian_11_11_x64"
       d12   = "^debian_12_11_x64"
-      d13   = "^debian_13_1_x64"
+      d13   = "^debian_13_2_x64"
       u20   = "^ubuntu_20_04_x64"
       u22   = "^ubuntu_22_04_x64"
       u24   = "^ubuntu_24_04_x64"
@@ -49,7 +49,7 @@ locals {
       el9   = "^rockylinux_9_6_arm64"
       el10   = "^rockylinux_10_0_arm64"
       d12   = "^debian_12_11_arm64"
-      d13   = "^debian_13_1_arm64"
+      d13   = "^debian_13_2_arm64"
       u22   = "^ubuntu_22_04_arm64"
       u24   = "^ubuntu_24_04_arm64"
     }
