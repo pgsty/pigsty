@@ -4,7 +4,7 @@ set -uo pipefail
 # File      :   pg-pitr
 # Desc      :   pitr hint with pgbackrest
 # Ctime     :   2022-12-31
-# Mtime     :   2024-05-19
+# Mtime     :   2025-12-26
 # Path      :   /pg/bin/pg-pitr
 # Deps      :   pgbackrest
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -57,7 +57,7 @@ function usage() {
 
       pg-pitr                                 # restore to wal archive stream end (e.g. used in case of entire DC failure)
       pg-pitr -i                              # restore to the time of latest backup complete (not often used)
-      pg-pitr --time="2022-12-30 14:44:44+08" # restore to specific time point (in case of drop db, drop table)
+      pg-pitr --time="2025-12-25 12:00:00+00" # restore to specific time point (in case of drop db, drop table)
       pg-pitr --name="my-restore-point"       # restore TO a named restore point create by pg_create_restore_point
       pg-pitr --lsn="0/7C82CB8" -X            # restore right BEFORE a LSN
       pg-pitr --xid="1234567" -X -P           # restore right BEFORE a specific transaction id, then promote
@@ -66,7 +66,7 @@ function usage() {
 
       pg-pitr                                 # pgbackrest --stanza=pg-meta restore
       pg-pitr -i                              # pgbackrest --stanza=pg-meta --type=immediate restore
-      pg-pitr -t "2022-12-30 14:44:44+08"     # pgbackrest --stanza=pg-meta --type=time --target="2022-12-30 14:44:44+08" restore
+      pg-pitr -t "2025-12-25 12:00:00+00"     # pgbackrest --stanza=pg-meta --type=time --target="2025-12-25 12:00:00+00" restore
       pg-pitr -n "my-restore-point"           # pgbackrest --stanza=pg-meta --type=name --target=my-restore-point restore
       pg-pitr -b 20221108-105325F             # pgbackrest --stanza=pg-meta --type=name --set=20221230-120101F restore
       pg-pitr -l "0/7C82CB8" -X               # pgbackrest --stanza=pg-meta --type=lsn --target="0/7C82CB8" --target-exclusive restore
@@ -182,7 +182,7 @@ case ${METHOD} in
     time)
       # check target match date time regex
       if [[ ! ${TARGET} =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[\ ][0-9]{2}:[0-9]{2}:[0-9]{2}[\+|\-][0-9]{2}$ ]]; then
-        log_error "target time format error, should be like 2022-12-30 14:44:44+08"
+        log_error "target time format error, should be like 2025-12-25 12:00:00+00"
         exit 5
       fi
       COMMAND="${COMMAND} --type=time --target='${TARGET}'"; ;;
@@ -228,7 +228,7 @@ echo ${COMMAND}
 
 #pg-pitr                             # pgbackrest --stanza=pg-meta restore
 #pg-pitr -i                          # pgbackrest --stanza=pg-meta --type=immediate restore
-#pg-pitr -t "2022-12-30 14:44:44+08" # pgbackrest --stanza=pg-meta --type=time --target="2022-12-30 14:44:44+08" restore
+#pg-pitr -t "2025-12-25 12:00:00+00" # pgbackrest --stanza=pg-meta --type=time --target="2025-12-25 12:00:00+00" restore
 #pg-pitr -n "my-restore-point"       # pgbackrest --stanza=pg-meta --type=name --target=my-restore-point restore
 #pg-pitr -s 20221108-105325F         # pgbackrest --stanza=pg-meta --set=20221230-120101F restore
 #pg-pitr -l "0/7C82CB8" -X           # pgbackrest --stanza=pg-meta --type=lsn --target="0/7C82CB8" --target-exclusive restore
