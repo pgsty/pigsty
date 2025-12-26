@@ -34,6 +34,7 @@ Vagrant.configure("2") do |config|
             node.vm.box = spec["image"]
             node.vm.network "private_network", ip: spec["ip"]
             node.vm.hostname = spec["name"]
+            disk_size = spec["disk"] || 128
             node.vm.provider "libvirt" do |v|
                 v.cpus   =  spec["cpu"]
                 v.memory =  spec["mem"]
@@ -42,6 +43,8 @@ Vagrant.configure("2") do |config|
                     v.storage :file, :size => '32G', :device => 'vdc'
                     v.storage :file, :size => '32G', :device => 'vdd'
                     v.storage :file, :size => '32G', :device => 'vde'
+                else
+                    v.storage :file, :size => "#{disk_size}G", :device => 'vdb'
                 end
             end
 
@@ -58,6 +61,19 @@ Vagrant.configure("2") do |config|
                     echo "/dev/vdc /data2 xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab;
                     echo "/dev/vdd /data3 xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab;
                     echo "/dev/vde /data4 xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab;
+                  SHELL
+                end
+            else
+                node.vm.provision "shell" do |s|
+                  s.inline = <<-SHELL
+                    if [ -b /dev/vdb ] && ! blkid /dev/vdb | grep -q xfs; then
+                      mkfs.xfs -f /dev/vdb
+                    fi
+                    mkdir -p /data
+                    if ! grep -q '/dev/vdb' /etc/fstab; then
+                      echo "/dev/vdb /data xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab
+                    fi
+                    mount -a
                   SHELL
                 end
             end
