@@ -1,0 +1,356 @@
+#!/bin/bash
+set -uo pipefail
+#==============================================================#
+# File      :   pg-fork
+# Desc      :   fork a new postgres instance from existing one
+# Ctime     :   2025-12-26
+# Mtime     :   2025-12-26
+# Path      :   /pg/bin/pg-fork
+# Docs      :   https://pigsty.io/docs/pgsql/admin/clone/
+# Deps      :   psql, cp, works best on XFS with reflink enabled
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+PROG_NAME="$(basename $0)"
+PROG_DIR="$(cd $(dirname $0) && pwd)"
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+function usage() {
+    cat <<-'EOF'
+		NAME
+		    pg-fork   -- fork a new postgres instance from existing one on current node
+
+		SYNOPSIS
+		    pg-fork <FORK_ID> [-p|--port <port>] [-d|--data <datadir>] [-D|--dst <dst_dir>] [-P|--dst-port <dst_port>]
+
+		DESCRIPTION
+		    pg-fork uses low-level backup API (pg_backup_start/stop) to create
+		    a physical copy of an existing PostgreSQL instance.
+
+		    The copy uses CoW (copy-on-write) with --reflink=auto when supported,
+		    making it space-efficient on filesystems like XFS, Btrfs, or ZFS.
+
+		OPTIONS
+		    <FORK_ID>               Fork instance number (1-9), determines default port & data dir
+		    -d, --data <datadir>    Source instance data directory (default: /pg/data or $PG_DATA)
+		    -D, --dst  <dst_dir>    Destination data directory (default: /pg/data<FORK_ID>)
+		    -p, --src-port <port>   Source instance port (default: 5432 or $PG_PORT)
+		    -P, --dst-port <port>   Destination instance port (default: <FORK_ID>5432)
+		    -y, --yes               Skip confirmation prompt
+		    -h, --help              Show this help message
+
+		EXAMPLES
+		    pg-fork 1                           # fork to /pg/data1 with port 15432
+		    pg-fork 2 -p 5433                   # fork from port 5433 to /pg/data2:25432
+		    pg-fork 3 -d /pg/data1              # fork from /pg/data1 to /pg/data3:35432
+		    pg-fork 1 -D /tmp/test -P 5555      # fork to custom location and port
+		    PG_PORT=5433 pg-fork 1              # use env var for source port
+
+		NOTES
+		    - Run as dbsu (postgres group member)
+		    - Source instance must be running
+		    - Destination directory will be REMOVED if exists!
+		    - Uses CoW (reflink) on XFS/Btrfs for instant clone
+		    - Forked instance starts with archive_mode=off
+
+	EOF
+    exit 0
+}
+
+
+#--------------------------------------------------------------#
+# Log Util
+#--------------------------------------------------------------#
+if [[ -t 1 ]]; then
+    __CN='\033[0m';__CK='\033[0;30m';__CR='\033[0;31m';__CG='\033[0;32m';
+    __CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';__CC='\033[0;36m';__CW='\033[0;37m';
+else
+    __CN='';__CB='';__CR='';__CG='';__CY='';__CB='';__CM='';__CC='';__CW='';
+fi
+function log_info()  { printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n"; }
+function log_warn()  { printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n"; }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n"; }
+function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n"; }
+function log_title() { printf "[${__CG}$1${__CN}] ${__CG}$2${__CN}\n";   }
+function log_hint()  { printf "${__CB}$*${__CN}\n"; }
+function log_line()  { printf "${__CM}===== $* =====${__CN}\n"; }
+
+
+#--------------------------------------------------------------#
+# Param
+#--------------------------------------------------------------#
+FORK_ID=""
+SRC_PORT="${PG_PORT:-5432}"
+SRC_DATA="${PG_DATA:-/pg/data}"
+DST_DATA=""
+DST_PORT=""
+SKIP_CONFIRM=false
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -h|--help)      usage ;;
+        -p|--port)      SRC_PORT="$2"; shift ;;
+        -d|--data)      SRC_DATA="$2"; shift ;;
+        -D|--dst)       DST_DATA="$2"; shift ;;
+        -P|--dst-port)  DST_PORT="$2"; shift ;;
+        -y|--yes)       SKIP_CONFIRM=true ;;
+        -*)             log_error "Unknown option: $1"; exit 1 ;;
+        *)
+            if [[ -z "${FORK_ID}" ]]; then
+                FORK_ID="$1"
+            else
+                log_error "Unexpected argument: $1"; exit 1
+            fi
+            ;;
+    esac
+    shift
+done
+
+
+#--------------------------------------------------------------#
+# Validate
+#--------------------------------------------------------------#
+# FORK_ID is required
+if [[ -z "${FORK_ID}" ]]; then
+    log_error "FORK_ID is required (1-9)"
+    log_hint "Usage: pg-fork <FORK_ID> [options]"
+    exit 1
+fi
+
+# FORK_ID must be 1-9
+if [[ ! "${FORK_ID}" =~ ^[1-9]$ ]]; then
+    log_error "FORK_ID must be a single digit (1-9), got: ${FORK_ID}"
+    exit 1
+fi
+
+# Set defaults based on FORK_ID
+DST_DATA="${DST_DATA:-/pg/data${FORK_ID}}"
+DST_PORT="${DST_PORT:-${FORK_ID}5432}"
+
+# Validate source data directory
+if [[ ! -d "${SRC_DATA}" ]]; then
+    log_error "Source data directory does not exist: ${SRC_DATA}"
+    exit 1
+fi
+
+# Check if source instance is running
+if ! psql -p "${SRC_PORT}" -c "SELECT 1" &>/dev/null; then
+    log_error "Cannot connect to source instance at port ${SRC_PORT}"
+    exit 1
+fi
+
+# Prevent fork to same location
+if [[ "${SRC_DATA}" == "${DST_DATA}" ]]; then
+    log_error "Source and destination cannot be the same: ${SRC_DATA}"
+    exit 1
+fi
+
+# Check user group (dbsu name may vary, but group is always postgres)
+if ! id -nG | grep -qw postgres; then
+    log_error "This script must be run as postgres group member (dbsu)"
+    exit 1
+fi
+
+
+#--------------------------------------------------------------#
+# Check CoW Support
+#--------------------------------------------------------------#
+COW_MODE="copy"  # default: regular copy
+
+# Get filesystem info for source and destination
+SRC_MOUNT=$(df "${SRC_DATA}" --output=target 2>/dev/null | tail -1)
+DST_PARENT=$(dirname "${DST_DATA}")
+mkdir -p "${DST_PARENT}" 2>/dev/null || true
+DST_MOUNT=$(df "${DST_PARENT}" --output=target 2>/dev/null | tail -1)
+
+# Check if both paths are on the same filesystem
+if [[ "${SRC_MOUNT}" == "${DST_MOUNT}" ]]; then
+    SAME_FS=true
+    FS_TYPE=$(df "${SRC_DATA}" --output=fstype 2>/dev/null | tail -1)
+
+    # Check reflink support based on filesystem type
+    case "${FS_TYPE}" in
+        xfs)
+            # XFS: check if reflink is enabled
+            SRC_DEV=$(df "${SRC_DATA}" --output=source 2>/dev/null | tail -1)
+            if xfs_info "${SRC_DEV}" 2>/dev/null | grep -q "reflink=1"; then
+                COW_MODE="cow"
+            fi
+            ;;
+        btrfs)
+            # Btrfs: reflink is always supported
+            COW_MODE="cow"
+            ;;
+        bcachefs|ocfs2)
+            # Other filesystems with reflink support
+            COW_MODE="cow"
+            ;;
+    esac
+else
+    SAME_FS=false
+fi
+
+
+#--------------------------------------------------------------#
+# Confirm
+#--------------------------------------------------------------#
+log_line "Fork Plan"
+echo "Source Instance:"
+log_hint "  Port: ${SRC_PORT}"
+log_hint "  Data: ${SRC_DATA}"
+echo ""
+echo "Destination Instance:"
+log_hint "  Port: ${DST_PORT}"
+log_hint "  Data: ${DST_DATA}"
+echo ""
+
+# Display clone mode
+if [[ "${COW_MODE}" == "cow" ]]; then
+    log_info "Clone Mode: Fast CoW (copy-on-write) on ${FS_TYPE}"
+else
+    if [[ "${SAME_FS}" == "true" ]]; then
+        log_warn "Clone Mode: Regular copy (${FS_TYPE} without reflink support)"
+    else
+        log_warn "Clone Mode: Regular copy (cross-filesystem: ${SRC_MOUNT} -> ${DST_MOUNT})"
+    fi
+fi
+echo ""
+
+if [[ -d "${DST_DATA}" ]]; then
+    log_warn "Destination directory exists and will be REMOVED: ${DST_DATA}"
+fi
+
+if [[ "${SKIP_CONFIRM}" != "true" ]]; then
+    echo ""
+    read -p "Proceed with fork? [y/N] " -n 1 -r
+    echo ""
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        log_warn "Aborted by user"
+        exit 0
+    fi
+fi
+
+
+#--------------------------------------------------------------#
+# Prepare
+#--------------------------------------------------------------#
+log_line "Preparing Fork"
+
+# Create temp directory for SQL script
+mkdir -p /pg/tmp
+FORK_SQL="/pg/tmp/fork_${FORK_ID}.sql"
+FORK_LABEL="pgfork_${FORK_ID}_$(date +%Y%m%d_%H%M%S)"
+
+# Generate fork SQL script
+cat > "${FORK_SQL}" <<EOSQL
+-- pg-fork: ${FORK_LABEL}
+-- Source: ${SRC_DATA} (port ${SRC_PORT})
+-- Target: ${DST_DATA} (port ${DST_PORT})
+
+\\set ON_ERROR_STOP on
+
+-- Checkpoint to minimize recovery time
+CHECKPOINT;
+
+-- Start backup mode
+SELECT pg_backup_start('${FORK_LABEL}', fast => true);
+
+-- Copy data directory using CoW (same psql session)
+\\! rm -rf ${DST_DATA} && cp -a --reflink=auto ${SRC_DATA} ${DST_DATA} && echo "COPY_SUCCESS"
+
+-- Stop backup mode
+SELECT * FROM pg_backup_stop(wait_for_archive => false);
+EOSQL
+
+log_info "Generated fork SQL: ${FORK_SQL}"
+
+
+#--------------------------------------------------------------#
+# Execute Fork
+#--------------------------------------------------------------#
+log_line "Executing Fork"
+
+# Execute the fork SQL via stdin (backup_start -> copy -> backup_stop in same session)
+psql -p "${SRC_PORT}" < "${FORK_SQL}"
+FORK_STATUS=$?
+
+if [[ ${FORK_STATUS} -ne 0 ]]; then
+    log_error "Fork failed with status ${FORK_STATUS}"
+    exit 1
+fi
+
+log_info "Fork completed"
+
+
+#--------------------------------------------------------------#
+# Configure Forked Instance
+#--------------------------------------------------------------#
+log_line "Configuring Forked Instance"
+
+# Remove runtime files
+rm -f "${DST_DATA}/postmaster.pid"
+rm -f "${DST_DATA}/postmaster.opts"
+
+# Remove standby signal if exists (create independent instance)
+rm -f "${DST_DATA}/standby.signal"
+
+# Remove replication slots (avoid conflicts)
+rm -rf "${DST_DATA}/pg_replslot/"*
+
+# Adjust postgresql.auto.conf for forked instance
+AUTOCONF="${DST_DATA}/postgresql.auto.conf"
+
+# Function to set parameter in postgresql.auto.conf
+set_param() {
+    local param="$1"
+    local value="$2"
+    local file="${AUTOCONF}"
+
+    if grep -q "^${param} = " "${file}" 2>/dev/null; then
+        sed -i "s|^${param} = .*|${param} = ${value}|" "${file}"
+    else
+        echo "${param} = ${value}" >> "${file}"
+    fi
+}
+
+# Set required parameters
+set_param "port" "${DST_PORT}"
+set_param "archive_mode" "off"
+set_param "log_directory" "'log'"
+
+# Remove cluster-specific settings that may cause issues
+sed -i '/^primary_conninfo/d' "${AUTOCONF}" 2>/dev/null || true
+sed -i '/^primary_slot_name/d' "${AUTOCONF}" 2>/dev/null || true
+sed -i '/^recovery_target/d' "${AUTOCONF}" 2>/dev/null || true
+
+log_info "Configuration updated in ${AUTOCONF}"
+
+
+#--------------------------------------------------------------#
+# Summary
+#--------------------------------------------------------------#
+log_line "Fork Completed"
+echo ""
+log_info "Forked instance ready at:"
+log_hint "  Data Directory: ${DST_DATA}"
+log_hint "  Port:           ${DST_PORT}"
+echo ""
+log_info "To start the forked instance:"
+log_hint "  pg_ctl -D ${DST_DATA} start"
+log_hint "  cat ${DST_DATA}/log/*"
+echo ""
+log_info "To connect:"
+log_hint "  psql -p ${DST_PORT}"
+echo ""
+log_info "To stop and remove:"
+log_hint "  pg_ctl -D ${DST_DATA} stop"
+log_hint "  rm -rf ${DST_DATA}"
+echo ""
+log_info "To perform PITR:"
+log_hint "  pb --pg1-path=${DST_DATA} restore  # pitr args"
+echo ""
+
+exit 0
