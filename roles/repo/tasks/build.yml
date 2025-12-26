@@ -62,6 +62,7 @@
       {% if os_package == 'rpm' %}
       {% set target_version = '$releasever' %}
       {% if (os_version|int >= 10) and (repo.name | lower | regex_search('^epel')) %}{% set target_version = os_version_full|string %}{% endif %}
+      {% if (repo.name | lower | regex_search('^pgdg')) and ((os_version|int >= 10) or (os_version_full in ['9.6','9.7'])) %}{% set target_version = os_version_full|string %}{% endif %}
       {% if repo.minor is defined and repo.minor|bool %}{% set target_version = os_version_full|string %}{% endif %}
       [{{ repo.name }}]
       name = {{ repo.description }} $releasever - $basearch
@@ -70,17 +71,12 @@
       {% else %}
       baseurl = {{ repo.baseurl.default | replace('${admin_ip}', admin_ip) | replace('$releasever', target_version|string) }}
       {% endif %}
-      gpgcheck = 0
-      enabled = 1
-      {% if repo.priority is defined and repo.priority|int >= 1 and repo.priority|int <= 99 %}
-      priority = {{ repo.priority }}
-      {% endif %}
-      {% if repo.skip_ifna is defined and repo.skip_ifna|bool %}
-      skip_if_unavailable = 1
-      {% endif %}
-      {% if os_version|int >= 8 %}
-      module_hotfixes=1
-      {% endif %}
+      {% set repo_opts = {'gpgcheck': 0, 'enabled': 1} %}
+      {% if os_version|int >= 8 %}{% set repo_opts = repo_opts | combine({'module_hotfixes': 1}) %}{% endif %}
+      {% if repo.meta is defined %}{% set repo_opts = repo_opts | combine(repo.meta) %}{% endif %}
+      {% for key, value in repo_opts.items() %}
+      {{ key }} = {{ value }}
+      {% endfor %}
       {% elif os_package == 'deb' %}
       {% if region in repo.baseurl and repo.baseurl[region] != '' %}
       # [module_name] [{{ os_codename }}:{{ os_version }}] {{ repo.name }}: {{ repo.description }}
