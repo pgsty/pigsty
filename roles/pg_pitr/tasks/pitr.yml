@@ -10,6 +10,20 @@
     - { src: "pg-restore" ,dest: "/pg/bin/pg-restore", mode: "0700" ,owner: root }
 
 #--------------------------------------------------------------#
+# BACKUP EXISTING DATA                                  [backup]
+#--------------------------------------------------------------#
+- name: backup existing data directory
+  tags: [ backup ]
+  become: true
+  become_user: "{{ pg_dbsu|default('postgres') }}"
+  when: pg_pitr.backup is defined and pg_pitr.backup|bool
+  shell: |
+    rm -rf "{{ pg_data }}-backup" 2>/dev/null || true
+    if [ -d "{{ pg_data }}" ]; then
+      mv "{{ pg_data }}" "{{ pg_data }}-backup"
+    fi
+
+#--------------------------------------------------------------#
 # PITR RESTORE                                         [restore]
 #--------------------------------------------------------------#
 # first restore /pg/data with pgbackrest
@@ -23,9 +37,8 @@
       tags: pgbackrest
       any_errors_fatal: true
       ignore_errors: false
-      become_user: "{{ pg_dbsu|default('postgres') }}"
       shell: |
-        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/pg_ctl -D {{ pg_data }} stop -m immediate
+        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/pg_ctl -D {{ pg_data }} stop -m immediate 2>/dev/null || true
         mkdir -p "{{ pg_data }}"
         {{ pitr_command }}
       register: pitr_result
@@ -53,13 +66,13 @@
       shell: |
         "{{ pg_bin_dir|default('/usr/pgsql/bin') }}/pg_ctl" -W -D {{ pg_data }} -o "-c port={{ pg_port }} -c logging_collector=on -c log_destination=stderr -c log_directory=/pg/tmp -c log_filename=recovery.log" start
 
-    - name: wait for consistent recovery state at /pg/tmp/recovery.log
+    - name: wait for consistent recovery state (up to 6 hours)
       tags: recovery
       wait_for:
         path: /pg/tmp/recovery.log
         search_regex: "consistent recovery state reached"
-        timeout: 300
-        delay: 2
+        timeout: 21600
+        delay: 5
 
 
 #--------------------------------------------------------------#
