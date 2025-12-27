@@ -7,11 +7,12 @@
   template: src="{{ item.src }}" dest="{{ item.dest }}" owner="{{ item.owner|default(pg_dbsu) }}" group="postgres" mode="{{ item.mode }}"
   with_items:
     - { src: "pitr.conf"  ,dest: "/pg/conf/pitr.conf", mode: "0600" }
-    - { src: "pg-restore" ,dest: "/pg/bin/pg-restore", mode: "0700" ,owner: root }
+    - { src: "pg-restore" ,dest: "/pg/bin/pg-restore", mode: "0750" ,owner: root }
 
 #--------------------------------------------------------------#
 # BACKUP EXISTING DATA                                  [backup]
 #--------------------------------------------------------------#
+# backup existing data to /pg/data-backup if backup is set to true
 - name: backup existing data directory
   tags: [ backup ]
   become: true
@@ -62,16 +63,15 @@
   block:
 
     - name: start postgresql with /pg/tmp/recovery.log
-      become_user: "{{ pg_dbsu|default('postgres') }}"
       shell: |
         "{{ pg_bin_dir|default('/usr/pgsql/bin') }}/pg_ctl" -W -D {{ pg_data }} -o "-c port={{ pg_port }} -c logging_collector=on -c log_destination=stderr -c log_directory=/pg/tmp -c log_filename=recovery.log" start
 
-    - name: wait for consistent recovery state (up to 6 hours)
+    - name: wait for wal replay to recovery target
       tags: recovery
       wait_for:
         path: /pg/tmp/recovery.log
         search_regex: "consistent recovery state reached"
-        timeout: 21600
+        timeout: 86400
         delay: 5
 
 
@@ -87,7 +87,6 @@
 
     # extract pg_controldata summary
     - name: extract pg_controldata to verify pitr
-      become_user: "{{ pg_dbsu|default('postgres') }}"
       shell: |
         {{ pg_bin_dir|default('/usr/pgsql/bin') }}/pg_controldata "{{ pg_data }}"
       register: pitr_controldata
