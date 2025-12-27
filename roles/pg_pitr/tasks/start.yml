@@ -8,8 +8,7 @@
   when: pg_role == 'primary'
   block:
 
-    - name: stop postgres primary manually
-      tags: stop_postgres
+    - name: shutdown postgres primary manually
       ignore_errors: yes
       become_user: "{{ pg_dbsu }}"
       shell: |
@@ -64,22 +63,6 @@
     fi
 
 
-#--------------------------------------------------------------#
-# restart HA                                           [restart]
-#--------------------------------------------------------------#
-- name: restart patroni primary
-  tags: restart
-  when: pg_role == 'primary'
-  become_user: "{{ pg_dbsu }}"
-  shell: |
-    {% if pg_mode|default('pgsql') == 'citus' %} 
-    /usr/bin/patronictl -c /etc/patroni/patroni.yml restart {{ pg_shard }} --group {{ pg_group }} --force
-    {% else %}
-    /usr/bin/patronictl -c /etc/patroni/patroni.yml restart {{ pg_cluster }} --force
-    {% endif %}
-  args:
-    executable: /bin/bash
-
 
 #--------------------------------------------------------------#
 # Launch patroni replica                               [replica]
@@ -91,8 +74,7 @@
   throttle: 1
   block:
 
-    - name: stop postgres replica manually
-      tags: stop_postgres
+    - name: shutdown postgres replica manually
       ignore_errors: yes
       become_user: "{{ pg_dbsu }}"
       shell: |
@@ -124,8 +106,4 @@
       retries: 6
       until: result.rc == 0
       delay: 5
-
-    # - name: reload patroni to apply clonefrom change
-    #   systemd: name=patroni state=reloaded
-
 ...
