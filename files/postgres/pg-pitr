@@ -2,282 +2,346 @@
 set -uo pipefail
 #==============================================================#
 # File      :   pg-pitr
-# Desc      :   pitr hint with pgbackrest
+# Desc      :   Point-in-time recovery with pgbackrest
 # Ctime     :   2022-12-31
-# Mtime     :   2025-12-26
+# Mtime     :   2025-12-27
 # Path      :   /pg/bin/pg-pitr
-# Deps      :   pgbackrest
+# Deps      :   pgbackrest, /etc/pgbackrest/pgbackrest.conf
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# This script restores a PostgreSQL data directory to a specific
+# point in time using pgbackrest. It's a single-purpose tool that:
+#   - Uses the backup repository configured on current node
+#   - Restores to specified data directory
+#   - Supports various recovery targets (time, lsn, xid, name, etc.)
+#
+# Usage: https://pgbackrest.org/command.html#command-restore
 #==============================================================#
 PROG_NAME="$(basename $0)"
 PROG_DIR="$(cd $(dirname $0) && pwd)"
 
 
-
 #--------------------------------------------------------------#
 # Usage
 #--------------------------------------------------------------#
-function usage() {
-	cat <<-'EOF'
-		NAME
-			pg-pitr   -- point in time recovery with pgbackrest
+usage() {
+    cat <<-'EOF'
+NAME
+    pg-pitr   -- Point-in-time recovery with pgbackrest
 
-		SYNOPSIS
-			pg-pitr [options] --[default|immediate|time|name|lsn|xid|set]=<target>
+SYNOPSIS
+    pg-pitr [options] [--time=<time>|--lsn=<lsn>|--xid=<xid>|--name=<name>]
 
-        CHOOSE ONE of the following recovery target:
-        -d|--default                   # recover to the end of the archive stream, i.e. latest status
-        -i|--immediate                 # recover only until the database becomes consistent
-        -t|--time      <time_point>    # recovery to specific time point
-        -n|--name      <restore_point> # recovery to named restore point (pg_create_restore_point)
-        -l|--lsn       <lsn_point>     # recovery to specific lsn point  (check monitor)
-        -x|--xid       <xid>           # recovery to specific transaction id (check monitor)
-        -b|--backup    <backup_label>  # recovery to specific backup set (check pgbackrest info)
+RECOVERY TARGET (choose one):
+    -d, --default              Recover to end of WAL archive stream (latest status)
+    -i, --immediate            Recover only until database becomes consistent
+    -t, --time  <timestamp>    Recover to specific time (e.g., "2025-01-01 12:00:00+08")
+    -n, --name  <restore_point> Recover to named restore point
+    -l, --lsn   <lsn>          Recover to specific LSN (e.g., "0/7C82CB8")
+    -x, --xid   <xid>          Recover to specific transaction ID
+    -b, --backup <label>       Recover to specific backup set (check: pgbackrest info)
 
-        # Use these args when necessary
-        -s|--stanza <stanza>           # specify pgbackrest stanza name
-        -X|--target-exclusive          # recovery right BEFORE the target, rather that default inclusive behavior
-        -P|--promote                   # PROMOTE rather than PAUSE after reaching recovery target
+OPTIONS:
+    -D, --data   <path>        Data directory to restore (default: /pg/data)
+    -s, --stanza <name>        pgbackrest stanza name (auto-detect from config)
+    -X, --exclusive            Stop RIGHT BEFORE target (exclusive), not at it
+    -P, --promote              Promote after reaching target (default: pause)
+    -c, --check                Dry-run mode: print command without executing
+    -y, --yes                  Skip confirmation and countdown
+    -h, --help                 Show this help message
 
-		DESCRIPTION
-			pg-pitr will use pgbackrest to perform a PITR recovery on current postgres cluster
-			WARNING: improper use of these script may leaded to data loss, please use with caution
-			please read the manual carefully: https://pgbackrest.org/command.html#command-restore
+EXAMPLES:
+    pg-pitr -d                                  # Restore to latest (end of WAL stream)
+    pg-pitr -i                                  # Restore to backup completion time
+    pg-pitr -t "2025-01-01 12:00:00+08"         # Restore to specific time
+    pg-pitr -t "2025-01-01 04:00:00+00"         # Same time in UTC
+    pg-pitr -n my-savepoint                     # Restore to named restore point
+    pg-pitr -l "0/7C82CB8"                      # Restore to specific LSN
+    pg-pitr -x 12345678 -X                      # Restore to right before transaction
+    pg-pitr -b 20251225-120000F                 # Restore to specific backup
+    pg-pitr -D /tmp/data2 -c                    # Dry run to custom directory
 
-      you have to run this script as postgres dbsu, usually 'postgres'.
-      if local posix backup repo is used, you can only run pg-pitr on that primary instance
-      if remote repo such as minio/s3 is used, you can perform this on all instances.
+NOTES:
+    - Run as postgres (dbsu) user
+    - PostgreSQL must be stopped before restore
+    - Time format: YYYY-MM-DD HH:MM:SS[.ssssss][+/-TZ]
+    - After restore, manually start PG, validate, then promote
 
-      after pg-pitr, you have to start postgres manually and check data integrity
-      then decide to have a new fresh start here with pg_ctl promote, or continue recovery to
-      a new target with pg_wal_replay_resume()
-
-		EXAMPLES
-
-      pg-pitr                                 # restore to wal archive stream end (e.g. used in case of entire DC failure)
-      pg-pitr -i                              # restore to the time of latest backup complete (not often used)
-      pg-pitr --time="2025-12-25 12:00:00+00" # restore to specific time point (in case of drop db, drop table)
-      pg-pitr --name="my-restore-point"       # restore TO a named restore point create by pg_create_restore_point
-      pg-pitr --lsn="0/7C82CB8" -X            # restore right BEFORE a LSN
-      pg-pitr --xid="1234567" -X -P           # restore right BEFORE a specific transaction id, then promote
-      pg-pitr --backup=latest                 # restore to latest backup set
-      pg-pitr --backup=20221108-105325        # restore to a specific backup set, which can be checked with pgbackrest info
-
-      pg-pitr                                 # pgbackrest --stanza=pg-meta restore
-      pg-pitr -i                              # pgbackrest --stanza=pg-meta --type=immediate restore
-      pg-pitr -t "2025-12-25 12:00:00+00"     # pgbackrest --stanza=pg-meta --type=time --target="2025-12-25 12:00:00+00" restore
-      pg-pitr -n "my-restore-point"           # pgbackrest --stanza=pg-meta --type=name --target=my-restore-point restore
-      pg-pitr -b 20221108-105325F             # pgbackrest --stanza=pg-meta --type=name --set=20221230-120101F restore
-      pg-pitr -l "0/7C82CB8" -X               # pgbackrest --stanza=pg-meta --type=lsn --target="0/7C82CB8" --target-exclusive restore
-      pg-pitr -x 1234567 -X -P                # pgbackrest --stanza=pg-meta --type=xid --target="0/7C82CB8" --target-exclusive --target-action=promote restore
-
-	EOF
-	exit 1
+EOF
+    exit "${1:-0}"
 }
 
 
 #--------------------------------------------------------------#
 # Utils
 #--------------------------------------------------------------#
-__CN='\033[0m';__CK='\033[0;30m';__CR='\033[0;31m';__CG='\033[0;32m';
-__CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';__CC='\033[0;36m';__CW='\033[0;37m';
-function log_info() {  printf "${__CG}$*${__CN}\n";   }
-function log_warn() {  printf "${__CY}$*${__CN}\n";   }
-function log_error() { printf "${__CR}$*${__CN}\n";   }
-function log_debug() { printf "${__CB}$*${__CN}\n"; }
-function log_input() { printf "${__CM}$*\n=> ${__CN}"; }
-function log_hint()  { printf "${__CB}$*${__CN}\n"; }
-function log_line()  { printf "${__CM}[$*] ===========================================${__CN}\n"; }
-function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n"; exit 1;  }
-function is_valid_ip(){
-    if [[ "$1" =~ (([0-9]|[0-9]{2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9]{2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]) ]]; then
-        return 0
+__CN='\033[0m';__CR='\033[0;31m';__CG='\033[0;32m';
+__CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';
+log_info()  { printf "${__CG}[INFO] $*${__CN}\n" >&2; }
+log_warn()  { printf "${__CY}[WARN] $*${__CN}\n" >&2; }
+log_hint()  { printf "${__CB}$*${__CN}\n" >&2; }
+log_error() { printf "${__CR}[ERROR] $*${__CN}\n" >&2; exit 1; }
+
+# Countdown timer for interactive terminals
+countdown() {
+    local seconds=${1:-5}
+    if [ -t 0 ] && [ -t 1 ]; then
+        for ((i=seconds; i>0; i--)); do
+            printf "\r${__CY}Starting in $i seconds... (Ctrl+C to abort)${__CN}"
+            sleep 1
+        done
+        printf "\n"
     else
-        return 1
-    fi
-}
-function assign() {
-    if [[ $1 == *=* ]]; then # --backup=foo
-        TARGET="${1#*=}"
-    else # --backup foo / -b foo
-        TARGET=$2
-        shift
+        log_info "Non-interactive mode, skipping countdown..."
     fi
 }
 
 
 #--------------------------------------------------------------#
-# Param
+# Default Parameters
 #--------------------------------------------------------------#
-METHOD=default
+METHOD="default"
 TARGET=""
+DATA_DIR="/pg/data"
+STANZA=""
 TARGET_ACTION="pause"
 TARGET_EXCLUSIVE=false
-STANZA=""
+DRY_RUN=false
+SKIP_CONFIRM=false
 
-while [ $# -gt 0 ]; do
+
+#--------------------------------------------------------------#
+# Argument Parsing
+#--------------------------------------------------------------#
+# Print help if no arguments provided
+[[ $# -eq 0 ]] && usage 0
+
+while [[ $# -gt 0 ]]; do
     case $1 in
-        -h|--help) usage;  exit 0;;
-        -s|--stanza)    STANZA=$2 ; shift ;;
-        -d|--default)   METHOD="default"   ; ;;
-        -i|--immediate) [[ ${METHOD} != "default" ]] && usage ; METHOD="immediate" ;  ;;
-        -t|--time*)
-            [[ ${METHOD} != "default" ]] && usage ;
-            METHOD="time"; assign $1 "${2:-}"
-            [[ $1 != *=* ]] && shift ;;
-        -n|--name*)
-            [[ ${METHOD} != "default" ]] && usage ;
-            METHOD="name"; assign  $1 "${2:-}"
-            [[ $1 != *=* ]] && shift ;;
-        -b|--backup*)
-            [[ ${METHOD} != "default" ]] && usage;
-            METHOD="set"; assign $1 "${2:-}"
-            [[ $1 != *=* ]] && shift ;;
-        -l|--lsn*)
-            [[ ${METHOD} != "default" ]] && usage ;
-            METHOD="lsn"; assign  $1 "${2:-}"
-            [[ $1 != *=* ]] && shift ;;
-        -x|--xid*)
-            [[ ${METHOD} != "default" ]] && usage ;
-            METHOD="xid"; assign  $1 "${2:-}"
-            [[ $1 != *=* ]] && shift ;;
-        -X|--target-exclusive) TARGET_EXCLUSIVE=true ;;
-        -P|--target-action) TARGET_ACTION="promote" ;;
-        (--) shift; break;;
-        (-*) echo "$0: error - unrecognized option $1" 1>&2; exit 1;;
-        (*) break;;
+        -h|--help)
+            usage 0 ;;
+        -D|--data|--data=*)
+            if [[ "$1" == *=* ]]; then DATA_DIR="${1#*=}"; else DATA_DIR="$2"; shift; fi ;;
+        -s|--stanza|--stanza=*)
+            if [[ "$1" == *=* ]]; then STANZA="${1#*=}"; else STANZA="$2"; shift; fi ;;
+        -d|--default)
+            METHOD="default" ;;
+        -i|--immediate)
+            [[ "$METHOD" != "default" ]] && log_error "Multiple recovery targets specified"
+            METHOD="immediate" ;;
+        -t|--time|--time=*)
+            [[ "$METHOD" != "default" ]] && log_error "Multiple recovery targets specified"
+            METHOD="time"
+            if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
+        -n|--name|--name=*)
+            [[ "$METHOD" != "default" ]] && log_error "Multiple recovery targets specified"
+            METHOD="name"
+            if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
+        -l|--lsn|--lsn=*)
+            [[ "$METHOD" != "default" ]] && log_error "Multiple recovery targets specified"
+            METHOD="lsn"
+            if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
+        -x|--xid|--xid=*)
+            [[ "$METHOD" != "default" ]] && log_error "Multiple recovery targets specified"
+            METHOD="xid"
+            if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
+        -b|--backup|--backup=*)
+            [[ "$METHOD" != "default" ]] && log_error "Multiple recovery targets specified"
+            METHOD="set"
+            if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
+        -X|--exclusive|--target-exclusive)
+            TARGET_EXCLUSIVE=true ;;
+        -P|--promote|--target-action=promote)
+            TARGET_ACTION="promote" ;;
+        -c|--check|--dry-run)
+            DRY_RUN=true ;;
+        -y|--yes)
+            SKIP_CONFIRM=true ;;
+        --)
+            shift; break ;;
+        -*)
+            log_error "Unknown option: $1" ;;
+        *)
+            break ;;
     esac
     shift
 done
 
+
 #--------------------------------------------------------------#
-# Main
+# Validation
 #--------------------------------------------------------------#
-#log_debug "method=${METHOD} target=${TARGET} target_exclusive=${TARGET_EXCLUSIVE} target_action=${TARGET_ACTION}"
-if ! command -v pgbackrest &> /dev/null; then
-  log_error "pgbackrest not found"
-  exit 2
+# Check pgbackrest
+command -v pgbackrest &>/dev/null || log_error "pgbackrest not found in PATH"
+
+# Check config file
+PGBACKREST_CONF="/etc/pgbackrest/pgbackrest.conf"
+[[ -f "$PGBACKREST_CONF" ]] || log_error "pgbackrest config not found: $PGBACKREST_CONF"
+
+# Auto-detect stanza if not specified
+if [[ -z "$STANZA" ]]; then
+    STANZA=$(grep -oP '^\[\K[^\]:]+(?=\])' "$PGBACKREST_CONF" | head -n1)
+    [[ -z "$STANZA" ]] && log_error "Cannot auto-detect stanza from config"
 fi
 
-if [[ ! -f /etc/pgbackrest/pgbackrest.conf ]]; then
-  log_error "pgbackrest config not found"
-  exit 3
-fi
+# Validate data directory path
+[[ "$DATA_DIR" == /* ]] || log_error "Data directory must be absolute path: $DATA_DIR"
 
-if [[ -z ${STANZA} ]]; then
-  STANZA=$(grep -o '\[[^][]*]' /etc/pgbackrest/pgbackrest.conf | head -n1 | sed 's/.*\[\([^]]*\)].*/\1/')
-  if [[ -z ${STANZA} ]]; then
-    log_error "pgbackrest stanza not found"
-    exit 4
-  fi
-fi
-
-COMMAND="pgbackrest --stanza=${STANZA}"
-case ${METHOD} in
-    default)
-      COMMAND="${COMMAND}"; ;;
-    immediate)
-      COMMAND="${COMMAND} --type=immediate"; ;;
+# Validate recovery target based on method
+case "$METHOD" in
     time)
-      # check target match date time regex
-      if [[ ! ${TARGET} =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[\ ][0-9]{2}:[0-9]{2}:[0-9]{2}[\+|\-][0-9]{2}$ ]]; then
-        log_error "target time format error, should be like 2025-12-25 12:00:00+00"
-        exit 5
-      fi
-      COMMAND="${COMMAND} --type=time --target='${TARGET}'"; ;;
-    name)
-      COMMAND="${COMMAND} --type=name --target='${TARGET}'"; ;;
-    set)
-      # check if target is a valid backup set name
-      if [[ ! ${TARGET} != 'latest' || ! ${TARGET} =~ ^[0-9]{8}-[0-9]{6}F$ ]]; then
-        log_error "target backup set name should be 'latest' or a valid backup label. check pb info"
-        exit 6
-      fi
-      COMMAND="${COMMAND} --set='${TARGET}'"    ; ;;
+        # Accept: YYYY-MM-DD HH:MM:SS with optional .microseconds and optional timezone
+        # Examples: "2025-01-01 12:00:00", "2025-01-01 12:00:00+08", "2025-01-01 12:00:00.123456+08:00"
+        if [[ ! "$TARGET" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[\ T][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?([+-][0-9]{2}(:[0-9]{2})?)?$ ]]; then
+            log_error "Invalid time format: $TARGET
+Expected: YYYY-MM-DD HH:MM:SS[.usec][+/-TZ]
+Examples: 2025-01-01 12:00:00+08, 2025-01-01 04:00:00+00"
+        fi
+        ;;
     lsn)
-      # check target is a valid pg_lsn
-      if [[ ! ${TARGET} =~ ^[0-9A-F]{1,8}/[0-9A-F]{1,8}$ ]]; then
-        log_error "target lsn format error, should be like 0/7C82CB8"
-        exit 6
-      fi
-      COMMAND="${COMMAND} --type=lsn  --target='${TARGET}'"    ; ;;
+        # LSN format: hex/hex (case insensitive)
+        TARGET=$(echo "$TARGET" | tr '[:lower:]' '[:upper:]')
+        if [[ ! "$TARGET" =~ ^[0-9A-F]{1,8}/[0-9A-F]{1,8}$ ]]; then
+            log_error "Invalid LSN format: $TARGET
+Expected: X/X where X is 1-8 hex digits
+Example: 0/7C82CB8"
+        fi
+        ;;
     xid)
-      # check target is a valid pg_xid
-      if [[ ! ${TARGET} =~ ^[0-9]+$ ]]; then
-        log_error "target xid format error, should be like a number such as 123456"
-        exit 7
-      fi
-      COMMAND="${COMMAND} --type=time --target='${TARGET}'"    ; ;;
-    *)  usage  ;;
+        if [[ ! "$TARGET" =~ ^[0-9]+$ ]] || [[ "$TARGET" -le 0 ]] || [[ "$TARGET" -ge 4294967296 ]]; then
+            log_error "Invalid XID: $TARGET
+Expected: positive 32-bit integer (1 to 4294967295)"
+        fi
+        ;;
+    name)
+        [[ -z "$TARGET" ]] && log_error "Restore point name cannot be empty"
+        ;;
+    set)
+        # Backup label: 'latest' or YYYYMMDD-HHMMSSF format
+        if [[ "$TARGET" != "latest" ]] && [[ ! "$TARGET" =~ ^[0-9]{8}-[0-9]{6}F(_[0-9]{8}-[0-9]{6}(D|I))?$ ]]; then
+            log_error "Invalid backup label: $TARGET
+Expected: 'latest' or backup label like 20251225-120000F
+Check available backups with: pgbackrest info --stanza=$STANZA"
+        fi
+        ;;
 esac
 
-if [[ ${TARGET_EXCLUSIVE} == "true" ]]; then
-  COMMAND="${COMMAND} --target-exclusive"
+
+#--------------------------------------------------------------#
+# Build Command
+#--------------------------------------------------------------#
+CMD_ARGS=("--stanza=$STANZA" "--delta" "--force")
+
+# Add data directory if not default
+if [[ "$DATA_DIR" != "/pg/data" ]]; then
+    CMD_ARGS+=("--pg1-path=$DATA_DIR")
 fi
 
-REPLICA_COMMAND=${COMMAND}
-if [[ "${TARGET_ACTION}" != "pause" ]]; then
-  COMMAND="${COMMAND} --target-action=promote"
+# Add recovery target
+case "$METHOD" in
+    default)
+        ;; # No additional args needed
+    immediate)
+        CMD_ARGS+=("--type=immediate")
+        ;;
+    time)
+        CMD_ARGS+=("--type=time" "--target=\"$TARGET\"")
+        ;;
+    name)
+        CMD_ARGS+=("--type=name" "--target=\"$TARGET\"")
+        ;;
+    lsn)
+        CMD_ARGS+=("--type=lsn" "--target=\"$TARGET\"")
+        ;;
+    xid)
+        CMD_ARGS+=("--type=xid" "--target=\"$TARGET\"")
+        ;;
+    set)
+        CMD_ARGS+=("--set=$TARGET")
+        ;;
+esac
+
+# Add exclusive option
+if [[ "$TARGET_EXCLUSIVE" == true ]]; then
+    CMD_ARGS+=("--target-exclusive")
 fi
 
-COMMAND="${COMMAND} restore"
-REPLICA_COMMAND="${REPLICA_COMMAND} restore"
+# Add target action (only for specific recovery types)
+if [[ "$TARGET_ACTION" == "promote" ]] && [[ "$METHOD" =~ ^(time|name|lsn|xid|immediate)$ ]]; then
+    CMD_ARGS+=("--target-action=promote")
+fi
 
-echo ${COMMAND}
-
-#pg-pitr                             # pgbackrest --stanza=pg-meta restore
-#pg-pitr -i                          # pgbackrest --stanza=pg-meta --type=immediate restore
-#pg-pitr -t "2025-12-25 12:00:00+00" # pgbackrest --stanza=pg-meta --type=time --target="2025-12-25 12:00:00+00" restore
-#pg-pitr -n "my-restore-point"       # pgbackrest --stanza=pg-meta --type=name --target=my-restore-point restore
-#pg-pitr -s 20221108-105325F         # pgbackrest --stanza=pg-meta --set=20221230-120101F restore
-#pg-pitr -l "0/7C82CB8" -X           # pgbackrest --stanza=pg-meta --type=lsn --target="0/7C82CB8" --target-exclusive restore
-#pg-pitr -x 1888 -X -P               # pgbackrest --stanza=pg-meta --type=xid --target=1888 --target-exclusive --target-action=promote restore
+# Final command
+FULL_CMD="pgbackrest ${CMD_ARGS[*]} restore"
 
 
-#---------------------------------#
-# Planning
-#---------------------------------#
-log_warn "Perform ${METHOD} PITR on ${STANZA}"
-
-log_line "1. Stop PostgreSQL"
-log_info "   1.1 Pause Patroni (if there are any replicas)"
-log_hint "       $ pg pause <cls>  # pause patroni auto failover"
-log_info "   1.2 Shutdown Patroni"
-log_hint "       $ pt-stop         # sudo systemctl stop patroni"
-log_info "   1.3 Shutdown Postgres"
-log_hint "       $ pg-stop         # pg_ctl -D /pg/data stop -m fast"
+#--------------------------------------------------------------#
+# Pre-flight Checks
+#--------------------------------------------------------------#
+log_info "Recovery Target: $METHOD${TARGET:+ ($TARGET)}"
+log_info "Data Directory:  $DATA_DIR"
+log_info "Stanza:          $STANZA"
+log_info "Options:         exclusive=$TARGET_EXCLUSIVE action=$TARGET_ACTION"
+log_hint ""
+log_hint "Command:"
+log_hint "  $FULL_CMD"
 log_hint ""
 
-log_line "2. Perform PITR"
-log_info "   2.1 Restore Backup"
-log_hint "       $ ${COMMAND}"
-log_info "   2.2 Start PG to Replay WAL"
-log_hint "       $ pg-start        # pg_ctl -D /pg/data start"
-log_info "   2.3 Validate and Promote"
-log_warn "     - If database content is ok, promote it to finish recovery, otherwise goto 2.1"
-log_hint "       $ pg-promote      # pg_ctl -D /pg/data promote"
-log_hint ""
+# Dry run - just print and exit
+if [[ "$DRY_RUN" == true ]]; then
+    log_warn "[CHECK] Command printed above. Run without -c to execute."
+    exit 0
+fi
 
-log_line "3. Restore Primary"
-log_info "   3.1 Enable Archive Mode (Restart Required)"
-log_hint "       $ psql -c 'ALTER SYSTEM SET archive_mode = on;'"
-log_info "   3.1 Restart Postgres to Apply Changes"
-log_hint "       $ pg-restart      # pg_ctl -D /pg/data restart"
-log_info "   3.3 Restart Patroni"
-log_hint "       $ pt-restart      # sudo systemctl restart patroni"
-log_hint ""
+# Check if current user is in postgres group
+if ! id -nG | grep -qw postgres; then
+    log_warn "Current user $(whoami) is not in postgres group"
+fi
 
-log_line "4. Restore Cluster"
-log_info "   4.1 Re-Init All [**REPLICAS**] (if any)"
-log_warn "       - 4.1.1 option 1: restore replicas with same pgbackrest cmd (require central backup repo)"
-log_hint "           $ ${REPLICA_COMMAND}"
-log_warn "       - 4.1.2 option 2: nuke the replica data dir and restart patroni (may take long time to restore)"
-log_hint "           $ rm -rf /pg/data/*; pt-restart"
-log_warn "       - 4.1.3 option 3: reinit with patroni, which may fail if primary lsn < replica lsn"
-log_hint "           $ pg reinit ${STANZA}"
-log_info "   4.2 Resume Patroni"
-log_hint "       $ pg resume ${STANZA}"
-log_info "   4.3 Full Backup (optional)"
-log_hint "       $ pg-backup full      # IT's recommend to make a new full backup after PITR"
-log_hint ""
+# Check if PostgreSQL is running in the target directory
+if [[ -f "$DATA_DIR/postmaster.pid" ]]; then
+    PG_PID=$(head -1 "$DATA_DIR/postmaster.pid" 2>/dev/null)
+    if [[ -n "$PG_PID" ]] && kill -0 "$PG_PID" 2>/dev/null; then
+        log_error "PostgreSQL is still running (PID: $PG_PID)
+Stop PostgreSQL before restore: pg_ctl -D $DATA_DIR stop -m fast"
+    fi
+fi
+
+
+#--------------------------------------------------------------#
+# Confirmation & Execution
+#--------------------------------------------------------------#
+log_warn "==========================================="
+log_warn "WARNING: Point-In-Time Recovery Operation"
+log_warn "This will OVERWRITE data in: $DATA_DIR"
+log_warn "==========================================="
+
+if [[ "$SKIP_CONFIRM" != true ]] && [ -t 0 ] && [ -t 1 ]; then
+    log_hint "Press Ctrl+C to abort"
+    countdown 5
+fi
+
+log_info "Starting restore..."
+log_hint "$ $FULL_CMD"
+
+# Execute the restore command
+eval "$FULL_CMD"
+RC=$?
+
+if [[ $RC -eq 0 ]]; then
+    log_info "==========================================="
+    log_info "Restore completed successfully!"
+    log_info "==========================================="
+    log_hint ""
+    log_hint "Next steps:"
+    log_hint "  1. Start PostgreSQL:    pg_ctl -D $DATA_DIR start"
+    log_hint "  2. Validate your data"
+    log_hint "  3. Promote if satisfied: pg_ctl -D $DATA_DIR promote"
+    log_hint "  4. Enable archive_mode:  psql -c \"ALTER SYSTEM SET archive_mode = on;\""
+    log_hint "  5. Restart PostgreSQL:   pg_ctl -D $DATA_DIR restart"
+else
+    log_error "Restore failed with exit code: $RC"
+fi
+
+exit $RC
