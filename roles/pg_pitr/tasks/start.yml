@@ -8,12 +8,13 @@
   when: pg_role == 'primary'
   block:
 
-    - name: stop postgres manually
-      tags: start_postgres
+    - name: stop postgres primary manually
+      tags: stop_postgres
       ignore_errors: yes
       become_user: "{{ pg_dbsu }}"
       shell: |
-        "{{ pg_bin_dir }}/pg_ctl" stop -D "{{ pg_data }}"
+        rm -rf "{{ pg_data }}/patroni.dynamic.json"
+        "{{ pg_bin_dir }}/pg_ctl" stop -D "{{ pg_data }}" || /bin/true
       args: { executable: /bin/bash }
 
     - name: launch patroni primary
@@ -79,6 +80,7 @@
   args:
     executable: /bin/bash
 
+
 #--------------------------------------------------------------#
 # Launch patroni replica                               [replica]
 #--------------------------------------------------------------#
@@ -86,18 +88,28 @@
   tags: replica
   any_errors_fatal: true
   when: pg_role != 'primary'
+  throttle: 1
   block:
 
-    - name: restart postgres replica manually
-      tags: start_postgres
+    - name: stop postgres replica manually
+      tags: stop_postgres
       ignore_errors: yes
       become_user: "{{ pg_dbsu }}"
       shell: |
-        "{{ pg_bin_dir }}/pg_ctl" restart -D "{{ pg_data }}"
+        rm -rf "{{ pg_data }}/patroni.dynamic.json"
+        "{{ pg_bin_dir }}/pg_ctl" stop -D "{{ pg_data }}" || /bin/true
       args: { executable: /bin/bash }
+
+    - name: disable clonefrom before launching patroni replica
+      tags: clonefrom
+      replace:
+        path: /etc/patroni/patroni.yml
+        regexp: 'clonefrom:\s*true'
+        replace: 'clonefrom: false'
 
     - name: launch patroni replica
       systemd: name=patroni state=restarted enabled=yes daemon_reload=yes
+
     - name: wait for patroni replica
       wait_for: host={{ inventory_hostname }} port={{ patroni_port }} state=started timeout=30
 
@@ -113,5 +125,7 @@
       until: result.rc == 0
       delay: 5
 
+    # - name: reload patroni to apply clonefrom change
+    #   systemd: name=patroni state=reloaded
 
 ...
