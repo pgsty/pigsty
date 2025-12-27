@@ -1,8 +1,8 @@
 #==============================================================#
 # Desc      :   pg_exporter metrics collector definition
-# Ver       :   PostgreSQL 10 ~ 18+ and pgbouncer 1.9~1.24+
+# Ver       :   PostgreSQL 10 ~ 18+ and pgbouncer 1.9~1.25+
 # Ctime     :   2019-12-09
-# Mtime     :   2025-05-06
+# Mtime     :   2025-12-27
 # Homepage  :   https://pigsty.io
 # Author    :   Ruohang Feng (rh@vonng.com)
 # License   :   Apache-2.0 @ https://github.com/pgsty/pg_exporter
@@ -83,9 +83,9 @@ pg_replica_only:
   fatal: true
   skip: false
   metrics:
-    - timestamp:            { usage: GAUGE   ,description: database current timestamp }
+    - timestamp:            { usage: GAUGE   ,description: current database timestamp in unix epoch }
     - uptime:               { usage: GAUGE   ,description: seconds since postmaster start }
-    - boot_time:            { usage: GAUGE   ,description: unix timestamp when postmaster boot }
+    - boot_time:            { usage: GAUGE   ,description: postmaster boot timestamp in unix epoch }
     - lsn:                  { usage: COUNTER ,description: log sequence number, current write location }
     - insert_lsn:           { usage: COUNTER ,description: primary only, location of current wal inserting }
     - write_lsn:            { usage: COUNTER ,description: primary only, location of current wal writing }
@@ -97,7 +97,7 @@ pg_replica_only:
     - last_replay_time:     { usage: GAUGE   ,description: time when last transaction been replayed }
     - lag:                  { usage: GAUGE   ,description: replica only, replication lag in seconds }
     - is_in_recovery:       { usage: GAUGE   ,description: 1 if in recovery mode }
-    - is_wal_replay_paused: { usage: GAUGE   ,description: 1 if wal play paused }
+    - is_wal_replay_paused: { usage: GAUGE   ,description: 1 if wal play is paused }
 
 
 #==============================================================#
@@ -186,55 +186,90 @@ pg_meta_10:
 #==============================================================#
 pg_setting:
   name: pg_setting
-  desc: Important postgres setting parameters
+  desc: PostgreSQL shared configuration parameters (shared across all databases)
   query: |
     SELECT
-      current_setting('max_connections')           AS max_connections,
-      current_setting('max_prepared_transactions') AS max_prepared_transactions,
-      current_setting('max_locks_per_transaction') AS max_locks_per_transaction,
-      current_setting('max_worker_processes')      AS max_worker_processes,
-      current_setting('max_replication_slots')     AS max_replication_slots,
-      current_setting('max_wal_senders')           AS max_wal_senders,
-      current_setting('block_size')                AS block_size,
-      current_setting('wal_block_size')            AS wal_block_size,
-      pg_size_bytes(current_setting('segment_size')) AS segment_size,
-      pg_size_bytes(current_setting('wal_segment_size')) AS wal_segment_size,
+      current_setting('max_connections')::int                          AS max_connections,
+      current_setting('max_prepared_transactions')::int                AS max_prepared_transactions,
+      current_setting('max_locks_per_transaction')::int                AS max_locks_per_transaction,
+      current_setting('max_worker_processes')::int                     AS max_worker_processes,
+      current_setting('max_parallel_workers')::int                     AS max_parallel_workers,
+      current_setting('max_parallel_workers_per_gather')::int          AS max_parallel_workers_per_gather,
+      current_setting('max_parallel_maintenance_workers', true)::int   AS max_parallel_maintenance_workers,
+      current_setting('max_replication_slots')::int                    AS max_replication_slots,
+      current_setting('max_wal_senders')::int                          AS max_wal_senders,
+      current_setting('block_size')::int                               AS block_size,
+      current_setting('wal_block_size')::int                           AS wal_block_size,
+      pg_size_bytes(current_setting('segment_size'))                   AS segment_size,
+      pg_size_bytes(current_setting('wal_segment_size'))               AS wal_segment_size,
       CASE current_setting('data_checksums') WHEN 'on' THEN 1 ELSE 0 END AS data_checksums,
       CASE current_setting('wal_log_hints') WHEN 'on' THEN 1 ELSE 0 END AS wal_log_hints,
+      CASE current_setting('fsync') WHEN 'on' THEN 1 ELSE 0 END AS fsync,
+      CASE current_setting('full_page_writes') WHEN 'on' THEN 1 ELSE 0 END AS full_page_writes,
       CASE current_setting('wal_level') WHEN 'logical' THEN 3 WHEN 'replica' THEN 2 WHEN 'minimal' THEN 1 ELSE 0 END AS wal_level,
-      pg_size_bytes(current_setting('work_mem', true)) AS work_memory_size,
-      pg_size_bytes(current_setting('shared_memory_size', true)) AS shared_memory_size,
-      CASE current_setting('huge_pages_status', true) WHEN 'on' THEN 1 WHEN 'off' THEN 0 WHEN 'unknown' THEN -1 ELSE -2 END AS hugepage_status,
-      current_setting('shared_memory_size_in_huge_pages', true) AS hugepage_count,
-      pg_size_bytes(current_setting('min_wal_size')) AS min_wal_size,
-      pg_size_bytes(current_setting('max_wal_size')) AS max_wal_size,
-      pg_size_bytes(current_setting('max_slot_wal_keep_size', true)) AS max_slot_wal_keep_size,
-      CASE current_setting('archive_mode') WHEN 'off' THEN 0 WHEN 'on' THEN 1 WHEN 'always' THEN 2 ELSE -1 END AS archive_mode;
-  ttl: {{ ttl_norm }}
-  min_version: 090600
+      pg_size_bytes(current_setting('min_wal_size'))                   AS min_wal_size,
+      pg_size_bytes(current_setting('max_wal_size'))                   AS max_wal_size,
+      pg_size_bytes(current_setting('max_slot_wal_keep_size', true))   AS max_slot_wal_keep_size,
+      pg_size_bytes(current_setting('shared_buffers'))                 AS shared_buffers,
+      pg_size_bytes(current_setting('work_mem'))                       AS work_mem,
+      pg_size_bytes(current_setting('maintenance_work_mem'))           AS maintenance_work_mem,
+      pg_size_bytes(current_setting('effective_cache_size'))           AS effective_cache_size,
+      pg_size_bytes(current_setting('shared_memory_size', true))       AS shared_memory_size,
+      CASE current_setting('huge_pages_status', true) WHEN 'on' THEN 1 WHEN 'off' THEN 0 WHEN 'unknown' THEN -1 ELSE NULL END AS hugepage_status,
+      current_setting('shared_memory_size_in_huge_pages', true)::int   AS hugepage_count,
+      CASE current_setting('archive_mode') WHEN 'off' THEN 0 WHEN 'on' THEN 1 WHEN 'always' THEN 2 ELSE -1 END AS archive_mode,
+      CASE current_setting('autovacuum') WHEN 'on' THEN 1 ELSE 0 END AS autovacuum,
+      current_setting('autovacuum_max_workers')::int                   AS autovacuum_max_workers,
+      extract(epoch from current_setting('checkpoint_timeout')::interval)::int AS checkpoint_timeout,
+      current_setting('checkpoint_completion_target')::float           AS checkpoint_completion_target,
+      CASE current_setting('hot_standby') WHEN 'on' THEN 1 ELSE 0 END AS hot_standby,
+      CASE current_setting('synchronous_commit')
+        WHEN 'off' THEN 0 WHEN 'local' THEN 1 WHEN 'remote_write' THEN 2
+        WHEN 'on' THEN 3 WHEN 'remote_apply' THEN 4 ELSE -1 END AS synchronous_commit,
+      CASE current_setting('io_method', true)
+        WHEN 'sync' THEN 0 WHEN 'worker' THEN 1 WHEN 'io_uring' THEN 2 ELSE NULL END AS io_method;
+
+  ttl: 10
+  min_version: 100000
   tags: [ cluster ]
   metrics:
-    - max_connections:           { usage: GAUGE ,description: number of concurrent connections to the database server }
-    - max_prepared_transactions: { usage: GAUGE ,description: maximum number of transactions that can be in the prepared state simultaneously }
-    - max_locks_per_transaction: { usage: GAUGE ,description: no more than this many distinct objects can be locked at any one time }
-    - max_worker_processes:      { usage: GAUGE ,description: maximum number of background processes that the system can support }
-    - max_replication_slots:     { usage: GAUGE ,description: maximum number of replication slots }
-    - max_wal_senders:           { usage: GAUGE ,description: maximum number of concurrent connections from standby servers }
-    - block_size:                { usage: GAUGE ,description: pg page block size, 8192 by default }
-    - wal_block_size:            { usage: GAUGE ,description: block size in WAL files }
-    - segment_size:              { usage: GAUGE ,description: segment size for database files }
-    - wal_segment_size:          { usage: GAUGE ,description: segment size for WAL files }
-    - data_checksums:            { usage: GAUGE ,description: whether data checksum is enabled, 1 enabled 0 disabled }
-    - wal_log_hints:             { usage: GAUGE ,description: whether wal_log_hints is enabled, 1 enabled 0 disabled }
-    - wal_level:                 { usage: GAUGE ,description: WAL level, 1=minimal, 2=replica, 3=logical }
-    - work_memory_size:          { usage: GAUGE ,description: size of work memory in bytes }
-    - shared_memory_size:        { usage: GAUGE ,description: size of shared memory segment in bytes }
-    - hugepage_count:            { usage: GAUGE ,description: Reports the number of huge pages that are needed for the main shared memory area }
-    - hugepage_status:           { usage: GAUGE ,description: huge pages configuration status, 0=off, 1=on, -1=unknown }
-    - min_wal_size:              { usage: GAUGE ,description: minimum size that the WAL will shrink to in bytes }
-    - max_wal_size:              { usage: GAUGE ,description: maximum size that the WAL will grow to in bytes }
-    - max_slot_wal_keep_size:    { usage: GAUGE ,description: maximum WAL size that replication slots are allowed to retain in bytes, -1 means no limit }
-    - archive_mode:              { usage: GAUGE ,description: archive mode status, 0=off, 1=on, 2=always, -1=other }
+    - max_connections:                  { usage: GAUGE ,description: maximum number of concurrent connections to the database server }
+    - max_prepared_transactions:        { usage: GAUGE ,description: maximum number of transactions that can be in the prepared state simultaneously }
+    - max_locks_per_transaction:        { usage: GAUGE ,description: maximum number of locks per transaction }
+    - max_worker_processes:             { usage: GAUGE ,description: maximum number of background processes }
+    - max_parallel_workers:             { usage: GAUGE ,description: maximum number of parallel workers that can be active at one time }
+    - max_parallel_workers_per_gather:  { usage: GAUGE ,description: maximum number of parallel workers per Gather node }
+    - max_parallel_maintenance_workers: { usage: GAUGE ,description: maximum number of parallel maintenance workers (PG11+, NULL on older) }
+    - max_replication_slots:            { usage: GAUGE ,description: maximum number of replication slots }
+    - max_wal_senders:                  { usage: GAUGE ,description: maximum number of concurrent WAL sender connections }
+    - block_size:                       { usage: GAUGE ,description: database block size in bytes (default 8192) }
+    - wal_block_size:                   { usage: GAUGE ,description: WAL block size in bytes }
+    - segment_size:                     { usage: GAUGE ,description: database file segment size in bytes }
+    - wal_segment_size:                 { usage: GAUGE ,description: WAL segment size in bytes }
+    - data_checksums:                   { usage: GAUGE ,description: data checksums enabled, 1=on 0=off }
+    - wal_log_hints:                    { usage: GAUGE ,description: WAL log hints enabled, 1=on 0=off }
+    - fsync:                            { usage: GAUGE ,description: fsync enabled (CRITICAL for data safety), 1=on 0=off }
+    - full_page_writes:                 { usage: GAUGE ,description: full page writes enabled, 1=on 0=off }
+    - wal_level:                        { usage: GAUGE ,description: WAL level, 1=minimal 2=replica 3=logical }
+    - min_wal_size:                     { usage: GAUGE ,description: minimum WAL size in bytes }
+    - max_wal_size:                     { usage: GAUGE ,description: maximum WAL size in bytes }
+    - max_slot_wal_keep_size:           { usage: GAUGE ,description: maximum WAL size retained by replication slots in bytes (PG13+, NULL on older) }
+    - shared_buffers:                   { usage: GAUGE ,description: shared buffer size in bytes }
+    - work_mem:                         { usage: GAUGE ,description: work memory size in bytes }
+    - maintenance_work_mem:             { usage: GAUGE ,description: maintenance work memory size in bytes }
+    - effective_cache_size:             { usage: GAUGE ,description: planner's assumption about effective OS cache size in bytes }
+    - shared_memory_size:               { usage: GAUGE ,description: total shared memory size in bytes (PG13+, NULL on older) }
+    - hugepage_status:                  { usage: GAUGE ,description: huge pages status, 1=on 0=off -1=unknown NULL=unavailable (PG14+) }
+    - hugepage_count:                   { usage: GAUGE ,description: number of huge pages needed for shared memory (PG14+, NULL on older) }
+    - archive_mode:                     { usage: GAUGE ,description: archive mode, 0=off 1=on 2=always }
+    - autovacuum:                       { usage: GAUGE ,description: autovacuum enabled, 1=on 0=off }
+    - autovacuum_max_workers:           { usage: GAUGE ,description: maximum number of autovacuum worker processes }
+    - checkpoint_timeout:               { usage: GAUGE ,description: checkpoint timeout in seconds }
+    - checkpoint_completion_target:     { usage: GAUGE ,description: checkpoint completion target (0.0-1.0) }
+    - hot_standby:                      { usage: GAUGE ,description: hot standby mode enabled, 1=on 0=off }
+    - synchronous_commit:               { usage: GAUGE ,description: synchronous commit level, 0=off 1=local 2=remote_write 3=on 4=remote_apply }
+    - io_method:                         { usage: GAUGE ,description: I/O method (PG18+), 0=sync 1=worker 2=io_uring NULL=unavailable }
+
 
 
 #==============================================================#
@@ -324,6 +359,7 @@ pg_repl_10:
     - time:              { usage: COUNTER ,description: Current timestamp in unix epoch }
     - launch_time:       { usage: COUNTER ,description: Time when this process was started, i.e., when the client connected to this WAL sender }
 
+
 #==============================================================#
 # 0220 pg_sync_standby
 #==============================================================#
@@ -361,7 +397,7 @@ pg_downstream:
 #==============================================================#
 pg_slot_17:
   name: pg_slot
-  desc: PostgreSQL replication slot metrics v17
+  desc: PostgreSQL replication slot metrics v17, slot also exists on standby
   query: |-
     SELECT s.slot_name, s.slot_type, plugin, database AS datname,datoid,active_pid,
        active,temporary,two_phase,conflicting,failover,synced,
@@ -410,7 +446,7 @@ pg_slot_17:
 
 pg_slot_16:
   name: pg_slot
-  desc: PostgreSQL replication slot metrics v16 with conflicting
+  desc: PostgreSQL replication slot metrics v16 with conflicting, now slot also exists on standby
   query: |-
     SELECT s.slot_name, s.slot_type, plugin, database AS datname,datoid,active_pid,
       active,temporary,two_phase,conflicting,xmin::TEXT::BIGINT AS xmin,catalog_xmin::TEXT::BIGINT  AS catalog_xmin,
@@ -635,7 +671,7 @@ pg_recv_10:
 
   ttl: {{ ttl_norm }}
   tags: [ cluster, replica ]
-  min_version: 090600
+  min_version: 100000
   max_version: 110000
   metrics:
     - sender_host:         { usage: LABEL   ,description: Host of the PostgreSQL instance this WAL receiver is connected to }
@@ -731,9 +767,9 @@ pg_origin:
   skip: true
   tags: [ cluster ]
   metrics:
-    - roiname:             { usage: LABEL   ,description: The external, user defined, name of a replication origin. }
-    - remote_lsn:          { usage: LABEL   ,description: The origin node's LSN up to which data has been replicated. }
-    - local_lsn:           { usage: LABEL   ,description: This node's LSN at which remote_lsn has been replicated. }
+    - roname:              { usage: LABEL     ,description: The external, user defined, name of a replication origin. }
+    - remote_lsn:          { usage: COUNTER   ,description: The origin node's LSN up to which data has been replicated. }
+    - local_lsn:           { usage: COUNTER   ,description: This node's LSN at which remote_lsn has been replicated. }
 
 
 #==============================================================#
@@ -759,7 +795,7 @@ pg_io_18:
     - read_time:          { usage: COUNTER ,default: 0  ,scale: 1e-3  ,description: Time spent in read operations in seconds }
     - writes:             { usage: COUNTER ,default: 0                ,description: Number of write operations, each of the size specified in op_bytes. }
     - write_time:         { usage: COUNTER ,default: 0  ,scale: 1e-3  ,description: Time spent in write operations in seconds }
-    - write_bytes:        { usage: COUNTER ,default: 0                ,description: Number of read bytes }
+    - write_bytes:        { usage: COUNTER ,default: 0                ,description: Number of write bytes }
     - writebacks:         { usage: COUNTER ,default: 0                ,description: Number of units of size op_bytes which the process requested the kernel write out to permanent storage. }
     - writeback_time:     { usage: COUNTER ,default: 0  ,scale: 1e-3  ,description: Time spent in writeback operations in seconds }
     - extends:            { usage: COUNTER ,default: 0                ,description: Number of relation extend operations, each of the size specified in op_bytes. }
@@ -767,7 +803,7 @@ pg_io_18:
     - extend_time:        { usage: COUNTER ,default: 0  ,scale: 1e-3  ,description: Time spent in extend operations in seconds }
     - hits:               { usage: COUNTER ,default: 0                ,description: The number of times a desired block was found in a shared buffer. }
     - evictions:          { usage: COUNTER ,default: 0                ,description: Number of times a block has been written out from a shared or local buffer }
-    - reuses:             { usage: COUNTER ,default: 0                ,description: The number of times an existing buffer in reused }
+    - reuses:             { usage: COUNTER ,default: 0                ,description: The number of times an existing buffer is reused }
     - fsyncs:             { usage: COUNTER ,default: 0                ,description: Number of fsync calls. These are only tracked in context normal }
     - fsync_time:         { usage: COUNTER ,default: 0  ,scale: 1e-3  ,description: Time spent in fsync operations in seconds }
     - reset_time:         { usage: GAUGE                              ,description: Timestamp at which these statistics were last reset }
@@ -798,7 +834,7 @@ pg_io_16:
     - extend_time:        { usage: COUNTER ,default: 0  ,scale: 1e-3  ,description: Time spent in extend operations in seconds }
     - hits:               { usage: COUNTER ,default: 0                ,description: The number of times a desired block was found in a shared buffer. }
     - evictions:          { usage: COUNTER ,default: 0                ,description: Number of times a block has been written out from a shared or local buffer }
-    - reuses:             { usage: COUNTER ,default: 0                ,description: The number of times an existing buffer in reused }
+    - reuses:             { usage: COUNTER ,default: 0                ,description: The number of times an existing buffer is reused }
     - fsyncs:             { usage: COUNTER ,default: 0                ,description: Number of fsync calls. These are only tracked in context normal }
     - fsync_time:         { usage: COUNTER ,default: 0  ,scale: 1e-3  ,description: Time spent in fsync operations in seconds }
     - reset_time:         { usage: GAUGE                              ,description: Timestamp at which these statistics were last reset }
@@ -811,18 +847,16 @@ pg_size:
   name: pg_size
   desc: PostgreSQL Database, WAL, Log size since v10
   query: |-
-    SELECT 
-      datname, pg_database_size(oid) AS bytes FROM pg_database UNION ALL SELECT 'log' AS datname, 
-      (CASE WHEN EXISTS (SELECT setting FROM pg_settings WHERE name = 'log_directory' and setting like '/%') 
-      THEN (SELECT COALESCE(SUM(size), 0) FROM pg_catalog.pg_ls_logdir()) ELSE 0 END) AS bytes
-    UNION ALL SELECT 'wal' AS datname, (SELECT COALESCE(SUM(size), 0) FROM pg_catalog.pg_ls_waldir()) AS bytes;
+    SELECT datname, pg_database_size(oid) AS bytes FROM pg_database
+    UNION ALL SELECT 'log', CASE WHEN current_setting('logging_collector') = 'on' THEN COALESCE((SELECT SUM(size) FROM pg_catalog.pg_ls_logdir()), 0) ELSE 0 END
+    UNION ALL SELECT 'wal', COALESCE((SELECT SUM(size) FROM pg_catalog.pg_ls_waldir()), 0);
 
   ttl: {{ ttl_slow }}
   timeout: 1
   min_version: 100000
   tags: [ cluster ]
   metrics:
-    - datname:             { usage: LABEL   ,description: Database name, or special category 'wal' , 'log' }
+    - datname:             { usage: LABEL   ,description: Database name, or special category wal, or log }
     - bytes:               { usage: GAUGE   ,description: File size in bytes }
 
 
@@ -933,7 +967,7 @@ pg_checkpointer_17:
 
 pg_checkpointer_10:
   name: pg_checkpointer
-  desc: "PostgreSQL checkpointer stat metrics for pg 10+"
+  desc: "PostgreSQL checkpointer stat metrics for pg 9.4-17"
   query: SELECT checkpoints_timed, checkpoints_req, checkpoint_write_time, checkpoint_sync_time, buffers_checkpoint, extract(EPOCH FROM stats_reset) AS reset_time FROM pg_stat_bgwriter;
   ttl: {{ ttl_norm }}
   min_version: 090400
@@ -1016,6 +1050,24 @@ pg_checkpoint:
     - newest_commit_ts_xid: { usage: COUNTER ,description: Latest checkpoint's newestCommitTsXid }
     - time:                 { usage: COUNTER ,description: Time of latest checkpoint }
     - elapse:               { usage: GAUGE   ,description: Seconds elapsed since latest checkpoint in seconds }
+
+
+#==============================================================#
+# 0355 pg_timeline
+#==============================================================#
+pg_timeline:
+  name: pg_timeline
+  desc: Current timeline ID from primary or replica
+  query: |
+    SELECT COALESCE(
+      (SELECT received_tli FROM pg_stat_wal_receiver),
+      (SELECT timeline_id FROM pg_control_checkpoint())
+    ) AS id;
+  ttl: {{ ttl_norm }}
+  min_version: 100000
+  tags: [ cluster ]
+  metrics:
+    - id: { usage: GAUGE ,description: Current timeline ID }
 
 
 #==============================================================#
@@ -1186,10 +1238,10 @@ pg_wait:
 #==============================================================#
 pg_backend:
   name: pg_backend
-  desc: PostgreSQL backend client count group by wait event type since 9.6
+  desc: PostgreSQL backend client count group by wait event type since 10
   query: SELECT backend_type AS "type", count(*) AS count FROM pg_stat_activity GROUP BY backend_type;
   ttl: {{ ttl_norm }}
-  min_version: 090600
+  min_version: 100000
   tags: [ cluster ]
   metrics:
     - type:  { usage: LABEL ,description: Database backend process type }
@@ -1202,7 +1254,7 @@ pg_backend:
 pg_xact:
   name: pg_xact
   desc: PostgreSQL transaction identifier metrics
-  query: WITH snap(v) AS (SELECT txid_current_snapshot()), xset(v) AS  (SELECT txid_snapshot_xip(v) FROM snap), xnum(v) AS (SELECT count(*) from xset), xmin(v) AS (SELECT txid_snapshot_xmin(v) FROM snap), xmax(v) AS (SELECT txid_snapshot_xmin(v) FROM snap) SELECT xmin.v AS xmin, xmax.v AS xmax, xnum.v AS xnum FROM xmin, xmax, xnum;
+  query: WITH snap(v) AS (SELECT txid_current_snapshot()), xset(v) AS  (SELECT txid_snapshot_xip(v) FROM snap), xnum(v) AS (SELECT count(*) from xset), xmin(v) AS (SELECT txid_snapshot_xmin(v) FROM snap), xmax(v) AS (SELECT txid_snapshot_xmax(v) FROM snap) SELECT xmin.v AS xmin, xmax.v AS xmax, xnum.v AS xnum FROM xmin, xmax, xnum;
   ttl: {{ ttl_norm }}
   min_version: 090400
   tags: [ cluster ]
@@ -1243,7 +1295,7 @@ pg_query_17:
       FROM pg_stat_statements(false) s JOIN pg_database d ON s.dbid = d.oid WHERE userid != 10 AND calls > 4 GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 128;
 
   ttl: {{ ttl_norm }}
-  timeout: 1
+  timeout: 2
   min_version: 170000
   tags: [ cluster, "extension:pg_stat_statements" ]
   metrics:
@@ -1268,7 +1320,7 @@ pg_query_13:
       FROM pg_stat_statements(false) s JOIN pg_database d ON s.dbid = d.oid WHERE userid != 10 AND calls > 4 GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 128;
 
   ttl: {{ ttl_norm }}
-  timeout: 1
+  timeout: 2
   min_version: 130000
   max_version: 170000
   tags: [ cluster, "extension:pg_stat_statements" ]
@@ -1294,7 +1346,7 @@ pg_query_10:
     FROM pg_stat_statements(false) s JOIN pg_database d ON s.dbid = d.oid WHERE userid != 10 AND calls > 4 GROUP BY 1, 2 ORDER BY 3 DESC LIMIT 128;
 
   ttl: {{ ttl_norm }}
-  timeout: 1
+  timeout: 2
   min_version: 090400
   max_version: 130000
   tags: [ cluster, "extension:pg_stat_statements" ]
@@ -1320,38 +1372,64 @@ pg_vacuuming_18:
   query: |-
     SELECT datname, pid, relid::RegClass AS relname,
       CASE phase WHEN 'scanning heap' THEN (CASE WHEN heap_blks_total > 0 THEN 1.0 * heap_blks_scanned / heap_blks_total ELSE 0.0 END)
-      WHEN 'vacuuming heap' THEN (CASE WHEN heap_blks_total > 0 THEN 1.0 * heap_blks_vacuumed / heap_blks_total ELSE 0 END) ELSE NULL END AS progress, delay_time 
-    FROM pg_stat_progress_vacuum pspv;
+        WHEN 'vacuuming heap' THEN (CASE WHEN heap_blks_total > 0 THEN 1.0 * heap_blks_vacuumed / heap_blks_total ELSE 0 END) ELSE NULL END AS progress,
+      indexes_total, indexes_processed, dead_tuple_bytes, delay_time
+    FROM pg_stat_progress_vacuum;
 
   ttl: {{ ttl_norm }}
   min_version: 180000
   tags: [ cluster, primary ]
   metrics:
-    - datname:     { usage: LABEL   ,description: database name }
-    - pid:         { usage: LABEL   ,description: process id of indexing table }
-    - relname:     { usage: LABEL   ,description: relation name of indexed table }
-    - progress:    { usage: GAUGE   ,description: the actual progress }
-    - delay_time:  { usage: COUNTER ,scale: 1e-3 ,description: Total time spent sleeping due to cost-based delay }
+    - datname:           { usage: LABEL   ,description: database name }
+    - pid:               { usage: LABEL   ,description: process id of vacuum worker }
+    - relname:           { usage: LABEL   ,description: relation name of vacuuming table }
+    - progress:          { usage: GAUGE   ,description: vacuum progress ratio (0-1) based on heap blocks scanned/vacuumed }
+    - indexes_total:     { usage: GAUGE   ,description: total number of indexes that will be vacuumed or cleaned up }
+    - indexes_processed: { usage: GAUGE   ,description: number of indexes that have been vacuumed or cleaned up }
+    - dead_tuple_bytes:  { usage: GAUGE   ,description: total size of dead tuples collected since the beginning of vacuum in bytes }
+    - delay_time:        { usage: COUNTER ,scale: 1e-3 ,description: total time spent sleeping due to cost-based delay in seconds }
 
-pg_vacuuming_12:
+pg_vacuuming_17:
   name: pg_vacuuming
-  desc: PostgreSQL vacuum progress since 12
+  desc: PostgreSQL vacuum progress 17 (with index progress tracking)
   query: |-
     SELECT datname, pid, relid::RegClass AS relname,
       CASE phase WHEN 'scanning heap' THEN (CASE WHEN heap_blks_total > 0 THEN 1.0 * heap_blks_scanned / heap_blks_total ELSE 0.0 END)
-      WHEN 'vacuuming heap' THEN (CASE WHEN heap_blks_total > 0 THEN 1.0 * heap_blks_vacuumed / heap_blks_total ELSE 0 END)
-      ELSE NULL END AS progress FROM pg_stat_progress_vacuum pspv;
+        WHEN 'vacuuming heap' THEN (CASE WHEN heap_blks_total > 0 THEN 1.0 * heap_blks_vacuumed / heap_blks_total ELSE 0 END) ELSE NULL END AS progress,
+      indexes_total, indexes_processed, dead_tuple_bytes
+    FROM pg_stat_progress_vacuum;
 
   ttl: {{ ttl_norm }}
-  min_version: 120000
+  min_version: 170000
   max_version: 180000
   tags: [ cluster, primary ]
   metrics:
-    - datname:     { usage: LABEL, description: database name }
-    - pid:         { usage: LABEL, description: process id of indexing table }
-    - relname:     { usage: LABEL, description: relation name of indexed table }
-    - progress:    { usage: GAUGE, description: the actual progress }
+    - datname:           { usage: LABEL ,description: database name }
+    - pid:               { usage: LABEL ,description: process id of vacuum worker }
+    - relname:           { usage: LABEL ,description: relation name of vacuuming table }
+    - progress:          { usage: GAUGE ,description: vacuum progress ratio (0-1) based on heap blocks scanned/vacuumed }
+    - indexes_total:     { usage: GAUGE ,description: total number of indexes that will be vacuumed or cleaned up }
+    - indexes_processed: { usage: GAUGE ,description: number of indexes that have been vacuumed or cleaned up }
+    - dead_tuple_bytes:  { usage: GAUGE ,description: total size of dead tuples collected since the beginning of vacuum in bytes }
 
+pg_vacuuming_12:
+  name: pg_vacuuming
+  desc: PostgreSQL vacuum progress 12-16
+  query: |-
+    SELECT datname, pid, relid::RegClass AS relname,
+      CASE phase WHEN 'scanning heap' THEN (CASE WHEN heap_blks_total > 0 THEN 1.0 * heap_blks_scanned / heap_blks_total ELSE 0.0 END)
+        WHEN 'vacuuming heap' THEN (CASE WHEN heap_blks_total > 0 THEN 1.0 * heap_blks_vacuumed / heap_blks_total ELSE 0 END) ELSE NULL END AS progress
+    FROM pg_stat_progress_vacuum;
+
+  ttl: {{ ttl_norm }}
+  min_version: 120000
+  max_version: 170000
+  tags: [ cluster, primary ]
+  metrics:
+    - datname:   { usage: LABEL ,description: database name }
+    - pid:       { usage: LABEL ,description: process id of vacuum worker }
+    - relname:   { usage: LABEL ,description: relation name of vacuuming table }
+    - progress:  { usage: GAUGE ,description: vacuum progress ratio (0-1) based on heap blocks scanned/vacuumed }
 
 
 #==============================================================#
@@ -1372,13 +1450,13 @@ pg_indexing:
   min_version: 120000
   tags: [ cluster, primary ]
   metrics:
-    - datname:     { usage: LABEL, description: Name of the database }
-    - pid:         { usage: LABEL, description: Process id of indexing table }
-    - relname:     { usage: LABEL, description: Relation name of indexed table }
-    - blocks:      { usage: GAUGE, description: Percent of blocks been proceeded }
-    - tuples:      { usage: GAUGE, description: Percent of tuples been proceeded }
-    - partitions:  { usage: GAUGE, description: Percent of partitions been proceeded }
-    - lockers:     { usage: GAUGE, description: Percent of lockers been proceeded }
+    - datname:     { usage: LABEL ,description: Name of the database }
+    - pid:         { usage: LABEL ,description: Process id of indexing table }
+    - relname:     { usage: LABEL ,description: Relation name of indexed table }
+    - blocks:      { usage: GAUGE ,description: Percent of blocks been proceeded }
+    - tuples:      { usage: GAUGE ,description: Percent of tuples been proceeded }
+    - partitions:  { usage: GAUGE ,description: Percent of partitions been proceeded }
+    - lockers:     { usage: GAUGE ,description: Percent of lockers been proceeded }
 
 
 #==============================================================#
@@ -1392,11 +1470,11 @@ pg_clustering:
   min_version: 120000
   tags: [ cluster, primary ]
   metrics:
-    - datname:     { usage: LABEL, description: Name of databae been clustering }
-    - pid:         { usage: LABEL, description: Process id of indexing table }
-    - relname:     { usage: LABEL, description: Relation name of indexed table }
-    - tup_scan:    { usage: GAUGE, description: How much tuple been scanned }
-    - progress:    { usage: GAUGE, description: Progress of heap been processed }
+    - datname:     { usage: LABEL ,description: Name of database been clustering }
+    - pid:         { usage: LABEL ,description: Process id of indexing table }
+    - relname:     { usage: LABEL ,description: Relation name of indexed table }
+    - tup_scan:    { usage: GAUGE ,description: How much tuple been scanned }
+    - progress:    { usage: GAUGE ,description: Progress of heap been processed }
 
 
 #==============================================================#
@@ -1410,10 +1488,10 @@ pg_backup:
   min_version: 130000
   tags: [ cluster ]
   metrics:
-    - pid:           { usage: LABEL, description: process id of basebackup sender }
-    - phase:         { usage: GAUGE, description: Phase encoded in 0~5 initial, wait checkpoint, estimate, streaming, waiting archive, transfer archive }
-    - total_bytes:   { usage: GAUGE, description: Total amount of data that will be streamed }
-    - sent_bytes:    { usage: GAUGE, description: Amount of data streamed }
+    - pid:           { usage: LABEL ,description: process id of basebackup sender }
+    - phase:         { usage: GAUGE ,description: Phase encoded in 0~5 initial, wait checkpoint, estimate, streaming, waiting archive, transfer archive }
+    - total_bytes:   { usage: GAUGE ,description: Total amount of data that will be streamed }
+    - sent_bytes:    { usage: GAUGE ,description: Amount of data streamed }
 
 
 #==============================================================#
@@ -1434,14 +1512,14 @@ pg_db_18:
   min_version: 180000
   tags: [ cluster ]
   metrics:
-    - datname:             { usage: LABEL  ,description: Name of the database }
-    - datid:               { usage: GAUGE  ,description: OID of the database }
-    - age:                 { usage: GAUGE  ,description: Age of database calculated from datfrozenxid }
-    - is_template:         { usage: GAUGE  ,description: If true(1), then this database can be cloned by any user with CREATEDB privileges }
-    - allow_conn:          { usage: GAUGE  ,description: If false(0) then no one can connect to this database. }
-    - conn_limit:          { usage: GAUGE  ,description: Sets maximum number of concurrent connections that can be made to this database. -1 means no limit. }
-    - frozen_xid:          { usage: GAUGE  ,description: All transaction IDs before this one have been frozened }
-    - numbackends:         { usage: GAUGE  ,description: Number of backends currently connected to this database }
+    - datname:             { usage: LABEL   ,description: Name of the database }
+    - datid:               { usage: GAUGE   ,description: OID of the database }
+    - age:                 { usage: GAUGE   ,description: Age of database calculated from datfrozenxid }
+    - is_template:         { usage: GAUGE   ,description: If true(1), then this database can be cloned by any user with CREATEDB privileges }
+    - allow_conn:          { usage: GAUGE   ,description: If false(0) then no one can connect to this database. }
+    - conn_limit:          { usage: GAUGE   ,description: Sets maximum number of concurrent connections that can be made to this database. -1 means no limit. }
+    - frozen_xid:          { usage: GAUGE   ,description: All transaction IDs before this one have been frozen }
+    - numbackends:         { usage: GAUGE   ,description: Number of backends currently connected to this database }
     - xact_commit:         { usage: COUNTER ,description: Number of transactions in this database that have been committed }
     - xact_rollback:       { usage: COUNTER ,description: Number of transactions in this database that have been rolled back }
     - xact_total:          { usage: COUNTER ,description: Number of transactions in this database }
@@ -1459,7 +1537,7 @@ pg_db_18:
     - temp_bytes:          { usage: COUNTER ,description: Total amount of data written to temporary files by queries in this database. }
     - deadlocks:           { usage: COUNTER ,description: Number of deadlocks detected in this database }
     - cks_fails:           { usage: COUNTER ,description: Number of data page checksum failures detected in this database, -1 for not enabled }
-    - cks_fail_time:       { usage: GAUGE  ,description: Time at which the last data page checksum failure was detected in this database }
+    - cks_fail_time:       { usage: GAUGE   ,description: Time at which the last data page checksum failure was detected in this database }
     - blk_read_time:       { usage: COUNTER ,scale: 1e-3 ,description: Time spent reading data file blocks by backends in this database, in seconds }
     - blk_write_time:      { usage: COUNTER ,scale: 1e-3 ,description: Time spent writing data file blocks by backends in this database, in seconds }
     - session_time:        { usage: COUNTER ,scale: 1e-3 ,description: Time spent by database sessions in this database, in seconds }
@@ -1472,7 +1550,6 @@ pg_db_18:
     - parallel_workers_to_launch: { usage: COUNTER ,description: Number of parallel workers planned to be launched by queries on this database }
     - parallel_workers_launched:  { usage: COUNTER ,description: Number of parallel workers launched by queries on this database }
     - reset_time:          { usage: GAUGE   ,description: Time at which database statistics were last reset }
-
 
 pg_db_14:
   name: pg_db
@@ -1489,14 +1566,14 @@ pg_db_14:
   max_version: 180000
   tags: [ cluster ]
   metrics:
-    - datname:             { usage: LABEL  ,description: Name of the database }
-    - datid:               { usage: GAUGE  ,description: OID of the database }
-    - age:                 { usage: GAUGE  ,description: Age of database calculated from datfrozenxid }
-    - is_template:         { usage: GAUGE  ,description: If true(1), then this database can be cloned by any user with CREATEDB privileges }
-    - allow_conn:          { usage: GAUGE  ,description: If false(0) then no one can connect to this database. }
-    - conn_limit:          { usage: GAUGE  ,description: Sets maximum number of concurrent connections that can be made to this database. -1 means no limit. }
-    - frozen_xid:          { usage: GAUGE  ,description: All transaction IDs before this one have been frozened }
-    - numbackends:         { usage: GAUGE  ,description: Number of backends currently connected to this database }
+    - datname:             { usage: LABEL   ,description: Name of the database }
+    - datid:               { usage: GAUGE   ,description: OID of the database }
+    - age:                 { usage: GAUGE   ,description: Age of database calculated from datfrozenxid }
+    - is_template:         { usage: GAUGE   ,description: If true(1), then this database can be cloned by any user with CREATEDB privileges }
+    - allow_conn:          { usage: GAUGE   ,description: If false(0) then no one can connect to this database. }
+    - conn_limit:          { usage: GAUGE   ,description: Sets maximum number of concurrent connections that can be made to this database. -1 means no limit. }
+    - frozen_xid:          { usage: GAUGE   ,description: All transaction IDs before this one have been frozen }
+    - numbackends:         { usage: GAUGE   ,description: Number of backends currently connected to this database }
     - xact_commit:         { usage: COUNTER ,description: Number of transactions in this database that have been committed }
     - xact_rollback:       { usage: COUNTER ,description: Number of transactions in this database that have been rolled back }
     - xact_total:          { usage: COUNTER ,description: Number of transactions in this database }
@@ -1514,7 +1591,7 @@ pg_db_14:
     - temp_bytes:          { usage: COUNTER ,description: Total amount of data written to temporary files by queries in this database. }
     - deadlocks:           { usage: COUNTER ,description: Number of deadlocks detected in this database }
     - cks_fails:           { usage: COUNTER ,description: Number of data page checksum failures detected in this database, -1 for not enabled }
-    - cks_fail_time:       { usage: GAUGE  ,description: Time at which the last data page checksum failure was detected in this database }
+    - cks_fail_time:       { usage: GAUGE   ,description: Time at which the last data page checksum failure was detected in this database }
     - blk_read_time:       { usage: COUNTER ,scale: 1e-3 ,description: Time spent reading data file blocks by backends in this database, in seconds }
     - blk_write_time:      { usage: COUNTER ,scale: 1e-3 ,description: Time spent writing data file blocks by backends in this database, in seconds }
     - session_time:        { usage: COUNTER ,scale: 1e-3 ,description: Time spent by database sessions in this database, in seconds }
@@ -1525,6 +1602,7 @@ pg_db_14:
     - sessions_fatal:      { usage: COUNTER ,description: Number of database sessions to this database that were terminated by fatal errors }
     - sessions_killed:     { usage: COUNTER ,description: Number of database sessions to this database that were terminated by operator intervention }
     - reset_time:          { usage: GAUGE   ,description: Time at which database statistics were last reset }
+
 
 pg_db_12:
   name: pg_db
@@ -1540,14 +1618,14 @@ pg_db_12:
   max_version: 140000
   tags: [ cluster ]
   metrics:
-    - datname:             { usage: LABEL  ,description: Name of the database }
-    - datid:               { usage: GAUGE  ,description: OID of the database }
-    - age:                 { usage: GAUGE  ,description: Age of database calculated from datfrozenxid }
-    - is_template:         { usage: GAUGE  ,description: If true(1), then this database can be cloned by any user with CREATEDB privileges }
-    - allow_conn:          { usage: GAUGE  ,description: If false(0) then no one can connect to this database. }
-    - conn_limit:          { usage: GAUGE  ,description: Sets maximum number of concurrent connections that can be made to this database. -1 means no limit. }
-    - frozen_xid:          { usage: GAUGE  ,description: All transaction IDs before this one have been frozened }
-    - numbackends:         { usage: GAUGE  ,description: Number of backends currently connected to this database }
+    - datname:             { usage: LABEL   ,description: Name of the database }
+    - datid:               { usage: GAUGE   ,description: OID of the database }
+    - age:                 { usage: GAUGE   ,description: Age of database calculated from datfrozenxid }
+    - is_template:         { usage: GAUGE   ,description: If true(1), then this database can be cloned by any user with CREATEDB privileges }
+    - allow_conn:          { usage: GAUGE   ,description: If false(0) then no one can connect to this database. }
+    - conn_limit:          { usage: GAUGE   ,description: Sets maximum number of concurrent connections that can be made to this database. -1 means no limit. }
+    - frozen_xid:          { usage: GAUGE   ,description: All transaction IDs before this one have been frozen }
+    - numbackends:         { usage: GAUGE   ,description: Number of backends currently connected to this database }
     - xact_commit:         { usage: COUNTER ,description: Number of transactions in this database that have been committed }
     - xact_rollback:       { usage: COUNTER ,description: Number of transactions in this database that have been rolled back }
     - xact_total:          { usage: COUNTER ,description: Number of transactions in this database }
@@ -1565,7 +1643,7 @@ pg_db_12:
     - temp_bytes:          { usage: COUNTER ,description: Total amount of data written to temporary files by queries in this database. }
     - deadlocks:           { usage: COUNTER ,description: Number of deadlocks detected in this database }
     - cks_fails:           { usage: COUNTER ,description: Number of data page checksum failures detected in this database, -1 for not enabled }
-    - cks_fail_time:       { usage: GAUGE  ,description: Time at which the last data page checksum failure was detected in this database }
+    - cks_fail_time:       { usage: GAUGE   ,description: Time at which the last data page checksum failure was detected in this database }
     - blk_read_time:       { usage: COUNTER ,scale: 1e-3 ,description: Time spent reading data file blocks by backends in this database, in seconds }
     - blk_write_time:      { usage: COUNTER ,scale: 1e-3 ,description: Time spent writing data file blocks by backends in this database, in seconds }
     - reset_time:          { usage: GAUGE   ,description: Time at which database statistics were last reset }
@@ -1582,14 +1660,14 @@ pg_db_10:
   max_version: 120000
   tags: [ cluster ]
   metrics:
-    - datname:             { usage: LABEL  ,description: Name of the database }
-    - datid:               { usage: GAUGE  ,description: OID of the database }
-    - age:                 { usage: GAUGE  ,description: Age of database calculated from datfrozenxid }
-    - is_template:         { usage: GAUGE  ,description: If true(1), then this database can be cloned by any user with CREATEDB privileges }
-    - allow_conn:          { usage: GAUGE  ,description: If false(0) then no one can connect to this database. }
-    - conn_limit:          { usage: GAUGE  ,description: Sets maximum number of concurrent connections that can be made to this database. -1 means no limit. }
-    - frozen_xid:          { usage: GAUGE  ,description: All transaction IDs before this one have been frozened }
-    - numbackends:         { usage: GAUGE  ,description: Number of backends currently connected to this database }
+    - datname:             { usage: LABEL   ,description: Name of the database }
+    - datid:               { usage: GAUGE   ,description: OID of the database }
+    - age:                 { usage: GAUGE   ,description: Age of database calculated from datfrozenxid }
+    - is_template:         { usage: GAUGE   ,description: If true(1), then this database can be cloned by any user with CREATEDB privileges }
+    - allow_conn:          { usage: GAUGE   ,description: If false(0) then no one can connect to this database. }
+    - conn_limit:          { usage: GAUGE   ,description: Sets maximum number of concurrent connections that can be made to this database. -1 means no limit. }
+    - frozen_xid:          { usage: GAUGE   ,description: All transaction IDs before this one have been frozen }
+    - numbackends:         { usage: GAUGE   ,description: Number of backends currently connected to this database }
     - xact_commit:         { usage: COUNTER ,description: Number of transactions in this database that have been committed }
     - xact_rollback:       { usage: COUNTER ,description: Number of transactions in this database that have been rolled back }
     - xact_total:          { usage: COUNTER ,description: Number of transactions in this database }
@@ -1625,7 +1703,7 @@ pg_db_confl_16:
   tags: [ cluster, replica ]
   metrics:
     - datid:                { usage: DISCARD }
-    - datname:              { usage: LABEL  ,description: Name of this database }
+    - datname:              { usage: LABEL   ,description: Name of this database }
     - confl_tablespace:     { usage: COUNTER ,description: Number of queries in this database that have been canceled due to dropped tablespaces }
     - confl_lock:           { usage: COUNTER ,description: Number of queries in this database that have been canceled due to lock timeouts }
     - confl_snapshot:       { usage: COUNTER ,description: Number of queries in this database that have been canceled due to old snapshots }
@@ -1635,7 +1713,7 @@ pg_db_confl_16:
 
 pg_db_confl_15:
   name: pg_db_confl
-  desc: PostgreSQL database conflicts metrics for pg 9.1 - 16
+  desc: PostgreSQL database conflicts metrics for pg 9.1 - 15
   query: SELECT * FROM pg_stat_database_conflicts;
   ttl: {{ ttl_norm }}
   min_version: 90100
@@ -1643,7 +1721,7 @@ pg_db_confl_15:
   tags: [ cluster, replica ]
   metrics:
     - datid:                { usage: DISCARD }
-    - datname:              { usage: LABEL  ,description: Name of this database }
+    - datname:              { usage: LABEL   ,description: Name of this database }
     - confl_tablespace:     { usage: COUNTER ,description: Number of queries in this database that have been canceled due to dropped tablespaces }
     - confl_lock:           { usage: COUNTER ,description: Number of queries in this database that have been canceled due to lock timeouts }
     - confl_snapshot:       { usage: COUNTER ,description: Number of queries in this database that have been canceled due to old snapshots }
@@ -1689,21 +1767,22 @@ pg_table_18:
   name: pg_table
   desc: PostgreSQL table metrics v18+
   query: |-
-    SELECT CURRENT_CATALOG AS datname, relnamespace::RegNamespace || '.' || c.relname AS relname, c.oid AS relid, ascii(relkind) AS kind,
-       relpages AS pages, reltuples AS tuples, relfrozenxid AS frozenxid, age(relfrozenxid) AS age, relnatts AS ncols,
-       seq_scan,seq_tup_read,idx_scan,idx_tup_fetch,seq_scan + idx_scan AS tbl_scan, seq_tup_read + idx_tup_fetch AS tup_read,
-       n_tup_ins,n_tup_upd,n_tup_del,(n_tup_ins + n_tup_upd + n_tup_del) AS n_tup_mod,n_tup_hot_upd,n_tup_newpage_upd,n_live_tup,n_dead_tup,
-       n_mod_since_analyze,n_ins_since_vacuum,last_vacuum,last_autovacuum,last_analyze,last_autoanalyze,last_seq_scan,
-       vacuum_count,autovacuum_count,analyze_count,autoanalyze_count,
-       total_vacuum_time AS vacuum_time,total_autovacuum_time AS autovacuum_time,total_analyze_time AS analyze_time,total_autoanalyze_time AS autoanalyze_time,
-       heap_blks_read,heap_blks_hit,idx_blks_read,idx_blks_hit,toast_blks_read,toast_blks_hit,tidx_blks_read,tidx_blks_hit
-    FROM pg_class c, LATERAL (SELECT * FROM pg_stat_user_tables WHERE relid = c.oid LIMIT 1) psut, LATERAL (SELECT * FROM pg_statio_user_tables WHERE relid = c.oid LIMIT 1) psutio
-    WHERE relnamespace = ANY (SELECT oid FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname !~ '^_' AND nspname !~ '^timescaledb' AND nspname !~ '^citus' AND nspname !~ '^columnar' 
-          AND nspname NOT IN ('pg_catalog','information_schema','pg_toast','repack','monitor')) AND relkind = ANY (ARRAY ['r', 'm', 't', 'p'])
-    ORDER BY relpages DESC LIMIT 256;
+    SELECT CURRENT_CATALOG AS datname, nsp.nspname || '.' || c.relname AS relname, c.oid AS relid, ascii(c.relkind) AS kind,
+       c.relpages AS pages, c.reltuples AS tuples, c.relfrozenxid AS frozenxid, age(c.relfrozenxid) AS age, c.relnatts AS ncols,
+       psut.seq_scan,psut.seq_tup_read,psut.idx_scan,psut.idx_tup_fetch,psut.seq_scan + psut.idx_scan AS tbl_scan, psut.seq_tup_read + psut.idx_tup_fetch AS tup_read,
+       psut.n_tup_ins,psut.n_tup_upd,psut.n_tup_del,(psut.n_tup_ins + psut.n_tup_upd + psut.n_tup_del) AS n_tup_mod,psut.n_tup_hot_upd,psut.n_tup_newpage_upd,psut.n_live_tup,psut.n_dead_tup,
+       psut.n_mod_since_analyze,psut.n_ins_since_vacuum,psut.last_vacuum,psut.last_autovacuum,psut.last_analyze,psut.last_autoanalyze,psut.last_seq_scan,
+       psut.vacuum_count,psut.autovacuum_count,psut.analyze_count,psut.autoanalyze_count,
+       psut.total_vacuum_time AS vacuum_time,psut.total_autovacuum_time AS autovacuum_time,psut.total_analyze_time AS analyze_time,psut.total_autoanalyze_time AS autoanalyze_time,
+       psio.heap_blks_read,psio.heap_blks_hit,psio.idx_blks_read,psio.idx_blks_hit,psio.toast_blks_read,psio.toast_blks_hit,psio.tidx_blks_read,psio.tidx_blks_hit
+    FROM pg_class c JOIN pg_namespace nsp ON c.relnamespace = nsp.oid
+        LEFT JOIN pg_stat_user_tables psut ON psut.relid = c.oid LEFT JOIN pg_statio_user_tables psio ON psio.relid = c.oid
+    WHERE nsp.nspname !~ '^pg_' AND nsp.nspname !~ '^_' AND nsp.nspname !~ '^timescaledb' AND nsp.nspname !~ '^citus' AND nsp.nspname !~ '^columnar'
+        AND nsp.nspname NOT IN ('pg_catalog','information_schema','pg_toast','repack','monitor') AND c.relkind = ANY (ARRAY ['r','m','t','p'])
+    ORDER BY c.relpages DESC LIMIT 256;
 
   ttl: {{ ttl_norm }}
-  timeout: 1
+  timeout: 2
   min_version: 180000
   metrics:
     - datname:             { usage: LABEL                 ,description: Database name of this table }
@@ -1711,8 +1790,8 @@ pg_table_18:
     - relid:               { usage: GAUGE                 ,description: Relation oid of this table }
     - kind:                { usage: GAUGE                 ,description: Relation kind r/table/114,m/mview/109,t/toast/116,p/partitioned/112 }
     - pages:               { usage: GAUGE                 ,description: Size of the on-disk representation of this table in pages }
-    - tuples:              { usage: COUNTER               ,description: All txid before this have been frozen on this table }
-    - frozenxid:           { usage: COUNTER               ,description: All txid before this have been frozen on this table }
+    - tuples:              { usage: GAUGE                 ,description: Estimated number of rows in this table }
+    - frozenxid:           { usage: GAUGE                 ,description: All txid before this have been frozen on this table }
     - age:                 { usage: GAUGE                 ,description: Age of this table in vacuum cycles }
     - ncols:               { usage: GAUGE                 ,description: Number of columns in the table }
     - seq_scan:            { usage: COUNTER  ,default: 0  ,description: Number of sequential scans initiated on this table }
@@ -1755,22 +1834,23 @@ pg_table_18:
 
 pg_table_16:
   name: pg_table
-  desc: PostgreSQL table metrics v16+
+  desc: PostgreSQL table metrics 16-17
   query: |-
-    SELECT CURRENT_CATALOG AS datname, relnamespace::RegNamespace || '.' || c.relname AS relname, c.oid AS relid, ascii(relkind) AS kind,
-       relpages AS pages, reltuples AS tuples, relfrozenxid AS frozenxid, age(relfrozenxid) AS age, relnatts AS ncols,
-       seq_scan,seq_tup_read,idx_scan,idx_tup_fetch,seq_scan + idx_scan AS tbl_scan, seq_tup_read + idx_tup_fetch AS tup_read,
-       n_tup_ins,n_tup_upd,n_tup_del,(n_tup_ins + n_tup_upd + n_tup_del) AS n_tup_mod,n_tup_hot_upd,n_tup_newpage_upd,n_live_tup,n_dead_tup,
-       n_mod_since_analyze,n_ins_since_vacuum,last_vacuum,last_autovacuum,last_analyze,last_autoanalyze,last_seq_scan,
-       vacuum_count,autovacuum_count,analyze_count,autoanalyze_count,
-       heap_blks_read,heap_blks_hit,idx_blks_read,idx_blks_hit,toast_blks_read,toast_blks_hit,tidx_blks_read,tidx_blks_hit
-    FROM pg_class c, LATERAL (SELECT * FROM pg_stat_user_tables WHERE relid = c.oid LIMIT 1) psut, LATERAL (SELECT * FROM pg_statio_user_tables WHERE relid = c.oid LIMIT 1) psutio
-    WHERE relnamespace = ANY (SELECT oid FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname !~ '^_' AND nspname !~ '^timescaledb' AND nspname !~ '^citus' AND nspname !~ '^columnar' 
-          AND nspname NOT IN ('pg_catalog','information_schema','pg_toast','repack','monitor')) AND relkind = ANY (ARRAY ['r', 'm', 't', 'p'])
-    ORDER BY relpages DESC LIMIT 256;
+    SELECT CURRENT_CATALOG AS datname, nsp.nspname || '.' || c.relname AS relname, c.oid AS relid, ascii(c.relkind) AS kind,
+       c.relpages AS pages, c.reltuples AS tuples, c.relfrozenxid AS frozenxid, age(c.relfrozenxid) AS age, c.relnatts AS ncols,
+       psut.seq_scan,psut.seq_tup_read,psut.idx_scan,psut.idx_tup_fetch,psut.seq_scan + psut.idx_scan AS tbl_scan, psut.seq_tup_read + psut.idx_tup_fetch AS tup_read,
+       psut.n_tup_ins,psut.n_tup_upd,psut.n_tup_del,(psut.n_tup_ins + psut.n_tup_upd + psut.n_tup_del) AS n_tup_mod,psut.n_tup_hot_upd,psut.n_tup_newpage_upd,psut.n_live_tup,psut.n_dead_tup,
+       psut.n_mod_since_analyze,psut.n_ins_since_vacuum,psut.last_vacuum,psut.last_autovacuum,psut.last_analyze,psut.last_autoanalyze,psut.last_seq_scan,
+       psut.vacuum_count,psut.autovacuum_count,psut.analyze_count,psut.autoanalyze_count,
+       psio.heap_blks_read,psio.heap_blks_hit,psio.idx_blks_read,psio.idx_blks_hit,psio.toast_blks_read,psio.toast_blks_hit,psio.tidx_blks_read,psio.tidx_blks_hit
+    FROM pg_class c JOIN pg_namespace nsp ON c.relnamespace = nsp.oid
+        LEFT JOIN pg_stat_user_tables psut ON psut.relid = c.oid LEFT JOIN pg_statio_user_tables psio ON psio.relid = c.oid
+    WHERE nsp.nspname !~ '^pg_' AND nsp.nspname !~ '^_' AND nsp.nspname !~ '^timescaledb' AND nsp.nspname !~ '^citus' AND nsp.nspname !~ '^columnar'
+        AND nsp.nspname NOT IN ('pg_catalog','information_schema','pg_toast','repack','monitor') AND c.relkind = ANY (ARRAY ['r','m','t','p'])
+    ORDER BY c.relpages DESC LIMIT 256;
 
   ttl: {{ ttl_norm }}
-  timeout: 1
+  timeout: 2
   min_version: 160000
   max_version: 180000
   metrics:
@@ -1779,8 +1859,8 @@ pg_table_16:
     - relid:               { usage: GAUGE                 ,description: Relation oid of this table }
     - kind:                { usage: GAUGE                 ,description: Relation kind r/table/114,m/mview/109,t/toast/116,p/partitioned/112 }
     - pages:               { usage: GAUGE                 ,description: Size of the on-disk representation of this table in pages }
-    - tuples:              { usage: COUNTER               ,description: All txid before this have been frozen on this table }
-    - frozenxid:           { usage: COUNTER               ,description: All txid before this have been frozen on this table }
+    - tuples:              { usage: GAUGE                 ,description: Estimated number of rows in this table }
+    - frozenxid:           { usage: GAUGE                 ,description: All txid before this have been frozen on this table }
     - age:                 { usage: GAUGE                 ,description: Age of this table in vacuum cycles }
     - ncols:               { usage: GAUGE                 ,description: Number of columns in the table }
     - seq_scan:            { usage: COUNTER  ,default: 0  ,description: Number of sequential scans initiated on this table }
@@ -1819,22 +1899,23 @@ pg_table_16:
 
 pg_table_13:
   name: pg_table
-  desc: PostgreSQL table metrics (v13 with n_ins_since_vacuum)
+  desc: PostgreSQL table metrics 13-15 (with n_ins_since_vacuum)
   query: |-
-    SELECT CURRENT_CATALOG AS datname, relnamespace::RegNamespace || '.' || c.relname AS relname, c.oid AS relid, ascii(relkind) AS kind,
-       relpages AS pages, reltuples AS tuples, relfrozenxid AS frozenxid, age(relfrozenxid) AS age, relnatts AS ncols,
-       seq_scan,seq_tup_read,idx_scan,idx_tup_fetch,seq_scan + idx_scan AS tbl_scan, seq_tup_read + idx_tup_fetch AS tup_read,
-       n_tup_ins,n_tup_upd,n_tup_del,(n_tup_ins + n_tup_upd + n_tup_del) AS n_tup_mod,n_tup_hot_upd,n_live_tup,n_dead_tup,
-       n_mod_since_analyze,n_ins_since_vacuum,last_vacuum,last_autovacuum,last_analyze,last_autoanalyze,
-       vacuum_count,autovacuum_count,analyze_count,autoanalyze_count,
-       heap_blks_read,heap_blks_hit,idx_blks_read,idx_blks_hit,toast_blks_read,toast_blks_hit,tidx_blks_read,tidx_blks_hit
-    FROM pg_class c, LATERAL (SELECT * FROM pg_stat_user_tables WHERE relid = c.oid LIMIT 1) psut, LATERAL (SELECT * FROM pg_statio_user_tables WHERE relid = c.oid LIMIT 1) psutio
-    WHERE relnamespace = ANY (SELECT oid FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname !~ '^_' AND nspname !~ '^timescaledb' AND nspname !~ '^citus' 
-          AND nspname !~ '^columnar' AND nspname NOT IN ('pg_catalog','information_schema','pg_toast','repack','monitor')) AND relkind = ANY (ARRAY ['r', 'm', 't', 'p'])
-    ORDER BY relpages DESC LIMIT 256;
+    SELECT CURRENT_CATALOG AS datname, nsp.nspname || '.' || c.relname AS relname, c.oid AS relid, ascii(c.relkind) AS kind,
+       c.relpages AS pages, c.reltuples AS tuples, c.relfrozenxid AS frozenxid, age(c.relfrozenxid) AS age, c.relnatts AS ncols,
+       psut.seq_scan,psut.seq_tup_read,psut.idx_scan,psut.idx_tup_fetch,psut.seq_scan + psut.idx_scan AS tbl_scan, psut.seq_tup_read + psut.idx_tup_fetch AS tup_read,
+       psut.n_tup_ins,psut.n_tup_upd,psut.n_tup_del,(psut.n_tup_ins + psut.n_tup_upd + psut.n_tup_del) AS n_tup_mod,psut.n_tup_hot_upd,psut.n_live_tup,psut.n_dead_tup,
+       psut.n_mod_since_analyze,psut.n_ins_since_vacuum,psut.last_vacuum,psut.last_autovacuum,psut.last_analyze,psut.last_autoanalyze,
+       psut.vacuum_count,psut.autovacuum_count,psut.analyze_count,psut.autoanalyze_count,
+       psio.heap_blks_read,psio.heap_blks_hit,psio.idx_blks_read,psio.idx_blks_hit,psio.toast_blks_read,psio.toast_blks_hit,psio.tidx_blks_read,psio.tidx_blks_hit
+    FROM pg_class c JOIN pg_namespace nsp ON c.relnamespace = nsp.oid
+        LEFT JOIN pg_stat_user_tables psut ON psut.relid = c.oid LEFT JOIN pg_statio_user_tables psio ON psio.relid = c.oid
+    WHERE nsp.nspname !~ '^pg_' AND nsp.nspname !~ '^_' AND nsp.nspname !~ '^timescaledb' AND nsp.nspname !~ '^citus' AND nsp.nspname !~ '^columnar'
+        AND nsp.nspname NOT IN ('pg_catalog','information_schema','pg_toast','repack','monitor') AND c.relkind = ANY (ARRAY ['r','m','t','p'])
+    ORDER BY c.relpages DESC LIMIT 256;
 
   ttl: {{ ttl_norm }}
-  timeout: 1
+  timeout: 2
   min_version: 130000
   max_version: 160000
   metrics:
@@ -1843,8 +1924,8 @@ pg_table_13:
     - relid:               { usage: GAUGE                 ,description: Relation oid of this table }
     - kind:                { usage: GAUGE                 ,description: Relation kind r/table/114,m/mview/109,t/toast/116,p/partitioned/112 }
     - pages:               { usage: GAUGE                 ,description: Size of the on-disk representation of this table in pages }
-    - tuples:              { usage: COUNTER               ,description: All txid before this have been frozen on this table }
-    - frozenxid:           { usage: COUNTER               ,description: All txid before this have been frozen on this table }
+    - tuples:              { usage: GAUGE                 ,description: Estimated number of rows in this table }
+    - frozenxid:           { usage: GAUGE                 ,description: All txid before this have been frozen on this table }
     - age:                 { usage: GAUGE                 ,description: Age of this table in vacuum cycles }
     - ncols:               { usage: GAUGE                 ,description: Number of columns in the table }
     - seq_scan:            { usage: COUNTER  ,default: 0  ,description: Number of sequential scans initiated on this table }
@@ -1881,21 +1962,22 @@ pg_table_13:
 
 pg_table_10:
   name: pg_table
-  desc: PostgreSQL table metrics (9.4-12)
+  desc: PostgreSQL table metrics 9.4-12
   query: |-
-    SELECT CURRENT_CATALOG AS datname, relnamespace::RegNamespace || '.' || c.relname AS relname, oid AS relid, ascii(relkind) AS kind,
-       relpages AS pages, reltuples AS tuples, relfrozenxid AS frozenxid, age(relfrozenxid) AS age, relnatts AS ncols,
-       seq_scan,seq_tup_read,idx_scan,idx_tup_fetch,seq_scan + idx_scan AS tbl_scan, seq_tup_read + idx_tup_fetch AS tup_read,
-       n_tup_ins,n_tup_upd,n_tup_del,(n_tup_ins + n_tup_upd + n_tup_del) AS n_tup_mod,n_tup_hot_upd,n_live_tup,n_dead_tup,
-       n_mod_since_analyze,last_vacuum,last_autovacuum,last_analyze,last_autoanalyze,
-       vacuum_count,autovacuum_count,analyze_count,autoanalyze_count,
-       heap_blks_read,heap_blks_hit,idx_blks_read,idx_blks_hit,toast_blks_read,toast_blks_hit,tidx_blks_read,tidx_blks_hit
-    FROM pg_class c, LATERAL (SELECT * FROM pg_stat_user_tables WHERE relid = c.oid LIMIT 1) psut, LATERAL (SELECT * FROM pg_statio_user_tables WHERE relid = c.oid LIMIT 1) psutio
-    WHERE relnamespace = ANY (SELECT oid FROM pg_namespace WHERE nspname !~ '^pg_' AND nspname !~ '^_' AND nspname !~ '^timescaledb' AND nspname !~ '^citus' 
-          AND nspname !~ '^columnar' AND nspname NOT IN ('pg_catalog','information_schema','pg_toast','repack','monitor')) AND relkind = ANY (ARRAY ['r', 'm', 't', 'p'])
-    ORDER BY relpages DESC LIMIT 256;
+    SELECT CURRENT_CATALOG AS datname, nsp.nspname || '.' || c.relname AS relname, c.oid AS relid, ascii(c.relkind) AS kind,
+       c.relpages AS pages, c.reltuples AS tuples, c.relfrozenxid AS frozenxid, age(c.relfrozenxid) AS age, c.relnatts AS ncols,
+       psut.seq_scan,psut.seq_tup_read,psut.idx_scan,psut.idx_tup_fetch,psut.seq_scan + psut.idx_scan AS tbl_scan, psut.seq_tup_read + psut.idx_tup_fetch AS tup_read,
+       psut.n_tup_ins,psut.n_tup_upd,psut.n_tup_del,(psut.n_tup_ins + psut.n_tup_upd + psut.n_tup_del) AS n_tup_mod,psut.n_tup_hot_upd,psut.n_live_tup,psut.n_dead_tup,
+       psut.n_mod_since_analyze,psut.last_vacuum,psut.last_autovacuum,psut.last_analyze,psut.last_autoanalyze,
+       psut.vacuum_count,psut.autovacuum_count,psut.analyze_count,psut.autoanalyze_count,
+       psio.heap_blks_read,psio.heap_blks_hit,psio.idx_blks_read,psio.idx_blks_hit,psio.toast_blks_read,psio.toast_blks_hit,psio.tidx_blks_read,psio.tidx_blks_hit
+    FROM pg_class c JOIN pg_namespace nsp ON c.relnamespace = nsp.oid
+        LEFT JOIN pg_stat_user_tables psut ON psut.relid = c.oid LEFT JOIN pg_statio_user_tables psio ON psio.relid = c.oid
+    WHERE nsp.nspname !~ '^pg_' AND nsp.nspname !~ '^_' AND nsp.nspname !~ '^timescaledb' AND nsp.nspname !~ '^citus' AND nsp.nspname !~ '^columnar'
+        AND nsp.nspname NOT IN ('pg_catalog','information_schema','pg_toast','repack','monitor') AND c.relkind = ANY (ARRAY ['r','m','t','p'])
+    ORDER BY c.relpages DESC LIMIT 256;
   ttl: {{ ttl_norm }}
-  timeout: 1
+  timeout: 2
   min_version: 090400
   max_version: 130000
   metrics:
@@ -1904,8 +1986,8 @@ pg_table_10:
     - relid:               { usage: GAUGE                 ,description: Relation oid of this table }
     - kind:                { usage: GAUGE                 ,description: Relation kind r/table/114,m/mview/109,t/toast/116,p/partitioned/112 }
     - pages:               { usage: GAUGE                 ,description: Size of the on-disk representation of this table in pages }
-    - tuples:              { usage: COUNTER               ,description: All txid before this have been frozen on this table }
-    - frozenxid:           { usage: COUNTER               ,description: All txid before this have been frozen on this table }
+    - tuples:              { usage: GAUGE                 ,description: Estimated number of rows in this table }
+    - frozenxid:           { usage: GAUGE                 ,description: All txid before this have been frozen on this table }
     - age:                 { usage: GAUGE                 ,description: Age of this table in vacuum cycles }
     - ncols:               { usage: GAUGE                 ,description: Number of columns in the table }
     - seq_scan:            { usage: COUNTER  ,default: 0  ,description: Number of sequential scans initiated on this table }
@@ -1959,8 +2041,8 @@ pg_index:
   min_version: 090400
   metrics:
     - datname:             { usage: LABEL    ,description: Database name of this index }
-    - idxname:             { usage: LABEL    ,description: Name of this index (full-qualifed schema name) }
-    - relname:             { usage: LABEL    ,description: Name of the table for this index (full-qualifed schema name) }
+    - idxname:             { usage: LABEL    ,description: Name of this index (full-qualified schema name) }
+    - relname:             { usage: LABEL    ,description: Name of the table for this index (full-qualified schema name) }
     - relid:               { usage: LABEL    ,description: Relation oid of this index }
     - relpages:            { usage: GAUGE    ,description: Size of the on-disk representation of this index in pages }
     - reltuples:           { usage: GAUGE    ,description: Estimate relation tuples }
@@ -1983,8 +2065,8 @@ pg_func:
     - datname:             { usage: LABEL    ,description: Name of belonged database }
     - funcname:            { usage: LABEL    ,description: Name of this function, may have multiple override }
     - calls:               { usage: COUNTER  ,description: Number of times this function has been called }
-    - total_time:          { usage: COUNTER  ,description: Total time spent in this function and all other functions called by it, in ms }
-    - self_time:           { usage: COUNTER  ,description: Total time spent in this function itself, not including other functions called by it, in ms }
+    - total_time:          { usage: COUNTER  ,scale: 1e-3 ,description: Total time spent in this function and all other functions called by it, in seconds }
+    - self_time:           { usage: COUNTER  ,scale: 1e-3 ,description: Total time spent in this function itself, not including other functions called by it, in seconds }
 
 
 #==============================================================#
@@ -2099,36 +2181,6 @@ pg_index_bloat:
     - ratio:               { usage: GAUGE    ,description: Estimated bloat ratio of this index, 0~1 }
 
 
-#==============================================================#
-# 1900 pg_citus_node
-#==============================================================#
-# https://docs.citusdata.com/en/latest/develop/api_metadata.html#worker-node-table
-pg_citus_node:
-  name: pg_citus_node
-  desc: Citus worker coordinator node inventory
-  query: |-
-    SELECT
-      CONCAT(nodename, ':', nodeport) AS node,
-      current_database() AS datname,
-      nodeid AS id,
-      groupid AS group,
-      hasmetadata::BOOLEAN::INT AS has_meta,
-      isactive::BOOLEAN::INT AS is_active,
-      metadatasynced::BOOLEAN::INT AS meta_synced,
-      shouldhaveshards::BOOLEAN::INT AS have_shards
-    FROM pg_dist_node;
-  ttl: {{ ttl_slow }}
-  min_version: 100000
-  tags: [ "extension:citus" ]
-  metrics:
-    - node:             { usage: LABEL ,description: nodename:port of the PostgreSQL instance }
-    - datname:          { usage: LABEL ,description: database name }
-    - id:               { usage: GAUGE ,description: auto‑generated node identifier }
-    - group:            { usage: GAUGE ,description: replication group id (primary + secondaries) }
-    - has_meta:         { usage: GAUGE ,description: 1 = internal use flag set }
-    - is_active:        { usage: GAUGE ,description: 1 = node currently accepts shards }
-    - meta_synced:      { usage: GAUGE ,description: 1 = metadata fully synced to node }
-    - have_shards:      { usage: GAUGE ,description: 1 = rebalancer may place shards here }
 
 
 #==============================================================#
@@ -2190,6 +2242,37 @@ pg_tsdb_hypertable:
 
 
 #==============================================================#
+# 1900 pg_citus_node
+#==============================================================#
+# https://docs.citusdata.com/en/latest/develop/api_metadata.html#worker-node-table
+pg_citus_node:
+  name: pg_citus_node
+  desc: Citus worker coordinator node inventory
+  query: |-
+    SELECT
+      CONCAT(nodename, ':', nodeport) AS node,
+      current_database() AS datname,
+      nodeid AS id,
+      groupid AS group,
+      hasmetadata::BOOLEAN::INT AS has_meta,
+      isactive::BOOLEAN::INT AS is_active,
+      metadatasynced::BOOLEAN::INT AS meta_synced,
+      shouldhaveshards::BOOLEAN::INT AS have_shards
+    FROM pg_dist_node;
+  ttl: {{ ttl_slow }}
+  min_version: 100000
+  tags: [ "extension:citus" ]
+  metrics:
+    - node:             { usage: LABEL ,description: nodename:port of the PostgreSQL instance }
+    - datname:          { usage: LABEL ,description: database name }
+    - id:               { usage: GAUGE ,description: auto‑generated node identifier }
+    - group:            { usage: GAUGE ,description: replication group id (primary + secondaries) }
+    - has_meta:         { usage: GAUGE ,description: 1 = internal use flag set }
+    - is_active:        { usage: GAUGE ,description: 1 = node currently accepts shards }
+    - meta_synced:      { usage: GAUGE ,description: 1 = metadata fully synced to node }
+    - have_shards:      { usage: GAUGE ,description: 1 = rebalancer may place shards here }
+
+#==============================================================#
 # 2000 heartbeat
 #==============================================================#
 # this is a example of application monitoring and predicate queries
@@ -2208,8 +2291,8 @@ pg_heartbeat:
   tags: [ "dbname:postgres", "schema:monitor" ]
   #skip: true
   metrics:
-    - cluster_name:     { usage: LABEL, description: cluster_name param of this database cluster }
-    - ts:               { usage: GAUGE, description: unix timestamp of the heartbeat }
-    - lsn:              { usage: GAUGE, description: lsn of the heartbeat }
-    - txid:             { usage: GAUGE, description: txid of the heartbeat }
+    - cluster_name:     { usage: LABEL   ,description: cluster_name param of this database cluster }
+    - ts:               { usage: GAUGE   ,description: unix timestamp of the heartbeat }
+    - lsn:              { usage: COUNTER ,description: lsn of the heartbeat }
+    - txid:             { usage: GAUGE   ,description: txid of the heartbeat }
 

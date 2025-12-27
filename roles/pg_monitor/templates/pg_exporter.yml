@@ -2,7 +2,7 @@
 # Desc      :   pg_exporter metrics collector definition
 # Ver       :   PostgreSQL 10 ~ 18+ and pgbouncer 1.9~1.25+
 # Ctime     :   2019-12-09
-# Mtime     :   2025-12-15
+# Mtime     :   2025-12-27
 # Homepage  :   https://pigsty.io
 # Author    :   Ruohang Feng (rh@vonng.com)
 # License   :   Apache-2.0 @ https://github.com/pgsty/pg_exporter
@@ -1050,6 +1050,24 @@ pg_checkpoint:
     - newest_commit_ts_xid: { usage: COUNTER ,description: Latest checkpoint's newestCommitTsXid }
     - time:                 { usage: COUNTER ,description: Time of latest checkpoint }
     - elapse:               { usage: GAUGE   ,description: Seconds elapsed since latest checkpoint in seconds }
+
+
+#==============================================================#
+# 0355 pg_timeline
+#==============================================================#
+pg_timeline:
+  name: pg_timeline
+  desc: Current timeline ID from primary or replica
+  query: |
+    SELECT COALESCE(
+      (SELECT received_tli FROM pg_stat_wal_receiver),
+      (SELECT timeline_id FROM pg_control_checkpoint())
+    ) AS id;
+  ttl: {{ ttl_norm }}
+  min_version: 100000
+  tags: [ cluster ]
+  metrics:
+    - id: { usage: GAUGE ,description: Current timeline ID }
 
 
 #==============================================================#
