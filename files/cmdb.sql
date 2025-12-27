@@ -1601,7 +1601,7 @@ INSERT INTO pigsty.default_var VALUES
 (954, 'pgbouncer_exporter_options', '""', 'PGSQL', 'PG_MONITOR', 'arg', 'C', 'overwrite extra options for pgbouncer_exporter', NULL),
 (955, 'pgbackrest_exporter_enabled', 'true', 'PGSQL', 'PG_MONITOR', 'bool', 'C', 'enable pgbackrest_exporter on pgsql hosts?', NULL),
 (956, 'pgbackrest_exporter_port', '9854', 'PGSQL', 'PG_MONITOR', 'port', 'C', 'pgbackrest_exporter listen port, 9854 by default', NULL),
-(957, 'pgbackrest_exporter_options', '""', 'PGSQL', 'PG_MONITOR', 'arg', 'C', 'overwrite extra options for pgbackrest_exporter', NULL),
+(957, 'pgbackrest_exporter_options', '"--collect.interval=120 --log.level=info"', 'PGSQL', 'PG_MONITOR', 'arg', 'C', 'overwrite extra options for pgbackrest_exporter', NULL),
 
 (980, 'pg_safeguard', 'false', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'prevent purging running postgres instance? false by default', NULL),
 (981, 'pg_rm_data', 'true', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'remove postgres data during remove? true by default', NULL),
