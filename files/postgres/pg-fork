@@ -4,7 +4,7 @@ set -uo pipefail
 # File      :   pg-fork
 # Desc      :   fork a new postgres instance from existing one
 # Ctime     :   2025-12-26
-# Mtime     :   2025-12-26
+# Mtime     :   2025-12-27
 # Path      :   /pg/bin/pg-fork
 # Docs      :   https://pigsty.io/docs/pgsql/admin/clone/
 # Deps      :   psql, cp, works best on XFS with reflink enabled
@@ -39,6 +39,7 @@ function usage() {
 		    -D, --dst  <dst_dir>    Destination data directory (default: /pg/data<FORK_ID>)
 		    -p, --src-port <port>   Source instance port (default: 5432 or $PG_PORT)
 		    -P, --dst-port <port>   Destination instance port (default: <FORK_ID>5432)
+		    -s, --skip              Skip psql backup API, use direct cp (cold copy mode)
 		    -y, --yes               Skip confirmation prompt
 		    -h, --help              Show this help message
 
@@ -47,11 +48,14 @@ function usage() {
 		    pg-fork 2 -p 5433                   # fork from port 5433 to /pg/data2:25432
 		    pg-fork 3 -d /pg/data1              # fork from /pg/data1 to /pg/data3:35432
 		    pg-fork 1 -D /tmp/test -P 5555      # fork to custom location and port
+		    pg-fork 1 -s                        # cold copy mode (skip psql backup API)
 		    PG_PORT=5433 pg-fork 1              # use env var for source port
 
 		NOTES
 		    - Run as dbsu (postgres group member)
-		    - Source instance must be running
+		    - Source instance should be running for hot backup (recommended)
+		    - If source is not accessible, falls back to cold copy mode
+		    - Use -s/--skip for cold copy when source is stopped
 		    - Destination directory will be REMOVED if exists!
 		    - Uses CoW (reflink) on XFS/Btrfs for instant clone
 		    - Forked instance starts with archive_mode=off
@@ -88,6 +92,8 @@ SRC_DATA="${PG_DATA:-/pg/data}"
 DST_DATA=""
 DST_PORT=""
 SKIP_CONFIRM=false
+SKIP_PSQL=false
+COLD_COPY_MODE=false
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -96,6 +102,7 @@ while [[ $# -gt 0 ]]; do
         -d|--data)      SRC_DATA="$2"; shift ;;
         -D|--dst)       DST_DATA="$2"; shift ;;
         -P|--dst-port)  DST_PORT="$2"; shift ;;
+        -s|--skip)      SKIP_PSQL=true ;;
         -y|--yes)       SKIP_CONFIRM=true ;;
         -*)             log_error "Unknown option: $1"; exit 1 ;;
         *)
@@ -136,14 +143,44 @@ if [[ ! -d "${SRC_DATA}" ]]; then
     exit 1
 fi
 
+# Normalize paths for comparison (resolve symlinks and ..)
+SRC_DATA_REAL=$(cd "${SRC_DATA}" && pwd -P)
+
 # Check if source instance is running
-if ! psql -p "${SRC_PORT}" -c "SELECT 1" &>/dev/null; then
-    log_error "Cannot connect to source instance at port ${SRC_PORT}"
-    exit 1
+SRC_RUNNING=false
+if psql -p "${SRC_PORT}" -c "SELECT 1" &>/dev/null; then
+    SRC_RUNNING=true
 fi
 
-# Prevent fork to same location
-if [[ "${SRC_DATA}" == "${DST_DATA}" ]]; then
+if [[ "${SKIP_PSQL}" == "true" ]]; then
+    # User explicitly requested cold copy mode
+    COLD_COPY_MODE=true
+    log_info "Cold copy mode enabled (-s/--skip)"
+    # Warn if instance is actually running
+    if [[ "${SRC_RUNNING}" == "true" ]]; then
+        log_warn "Source instance is running on port ${SRC_PORT}!"
+        log_warn "Cold copy of running instance may result in inconsistent backup"
+    elif [[ -f "${SRC_DATA}/postmaster.pid" ]]; then
+        log_warn "postmaster.pid exists - instance may be running!"
+        log_warn "Cold copy of running instance may result in inconsistent backup"
+    fi
+elif [[ "${SRC_RUNNING}" == "false" ]]; then
+    # PostgreSQL not accessible, fallback to cold copy
+    COLD_COPY_MODE=true
+    log_warn "Cannot connect to source instance at port ${SRC_PORT}"
+    log_warn "Falling back to cold copy mode (no backup API)"
+    # Check if postmaster.pid exists (instance might be running but not accessible)
+    if [[ -f "${SRC_DATA}/postmaster.pid" ]]; then
+        log_warn "postmaster.pid exists - instance may be running!"
+        log_warn "Cold copy of running instance may result in inconsistent backup"
+    fi
+else
+    COLD_COPY_MODE=false
+fi
+
+# Prevent fork to same location (use normalized path for comparison)
+DST_DATA_REAL=$(mkdir -p "$(dirname "${DST_DATA}")" && cd "$(dirname "${DST_DATA}")" && echo "$(pwd -P)/$(basename "${DST_DATA}")")
+if [[ "${SRC_DATA_REAL}" == "${DST_DATA_REAL}" ]]; then
     log_error "Source and destination cannot be the same: ${SRC_DATA}"
     exit 1
 fi
@@ -159,17 +196,19 @@ fi
 # Check CoW Support
 #--------------------------------------------------------------#
 COW_MODE="copy"  # default: regular copy
+SAME_FS=false    # default: assume cross-filesystem
+FS_TYPE="unknown"
 
 # Get filesystem info for source and destination
-SRC_MOUNT=$(df "${SRC_DATA}" --output=target 2>/dev/null | tail -1)
 DST_PARENT=$(dirname "${DST_DATA}")
-mkdir -p "${DST_PARENT}" 2>/dev/null || true
+SRC_MOUNT=$(df "${SRC_DATA}" --output=target 2>/dev/null | tail -1)
 DST_MOUNT=$(df "${DST_PARENT}" --output=target 2>/dev/null | tail -1)
 
 # Check if both paths are on the same filesystem
-if [[ "${SRC_MOUNT}" == "${DST_MOUNT}" ]]; then
+if [[ -n "${SRC_MOUNT}" && -n "${DST_MOUNT}" && "${SRC_MOUNT}" == "${DST_MOUNT}" ]]; then
     SAME_FS=true
     FS_TYPE=$(df "${SRC_DATA}" --output=fstype 2>/dev/null | tail -1)
+    FS_TYPE="${FS_TYPE:-unknown}"
 
     # Check reflink support based on filesystem type
     case "${FS_TYPE}" in
@@ -189,8 +228,6 @@ if [[ "${SRC_MOUNT}" == "${DST_MOUNT}" ]]; then
             COW_MODE="cow"
             ;;
     esac
-else
-    SAME_FS=false
 fi
 
 
@@ -206,6 +243,13 @@ echo "Destination Instance:"
 log_hint "  Port: ${DST_PORT}"
 log_hint "  Data: ${DST_DATA}"
 echo ""
+
+# Display backup mode
+if [[ "${COLD_COPY_MODE}" == "true" ]]; then
+    log_warn "Backup Mode: Cold copy (direct cp without backup API)"
+else
+    log_info "Backup Mode: Hot backup (using pg_backup_start/stop)"
+fi
 
 # Display clone mode
 if [[ "${COW_MODE}" == "cow" ]]; then
@@ -223,7 +267,8 @@ if [[ -d "${DST_DATA}" ]]; then
     log_warn "Destination directory exists and will be REMOVED: ${DST_DATA}"
 fi
 
-if [[ "${SKIP_CONFIRM}" != "true" ]]; then
+# Only ask for confirmation if running interactively (stdin is a terminal)
+if [[ "${SKIP_CONFIRM}" != "true" && -t 0 ]]; then
     echo ""
     read -p "Proceed with fork? [y/N] " -n 1 -r
     echo ""
@@ -235,17 +280,44 @@ fi
 
 
 #--------------------------------------------------------------#
-# Prepare
+# Execute Fork
 #--------------------------------------------------------------#
-log_line "Preparing Fork"
+log_line "Executing Fork"
 
-# Create temp directory for SQL script
-mkdir -p /pg/tmp
-FORK_SQL="/pg/tmp/fork_${FORK_ID}.sql"
 FORK_LABEL="pgfork_${FORK_ID}_$(date +%Y%m%d_%H%M%S)"
 
-# Generate fork SQL script
-cat > "${FORK_SQL}" <<EOSQL
+if [[ "${COLD_COPY_MODE}" == "true" ]]; then
+    #----------------------------------------------------------#
+    # Cold Copy Mode: Direct cp without backup API
+    #----------------------------------------------------------#
+    log_info "Performing cold copy..."
+
+    # Remove destination if exists
+    if [[ -d "${DST_DATA}" ]]; then
+        log_info "Removing existing destination: ${DST_DATA}"
+        rm -rf "${DST_DATA}"
+    fi
+
+    # Perform the copy
+    if cp -a --reflink=auto "${SRC_DATA}" "${DST_DATA}"; then
+        log_info "Cold copy completed successfully"
+    else
+        log_error "Cold copy failed"
+        exit 1
+    fi
+
+else
+    #----------------------------------------------------------#
+    # Hot Backup Mode: Use pg_backup_start/stop API
+    #----------------------------------------------------------#
+    log_info "Performing hot backup..."
+
+    # Create temp directory for SQL script
+    mkdir -p /pg/tmp
+    FORK_SQL="/pg/tmp/fork_${FORK_ID}.sql"
+
+    # Generate fork SQL script
+    cat > "${FORK_SQL}" <<EOSQL
 -- pg-fork: ${FORK_LABEL}
 -- Source: ${SRC_DATA} (port ${SRC_PORT})
 -- Target: ${DST_DATA} (port ${DST_PORT})
@@ -259,30 +331,25 @@ CHECKPOINT;
 SELECT pg_backup_start('${FORK_LABEL}', fast => true);
 
 -- Copy data directory using CoW (same psql session)
-\\! rm -rf ${DST_DATA} && cp -a --reflink=auto ${SRC_DATA} ${DST_DATA} && echo "COPY_SUCCESS"
+\\! rm -rf "${DST_DATA}" && cp -a --reflink=auto "${SRC_DATA}" "${DST_DATA}" && echo "COPY_SUCCESS"
 
 -- Stop backup mode
 SELECT * FROM pg_backup_stop(wait_for_archive => false);
 EOSQL
 
-log_info "Generated fork SQL: ${FORK_SQL}"
+    log_info "Generated fork SQL: ${FORK_SQL}"
 
+    # Execute the fork SQL via stdin (backup_start -> copy -> backup_stop in same session)
+    psql -p "${SRC_PORT}" < "${FORK_SQL}"
+    FORK_STATUS=$?
 
-#--------------------------------------------------------------#
-# Execute Fork
-#--------------------------------------------------------------#
-log_line "Executing Fork"
+    if [[ ${FORK_STATUS} -ne 0 ]]; then
+        log_error "Fork failed with status ${FORK_STATUS}"
+        exit 1
+    fi
 
-# Execute the fork SQL via stdin (backup_start -> copy -> backup_stop in same session)
-psql -p "${SRC_PORT}" < "${FORK_SQL}"
-FORK_STATUS=$?
-
-if [[ ${FORK_STATUS} -ne 0 ]]; then
-    log_error "Fork failed with status ${FORK_STATUS}"
-    exit 1
+    log_info "Hot backup completed"
 fi
-
-log_info "Fork completed"
 
 
 #--------------------------------------------------------------#
