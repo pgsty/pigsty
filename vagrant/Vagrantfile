@@ -2,7 +2,7 @@
 
 Specs = [
 
-  { "name" => "meta"   , "ip" => "10.10.10.10" ,  "cpu" => "2" ,  "mem" => "4096" ,  "image" => "bento/ubuntu-24.04" }
+  { "name" => "meta"   , "ip" => "10.10.10.10" ,  "cpu" => "2" ,  "mem" => "4096" ,  "image" => "bento/rockylinux-9" }
 
 ]
 
@@ -42,6 +42,7 @@ Vagrant.configure("2") do |config|
             node.vm.box = spec["image"]
             node.vm.network "private_network", ip: spec["ip"]
             node.vm.hostname = spec["name"]
+            disk_size = spec["disk"] || 128
 
             node.vm.provider "virtualbox" do |v|
                 v.linked_clone = true
@@ -49,23 +50,60 @@ Vagrant.configure("2") do |config|
                 v.customize ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 1000]
             end
 
-            # provision an additional disk for minio nodes
+            # provision additional disks using vagrant experimental disk feature
+            # requires: VAGRANT_EXPERIMENTAL="disks"
             if spec["name"].start_with?("minio")
-                node.vm.disk :disk, name: "main", size: "128GB", primary: true
-                if spec["name"].start_with?("minio")
-                    v.storage :file, :size => '16G', :device => 'vdb'
-                    v.storage :file, :size => '16G', :device => 'vdc'
-                    v.storage :file, :size => '16G', :device => 'vdd'
-                    v.storage :file, :size => '16G', :device => 'vde'
-                end
+                node.vm.disk :disk, name: "data1", size: "32GB"
+                node.vm.disk :disk, name: "data2", size: "32GB"
+                node.vm.disk :disk, name: "data3", size: "32GB"
+                node.vm.disk :disk, name: "data4", size: "32GB"
+            else
+                node.vm.disk :disk, name: "data", size: "#{disk_size}GB"
             end
 
+            # format and mount disks - detect the actual device dynamically
             if spec["name"].start_with?("minio")
                 node.vm.provision "shell" do |s|
                   s.inline = <<-SHELL
-                    mkdir /data; mkfs.xfs /dev/sdb;
-                    mount -o noatime -o nodiratime -t xfs /dev/sdb /data;
-                    echo "/dev/sdb /data xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab;
+                    # find unformatted disks (exclude the root disk)
+                    ROOT_DISK=$(lsblk -no PKNAME $(findmnt -n -o SOURCE /) | head -1)
+                    DISKS=($(lsblk -dpno NAME | grep -v "/dev/${ROOT_DISK}" | sort))
+                    if [ ${#DISKS[@]} -lt 4 ]; then
+                      echo "Warning: Expected 4 data disks, found ${#DISKS[@]}"
+                      exit 0
+                    fi
+                    for i in 1 2 3 4; do
+                      DISK=${DISKS[$((i-1))]}
+                      MOUNT="/data${i}"
+                      mkdir -p ${MOUNT}
+                      if [ -b "${DISK}" ] && ! blkid "${DISK}" | grep -q xfs; then
+                        mkfs.xfs -f "${DISK}"
+                      fi
+                      if ! grep -q "${DISK}" /etc/fstab; then
+                        echo "${DISK} ${MOUNT} xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab
+                      fi
+                    done
+                    mount -a
+                  SHELL
+                end
+            else
+                node.vm.provision "shell" do |s|
+                  s.inline = <<-SHELL
+                    # find the first non-root disk
+                    ROOT_DISK=$(lsblk -no PKNAME $(findmnt -n -o SOURCE /) | head -1)
+                    DATA_DISK=$(lsblk -dpno NAME | grep -v "/dev/${ROOT_DISK}" | head -1)
+                    if [ -z "${DATA_DISK}" ]; then
+                      echo "No additional data disk found, skipping..."
+                      exit 0
+                    fi
+                    if [ -b "${DATA_DISK}" ] && ! blkid "${DATA_DISK}" | grep -q xfs; then
+                      mkfs.xfs -f "${DATA_DISK}"
+                    fi
+                    mkdir -p /data
+                    if ! grep -q "${DATA_DISK}" /etc/fstab; then
+                      echo "${DATA_DISK} /data xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab
+                    fi
+                    mount -a
                   SHELL
                 end
             end

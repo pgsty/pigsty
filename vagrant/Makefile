@@ -2,7 +2,7 @@
 # File      :   Makefile
 # Desc      :   vagrant shortcuts
 # Ctime     :   2023-07-29
-# Mtime     :   2025-12-14
+# Mtime     :   2025-12-26
 # Path      :   vagrant/Makefile
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -12,11 +12,11 @@
 ###############################################################
 #                         Environment                         #
 ###############################################################
-# VAGRANT_SPEC='meta'
-# VAGRANT_IMAGE='bento/rockylinux-9'
-# VAGRANT_SCALE='1'
-# VAGRANT_PROVIDER='virtualbox'
-
+#export VM_SPEC='meta'
+#export VM_IMAGE='bento/rockylinux-9'
+#export VM_SCALE='1'
+#export VM_PROVIDER='virtualbox'
+export VAGRANT_EXPERIMENTAL=disks
 
 ###############################################################
 #                         Management                          #
