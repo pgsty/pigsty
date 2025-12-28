@@ -28,7 +28,7 @@ First, download & [install](https://doc.pgsty.com/install/start) pigsty as usual
  curl -fsSL https://repo.pigsty.io/get | bash
  cd pigsty
 ./configure -c supabase  # use app/supa config template (IMPORTANT: CHANGE PASSWORDS!)
-./install.yml            # install pigsty, create ha postgres & minio clusters 
+./deploy.yml             # install pigsty, create ha postgres & minio clusters 
 ```
 
 Please change the `pigsty.yml` config file according to your need before deploying Supabase. (Credentials)

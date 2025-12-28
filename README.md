@@ -32,7 +32,7 @@ curl -fsSL https://repo.pigsty.io/get | bash -s v3.7.0
 - [**Reliable**](https://pgsty.com/about/reliability/): Self-healing [**HA**](https://doc.pgsty.com/feat/ha/) clusters with pre-configured [**PITR**](https://doc.pgsty.com/pgsql/backup/) and built-in [**ACL**](https://doc.pgsty.com/pgsql/acl), [**CA & SSL**](https://doc.pgsty.com/admin/cert/) secure best practice.
 - [**Observable**](https://pgsty.com/about/observability/): SOTA monitoring for [**PG**](https://g.pgsty.com/d/pgrds-instance/pgrds-instance) / [**Infra**](https://doc.pgsty.com/infra) / [**Node**](https://doc.pgsty.com/node) based on **Victoria** & **Grafana** stack: [**Demo**](https://g.pgsty.com) & [**Gallery**](https://github.com/pgsty/pigsty/wiki/Gallery).
 - [**Scalable**](https://pgsty.com/about/scalability/): Auto-routed & pooled customizable database [**Services**](https://doc.pgsty.com/pgsql/service) [**Access**](https://doc.pgsty.com/pgsql/service#access-service) with **haproxy**, **pgbouncer**, and **VIP**.
-- [**Maintainable**](https://pgsty.com/about/maintainability/): [**One-Cmd Install**](https://doc.pgsty.com/install/start), [**Admin SOP**](https://doc.pgsty.com/pgsql/admin), **Auto-Tune**, **Local Repo**, [**IaC**](https://doc.pgsty.com/pgsql/config) and [**Vagrant**](https://doc.pgsty.com/prepare/vagrant) / [**Terraform**](https://doc.pgsty.com/prepare/terraform) support.
+- [**Maintainable**](https://pgsty.com/about/maintainability/): [**One-Cmd Deploy**](https://doc.pgsty.com/install/start), [**Admin SOP**](https://doc.pgsty.com/pgsql/admin), **Auto-Tune**, **Local Repo**, [**IaC**](https://doc.pgsty.com/pgsql/config) and [**Vagrant**](https://doc.pgsty.com/prepare/vagrant) / [**Terraform**](https://doc.pgsty.com/prepare/terraform) support.
 - [**Composable**](https://pgsty.com/about/composability/): Bonus [**Modules**](https://doc.pgsty.com/intro/modules) such as [**Redis**](https://doc.pgsty.com/redis), [**MinIO**](https://doc.pgsty.com/minio), [**Etcd**](https://doc.pgsty.com/etcd), [**Docker**](https://doc.pgsty.com/app), [**DuckDB**](https://doc.pgsty.com/pro/duckdb), [**FerretDB**](https://doc.pgsty.com/ferret), [**Supabase**](https://doc.pgsty.com/app/supabase/), [**& More**](https://doc.pgsty.com/intro/module)!
 - [**Controllable**](https://pgsty.com/about/controllability/): Self-sufficient [**Infra Closure**](https://doc.pgsty.com/infra/), Cloud Neutral FOSS. Run on [**bare Linux**](https://doc.pgsty.com/reference/compatibility/) without [**Docker & K8S**](https://vonng.com/en/db/db-in-k8s/)!
 - [**Affordable**](https://pgsty.com/about/affordability/): Self-Hosting like a [**Pro**](https://pgsty.com/price/), without the cost of DBA / [**RDS**](https://vonng.com/en/cloud/rds/). Empowering Cloud-Exit to [**save 90%+!**](https://doc.pgsty.com/intro/compare/)
@@ -72,11 +72,11 @@ You can even use exotic [PG kernel forks](https://doc.pgsty.com/pgsql/kernel) as
 curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty;
 ```
 
-Then [**configure**](https://doc.pgsty.com/config/configure) and run the [**`install.yml`**](https://doc.pgsty.com/admin/playbook) playbook with an [**admin user**](https://doc.pgsty.com/prepare/admin) (**nopass** `ssh` & `sudo`):
+Then [**configure**](https://doc.pgsty.com/config/configure) and run the [**`deploy.yml`**](https://doc.pgsty.com/admin/playbook) playbook with an [**admin user**](https://doc.pgsty.com/prepare/admin) (**nopass** `ssh` & `sudo`):
 
 ```bash
 ./configure
-./install.yml
+./deploy.yml
 ```
 
 Finally, you will get a pigsty [**singleton node ready**](https://doc.pgsty.com/install/start), with [**Web service**](https://doc.pgsty.com/install/interface) on port `80/443` and Postgres on port `5432`.
@@ -96,7 +96,7 @@ Then you can launch pigsty with `pig sty` sub command:
 ```bash
 pig sty init     # install embed pigsty to ~/pigsty 
 pig sty conf     # auto-generate pigsty.yml config file
-pig sty install  # run the install.yml playbook
+pig sty deploy   # run the deploy.yml playbook
 ```
 
 </details>
@@ -186,7 +186,7 @@ Pigsty uses a [**modular**](https://doc.pgsty.com/intro/arch) design. There are 
 You can compose them freely in a declarative manner. `INFRA` & `NODE` will suffice for host monitoring.
 `ETCD` and `PGSQL` are used for HA PG clusters; Installing them on multiple nodes automatically forms HA clusters.
 
-The default [`install.yml`](https://github.com/pgsty/pigsty/blob/main/install.yml) playbook will install `INFRA`, `NODE`, `ETCD` & `PGSQL` on the current node.
+The default [`deploy.yml`](https://github.com/pgsty/pigsty/blob/main/deploy.yml) playbook will deploy `INFRA`, `NODE`, `ETCD` & `PGSQL` on the current node.
 Which gives you an out-of-the-box PostgreSQL singleton instance (`admin_ip:5432`) with everything ready.
 
 [![pigsty-arch.jpg](https://pigsty.io/img/pigsty/arch.jpg)](https://doc.pgsty.com/intro/arch/)
@@ -501,7 +501,7 @@ You can launch a [self-hosting supabase](https://doc.pgsty.com/app/supabase/) wi
 
 ```bash
 ./configure -c supabase    # use supabase config 
-./install.yml              # install pigsty
+./deploy.yml               # install pigsty
 ./docker.yml               # install docker compose
 ./app.yml                  # launch supabase stateless part with docker
 ```

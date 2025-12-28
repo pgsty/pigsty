@@ -2,7 +2,7 @@
 # File      :   Makefile
 # Desc      :   pigsty shortcuts
 # Ctime     :   2019-04-13
-# Mtime     :   2025-12-10
+# Mtime     :   2025-12-28
 # Path      :   Makefile
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -58,7 +58,7 @@ tip:
 	@echo 'curl -fsSL https://repo.pigsty.io/get | bash'
 	@echo "./bootstrap     # prepare local repo & ansible"
 	@echo "./configure     # pre-check and templating config"
-	@echo "./install.yml   # install pigsty on current node"
+	@echo "./deploy.yml    # install pigsty on current node"
 
 # print pkg download links
 link:
@@ -79,10 +79,9 @@ conf: configure
 configure:
 	./configure
 
-# (3). INSTALL    pigsty on current node
-i: install
-install:
-	./install.yml
+# (3). DEPLOY     pigsty on current node
+deploy:
+	./deploy.yml
 ###############################################################
 
 
@@ -120,12 +119,12 @@ src:
 ###############################################################
 #                      3. Configure                           #
 ###############################################################
-# there are several things that need to be checked before install
+# there are several things that need to be checked before deploy
 # use ./configure or `make config` to run interactive wizard
 # it will install ansible (from offline rpm repo if available)
 
 # common interactive configuration procedure
-c: config
+c: configure
 ###############################################################
 
 
@@ -133,7 +132,7 @@ c: config
 ###############################################################
 #                      4. Install                             #
 ###############################################################
-# pigsty is installed via ansible-playbook
+# pigsty is deployed via ansible-playbook
 
 # install pigsty on meta nodes
 infra:
@@ -148,7 +147,7 @@ repo-upstream:
 	./infra.yml --tags=repo_upstream
 
 repo-check:
-	./install.yml -t node_repo,node_pkg,infra_pkg,pg_pkg
+	./deploy.yml -t node_repo,node_pkg,infra_pkg,pg_pkg
 
 # re-build local repo
 repo-build:
@@ -164,8 +163,8 @@ repo-clean:
 node-repo:
 	./node.yml -t node_repo
 
-reinstall: repo-clean
-	./install.yml
+redeploy: repo-clean
+	./deploy.yml
 
 # init grafana
 grafana:
@@ -672,7 +671,7 @@ ext:
 ###############################################################
 #                        Inventory                            #
 ###############################################################
-.PHONY: default tip link doc all boot conf i bootstrap config install \
+.PHONY: default tip link doc all boot conf bootstrap config deploy \
         src pkg \
         c \
         infra pgsql repo repo-upstream repo-build repo-add node-repo repo-clean pgsql-add pgsql-rm pgsql-ext \

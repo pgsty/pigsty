@@ -14,7 +14,7 @@ curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty
 cd ~/pigsty
 ./bootstrap               # prepare local repo & ansible
 ./configure -c app/dify   # IMPORTANT: CHANGE CREDENTIALS!!
-./install.yml             # install pigsty & pgsql & minio
+./deploy.yml             # install pigsty & pgsql & minio
 ./redis.yml               # install extra redis instances
 ./docker.yml              # install docker & docker-compose
 ./app.yml                 # install dify with docker compose
