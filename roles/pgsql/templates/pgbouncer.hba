@@ -17,7 +17,10 @@
 {% set intranet = node_firewall_intranet | default(['10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16']) %}
 {% set usermapping = {"${dbsu}": pg_dbsu, "${repl}": pg_replication_username, "${monitor}": pg_monitor_username, "${admin}": pg_admin_username} %}
 {% set authmapping = {"deny":"reject","pwd":pwdenc,"ssl":pwdenc,"sha":"scram-sha-256","cert":"cert","ssl-md5":"md5","ssl-sha":"scram-sha-256","md5":"md5","os":"peer","ident":"peer","peer":"peer","trust":"trust","reject":"reject","scram-sha-256":"scram-sha-256"} %}
-{% set pgb_hba_list = pgb_default_hba_rules + pgb_hba_rules %}
+{# order-based sorting: 0-99 user high priority, 100-999 default rules, 1000+ user rules (default) #}
+{% set rules_with_order = (pgb_default_hba_rules + pgb_hba_rules) | selectattr('order', 'defined') | list %}
+{% set rules_without_order = (pgb_default_hba_rules + pgb_hba_rules) | rejectattr('order', 'defined') | list %}
+{% set pgb_hba_list = (rules_with_order | sort(attribute='order')) + rules_without_order %}
 # addr alias
 # local     : {{ pg_localhost }}
 # admin     : {{ admin_ip }}
