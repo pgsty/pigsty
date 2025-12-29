@@ -8,6 +8,7 @@
 #--------------------------------------------------------------#
 - name: drop database {{ database.name }}
   tags: [ pg_db, pg_db_drop ]
+  ignore_errors: true # TODO: should we fail here?
   when:
     - pg_role == 'primary'
     - database.state is defined and database.state in ['absent', 'recreate']
@@ -15,7 +16,10 @@
   become_user: "{{ pg_dbsu|default('postgres') }}"
   shell: |
     {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -d postgres -AXtwe <<-'EOSQL'
-    {% if pg_version|default(17)|int >= 13 %}
+    {% if database.is_template is defined and database.is_template %}
+    ALTER DATABASE "{{ database.name }}" IS_TEMPLATE false;
+    {% endif %}
+    {% if pg_version|default(18)|int >= 13 %}
     DROP DATABASE IF EXISTS "{{ database.name }}" WITH (FORCE);
     {% else %}
     SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{{ database.name }}' AND pid <> pg_backend_pid();
@@ -53,12 +57,12 @@
     # which database to connect for admin operations (use template1 when template is postgres)
     admin_db: "{{ 'template1' if (database.template is defined and database.template == 'postgres') else 'postgres' }}"
     # need to kill template connections? (yes if using user database as template)
-    need_kill: "{{ database.template is defined and database.template not in ['', 'template0', 'template1'] }}"
+    need_kill: "{{ database.template is defined and database.template is not none and database.template not in ['', 'template0', 'template1'] }}"
   block:
 
     - name: create database {{ database.name }}
       tags: pg_db_create
-      ignore_errors: true
+      ignore_errors: true  # TODO: should we fail here?
       become_user: "{{ pg_dbsu|default('postgres') }}"
       shell: |
         {% if database.state is not defined or database.state != 'recreate' %}
@@ -69,14 +73,19 @@
         {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -d {{ admin_db }} -AXtw <<-'EOSQL'
         {% if need_kill %}SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{{ database.template }}' AND pid <> pg_backend_pid();{% endif %}
         CREATE DATABASE "{{ database.name }}"
-        {%- if database.owner      is defined and database.owner != ''      %} OWNER "{{ database.owner }}"{% endif %}
-        {%- if database.template   is defined and database.template != ''   %} TEMPLATE "{{ database.template }}"{% endif %}
-        {%- if database.encoding   is defined and database.encoding != ''   %} ENCODING '{{ database.encoding }}'{% endif %}
-        {%- if database.locale     is defined and database.locale != ''     %} LOCALE '{{ database.locale }}'{% endif %}
-        {%- if database.lc_collate is defined and database.lc_collate != '' %} LC_COLLATE '{{ database.lc_collate }}'{% endif %}
-        {%- if database.lc_ctype   is defined and database.lc_ctype != ''   %} LC_CTYPE '{{ database.lc_ctype }}'{% endif %}
-        {%- if database.tablespace is defined and database.tablespace != '' %} TABLESPACE "{{ database.tablespace }}"{% endif %}
-        {%- if database.strategy   is defined and database.strategy != '' and pg_version|default(18)|int >= 15 %} STRATEGY {{ database.strategy|upper }}{% endif %}
+        {%- if database.owner           is defined and database.owner is not none           and database.owner != ''      %} OWNER "{{ database.owner }}"{% endif %}
+        {%- if database.template        is defined and database.template is not none        and database.template != ''   %} TEMPLATE "{{ database.template }}"{% endif %}
+        {%- if database.encoding        is defined and database.encoding is not none        and database.encoding != ''   %} ENCODING '{{ database.encoding }}'{% endif %}
+        {%- if database.locale          is defined and database.locale is not none          and database.locale != ''     %} LOCALE '{{ database.locale }}'{% endif %}
+        {%- if database.lc_collate      is defined and database.lc_collate is not none      and database.lc_collate != '' %} LC_COLLATE '{{ database.lc_collate }}'{% endif %}
+        {%- if database.lc_ctype        is defined and database.lc_ctype is not none        and database.lc_ctype != ''   %} LC_CTYPE '{{ database.lc_ctype }}'{% endif %}
+        {%- if database.tablespace      is defined and database.tablespace is not none      and database.tablespace != '' %} TABLESPACE "{{ database.tablespace }}"{% endif %}
+        {%- if database.is_template     is defined and database.is_template is not none %} IS_TEMPLATE {{ database.is_template|lower }}{% endif %}
+        {%- if database.strategy        is defined and database.strategy is not none        and database.strategy != ''        and pg_version|default(18)|int >= 15 %} STRATEGY {{ database.strategy|upper }}{% endif %}
+        {%- if database.locale_provider is defined and database.locale_provider is not none and database.locale_provider != '' and pg_version|default(18)|int >= 15 %} LOCALE_PROVIDER '{{ database.locale_provider }}'{% endif %}
+        {%- if database.icu_locale      is defined and database.icu_locale is not none      and database.icu_locale != ''      and pg_version|default(18)|int >= 15 %} ICU_LOCALE '{{ database.icu_locale }}'{% endif %}
+        {%- if database.icu_rules       is defined and database.icu_rules is not none       and database.icu_rules != ''       and pg_version|default(18)|int >= 16 %} ICU_RULES '{{ database.icu_rules }}'{% endif %}
+        {%- if database.builtin_locale  is defined and database.builtin_locale is not none  and database.builtin_locale != ''  and pg_version|default(18)|int >= 17 %} BUILTIN_LOCALE '{{ database.builtin_locale }}'{% endif %}
         ;
         EOSQL
       args: { executable: /bin/bash }
@@ -86,14 +95,14 @@
       ignore_errors: true
       become_user: "{{ pg_dbsu|default('postgres') }}"
       shell: |
-        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql {{ database.name }} -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -AXtwf /pg/tmp/pg-db-{{ database.name }}.sql >> /pg/tmp/pg-db-{{ database.name }}.log 2>&1
+        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql "{{ database.name }}" -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -AXtwf /pg/tmp/pg-db-{{ database.name }}.sql >> /pg/tmp/pg-db-{{ database.name }}.log 2>&1
 
     - name: load database {{ database.name }} baseline
       tags: [ pg_db_create, pg_db_baseline ]
       ignore_errors: true
       become_user: "{{ pg_dbsu|default('postgres') }}"
       shell: |
-        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql {{ database.name }} -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -AXtwf /pg/tmp/pg-db-{{ database.name }}-baseline.sql >> /pg/tmp/pg-db-{{ database.name }}-baseline.log 2>&1
+        {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql "{{ database.name }}" -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -AXtwf /pg/tmp/pg-db-{{ database.name }}-baseline.sql >> /pg/tmp/pg-db-{{ database.name }}-baseline.log 2>&1
       when: database.baseline is defined
 
 ...

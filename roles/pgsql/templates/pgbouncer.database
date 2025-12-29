@@ -1,8 +1,7 @@
 # pgbouncer database list
 {% for db in pg_databases|default([]) %}
 {% if ('pgbouncer' not in db or db.pgbouncer|bool) and (db.state is not defined or db.state != 'absent') %}
-{% set connstr = "host=" + pg_localhost|string %}
-{% if pgbouncer_redirect_to is defined and pgbouncer_redirect_to != '' %}{% set db_host = "host=" + pgbouncer_redirect_to %}{% endif %}
+{% if pgbouncer_redirect_to is defined and pgbouncer_redirect_to != '' %}{% set connstr = "host=" + pgbouncer_redirect_to|string %}{% else %}{% set connstr = "host=" + pg_localhost|default('/var/run/postgresql')|string %}{% endif %}
 {% if 'pool_auth_user' in db %}{% set connstr = connstr + " auth_user=" + db.pool_auth_user|string %}{% endif %}
 {% if 'pool_mode' in db %}{% set connstr = connstr + " pool_mode=" + db.pool_mode|string %}{% endif %}
 {% if 'pool_size' in db %}{% set connstr = connstr + " pool_size=" + db.pool_size|string %}{% endif %}

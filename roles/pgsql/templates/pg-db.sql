@@ -15,13 +15,13 @@
 --==================================================================--
 -- run as dbsu (postgres by default)
 -- createdb -w -p {{ pg_port|default(5432) }} {% if 'owner' in database and database.owner != '' %}-O "{{ database.owner      }}" {% endif %}
-{% if 'template'   in  database and database.template != ''   %}-T '{{ database.template   }}' {% endif %}
-{% if 'encoding'   in  database and database.encoding != ''   %}-E '{{ database.encoding   }}' {% endif %}
-{% if 'locale'     in  database and database.locale != ''     %}-l '{{ database.locale     }}' {% endif %}
-{% if 'lc_collate' in  database and database.lc_collate != '' %}--lc-collate '{{ database.lc_collate }}' {% endif %}
-{% if 'lc_ctype'   in  database and database.lc_ctype != ''   %}--lc-ctype '{{ database.lc_ctype   }}' {% endif %}
-{% if 'tablespace' in  database and database.tablespace != '' %}-D '{{ database.tablespace }}' {% endif %}
-{% if 'strategy'   in  database and database.strategy != ''   %}-S '{{ database.strategy   }}' {% endif %}
+{% if 'template'   in database and database.template   is not none and database.template != ''   %}-T '{{ database.template   }}' {% endif %}
+{% if 'encoding'   in database and database.encoding   is not none and database.encoding != ''   %}-E '{{ database.encoding   }}' {% endif %}
+{% if 'locale'     in database and database.locale     is not none and database.locale != ''     %}-l '{{ database.locale     }}' {% endif %}
+{% if 'lc_collate' in database and database.lc_collate is not none and database.lc_collate != '' %}--lc-collate '{{ database.lc_collate }}' {% endif %}
+{% if 'lc_ctype'   in database and database.lc_ctype   is not none and database.lc_ctype != ''   %}--lc-ctype '{{ database.lc_ctype   }}' {% endif %}
+{% if 'tablespace' in database and database.tablespace is not none and database.tablespace != '' %}-D '{{ database.tablespace }}' {% endif %}
+{% if 'strategy'   in database and database.strategy   is not none and database.strategy != ''   %}-S '{{ database.strategy   }}' {% endif %}
 '{{ database.name }}';
 -- psql {{ database.name }} -p {{ pg_port|default(5432) }} -AXtwqf /pg/tmp/pg-db-{{ database.name }}.sql
 {% if 'baseline' in database and database.baseline != '' %}
@@ -33,13 +33,18 @@
 --==================================================================--
 -- create database with following commands
 -- CREATE DATABASE "{{ database.name }}" {% if 'owner' in  database and database.owner != '' %}OWNER "{{ database.owner }}" {% endif %}
-{% if 'template'   in  database and database.template != ''   %}TEMPLATE "{{ database.template }}" {% endif %}
-{% if 'encoding'   in  database and database.encoding != ''   %}ENCODING '{{ database.encoding }}' {% endif %}
-{% if 'locale'     in  database and database.locale != ''     %}LOCALE "{{ database.locale }}" {% endif %}
-{% if 'lc_collate' in  database and database.lc_collate != '' %}LC_COLLATE "{{ database.lc_collate }}" {% endif %}
-{% if 'lc_ctype'   in  database and database.lc_ctype != ''   %}LC_CTYPE "{{ database.lc_ctype }}" {% endif %}
-{% if 'tablespace' in  database and database.tablespace != '' %}TABLESPACE "{{ database.tablespace }}" {% endif %}
-{% if 'strategy'   in  database and database.strategy != '' and pg_version|default(17)|int >= 15 %}STRATEGY {{ database.strategy|upper }} {% endif %}
+{% if 'template'        in database and database.template is not none        and database.template != ''    %}TEMPLATE "{{ database.template }}" {% endif %}
+{% if 'encoding'        in database and database.encoding is not none        and database.encoding != ''    %}ENCODING '{{ database.encoding }}' {% endif %}
+{% if 'locale'          in database and database.locale is not none          and database.locale != ''      %}LOCALE "{{ database.locale }}" {% endif %}
+{% if 'lc_collate'      in database and database.lc_collate is not none      and database.lc_collate != ''  %}LC_COLLATE "{{ database.lc_collate }}" {% endif %}
+{% if 'lc_ctype'        in database and database.lc_ctype is not none        and database.lc_ctype != ''    %}LC_CTYPE "{{ database.lc_ctype }}" {% endif %}
+{% if 'tablespace'      in database and database.tablespace is not none      and database.tablespace != ''  %}TABLESPACE "{{ database.tablespace }}" {% endif %}
+{% if 'is_template'     in database and database.is_template is not none     and database.is_template != '' %}IS_TEMPLATE {{ database.is_template|lower }} {% endif %}
+{% if 'strategy'        in database and database.strategy is not none        and database.strategy != ''        and pg_version|default(18)|int >= 15 %}STRATEGY {{ database.strategy|upper }} {% endif %}
+{% if 'locale_provider' in database and database.locale_provider is not none and database.locale_provider != '' and pg_version|default(18)|int >= 15 %}LOCALE_PROVIDER '{{ database.locale_provider }}' {% endif %}
+{% if 'icu_locale'      in database and database.icu_locale is not none      and database.icu_locale != ''      and pg_version|default(18)|int >= 15 %}ICU_LOCALE '{{ database.icu_locale }}' {% endif %}
+{% if 'icu_rules'       in database and database.icu_rules is not none       and database.icu_rules != ''       and pg_version|default(18)|int >= 16 %}ICU_RULES '{{ database.icu_rules }}' {% endif %}
+{% if 'builtin_locale'  in database and database.builtin_locale is not none  and database.builtin_locale != ''  and pg_version|default(18)|int >= 17 %}BUILTIN_LOCALE '{{ database.builtin_locale }}' {% endif %}
 ;
 -- following commands are executed within database "{{ database.name }}"
 
@@ -54,38 +59,50 @@ GRANT ALL PRIVILEGES ON DATABASE "{{ database.name }}" TO "{{ database.owner }}"
 {% endif %}
 
 -- tablespace
-{% if 'tablespace' in database and database.tablespace != '' %}
+{% if 'tablespace' in database and database.tablespace is not none and database.tablespace != '' %}
 ALTER DATABASE "{{ database.name }}" SET TABLESPACE "{{ database.tablespace }}";
 {% endif %}
 
 -- allow connection
 {% if 'allowconn' in database and database.allowconn is not none %}
-ALTER DATABASE "{{ database.name }}" ALLOW_CONNECTIONS {{ database.allowconn }};
+ALTER DATABASE "{{ database.name }}" ALLOW_CONNECTIONS {{ 'true' if database.allowconn|bool else 'false' }};
 {% endif %}
 
 -- connection limit
 {% if 'connlimit' in database and database.connlimit is not none %}
-ALTER DATABASE "{{ database.name }}" CONNECTION LIMIT {{ database.connlimit }};
+ALTER DATABASE "{{ database.name }}" CONNECTION LIMIT {{ database.connlimit | int }};
+{% endif %}
+
+-- is_template
+{% if 'is_template' in database and database.is_template is not none %}
+ALTER DATABASE "{{ database.name }}" IS_TEMPLATE {{ database.is_template|lower }};
 {% endif %}
 
 -- parameters
 {% if 'parameters' in database and database.parameters is not none %}
 {% for key, value in database.parameters.items() %}
-ALTER DATABASE "{{ database.name }}" SET {{ key }} = {{ value }};
+{% if value is not none %}
+{% if value | string | upper == 'DEFAULT' %}
+ALTER DATABASE "{{ database.name }}" SET "{{ key }}" = DEFAULT;
+{% else %}
+ALTER DATABASE "{{ database.name }}" SET "{{ key }}" = '{{ value | replace("'", "''") }}';
+{% endif %}
+{% endif %}
 {% endfor %}{% endif %}
 
 -- comment
 {% if 'comment' in database and database.comment is not none %}
-COMMENT ON DATABASE "{{ database.name }}" IS '{{ database.comment }}';
+COMMENT ON DATABASE "{{ database.name }}" IS '{{ database.comment | replace("'", "''") }}';
 {% else %}
-COMMENT ON DATABASE "{{ database.name }}" IS 'business database {{ database.name }}';
+COMMENT ON DATABASE "{{ database.name }}" IS 'business database {{ database.name | replace("'", "''") }}';
 {% endif %}
 
 
 --==================================================================--
 --                       REVOKE/GRANT CONNECT                       --
 --==================================================================--
-{% if 'revokeconn' in database and database.revokeconn == true %}
+{% if 'revokeconn' in database and database.revokeconn is not none %}
+{% if database.revokeconn|bool %}
 -- revoke public connect privilege
 REVOKE CONNECT ON DATABASE "{{ database.name }}" FROM PUBLIC;
 
@@ -100,7 +117,10 @@ GRANT CONNECT ON DATABASE "{{ database.name }}" TO "{{ pg_admin_username|default
 {% if 'owner' in  database and database.owner is not none and database.owner != '' %}
 GRANT CONNECT ON DATABASE "{{ database.name }}" TO "{{ database.owner }}" WITH GRANT OPTION;
 {% endif %}
-
+{% else %}
+-- restore public connect privilege
+GRANT CONNECT ON DATABASE "{{ database.name }}" TO PUBLIC;
+{% endif %}
 {% endif %}
 
 --==================================================================--
@@ -155,8 +175,16 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "{{ database.owner }}" GRANT CREATE     ON SCH
 --                          CREATE SCHEMAS                          --
 --==================================================================--
 -- create schemas
-{% if 'schemas' in database and database.schemas is not none and database.schemas|length > 0 %}{% for schema_name in database.schemas %}
-CREATE SCHEMA IF NOT EXISTS "{{ schema_name }}";
+{% if 'schemas' in database and database.schemas is not none and database.schemas|length > 0 %}{% for schema in database.schemas %}
+{% if schema is string %}
+CREATE SCHEMA IF NOT EXISTS "{{ schema }}";
+{% elif schema is mapping and 'name' in schema %}
+{% if schema.state is defined and schema.state == 'absent' %}
+DROP SCHEMA IF EXISTS "{{ schema.name }}" CASCADE;
+{% else %}
+CREATE SCHEMA IF NOT EXISTS "{{ schema.name }}"{% if 'owner' in schema and schema.owner is not none and schema.owner != '' %} AUTHORIZATION "{{ schema.owner }}"{% endif %};
+{% endif %}
+{% endif %}
 {% endfor %}{% endif %}
 
 
@@ -168,7 +196,11 @@ CREATE SCHEMA IF NOT EXISTS "{{ schema_name }}";
 {% if extension is string %}
 CREATE EXTENSION IF NOT EXISTS "{{ extension }}" CASCADE;
 {% elif extension is mapping and 'name' in extension %}
-CREATE EXTENSION IF NOT EXISTS "{{ extension.name }}"{% if 'schema' in extension %} WITH SCHEMA "{{ extension.schema }}"{% endif %}{% if 'version' in extension %} VERSION "{{ extension.version }}"{% endif %} CASCADE;
+{% if extension.state is defined and extension.state == 'absent' %}
+DROP EXTENSION IF EXISTS "{{ extension.name }}" CASCADE;
+{% else %}
+CREATE EXTENSION IF NOT EXISTS "{{ extension.name }}"{% if 'schema' in extension %} WITH SCHEMA "{{ extension.schema }}"{% endif %}{% if 'version' in extension %} VERSION '{{ extension.version }}'{% endif %} CASCADE;
+{% endif %}
 {% endif %}
 {% endfor %}{% endif %}
 

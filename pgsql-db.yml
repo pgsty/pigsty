@@ -56,7 +56,12 @@
 #         locale: C                      # optional, inherited from template / cluster if not defined (C)
 #         lc_collate: C                  # optional, inherited from template / cluster if not defined (C)
 #         lc_ctype: C                    # optional, inherited from template / cluster if not defined (C)
+#         locale_provider: libc          # optional, locale provider: libc, icu, builtin (PG15+)
+#         icu_locale: en-US              # optional, icu locale for icu locale provider (PG15+)
+#         icu_rules: ''                  # optional, icu rules for icu locale provider (PG16+)
+#         builtin_locale: C.UTF-8        # optional, builtin locale for builtin locale provider (PG17+)
 #         tablespace: pg_default         # optional, default tablespace, pg_default by default
+#         is_template: false             # optional, mark database as template, allowing clone by any user with CREATEDB privilege
 #         allowconn: true                # optional, allow connection, true by default. false will disable connect at all
 #         revokeconn: false              # optional, revoke public connection privilege. false by default. (leave connect with grant option to owner)
 #         register_datasource: true      # optional, register this database to grafana datasources? true by default
@@ -160,8 +165,7 @@
               # pgbouncer database list
               {% for db in pg_databases %}
               {% if ('pgbouncer' not in db or db.pgbouncer|bool) and (db.state is not defined or db.state != 'absent') %}
-              {% set connstr = "host=" + pg_localhost|default('/var/run/postgresql')|string %}
-              {% if pgbouncer_redirect_to is defined and pgbouncer_redirect_to != '' %}{% set db_host = "host=" + pgbouncer_redirect_to %}{% endif %}
+              {% if pgbouncer_redirect_to is defined and pgbouncer_redirect_to != '' %}{% set connstr = "host=" + pgbouncer_redirect_to|string %}{% else %}{% set connstr = "host=" + pg_localhost|default('/var/run/postgresql')|string %}{% endif %}
               {% if 'pool_auth_user' in db %}{% set connstr = connstr + " auth_user=" + db.pool_auth_user|string %}{% endif %}
               {% if 'pool_mode' in db %}{% set connstr = connstr + " pool_mode=" + db.pool_mode|string %}{% endif %}
               {% if 'pool_size' in db %}{% set connstr = connstr + " pool_size=" + db.pool_size|string %}{% endif %}
