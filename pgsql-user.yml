@@ -4,7 +4,7 @@
 # File      :   pgsql-user.yml
 # Desc      :   create or modify user/role on pgsql cluster
 # Ctime     :   2021-02-27
-# Mtime     :   2022-12-07
+# Mtime     :   2022-12-29
 # Path      :   pgsql-user.yml
 # Deps      :   templates/pg-user.sql
 # Docs      :   https://doc.pgsty.com/pgsql/playbook
@@ -43,6 +43,7 @@
 #   vars:
 #     pg_users:                           # define business users/roles on this cluster, array of user definition
 #       - name: dbuser_meta               # REQUIRED, `name` is the only mandatory field of a user definition
+#         state: create                   # optional, create|absent, create by default. use 'absent' to drop user
 #         password: DBUser.Meta           # optional, password, can be a scram-sha-256 hash string or plain text
 #         login: true                     # optional, can log in, true by default  (new biz ROLE should be false)
 #         superuser: false                # optional, is superuser? false by default
@@ -61,12 +62,19 @@
 #         pool_mode: transaction          # optional, pgbouncer pool mode at user level, transaction by default
 #         pool_connlimit: -1              # optional, max database connections at user level, default -1 disable limit
 #         search_path: public             # key value config parameters according to postgresql documentation (e.g: use pigsty as default search_path)
+#
+#       # User with enhanced roles syntax (PG16+ features: set/inherit options)
+#       - name: dbuser_test
+#         roles:
+#           - dbrole_readwrite                            # simple string: GRANT role
+#           - { name: dbrole_admin, admin: true }         # grant with ADMIN OPTION (PG16: WITH ADMIN TRUE)
+#           - { name: pg_monitor, set: false , inherit: false } # remove set/inherit option
+#           - { name: old_role, state: absent }           # REVOKE instead of GRANT
+#
+#       # One-liner examples
 #       - {name: dbuser_view     ,password: DBUser.Viewer   ,pgbouncer: true ,roles: [dbrole_readonly], comment: read-only viewer for meta database}
 #       - {name: dbuser_grafana  ,password: DBUser.Grafana  ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: admin user for grafana database   }
 #       - {name: dbuser_bytebase ,password: DBUser.Bytebase ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: admin user for bytebase database  }
-#       - {name: dbuser_kong     ,password: DBUser.Kong     ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: admin user for kong api gateway   }
-#       - {name: dbuser_gitea    ,password: DBUser.Gitea    ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: admin user for gitea service      }
-#       - {name: dbuser_wiki     ,password: DBUser.Wiki     ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: admin user for wiki.js service    }
 #--------------------------------------------------------------#
 
 - name: PGSQL USER
@@ -143,7 +151,7 @@
             content: |
               # pgbouncer user options
               {% for user in pg_default_roles|default([]) + pg_users|default([]) %}
-              {% if 'pool_mode' in user or 'pool_connlimit' in user %}
+              {% if (user.state is not defined or user.state != 'absent') and ('pool_mode' in user or 'pool_connlimit' in user) %}
               {{ "%-27s" | format(user.name) }} = {% if 'pool_mode' in user %}pool_mode={{ user.pool_mode }}{% endif %} {% if 'pool_connlimit' in user %}max_user_connections={{ user.pool_connlimit }}{% endif %}
 
               {% endif %}

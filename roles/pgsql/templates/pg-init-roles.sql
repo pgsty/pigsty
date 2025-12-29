@@ -27,71 +27,118 @@
 --==================================================================--
 --                           CREATE USER                            --
 --==================================================================--
-CREATE USER "{{ user.name }}" {% if 'login' in user and not user.login %} NOLOGIN{% endif %}
-{% if 'superuser' in user and user.superuser %} SUPERUSER{% endif %}
-{% if 'createdb' in user and user.createdb %} CREATEDB{% endif %}
-{% if 'createrole' in user and user.createrole %} CREATEROLE{% endif %}
-{% if 'inherit' in user and not user.inherit %} NOINHERIT{% endif %}
-{% if 'replication' in user and user.replication %} REPLICATION{% endif %}
-{% if 'bypassrls' in user and user.bypassrls %} BYPASSRLS{% endif %}
+CREATE USER "{{ user.name }}"
+{%- if 'login' in user and user.login is not none %}{% if user.login %} LOGIN{% else %} NOLOGIN{% endif %}{% endif %}
+{%- if 'superuser' in user and user.superuser is not none %}{% if user.superuser %} SUPERUSER{% else %} NOSUPERUSER{% endif %}{% endif %}
+{%- if 'createdb' in user and user.createdb is not none %}{% if user.createdb %} CREATEDB{% else %} NOCREATEDB{% endif %}{% endif %}
+{%- if 'createrole' in user and user.createrole is not none %}{% if user.createrole %} CREATEROLE{% else %} NOCREATEROLE{% endif %}{% endif %}
+{%- if 'inherit' in user and user.inherit is not none %}{% if user.inherit %} INHERIT{% else %} NOINHERIT{% endif %}{% endif %}
+{%- if 'replication' in user and user.replication is not none %}{% if user.replication %} REPLICATION{% else %} NOREPLICATION{% endif %}{% endif %}
+{%- if 'bypassrls' in user and user.bypassrls is not none %}{% if user.bypassrls %} BYPASSRLS{% else %} NOBYPASSRLS{% endif %}{% endif %}
 ;
 
 --==================================================================--
 --                           ALTER USER                             --
 --==================================================================--
 -- options
-ALTER USER "{{ user.name }}" {% if 'login' in user and not user.login %} NOLOGIN{% endif %}
-{% if 'superuser' in user and user.superuser %} SUPERUSER{% endif %}
-{% if 'createdb' in user and user.createdb %} CREATEDB{% endif %}
-{% if 'createrole' in user and user.createrole %} CREATEROLE{% endif %}
-{% if 'inherit' in user and not user.inherit %} NOINHERIT{% endif %}
-{% if 'replication' in user and user.replication %} REPLICATION{% endif %}
-{% if 'bypassrls' in user and user.bypassrls %} BYPASSRLS{% endif %}
+ALTER USER "{{ user.name }}"
+{%- if 'login' in user and user.login is not none %}{% if user.login %} LOGIN{% else %} NOLOGIN{% endif %}{% endif %}
+{%- if 'superuser' in user and user.superuser is not none %}{% if user.superuser %} SUPERUSER{% else %} NOSUPERUSER{% endif %}{% endif %}
+{%- if 'createdb' in user and user.createdb is not none %}{% if user.createdb %} CREATEDB{% else %} NOCREATEDB{% endif %}{% endif %}
+{%- if 'createrole' in user and user.createrole is not none %}{% if user.createrole %} CREATEROLE{% else %} NOCREATEROLE{% endif %}{% endif %}
+{%- if 'inherit' in user and user.inherit is not none %}{% if user.inherit %} INHERIT{% else %} NOINHERIT{% endif %}{% endif %}
+{%- if 'replication' in user and user.replication is not none %}{% if user.replication %} REPLICATION{% else %} NOREPLICATION{% endif %}{% endif %}
+{%- if 'bypassrls' in user and user.bypassrls is not none %}{% if user.bypassrls %} BYPASSRLS{% else %} NOBYPASSRLS{% endif %}{% endif %}
 ;
 
 -- password
-{% if 'password' in user %}
+{% if 'password' in user and user.password is not none %}
 SET log_statement TO 'none';
-ALTER USER "{{ user.name }}" PASSWORD '{{ user.password }}';
+ALTER USER "{{ user.name }}" PASSWORD '{{ user.password | replace("'", "''") }}';
 SET log_statement TO DEFAULT;
 {% endif %}
 
--- expire
-{% if 'expire_in' in user %}
+-- expire (expire_in: days from now, expire_at: 'YYYY-MM-DD' or 'infinity')
+{% if 'expire_in' in user and user.expire_in is not none %}
 -- expire at {{ '%Y-%m-%d' | strftime(('%s' | strftime() | int  + user.expire_in * 86400)|int)  }} in {{ user.expire_in }} days since {{ '%Y-%m-%d' | strftime }}
 ALTER USER "{{ user.name }}" VALID UNTIL '{{ '%Y-%m-%d' | strftime(('%s' | strftime() | int  + user.expire_in * 86400)|int)  }}';
-{% elif 'expire_at' in user %}
--- expire at {{ user.expire_at }}
-ALTER USER "{{ user.name }}" VALID UNTIL '{{ user.expire_at }}';
+{% elif 'expire_at' in user and user.expire_at is not none %}
+-- expire at {{ user.expire_at }} (format: YYYY-MM-DD or 'infinity')
+ALTER USER "{{ user.name }}" VALID UNTIL '{{ user.expire_at | replace("'", "''") }}';
 {% endif %}
 
 -- conn limit
-{% if 'connlimit' in user %}
-{% if user.connlimit == -1 %} -- remove conn limit
--- {% endif %}
-ALTER USER "{{ user.name }}" CONNECTION LIMIT {{ user.connlimit }};
+{% if 'connlimit' in user and user.connlimit is not none %}
+ALTER USER "{{ user.name }}" CONNECTION LIMIT {{ user.connlimit | int }};
 {% endif %}
 
 -- parameters
-{% if 'parameters' in user %}
+{% if 'parameters' in user and user.parameters is not none and user.parameters|length > 0 %}
 {% for key, value in user.parameters.items() %}
-ALTER USER "{{ user.name }}" SET {{ key }} = {{ value }};
+{% if value is not none %}
+{% if value | string | upper == 'DEFAULT' %}
+ALTER USER "{{ user.name }}" SET "{{ key }}" = DEFAULT;
+{% else %}
+ALTER USER "{{ user.name }}" SET "{{ key }}" = '{{ value | replace("'", "''") }}';
+{% endif %}
+{% endif %}
 {% endfor %}{% endif %}
 
 -- comment
-{% if 'comment' in user %}
-COMMENT ON ROLE "{{ user.name }}" IS '{{ user.comment }}';
+{% if 'comment' in user and user.comment is not none %}
+COMMENT ON ROLE "{{ user.name }}" IS '{{ user.comment | replace("'", "''") }}';
 {% else %}
-COMMENT ON ROLE "{{ user.name }}" IS 'business user {{ user.name }}';
+COMMENT ON ROLE "{{ user.name }}" IS 'business user {{ user.name | replace("'", "''") }}';
 {% endif %}
 
 
 --==================================================================--
 --                           GRANT ROLE                             --
 --==================================================================--
-{% if 'roles' in user %}
-{% for role in user.roles %}
-GRANT "{{ role }}" TO "{{ user.name }}";
+-- roles: "role_name" | {name, state?, admin?, set?, inherit?}
+-- state: grant (default) | revoke/absent → controls membership
+-- admin/set/inherit: true → WITH xxx TRUE | false → REVOKE xxx OPTION | null → no-op
+-- set/inherit require PostgreSQL 16+, ignored on earlier versions with warning
+{% if user.roles is defined and user.roles %}
+{% set pg_ver = pg_version | default(18) | int %}
+{% set member = user.name %}
+{% for r in user.roles %}
+{% set role = {'name': r} if r is string else r %}
+{% set rname = role.name %}
+{% if (role.state | default('grant')) in ['revoke', 'absent'] %}
+REVOKE "{{ rname }}" FROM "{{ member }}";
+{% else %}
+GRANT "{{ rname }}" TO "{{ member }}";
+{% if role.admin is defined and role.admin is not none %}
+{% if role.admin %}
+GRANT "{{ rname }}" TO "{{ member }}" WITH ADMIN {{ 'TRUE' if pg_ver >= 16 else 'OPTION' }};
+{% else %}
+REVOKE ADMIN OPTION FOR "{{ rname }}" FROM "{{ member }}";
+{% endif %}
+{% endif %}
+{% if role.set is defined and role.set is not none %}
+{% if pg_ver >= 16 %}
+{% if role.set %}
+GRANT "{{ rname }}" TO "{{ member }}" WITH SET TRUE;
+{% else %}
+REVOKE SET OPTION FOR "{{ rname }}" FROM "{{ member }}";
+{% endif %}
+{% else %}
+-- WARNING: 'set' option requires PostgreSQL 16+, ignored on PG{{ pg_ver }}
+{% endif %}
+{% endif %}
+{% if role.inherit is defined and role.inherit is not none %}
+{% if pg_ver >= 16 %}
+{% if role.inherit %}
+GRANT "{{ rname }}" TO "{{ member }}" WITH INHERIT TRUE;
+{% else %}
+REVOKE INHERIT OPTION FOR "{{ rname }}" FROM "{{ member }}";
+{% endif %}
+{% else %}
+-- WARNING: 'inherit' option requires PostgreSQL 16+, ignored on PG{{ pg_ver }}
+{% endif %}
+{% endif %}
+{% endif %}
 {% endfor %}
 {% endif %}
 
@@ -121,9 +168,9 @@ GRANT "{{ role }}" TO "{{ user.name }}";
 --                       PASSWORD OVERWRITE                         --
 --==================================================================--
 SET log_statement TO 'none';
-ALTER ROLE "{{ pg_replication_username }}" PASSWORD '{{ pg_replication_password }}';
-ALTER ROLE "{{ pg_monitor_username }}" PASSWORD '{{ pg_monitor_password }}';
-ALTER ROLE "{{ pg_admin_username }}" PASSWORD '{{ pg_admin_password }}';
+ALTER ROLE "{{ pg_replication_username }}" PASSWORD '{{ pg_replication_password | replace("'", "''") }}';
+ALTER ROLE "{{ pg_monitor_username }}" PASSWORD '{{ pg_monitor_password | replace("'", "''") }}';
+ALTER ROLE "{{ pg_admin_username }}" PASSWORD '{{ pg_admin_password | replace("'", "''") }}';
 SET log_statement TO DEFAULT;
 --==================================================================--
 

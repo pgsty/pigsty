@@ -43,24 +43,32 @@ all:
         pg_users:
           - name: dbuser_meta               # REQUIRED, `name` is the only mandatory field of a user definition
             password: DBUser.Meta           # optional, the password. can be a scram-sha-256 hash string or plain text
-            login: true                     # optional, can log in, true by default (new biz ROLE should be false)
-            superuser: false                # optional, is superuser? false by default
-            createdb: false                 # optional, can create databases? false by default
-            createrole: false               # optional, can create role? false by default
-            inherit: true                   # optional, can this role use inherited privileges? true by default
-            replication: false              # optional, can this role do replication? false by default
-            bypassrls: false                # optional, can this role bypass row level security? false by default
-            pgbouncer: true                 # optional, add this user to the pgbouncer user-list? false by default (production user should be true explicitly)
-            connlimit: -1                   # optional, user connection limit, default -1 disable limit
-            expire_in: 3650                 # optional, now + n days when this role is expired (OVERWRITE expire_at)
-            expire_at: '2030-12-31'         # optional, YYYY-MM-DD 'timestamp' when this role is expired (OVERWRITTEN by expire_in)
-            comment: pigsty admin user      # optional, comment string for this user/role
-            roles: [dbrole_admin]           # optional, belonged roles. default roles are: dbrole_{admin|readonly|readwrite|offline}
-            parameters: {}                  # optional, role level parameters with `ALTER ROLE SET`
-            pool_mode: transaction          # optional, pgbouncer pool mode at user level, transaction by default
-            pool_connlimit: -1              # optional, max database connections at user level, default -1 disable limit
+            #state: create                   # optional, create|absent, 'create' by default, use 'absent' to drop user
+            #login: true                     # optional, can log in, true by default (new biz ROLE should be false)
+            #superuser: false                # optional, is superuser? false by default
+            #createdb: false                 # optional, can create databases? false by default
+            #createrole: false               # optional, can create role? false by default
+            #inherit: true                   # optional, can this role use inherited privileges? true by default
+            #replication: false              # optional, can this role do replication? false by default
+            #bypassrls: false                # optional, can this role bypass row level security? false by default
+            #pgbouncer: true                 # optional, add this user to the pgbouncer user-list? false by default (production user should be true explicitly)
+            #connlimit: -1                   # optional, user connection limit, default -1 disable limit
+            #expire_in: 3650                 # optional, now + n days when this role is expired (OVERWRITE expire_at)
+            #expire_at: '2030-12-31'         # optional, YYYY-MM-DD 'timestamp' when this role is expired (OVERWRITTEN by expire_in)
+            #comment: pigsty admin user      # optional, comment string for this user/role
+            #roles: [dbrole_admin]           # optional, belonged roles. default roles are: dbrole_{admin|readonly|readwrite|offline}
+            #parameters: {}                  # optional, role level parameters with `ALTER ROLE SET`
+            #pool_mode: transaction          # optional, pgbouncer pool mode at user level, transaction by default
+            #pool_connlimit: -1              # optional, max database connections at user level, default -1 disable limit
+            # Enhanced roles syntax (PG16+): roles can be string or object with options:
+            #   - dbrole_readwrite                       # simple string: GRANT role
+            #   - { name: role, admin: true }            # GRANT WITH ADMIN OPTION
+            #   - { name: role, set: false }             # PG16: REVOKE SET OPTION
+            #   - { name: role, inherit: false }         # PG16: REVOKE INHERIT OPTION
+            #   - { name: role, state: absent }          # REVOKE membership
           - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly], comment: read-only viewer for meta database }
           #- {name: dbuser_bytebase ,password: DBUser.Bytebase ,pgbouncer: true ,roles: [dbrole_admin] ,comment: admin user for bytebase database   }
+          #- {name: dbuser_remove ,state: absent }       # use state: absent to remove a user
 
         # define business databases : https://doc.pgsty.com/pgsql/db
         pg_databases:                       # define business databases on this cluster, array of database definition
