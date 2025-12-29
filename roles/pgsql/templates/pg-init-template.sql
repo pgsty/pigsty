@@ -40,8 +40,16 @@ ALTER DEFAULT PRIVILEGES FOR ROLE "dbrole_admin" {{ priv }};
 --==================================================================--
 --                              Schemas                             --
 --==================================================================--
-{% for schema_name in pg_default_schemas %}
-CREATE SCHEMA IF NOT EXISTS "{{ schema_name }}";
+{% for schema in pg_default_schemas %}
+{% if schema is string %}
+CREATE SCHEMA IF NOT EXISTS "{{ schema }}";
+{% elif schema is mapping and 'name' in schema %}
+{% if schema.state is defined and schema.state == 'absent' %}
+DROP SCHEMA IF EXISTS "{{ schema.name }}" CASCADE;
+{% else %}
+CREATE SCHEMA IF NOT EXISTS "{{ schema.name }}"{% if 'owner' in schema and schema.owner is not none and schema.owner != '' %} AUTHORIZATION "{{ schema.owner }}"{% endif %};
+{% endif %}
+{% endif %}
 {% endfor %}
 
 -- revoke public creation
@@ -54,7 +62,11 @@ REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 {% if extension is string %}
 CREATE EXTENSION IF NOT EXISTS "{{ extension }}" CASCADE;
 {% elif extension is mapping and 'name' in extension %}
-CREATE EXTENSION IF NOT EXISTS "{{ extension.name }}"{% if 'schema' in extension %} WITH SCHEMA "{{ extension.schema }}"{% endif %}{% if 'version' in extension %} VERSION "{{ extension.version }}"{% endif %} CASCADE;
+{% if extension.state is defined and extension.state == 'absent' %}
+DROP EXTENSION IF EXISTS "{{ extension.name }}" CASCADE;
+{% else %}
+CREATE EXTENSION IF NOT EXISTS "{{ extension.name }}"{% if 'schema' in extension %} WITH SCHEMA "{{ extension.schema }}"{% endif %}{% if 'version' in extension %} VERSION '{{ extension.version }}'{% endif %} CASCADE;
+{% endif %}
 {% endif %}
 {% endfor %}
 

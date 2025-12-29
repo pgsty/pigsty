@@ -8,6 +8,7 @@
 -- License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 ----------------------------------------------------------------------
+-- we don't delete any existing roles, only create or alter them
 
 {% for user in pg_default_roles %}
 
