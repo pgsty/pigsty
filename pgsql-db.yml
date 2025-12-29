@@ -4,7 +4,7 @@
 # File      :   pgsql-db.yml
 # Desc      :   create database on existing cluster
 # Ctime     :   2021-02-27
-# Mtime     :   2025-04-23
+# Mtime     :   2025-12-29
 # Path      :   pgsql-db.yml
 # Deps      :   templates/pg-db.sql
 # Docs      :   https://doc.pgsty.com/pgsql/playbook
@@ -41,6 +41,7 @@
 #   vars:
 #     pg_databases:                       # define business databases on this cluster, array of database definition
 #       - name: meta                      # REQUIRED, `name` is the only mandatory field of a database definition
+#         state: create                   # optional, cloud be create (default), absent (drop db), recreate (drop then recreate)
 #         baseline: cmdb.sql              # optional, database sql baseline path, (relative path among ansible search path, e.g files/)
 #         pgbouncer: true                 # optional, add this database to pgbouncer database list? true by default
 #         schemas: [pigsty]               # optional, additional schemas to be created, array of schema names
@@ -48,13 +49,14 @@
 #           - { name: postgis , schema: public } # install postgis on schema `public`
 #           - { name: timescaledb }              # install timescaledb extension
 #         comment: pigsty meta database   # optional, comment string for this database
-#         owner: postgres                # optional, database owner, postgres by default
-#         template: template1            # optional, which template to use, template1 by default
-#         encoding: UTF8                 # optional, database encoding, UTF8 by default. (MUST same as template database)
-#         locale: C                      # optional, database locale, C by default.  (MUST same as template database)
-#         lc_collate: C                  # optional, database collate, C by default. (MUST same as template database)
-#         lc_ctype: C                    # optional, database ctype, C by default.   (MUST same as template database)
-#         tablespace: pg_default         # optional, default tablespace, 'pg_default' by default.
+#         owner: postgres                # optional, database owner, current user if not specified
+#         template: template1            # optional, template database to use, template1 by default
+#         strategy: FILE_COPY            # optional, clone strategy: FILE_COPY or WAL_LOG (PG15+), default to PG's default
+#         encoding: UTF8                 # optional, inherited from template / cluster if not defined (UTF8)
+#         locale: C                      # optional, inherited from template / cluster if not defined (C)
+#         lc_collate: C                  # optional, inherited from template / cluster if not defined (C)
+#         lc_ctype: C                    # optional, inherited from template / cluster if not defined (C)
+#         tablespace: pg_default         # optional, default tablespace, pg_default by default
 #         allowconn: true                # optional, allow connection, true by default. false will disable connect at all
 #         revokeconn: false              # optional, revoke public connection privilege. false by default. (leave connect with grant option to owner)
 #         register_datasource: true      # optional, register this database to grafana datasources? true by default
@@ -109,9 +111,10 @@
             msg: "{{ db_def }}"
 
     #----------------------------------------------------------#
-    # Create Postgres Database                        [postgres]
+    # Create or Drop Postgres Database                [postgres]
     #----------------------------------------------------------#
-    # create database according to database definition
+    # create or drop database according to database definition
+    # when db_def.state == 'absent', the database will be dropped
     - include_tasks: roles/pgsql/tasks/database.yml
       tags: postgres
       when: pg_role == 'primary'
@@ -121,10 +124,21 @@
     #----------------------------------------------------------#
     # Create Grafana Datasource                        [grafana]
     #----------------------------------------------------------#
-    # register grafana database as grafana datasource
+    # register grafana database as grafana datasource (skip if state=absent)
     - include_tasks: roles/pg_monitor/tasks/register_grafana.yml
       ignore_errors: yes
-      tags: [ register, grafana ]
+      tags: [ register, grafana, add_ds ]
+      when: db_def.state is not defined or db_def.state != 'absent'
+      vars: { database: "{{ db_def }}" }
+
+    #----------------------------------------------------------#
+    # Remove Grafana Datasource                     [unregister]
+    #----------------------------------------------------------#
+    # unregister grafana database datasource (only when state=absent)
+    - include_tasks: roles/pg_remove/tasks/grafana.yml
+      ignore_errors: yes
+      tags: [ unregister, grafana, rm_ds ]
+      when: db_def.state is defined and db_def.state == 'absent'
       vars: { database: "{{ db_def }}" }
 
 
@@ -143,8 +157,9 @@
             group: postgres
             mode: 0600
             content: |
+              # pgbouncer database list
               {% for db in pg_databases %}
-              {% if 'pgbouncer' not in db or db.pgbouncer|bool %}
+              {% if ('pgbouncer' not in db or db.pgbouncer|bool) and (db.state is not defined or db.state != 'absent') %}
               {% set connstr = "host=" + pg_localhost|default('/var/run/postgresql')|string %}
               {% if pgbouncer_redirect_to is defined and pgbouncer_redirect_to != '' %}{% set db_host = "host=" + pgbouncer_redirect_to %}{% endif %}
               {% if 'pool_auth_user' in db %}{% set connstr = connstr + " auth_user=" + db.pool_auth_user|string %}{% endif %}

@@ -21,6 +21,7 @@
 {% if 'lc_collate' in  database and database.lc_collate != '' %}--lc-collate '{{ database.lc_collate }}' {% endif %}
 {% if 'lc_ctype'   in  database and database.lc_ctype != ''   %}--lc-ctype '{{ database.lc_ctype   }}' {% endif %}
 {% if 'tablespace' in  database and database.tablespace != '' %}-D '{{ database.tablespace }}' {% endif %}
+{% if 'strategy'   in  database and database.strategy != ''   %}-S '{{ database.strategy   }}' {% endif %}
 '{{ database.name }}';
 -- psql {{ database.name }} -p {{ pg_port|default(5432) }} -AXtwqf /pg/tmp/pg-db-{{ database.name }}.sql
 {% if 'baseline' in database and database.baseline != '' %}
@@ -38,6 +39,7 @@
 {% if 'lc_collate' in  database and database.lc_collate != '' %}LC_COLLATE "{{ database.lc_collate }}" {% endif %}
 {% if 'lc_ctype'   in  database and database.lc_ctype != ''   %}LC_CTYPE "{{ database.lc_ctype }}" {% endif %}
 {% if 'tablespace' in  database and database.tablespace != '' %}TABLESPACE "{{ database.tablespace }}" {% endif %}
+{% if 'strategy'   in  database and database.strategy != '' and pg_version|default(17)|int >= 15 %}STRATEGY {{ database.strategy|upper }} {% endif %}
 ;
 -- following commands are executed within database "{{ database.name }}"
 

@@ -1,10 +1,36 @@
 ---
 #--------------------------------------------------------------#
+# Drop Business Database                            [pg_db_drop]
+#--------------------------------------------------------------#
+# state: absent   -> drop only
+# state: recreate -> drop then create
+# skip system databases: postgres, template0, template1
+#--------------------------------------------------------------#
+- name: drop database {{ database.name }}
+  tags: [ pg_db, pg_db_drop ]
+  when:
+    - pg_role == 'primary'
+    - database.state is defined and database.state in ['absent', 'recreate']
+    - database.name not in ['postgres', 'template0', 'template1']
+  become_user: "{{ pg_dbsu|default('postgres') }}"
+  shell: |
+    {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -d postgres -AXtwe <<-'EOSQL'
+    {% if pg_version|default(17)|int >= 13 %}
+    DROP DATABASE IF EXISTS "{{ database.name }}" WITH (FORCE);
+    {% else %}
+    SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{{ database.name }}' AND pid <> pg_backend_pid();
+    DROP DATABASE IF EXISTS "{{ database.name }}";
+    {% endif %}
+    EOSQL
+  args: { executable: /bin/bash }
+
+
+#--------------------------------------------------------------#
 # Generate Business Database Config               [pg_db_config]
 #--------------------------------------------------------------#
 - name: generate postgres business database config
   tags: [ pg_db , pg_db_config ]
-  when: pg_role == 'primary'
+  when: pg_role == 'primary' and (database.state is not defined or database.state in ['create', 'recreate'])
   block:
 
     - name: render sql for database {{ database.name }}
@@ -22,7 +48,7 @@
 #--------------------------------------------------------------#
 - name: create postgres business database
   tags: [ pg_db, pg_db_create ]
-  when: pg_role == 'primary'
+  when: pg_role == 'primary' and (database.state is not defined or database.state in ['create', 'recreate'])
   vars:
     # which database to connect for admin operations (use template1 when template is postgres)
     admin_db: "{{ 'template1' if (database.template is defined and database.template == 'postgres') else 'postgres' }}"
@@ -35,9 +61,11 @@
       ignore_errors: true
       become_user: "{{ pg_dbsu|default('postgres') }}"
       shell: |
-        # check if database already exists
+        {% if database.state is not defined or database.state != 'recreate' %}
+        # check if database already exists (skip for recreate)
         db_exists=$({{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -d postgres -AXtwq -c "SELECT 1 FROM pg_database WHERE datname = '{{ database.name }}' LIMIT 1;")
         if [[ -n "${db_exists}" ]]; then echo "database {{ database.name }} already exists, skip"; exit 0; fi
+        {% endif %}
         {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -d {{ admin_db }} -AXtw <<-'EOSQL'
         {% if need_kill %}SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '{{ database.template }}' AND pid <> pg_backend_pid();{% endif %}
         CREATE DATABASE "{{ database.name }}"
@@ -61,7 +89,7 @@
         {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql {{ database.name }} -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -AXtwf /pg/tmp/pg-db-{{ database.name }}.sql >> /pg/tmp/pg-db-{{ database.name }}.log 2>&1
 
     - name: load database {{ database.name }} baseline
-      tags: pg_db_create
+      tags: [ pg_db_create, pg_db_baseline ]
       ignore_errors: true
       become_user: "{{ pg_dbsu|default('postgres') }}"
       shell: |

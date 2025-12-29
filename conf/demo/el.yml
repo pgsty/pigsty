@@ -58,19 +58,21 @@ all:
         # define business databases here: https://doc.pgsty.com/pgsql/db
         pg_databases:                       # define business databases on this cluster, array of database definition
           - name: meta                      # REQUIRED, `name` is the only mandatory field of a database definition
+            #state: create                  # optional, create|absent|recreate, create by default
             baseline: cmdb.sql              # optional, database sql baseline path, (relative path among ansible search path, e.g: files/)
             schemas: [pigsty]               # optional, additional schemas to be created, array of schema names
             extensions:                     # optional, additional extensions to be installed: array of `{name[,schema]}`
               - { name: vector }            # install pgvector extension on this database by default
             comment: pigsty meta database   # optional, comment string for this database
             #pgbouncer: true                # optional, add this database to pgbouncer database list? true by default
-            #owner: postgres                # optional, database owner, postgres by default
+            #owner: postgres                # optional, database owner, current user if not specified
             #template: template1            # optional, which template to use, template1 by default
-            #encoding: UTF8                 # optional, database encoding, UTF8 by default. (MUST same as template database)
-            #locale: C                      # optional, database locale, C by default.  (MUST same as template database)
-            #lc_collate: C                  # optional, database collate, C by default. (MUST same as template database)
-            #lc_ctype: C                    # optional, database ctype, C by default.   (MUST same as template database)
-            #tablespace: pg_default         # optional, default tablespace, 'pg_default' by default.
+            #strategy: FILE_COPY            # optional, clone strategy: FILE_COPY or WAL_LOG (PG15+), default to PG's default
+            #encoding: UTF8                 # optional, inherited from template / cluster if not defined (UTF8)
+            #locale: C                      # optional, inherited from template / cluster if not defined (C)
+            #lc_collate: C                  # optional, inherited from template / cluster if not defined (C)
+            #lc_ctype: C                    # optional, inherited from template / cluster if not defined (C)
+            #tablespace: pg_default         # optional, default tablespace, pg_default by default
             #allowconn: true                # optional, allow connection, true by default. false will disable connect at all
             #revokeconn: false              # optional, revoke public connection privilege. false by default. (leave connect with grant option to owner)
             #register_datasource: true      # optional, register this database to grafana datasources? true by default
