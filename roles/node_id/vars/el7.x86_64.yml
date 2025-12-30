@@ -1,0 +1,607 @@
+---
+# License    :   AGPLv3 @ https://doc.pgsty.com/about/license
+# Copyright  :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
+# el7.x86_64  :  RHEL 7 Compatible OS specific vars
+
+# where to register systemd files
+systemd_dir: /usr/lib/systemd/system
+
+# default packages to be downloaded (if `repo_packages` is not explicitly set)
+repo_packages_default: [ node-bootstrap, infra-package, infra-addons, node-package1, node-package2, pgsql-utility, extra-modules ]
+
+# default postgres packages to be downloaded
+repo_extra_packages_default: [ pgsql-main ]
+
+# default node packages to be installed (if `node_default_packages` is not explicitly set)
+node_packages_default:
+  - lz4,unzip,bzip2,pv,jq,git,ncdu,make,patch,bash,lsof,wget,uuid,tuned,nvme-cli,numactl,sysstat,iotop,htop,rsync,tcpdump
+  - python3,python3-pip,socat,lrzsz,net-tools,ipvsadm,telnet,ca-certificates,openssl,keepalived,etcd,haproxy,chrony,pig
+  - zlib,yum,audit,bind-utils,readline,vim-minimal,node_exporter,grubby,openssh-server,openssh-clients,chkconfig
+
+# default infra packages to be installed (if `infra_packages` is not explicitly set)
+infra_packages_default:
+  - grafana,loki,logcli,promtail,prometheus,alertmanager,pushgateway,grafana-plugins,restic
+  - node_exporter,blackbox_exporter,nginx_exporter,pg_exporter,pev2,nginx,dnsmasq,ansible,etcd,python3-requests,redis,mcli
+
+# postgres home dir in various mode
+pg_home_map:
+  pgsql:  '/usr/pgsql-$v'
+  citus:  '/usr/pgsql-$v'
+  mssql:  '/usr/'
+  ivory:  '/usr/ivory-4'
+  mysql:  '/usr/halo-14'
+  gpsql:  '/usr/gpsql'
+  polar:  '/u01/polardb_pg'
+  oracle: '/u01/polardb_pg'
+  oriole: '/usr/oriole-$v'
+
+# default upstream repo (if `repo_upstream` is not explicitly set)
+repo_upstream_default:
+  - { name: pigsty-local   ,description: 'Pigsty Local'       ,module: local   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://${admin_ip}/pigsty'  }} # used by intranet nodes
+  - { name: pigsty-infra   ,description: 'Pigsty INFRA'       ,module: infra   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/yum/infra/$basearch' ,china: 'https://repo.pigsty.cc/yum/infra/$basearch' }}
+  - { name: pigsty-pgsql   ,description: 'Pigsty PGSQL'       ,module: pgsql   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/yum/pgsql/el$releasever.$basearch' ,china: 'https://repo.pigsty.cc/yum/pgsql/el$releasever.$basearch' }}
+  - { name: nginx          ,description: 'Nginx Repo'         ,module: infra   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://nginx.org/packages/rhel/$releasever/$basearch/' }}
+  - { name: docker-ce      ,description: 'Docker CE'          ,module: infra   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.docker.com/linux/centos/$releasever/$basearch/stable'     ,china: 'https://mirrors.aliyun.com/docker-ce/linux/centos/$releasever/$basearch/stable' ,europe: 'https://mirrors.xtom.de/docker-ce/linux/centos/$releasever/$basearch/stable' }}
+  - { name: base           ,description: 'EL 7 Base'          ,module: node    ,releases: [7    ] ,arch: [x86_64         ] ,baseurl: { default: 'http://vault.centos.org/centos/$releasever/os/$basearch/'                  ,china: 'https://mirrors.aliyun.com/centos/$releasever/os/$basearch/'        ,europe: 'https://mirrors.xtom.de/centos/$releasever/os/$basearch/'        }}
+  - { name: updates        ,description: 'EL 7 Updates'       ,module: node    ,releases: [7    ] ,arch: [x86_64         ] ,baseurl: { default: 'http://vault.centos.org/centos/$releasever/updates/$basearch/'             ,china: 'https://mirrors.aliyun.com/centos/$releasever/updates/$basearch/'   ,europe: 'https://mirrors.xtom.de/centos/$releasever/updates/$basearch/'   }}
+  - { name: extras         ,description: 'EL 7 Extras'        ,module: node    ,releases: [7    ] ,arch: [x86_64         ] ,baseurl: { default: 'http://vault.centos.org/centos/$releasever/extras/$basearch/'              ,china: 'https://mirrors.aliyun.com/centos/$releasever/extras/$basearch/'    ,europe: 'https://mirrors.xtom.de/centos/$releasever/extras/$basearch/'    }}
+  - { name: epel           ,description: 'EL 7 EPEL'          ,module: node    ,releases: [7    ] ,arch: [x86_64         ] ,baseurl: { default: 'http://archives.fedoraproject.org/pub/archive/epel/$releasever/$basearch/' ,china: 'https://mirrors.aliyun.com/epel/$releasever/$basearch/'             ,europe: 'https://mirrors.xtom.de/epel/$releasever/$basearch/'             }}
+  - { name: centos-sclo    ,description: 'EL 7 SCLo'          ,module: node    ,releases: [7    ] ,arch: [x86_64         ] ,baseurl: { default: 'http://vault.centos.org/centos/$releasever/sclo/$basearch/sclo/'           ,china: 'https://mirrors.aliyun.com/centos/$releasever/sclo/$basearch/sclo/' ,europe: 'https://mirrors.xtom.de/centos/$releasever/sclo/$basearch/sclo/' }}
+  - { name: centos-sclo-rh ,description: 'EL 7 SCLo rh'       ,module: node    ,releases: [7    ] ,arch: [x86_64         ] ,baseurl: { default: 'http://vault.centos.org/centos/$releasever/sclo/$basearch/rh/'             ,china: 'https://mirrors.aliyun.com/centos/$releasever/sclo/$basearch/rh/'   ,europe: 'https://mirrors.xtom.de/centos/$releasever/sclo/$basearch/rh/'   }}
+  - { name: pgdg-common    ,description: 'PostgreSQL Common'  ,module: pgsql   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/common/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/common/redhat/rhel-$releasever-$basearch' , europe: 'https://mirrors.xtom.de/postgresql/repos/yum/common/redhat/rhel-$releasever-$basearch' }}
+  - { name: pgdg13         ,description: 'PostgreSQL 13'      ,module: pgsql   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/13/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/13/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/13/redhat/rhel-$releasever-$basearch' }}
+  - { name: pgdg14         ,description: 'PostgreSQL 14'      ,module: pgsql   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/14/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/14/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/14/redhat/rhel-$releasever-$basearch' }}
+  - { name: pgdg15         ,description: 'PostgreSQL 15'      ,module: pgsql   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/15/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/15/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/15/redhat/rhel-$releasever-$basearch' }}
+  - { name: pgdg16         ,description: 'PostgreSQL 16'      ,module: pgsql   ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/16/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/16/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/16/redhat/rhel-$releasever-$basearch' }}
+  - { name: pgdg17         ,description: 'PostgreSQL 17'      ,module: pgsql   ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/17/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/17/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/17/redhat/rhel-$releasever-$basearch' }}
+  - { name: pgdg18-beta    ,description: 'PostgreSQL 18 Beta' ,module: beta    ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/testing/18/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/testing/18/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/testing/18/redhat/rhel-$releasever-$basearch' }}
+  - { name: pgdg-extras    ,description: 'PostgreSQL Extra'   ,module: extra   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/common/pgdg-rhel$releasever-extras/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/common/pgdg-rhel$releasever-extras/redhat/rhel-$releasever-$basearch' , europe: 'https://mirrors.xtom.de/postgresql/repos/yum/common/pgdg-rhel$releasever-extras/redhat/rhel-$releasever-$basearch' }}
+  - { name: pgdg13-nonfree ,description: 'PostgreSQL 13+'     ,module: extra   ,releases: [7,8,9] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/13/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/non-free/13/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/13/redhat/rhel-$releasever-$basearch' }}
+  - { name: pgdg14-nonfree ,description: 'PostgreSQL 14+'     ,module: extra   ,releases: [7,8,9] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/14/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/non-free/14/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/14/redhat/rhel-$releasever-$basearch' }}
+  - { name: pgdg15-nonfree ,description: 'PostgreSQL 15+'     ,module: extra   ,releases: [7,8,9] ,arch: [x86_64         ] ,baseurl: { default: 'https://download.postgresql.org/pub/repos/yum/non-free/15/redhat/rhel-$releasever-$basearch' ,china: 'https://mirrors.aliyun.com/postgresql/repos/yum/non-free/15/redhat/rhel-$releasever-$basearch' ,europe: 'https://mirrors.xtom.de/postgresql/repos/yum/non-free/15/redhat/rhel-$releasever-$basearch' }}
+  - { name: timescaledb    ,description: 'TimescaleDB'        ,module: extra   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packagecloud.io/timescale/timescaledb/el/$releasever/$basearch'  }}
+  - { name: percona        ,description: 'Percona TDE'        ,module: percona ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'http://repo.percona.com/ppg-17.5/yum/release/$releasever/RPMS/$basearch'  }}
+  - { name: wiltondb       ,description: 'WiltonDB'           ,module: mssql   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.pigsty.io/yum/mssql/el$releasever.$basearch', china: 'https://repo.pigsty.cc/yum/mssql/el$releasever.$basearch' , origin: 'https://download.copr.fedorainfracloud.org/results/wiltondb/wiltondb/epel-$releasever-$basearch/' }}
+  - { name: mysql          ,description: 'MySQL'              ,module: mysql   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.mysql.com/yum/mysql-8.0-community/el/$releasever/$basearch/' ,china: 'https://mirrors.tuna.tsinghua.edu.cn/mysql/yum/mysql-8.0-community-el7-$basearch/' }}
+  - { name: mongo          ,description: 'MongoDB'            ,module: mongo   ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/8.0/$basearch/' ,china: 'https://mirrors.aliyun.com/mongodb/yum/redhat/$releasever/mongodb-org/8.0/$basearch/' }}
+  - { name: redis          ,description: 'Redis'              ,module: redis   ,releases: [7    ] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://rpmfind.net/linux/remi/enterprise/$releasever/remi/$basearch/' }}
+  - { name: grafana        ,description: 'Grafana'            ,module: grafana ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://rpm.grafana.com', china: 'https://mirrors.aliyun.com/grafana/yum/' }}
+  - { name: kubernetes     ,description: 'Kubernetes'         ,module: kube    ,releases: [7,8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://pkgs.k8s.io/core:/stable:/v1.31/rpm/', china: 'https://mirrors.aliyun.com/kubernetes-new/core/stable/v1.31/rpm/' }}
+  - { name: gitlab-ee      ,description: 'Gitlab EE'          ,module: gitlab  ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packages.gitlab.com/gitlab/gitlab-ee/el/$releasever/$basearch' }}
+  - { name: gitlab-ce      ,description: 'Gitlab CE'          ,module: gitlab  ,releases: [  8,9] ,arch: [x86_64, aarch64] ,baseurl: { default: 'https://packages.gitlab.com/gitlab/gitlab-ce/el/$releasever/$basearch' }}
+
+
+# package alias map to simplify package download & installation
+package_map:
+
+  #--------------------------------#
+  # REPO: download packages
+  #--------------------------------#
+  node-bootstrap:          "ansible python3 python3-pip python36-virtualenv python36-requests python36-idna yum-utils createrepo_c sshpass"
+  infra-package:           "nginx dnsmasq etcd haproxy vip-manager node_exporter keepalived_exporter pg_exporter pgbackrest_exporter redis_exporter redis minio mcli pig"
+  infra-addons:            "grafana grafana-plugins loki logcli promtail prometheus alertmanager pushgateway blackbox_exporter nginx_exporter pev2"
+  extra-modules:           "docker-ce docker-compose-plugin ferretdb2 duckdb restic juicefs vray grafana-infinity-ds"
+  node-package1:           "lz4 unzip bzip2 zlib yum pv jq git ncdu make patch bash lsof wget uuid tuned nvme-cli numactl grubby sysstat iotop htop rsync tcpdump perf flamegraph chkconfig"
+  node-package2:           "netcat socat ftp lrzsz net-tools ipvsadm bind-utils telnet audit ca-certificates readline vim-minimal keepalived chrony openssl openssh-server openssh-clients"
+  pgsql-utility:           "patroni patroni-etcd pgbouncer pgbackrest pgbadger pg_activity pg_timetable pgFormatter pg_filedump pgxnclient timescaledb-tools timescaledb-event-streamer pgcopydb pgloader"
+
+
+  #--------------------------------#
+  # PGSQL: kernel packages
+  #--------------------------------#
+  postgresql:              "postgresql$v"
+  pgsql:                   "postgresql$v postgresql$v-server postgresql$v-libs postgresql$v-contrib postgresql$v-plperl postgresql$v-plpython3 postgresql$v-pltcl postgresql$v-llvmjit"
+  pgsql-mini:              "postgresql$v postgresql$v-server postgresql$v-libs postgresql$v-contrib"
+  pgsql-core:              "postgresql$v postgresql$v-server postgresql$v-libs postgresql$v-contrib postgresql$v-plperl postgresql$v-plpython3 postgresql$v-pltcl postgresql$v-llvmjit"
+  pgsql-full:              "postgresql$v postgresql$v-server postgresql$v-libs postgresql$v-contrib postgresql$v-plperl postgresql$v-plpython3 postgresql$v-pltcl postgresql$v-llvmjit postgresql$v-test postgresql$v-devel"
+  pgsql-main:              "postgresql$v postgresql$v-server postgresql$v-libs postgresql$v-contrib postgresql$v-plperl postgresql$v-plpython3 postgresql$v-pltcl postgresql$v-llvmjit pg_repack_$v wal2json_$v pgvector_$v"
+  pgsql-client:            "postgresql$v"
+  pgsql-server:            "postgresql$v-server postgresql$v-libs postgresql$v-contrib"
+  pgsql-devel:             "postgresql$v-devel"
+  pgsql-basic:             "pg_repack_$v wal2json_$v pgvector_$v"
+
+  #--------------------------------#
+  # MISC: pro modules
+  #--------------------------------#
+  wiltondb:                "wiltondb"
+  polardb:                 "PolarDB"
+  openhalodb:              "openhalodb"
+  orioledb:                "orioledb_17 oriolepg_17"
+  supabase:                "pg_tle_$v,pgvector_$v,pg_cron_$v,pgsodium_$v,pg_graphql_$v,pg_jsonschema_$v,wrappers_$v,vault_$v,pgjwt_$v,pgsql_http_$v,pg_net_$v,supautils_$v,index_advisor_$v,safeupdate_$v,pg_plan_filter_$v"
+  greenplum:               "open-source-greenplum-db-6"
+  gpsql:                   "cloudberrydb open-source-greenplum-db-6 apr"
+  java-runtime:            "java-11-openjdk-src java-11-openjdk-headless"
+  kafka:                   "kafka kafka_exporter"
+  kube-runtime:            "containerd.io cri-dockerd"
+  sealos:                  "sealos"
+  kubernetes:              "kubeadm kubelet kubectl"
+  docker:                  "docker-ce docker-compose-plugin"
+  infra-extra:             "victoria-metrics victoria-logs vlogscli grafana-victorialogs-ds grafana-victoriametrics-ds vector rclone mysqld_exporter mongodb_exporter kafka_exporter"
+  tigerbeetle:             "" # tigerbeetle is not compatible with el7
+
+  #--------------------------------#
+  # PGSQL: tools & utils
+  #--------------------------------#
+  pgsql-common:            "patroni patroni-etcd pgbouncer pgbackrest pg_exporter pgbackrest_exporter vip-manager"
+  patroni:                 "patroni patroni-etcd"
+  pgbouncer:               "pgbouncer"
+  pgbackrest:              "pgbackrest"
+  pg_exporter:             "pg_exporter"
+  pgbackrest_exporter:     "pgbackrest_exporter"
+  vip-manager:             "vip-manager"
+  pgbadger:                "pgbadger"
+  pg_activity:             "pg_activity"
+  pg_filedump:             "pg_filedump"
+  pgxnclient:              "pgxnclient"
+  pgformatter:             "pgformatter"
+  pgcopydb:                "pgcopydb"
+  pgloader:                "pgloader"
+  pg_timetable:            "pg_timetable"
+  timescaledb-utils:       "timescaledb-tools timescaledb-event-streamer"
+
+  #--------------------------------#
+  # PGSQL: extensions (pg15)
+  #--------------------------------#
+  pgsql-time:               "timescaledb-tsl_$v timescaledb-toolkit_$v pg_timeseries_$v periods_$v temporal_tables_$v e-maj_$v table_version_$v pg_cron_$v pg_task_$v pg_later_$v pg_background_$v"
+  pgsql-gis:                "postgis33_$v pgrouting_$v pointcloud_$v h3-pg_$v q3c_$v ogr_fdw_$v geoip_$v pg_polyline_$v pg_geohash_$v pg_tzf_$v"
+  pgsql-rag:                "pgvector_$v vchord_$v pgvectorscale_$v pg_vectorize_$v pg_similarity_$v smlar_$v pg_summarize_$v pg_tiktoken_$v pg4ml_$v pgml_$v"
+  pgsql-fts:                "pg_search_$v pgroonga_$v pg_bigm_$v zhparser_$v pg_bestmatch_$v vchord_bm25_$v hunspell_cs_cz_$v hunspell_de_de_$v hunspell_en_us_$v hunspell_fr_$v hunspell_ne_np_$v hunspell_nl_nl_$v hunspell_nn_no_$v hunspell_ru_ru_$v hunspell_ru_ru_aot_$v"
+  pgsql-olap:               "citus_$v pg_analytics_$v pg_duckdb_$v pg_mooncake_$v duckdb_fdw_$v pg_parquet_$v pg_fkpart_$v pg_partman_$v plproxy_$v" #hydra_$v #pg_strom_$v
+  pgsql-feat:               "apache-age_$v hll_$v rum_$v pg_graphql_$v pg_jsonschema_$v jsquery_$v pg_hint_plan_$v hypopg_$v index_advisor_$v pg_plan_filter_$v imgsmlr_$v pg_ivm_$v pgmq_$v pgq_$v pg_cardano_$v omnigres_$v" #pg_incremental_$v
+  pgsql-lang:               "pg_tle_$v plv8_$v pllua_$v plprql_$v pldebugger_$v plpgsql_check_$v plprofiler_$v plsh_$v" #pljava_$v #plr_$v #pgtap_$v #postgresql_faker_$v #dbt2-pgsql-extensions
+  pgsql-type:               "prefix_$v semver_$v postgresql-unit_$v pgpdf_$v pglite_fusion_$v md5hash_$v asn1oid_$v pg_roaringbitmap_$v pgfaceting_$v pgsphere_$v pg_country_$v pg_xenophile_$v pg_currency_$v pgcollection_$v pgmp_$v numeral_$v pg_rational_$v pguint_$v pg_uint128_$v hashtypes_$v ip4r_$v pg_uri_$v pg_emailaddr_$v acl_$v timestamp9_$v chkpass_$v" #pg_duration_$v
+  pgsql-util:               "pgsql_gzip_$v pg_bzip_$v pg_zstd_$v pgsql_http_$v pg_net_$v pg_curl_$v pgjq_$v pgjwt_$v pg_smtp_client_$v pg_html5_email_address_$v url_encode_$v pgsql_tweaks_$v pg_extra_time_$v pgpcre_$v icu_ext_$v pgqr_$v pg_protobuf_$v pg_envvar_$v floatfile_$v pg_readme_$v ddl_historization_$v data_historization_$v pg_schedoc_$v pg_hashlib_$v pg_xxhash_$v postgres_shacrypt_$v cryptint_$v pg_ecdsa_$v pgsparql_$v"
+  pgsql-func:               "pg_idkit_$v pg_uuidv7_$v permuteseq_$v pg_hashids_$v sequential_uuids_$v topn_$v quantile_$v lower_quantile_$v count_distinct_$v omnisketch_$v ddsketch_$v vasco_$v pgxicor_$v tdigest_$v first_last_agg_$v extra_window_functions_$v floatvec_$v aggs_for_vecs_$v aggs_for_arrays_$v pg_arraymath_$v pg_math_$v pg_random_$v pg_base36_$v pg_base62_$v pg_base58_$v pg_financial_$v"
+  pgsql-admin:              "pg_repack_$v pg_squeeze_$v pg_dirtyread_$v pgfincore_$v pg_cooldown_$v ddlx_$v pg_prioritize_$v pg_checksums_$v pg_readonly_$v pg_upless_$v pg_permissions_$v pg_auto_failover_$v pg_catcheck_$v preprepare_$v pgcozy_$v pg_orphaned_$v pg_crash_$v pg_cheat_funcs_$v pg_fio_$v pg_savior_$v safeupdate_$v pg_drop_events_$v table_log_$v" #pgagent_$v #pgpool-II-pgsql-extensions
+  pgsql-stat:               "pg_profile_$v pg_tracing_$v pg_show_plans_$v pg_stat_kcache_$v pg_stat_monitor_$v pg_qualstats_$v pg_store_plans_$v pg_track_settings_$v pg_wait_sampling_$v pgsentinel_$v system_stats_$v pg_meta_$v pgnodemx_$v pg_sqlog_$v bgw_replstatus_$v pgmeminfo_$v toastinfo_$v pg_explain_ui_$v pg_relusage_$v pagevis_$v powa_$v"
+  pgsql-sec:                "passwordcheck_cracklib_$v supautils_$v pgsodium_$v vault_$v pg_session_jwt_$v pg_anon_$v pgsmcrypto_$v pgaudit_$v pgauditlogtofile_$v pg_auth_mon_$v credcheck_$v pgcryptokey_$v pg_jobmon_$v logerrors_$v login_hook_$v set_user_$v pg_snakeoil_$v pgextwlist_$v pg_auditor_$v sslutils_$v noset_$v" #pg_tde_$v
+  pgsql-fdw:                "wrappers_$v multicorn2_$v odbc_fdw_$v jdbc_fdw_$v pgspider_ext_$v mysql_fdw_$v tds_fdw_$v sqlite_fdw_$v pgbouncer_fdw_$v mongo_fdw_$v redis_fdw_$v pg_redis_pubsub_$v kafka_fdw_$v hdfs_fdw_$v firebird_fdw_$v aws_s3_$v log_fdw_$v" #oracle_fdw_$v #db2_fdw_$v
+  pgsql-sim:                "documentdb_$v orafce_$v pgtt_$v session_variable_$v pg_statement_rollback_$v pg_dbms_metadata_$v pg_dbms_lock_$v pgmemcache_$v" #pg_dbms_job_$v #wiltondb #spat_$v
+  pgsql-etl:                "pglogical_$v pglogical_ticker_$v pgl_ddl_deploy_$v pg_failover_slots_$v db_migrator_$v wal2json_$v wal2mongo_$v postgres-decoderbufs_$v decoder_raw_$v mimeo_$v pg_fact_loader_$v pg_bulkload_$v" #repmgr_$v
+
+  #--------------------------------#
+  # PG15: packages
+  #--------------------------------#
+  pg15:                    "postgresql15 postgresql15-server postgresql15-libs postgresql15-contrib postgresql15-plperl postgresql15-plpython3 postgresql15-pltcl postgresql15-llvmjit"
+  pg15-mini:               "postgresql15 postgresql15-server postgresql15-libs postgresql15-contrib"
+  pg15-core:               "postgresql15 postgresql15-server postgresql15-libs postgresql15-contrib postgresql15-plperl postgresql15-plpython3 postgresql15-pltcl postgresql15-llvmjit"
+  pg15-full:               "postgresql15 postgresql15-server postgresql15-libs postgresql15-contrib postgresql15-plperl postgresql15-plpython3 postgresql15-pltcl postgresql15-llvmjit postgresql15-test postgresql15-devel"
+  pg15-main:               "postgresql15 postgresql15-server postgresql15-libs postgresql15-contrib postgresql15-plperl postgresql15-plpython3 postgresql15-pltcl postgresql15-llvmjit pg_repack_15 wal2json_15 pgvector_15"
+  pg15-client:             "postgresql15"
+  pg15-server:             "postgresql15-server postgresql15-libs postgresql15-contrib"
+  pg15-devel:              "postgresql15-devel"
+  pg15-basic:              "pg_repack_15 wal2json_15 pgvector_15"
+  pg15-time:               "timescaledb-tsl_15 timescaledb-toolkit_15 pg_timeseries_15 periods_15 temporal_tables_15 e-maj_15 table_version_15 pg_cron_15 pg_task_15 pg_later_15 pg_background_15"
+  pg15-gis:                "postgis33_15 pgrouting_15 pointcloud_15 h3-pg_15 q3c_15 ogr_fdw_15 geoip_15 pg_polyline_15 pg_geohash_15 pg_tzf_15"
+  pg15-rag:                "pgvector_15 vchord_15 pgvectorscale_15 pg_vectorize_15 pg_similarity_15 smlar_15 pg_summarize_15 pg_tiktoken_15 pg4ml_15 pgml_15"
+  pg15-fts:                "pg_search_15 pgroonga_15 pg_bigm_15 zhparser_15 pg_bestmatch_15 vchord_bm25_15 hunspell_cs_cz_15 hunspell_de_de_15 hunspell_en_us_15 hunspell_fr_15 hunspell_ne_np_15 hunspell_nl_nl_15 hunspell_nn_no_15 hunspell_ru_ru_15 hunspell_ru_ru_aot_15"
+  pg15-olap:               "citus_15 pg_analytics_15 pg_duckdb_15 pg_mooncake_15 duckdb_fdw_15 pg_parquet_15 pg_fkpart_15 pg_partman_15 plproxy_15" #hydra_15 #pg_strom_15
+  pg15-feat:               "apache-age_15 hll_15 rum_15 pg_graphql_15 pg_jsonschema_15 jsquery_15 pg_hint_plan_15 hypopg_15 index_advisor_15 pg_plan_filter_15 imgsmlr_15 pg_ivm_15 pgmq_15 pgq_15 pg_cardano_15 omnigres_15" #pg_incremental_15
+  pg15-lang:               "pg_tle_15 plv8_15 pllua_15 plprql_15 pldebugger_15 plpgsql_check_15 plprofiler_15 plsh_15" #pljava_15 #plr_15 #pgtap_15 #postgresql_faker_15 #dbt2-pg15-extensions
+  pg15-type:               "prefix_15 semver_15 postgresql-unit_15 pgpdf_15 pglite_fusion_15 md5hash_15 asn1oid_15 pg_roaringbitmap_15 pgfaceting_15 pgsphere_15 pg_country_15 pg_xenophile_15 pg_currency_15 pgcollection_15 pgmp_15 numeral_15 pg_rational_15 pguint_15 pg_uint128_15 hashtypes_15 ip4r_15 pg_uri_15 pg_emailaddr_15 acl_15 timestamp9_15 chkpass_15" #pg_duration_15
+  pg15-util:               "pgsql_gzip_15 pg_bzip_15 pg_zstd_15 pgsql_http_15 pg_net_15 pg_curl_15 pgjq_15 pgjwt_15 pg_smtp_client_15 pg_html5_email_address_15 url_encode_15 pgsql_tweaks_15 pg_extra_time_15 pgpcre_15 icu_ext_15 pgqr_15 pg_protobuf_15 pg_envvar_15 floatfile_15 pg_readme_15 ddl_historization_15 data_historization_15 pg_schedoc_15 pg_hashlib_15 pg_xxhash_15 postgres_shacrypt_15 cryptint_15 pg_ecdsa_15 pgsparql_15"
+  pg15-func:               "pg_idkit_15 pg_uuidv7_15 permuteseq_15 pg_hashids_15 sequential_uuids_15 topn_15 quantile_15 lower_quantile_15 count_distinct_15 omnisketch_15 ddsketch_15 vasco_15 pgxicor_15 tdigest_15 first_last_agg_15 extra_window_functions_15 floatvec_15 aggs_for_vecs_15 aggs_for_arrays_15 pg_arraymath_15 pg_math_15 pg_random_15 pg_base36_15 pg_base62_15 pg_base58_15 pg_financial_15"
+  pg15-admin:              "pg_repack_15 pg_squeeze_15 pg_dirtyread_15 pgfincore_15 pg_cooldown_15 ddlx_15 pg_prioritize_15 pg_checksums_15 pg_readonly_15 pg_upless_15 pg_permissions_15 pg_auto_failover_15 pg_catcheck_15 preprepare_15 pgcozy_15 pg_orphaned_15 pg_crash_15 pg_cheat_funcs_15 pg_fio_15 pg_savior_15 safeupdate_15 pg_drop_events_15 table_log_15" #pgagent_15 #pgpool-II-pg15-extensions
+  pg15-stat:               "pg_profile_15 pg_tracing_15 pg_show_plans_15 pg_stat_kcache_15 pg_stat_monitor_15 pg_qualstats_15 pg_store_plans_15 pg_track_settings_15 pg_wait_sampling_15 pgsentinel_15 system_stats_15 pg_meta_15 pgnodemx_15 pg_sqlog_15 bgw_replstatus_15 pgmeminfo_15 toastinfo_15 pg_explain_ui_15 pg_relusage_15 pagevis_15 powa_15"
+  pg15-sec:                "passwordcheck_cracklib_15 supautils_15 pgsodium_15 vault_15 pg_session_jwt_15 pg_anon_15 pgsmcrypto_15 pgaudit_15 pgauditlogtofile_15 pg_auth_mon_15 credcheck_15 pgcryptokey_15 pg_jobmon_15 logerrors_15 login_hook_15 set_user_15 pg_snakeoil_15 pgextwlist_15 pg_auditor_15 sslutils_15 noset_15" #pg_tde_15
+  pg15-fdw:                "wrappers_15 multicorn2_15 odbc_fdw_15 jdbc_fdw_15 pgspider_ext_15 mysql_fdw_15 tds_fdw_15 sqlite_fdw_15 pgbouncer_fdw_15 mongo_fdw_15 redis_fdw_15 pg_redis_pubsub_15 kafka_fdw_15 hdfs_fdw_15 firebird_fdw_15 aws_s3_15 log_fdw_15" #oracle_fdw_15 #db2_fdw_15
+  pg15-sim:                "documentdb_15 orafce_15 pgtt_15 session_variable_15 pg_statement_rollback_15 pg_dbms_metadata_15 pg_dbms_lock_15 pgmemcache_15" #pg_dbms_job_15 #wiltondb #spat_15
+  pg15-etl:                "pglogical_15 pglogical_ticker_15 pgl_ddl_deploy_15 pg_failover_slots_15 db_migrator_15 wal2json_15 wal2mongo_15 postgres-decoderbufs_15 decoder_raw_15 mimeo_15 pg_fact_loader_15 pg_bulkload_15" #repmgr_15
+
+  #--------------------------------#
+  # PG14: packages
+  #--------------------------------#
+  pg14:                    "postgresql14 postgresql14-server postgresql14-libs postgresql14-contrib postgresql14-plperl postgresql14-plpython3 postgresql14-pltcl postgresql14-llvmjit"
+  pg14-mini:               "postgresql14 postgresql14-server postgresql14-libs postgresql14-contrib"
+  pg14-core:               "postgresql14 postgresql14-server postgresql14-libs postgresql14-contrib postgresql14-plperl postgresql14-plpython3 postgresql14-pltcl postgresql14-llvmjit"
+  pg14-full:               "postgresql14 postgresql14-server postgresql14-libs postgresql14-contrib postgresql14-plperl postgresql14-plpython3 postgresql14-pltcl postgresql14-llvmjit postgresql14-test postgresql14-devel"
+  pg14-main:               "postgresql14 postgresql14-server postgresql14-libs postgresql14-contrib postgresql14-plperl postgresql14-plpython3 postgresql14-pltcl postgresql14-llvmjit pg_repack_14 wal2json_14 pgvector_14"
+  pg14-client:             "postgresql14"
+  pg14-server:             "postgresql14-server postgresql14-libs postgresql14-contrib"
+  pg14-devel:              "postgresql14-devel"
+  pg14-basic:              "pg_repack_14 wal2json_14 pgvector_14"
+  pg14-time:               "timescaledb-toolkit_14 pg_timeseries_14 periods_14 temporal_tables_14 e-maj_14 table_version_14 pg_cron_14 pg_task_14 pg_later_14 pg_background_14" #timescaledb-tsl_14
+  pg14-gis:                "postgis33_14 pgrouting_14 pointcloud_14 h3-pg_14 q3c_14 ogr_fdw_14 geoip_14 pg_polyline_14 pg_geohash_14 pg_tzf_14"
+  pg14-rag:                "pgvector_14 vchord_14 pgvectorscale_14 pg_vectorize_14 pg_similarity_14 smlar_14 pg_summarize_14 pg_tiktoken_14 pg4ml_14 pgml_14"
+  pg14-fts:                "pg_search_14 pgroonga_14 pg_bigm_14 zhparser_14 pg_bestmatch_14 vchord_bm25_14 hunspell_cs_cz_14 hunspell_de_de_14 hunspell_en_us_14 hunspell_fr_14 hunspell_ne_np_14 hunspell_nl_nl_14 hunspell_nn_no_14 hunspell_ru_ru_14 hunspell_ru_ru_aot_14"
+  pg14-olap:               "citus_14 pg_analytics_14 pg_duckdb_14 pg_mooncake_14 duckdb_fdw_14 pg_parquet_14 pg_fkpart_14 pg_partman_14 plproxy_14" #hydra_14 #pg_strom_14
+  pg14-feat:               "apache-age_14 hll_14 rum_14 pg_graphql_14 pg_jsonschema_14 jsquery_14 pg_hint_plan_14 hypopg_14 index_advisor_14 pg_plan_filter_14 imgsmlr_14 pg_ivm_14 pgmq_14 pgq_14 pg_cardano_14 omnigres_14" #pg_incremental_14
+  pg14-lang:               "pg_tle_14 plv8_14 pllua_14 plprql_14 pldebugger_14 plpgsql_check_14 plprofiler_14 plsh_14" #pljava_14 #plr_14 #pgtap_14 #postgresql_faker_14 #dbt2-pg14-extensions
+  pg14-type:               "prefix_14 semver_14 postgresql-unit_14 pgpdf_14 pglite_fusion_14 md5hash_14 asn1oid_14 pg_roaringbitmap_14 pgfaceting_14 pgsphere_14 pg_country_14 pg_xenophile_14 pg_currency_14 pgcollection_14 numeral_14 pg_rational_14 pguint_14 pg_uint128_14 hashtypes_14 ip4r_14 pg_uri_14 pg_emailaddr_14 acl_14 timestamp9_14 chkpass_14" #pgmp_14 #pg_duration_14
+  pg14-util:               "pgsql_gzip_14 pg_bzip_14 pg_zstd_14 pgsql_http_14 pg_net_14 pg_curl_14 pgjq_14 pgjwt_14 pg_smtp_client_14 pg_html5_email_address_14 url_encode_14 pgsql_tweaks_14 pg_extra_time_14 pgpcre_14 icu_ext_14 pgqr_14 pg_protobuf_14 pg_envvar_14 floatfile_14 pg_readme_14 ddl_historization_14 data_historization_14 pg_schedoc_14 pg_hashlib_14 pg_xxhash_14 postgres_shacrypt_14 cryptint_14 pg_ecdsa_14 pgsparql_14"
+  pg14-func:               "pg_idkit_14 pg_uuidv7_14 permuteseq_14 pg_hashids_14 sequential_uuids_14 topn_14 quantile_14 lower_quantile_14 count_distinct_14 omnisketch_14 ddsketch_14 vasco_14 pgxicor_14 tdigest_14 first_last_agg_14 floatvec_14 aggs_for_vecs_14 aggs_for_arrays_14 pg_arraymath_14 pg_math_14 pg_random_14 pg_base36_14 pg_base62_14 pg_base58_14 pg_financial_14" #extra_window_functions_14
+  pg14-admin:              "pg_repack_14 pg_squeeze_14 pg_dirtyread_14 pgfincore_14 pg_cooldown_14 ddlx_14 pg_checksums_14 pg_readonly_14 pg_upless_14 pg_permissions_14 pg_auto_failover_14 pg_catcheck_14 preprepare_14 pgcozy_14 pg_orphaned_14 pg_crash_14 pg_cheat_funcs_14 pg_fio_14 pg_savior_14 safeupdate_14 pg_drop_events_14 table_log_14" #pg_prioritize_14 #pgagent_14 #pgpool-II-pg14-extensions
+  pg14-stat:               "pg_profile_14 pg_show_plans_14 pg_stat_kcache_14 pg_stat_monitor_14 pg_qualstats_14 pg_store_plans_14 pg_track_settings_14 pg_wait_sampling_14 pgsentinel_14 system_stats_14 pg_meta_14 pgnodemx_14 pg_sqlog_14 bgw_replstatus_14 pgmeminfo_14 toastinfo_14 pg_explain_ui_14 pg_relusage_14 pagevis_14 powa_14" #pg_tracing_14
+  pg14-sec:                "passwordcheck_cracklib_14 supautils_14 pgsodium_14 vault_14 pg_session_jwt_14 pg_anon_14 pgsmcrypto_14 pgaudit_14 pgauditlogtofile_14 pg_auth_mon_14 credcheck_14 pgcryptokey_14 pg_jobmon_14 logerrors_14 login_hook_14 set_user_14 pg_snakeoil_14 pgextwlist_14 pg_auditor_14 sslutils_14 noset_14" #pg_tde_14
+  pg14-fdw:                "wrappers_14 multicorn2_14 odbc_fdw_14 jdbc_fdw_14 mysql_fdw_14 tds_fdw_14 sqlite_fdw_14 pgbouncer_fdw_14 mongo_fdw_14 redis_fdw_14 pg_redis_pubsub_14 kafka_fdw_14 hdfs_fdw_14 firebird_fdw_14 aws_s3_14 log_fdw_14" #pgspider_ext_14 #oracle_fdw_14 #db2_fdw_14
+  pg14-sim:                "orafce_14 pgtt_14 session_variable_14 pg_statement_rollback_14 pg_dbms_metadata_14 pg_dbms_lock_14" #documentdb_14 #pg_dbms_job_14 #wiltondb #spat_14 #pgmemcache_14
+  pg14-etl:                "pglogical_14 pglogical_ticker_14 pgl_ddl_deploy_14 pg_failover_slots_14 db_migrator_14 wal2json_14 wal2mongo_14 postgres-decoderbufs_14 decoder_raw_14 mimeo_14 pg_fact_loader_14 pg_bulkload_14" #repmgr_14
+
+  #--------------------------------#
+  # PG13: packages
+  #--------------------------------#
+  pg13:                    "postgresql13 postgresql13-server postgresql13-libs postgresql13-contrib postgresql13-plperl postgresql13-plpython3 postgresql13-pltcl postgresql13-llvmjit"
+  pg13-mini:               "postgresql13 postgresql13-server postgresql13-libs postgresql13-contrib"
+  pg13-core:               "postgresql13 postgresql13-server postgresql13-libs postgresql13-contrib postgresql13-plperl postgresql13-plpython3 postgresql13-pltcl postgresql13-llvmjit"
+  pg13-full:               "postgresql13 postgresql13-server postgresql13-libs postgresql13-contrib postgresql13-plperl postgresql13-plpython3 postgresql13-pltcl postgresql13-llvmjit postgresql13-test postgresql13-devel"
+  pg13-main:               "postgresql13 postgresql13-server postgresql13-libs postgresql13-contrib postgresql13-plperl postgresql13-plpython3 postgresql13-pltcl postgresql13-llvmjit pg_repack_13 wal2json_13 pgvector_13"
+  pg13-client:             "postgresql13"
+  pg13-server:             "postgresql13-server postgresql13-libs postgresql13-contrib"
+  pg13-devel:              "postgresql13-devel"
+  pg13-basic:              "pg_repack_13 wal2json_13 pgvector_13"
+  pg13-time:               "pg_timeseries_13 periods_13 temporal_tables_13 e-maj_13 table_version_13 pg_cron_13 pg_task_13 pg_later_13 pg_background_13" #timescaledb-tsl_13 #timescaledb-toolkit_13
+  pg13-gis:                "postgis33_13 pgrouting_13 pointcloud_13 h3-pg_13 q3c_13 ogr_fdw_13 geoip_13 pg_polyline_13 pg_geohash_13 pg_tzf_13"
+  pg13-rag:                "pgvector_13 pgvectorscale_13 pg_similarity_13 smlar_13 pg_summarize_13 pg_tiktoken_13 pg4ml_13 pgml_13" #vchord_13 #pg_vectorize_13
+  pg13-fts:                "pgroonga_13 pg_bigm_13 zhparser_13 pg_bestmatch_13 hunspell_cs_cz_13 hunspell_de_de_13 hunspell_en_us_13 hunspell_fr_13 hunspell_ne_np_13 hunspell_nl_nl_13 hunspell_nn_no_13 hunspell_ru_ru_13 hunspell_ru_ru_aot_13" #pg_search_13 #vchord_bm25_13
+  pg13-olap:               "duckdb_fdw_13 pg_fkpart_13 pg_partman_13 plproxy_13" #citus_13 #hydra_13 #pg_analytics_13 #pg_duckdb_13 #pg_mooncake_13 #pg_parquet_13 #pg_strom_13
+  pg13-feat:               "apache-age_13 hll_13 rum_13 pg_jsonschema_13 pg_hint_plan_13 hypopg_13 index_advisor_13 pg_plan_filter_13 imgsmlr_13 pg_ivm_13 pgmq_13 pgq_13 pg_cardano_13 omnigres_13" #pg_graphql_13 #jsquery_13 #pg_incremental_13
+  pg13-lang:               "pg_tle_13 plv8_13 pllua_13 plprql_13 pldebugger_13 plpgsql_check_13 plprofiler_13 plsh_13" #pljava_13 #plr_13 #pgtap_13 #postgresql_faker_13 #dbt2-pg13-extensions
+  pg13-type:               "prefix_13 semver_13 postgresql-unit_13 pgpdf_13 pglite_fusion_13 md5hash_13 asn1oid_13 pg_roaringbitmap_13 pgfaceting_13 pgsphere_13 pg_country_13 pg_xenophile_13 pg_currency_13 numeral_13 pg_rational_13 pguint_13 pg_uint128_13 ip4r_13 pg_uri_13 pg_emailaddr_13 acl_13 timestamp9_13 chkpass_13" #pgcollection_13 #pgmp_13 #hashtypes_13 #pg_duration_13
+  pg13-util:               "pgsql_gzip_13 pg_bzip_13 pg_zstd_13 pgsql_http_13 pg_net_13 pg_curl_13 pgjwt_13 pg_html5_email_address_13 url_encode_13 pgsql_tweaks_13 pg_extra_time_13 pgpcre_13 icu_ext_13 pgqr_13 pg_protobuf_13 pg_envvar_13 floatfile_13 pg_readme_13 ddl_historization_13 data_historization_13 pg_schedoc_13 pg_hashlib_13 pg_xxhash_13 postgres_shacrypt_13 cryptint_13 pg_ecdsa_13 pgsparql_13" #pgjq_13 #pg_smtp_client_13
+  pg13-func:               "pg_idkit_13 pg_uuidv7_13 permuteseq_13 pg_hashids_13 sequential_uuids_13 topn_13 quantile_13 lower_quantile_13 count_distinct_13 omnisketch_13 ddsketch_13 vasco_13 pgxicor_13 tdigest_13 first_last_agg_13 floatvec_13 aggs_for_vecs_13 aggs_for_arrays_13 pg_arraymath_13 pg_math_13 pg_random_13 pg_base36_13 pg_base62_13 pg_base58_13 pg_financial_13" #extra_window_functions_13
+  pg13-admin:              "pg_repack_13 pg_squeeze_13 pg_dirtyread_13 pgfincore_13 pg_cooldown_13 ddlx_13 pg_checksums_13 pg_readonly_13 pg_upless_13 pg_permissions_13 pg_auto_failover_13 pg_catcheck_13 preprepare_13 pgcozy_13 pg_orphaned_13 pg_crash_13 pg_cheat_funcs_13 pg_fio_13 pg_savior_13 safeupdate_13 pg_drop_events_13 table_log_13" #pg_prioritize_13 #pgagent_13 #pgpool-II-pg13-extensions
+  pg13-stat:               "pg_profile_13 pg_show_plans_13 pg_stat_kcache_13 pg_stat_monitor_13 pg_qualstats_13 pg_store_plans_13 pg_track_settings_13 pg_wait_sampling_13 pgsentinel_13 system_stats_13 pg_meta_13 pgnodemx_13 pg_sqlog_13 bgw_replstatus_13 pgmeminfo_13 toastinfo_13 pg_explain_ui_13 pg_relusage_13 pagevis_13 powa_13" #pg_tracing_13
+  pg13-sec:                "passwordcheck_cracklib_13 supautils_13 pgsodium_13 vault_13 pg_anon_13 pgsmcrypto_13 pgaudit_13 pgauditlogtofile_13 pg_auth_mon_13 credcheck_13 pgcryptokey_13 pg_jobmon_13 logerrors_13 login_hook_13 set_user_13 pg_snakeoil_13 pgextwlist_13 pg_auditor_13 sslutils_13 noset_13" #pg_session_jwt_13 #pg_tde_13
+  pg13-fdw:                "multicorn2_13 odbc_fdw_13 jdbc_fdw_13 mysql_fdw_13 tds_fdw_13 sqlite_fdw_13 pgbouncer_fdw_13 mongo_fdw_13 redis_fdw_13 pg_redis_pubsub_13 kafka_fdw_13 hdfs_fdw_13 firebird_fdw_13 aws_s3_13" #wrappers_13 #pgspider_ext_13 #oracle_fdw_13 #db2_fdw_13 #log_fdw_13
+  pg13-sim:                "orafce_13 pgtt_13 session_variable_13 pg_statement_rollback_13 pg_dbms_metadata_13 pg_dbms_lock_13" #documentdb_13 #pg_dbms_job_13 #wiltondb #spat_13 #pgmemcache_13
+  pg13-etl:                "pglogical_13 pglogical_ticker_13 pgl_ddl_deploy_13 pg_failover_slots_13 db_migrator_13 wal2json_13 wal2mongo_13 postgres-decoderbufs_13 decoder_raw_13 mimeo_13 pg_fact_loader_13 pg_bulkload_13" #repmgr_13
+
+  #--------------------------------#
+  # TIME: extension
+  #--------------------------------#
+  timescaledb:             "timescaledb-tsl_$v"                      # 17 16 15       #
+  timescaledb_toolkit:     "timescaledb-toolkit_$v"                   # 17 16 15 14    #
+  pg_timeseries:           "pg_timeseries_$v"                         # 17 16 15 14 13 #
+  periods:                 "periods_$v"                              # 17 16 15 14 13 #
+  temporal_tables:         "temporal_tables_$v"                      # 17 16 15 14 13 #
+  emaj:                    "e-maj_$v"                                 # 17 16 15 14 13 #
+  table_version:           "table_version_$v"                         # 17 16 15 14 13 #
+  pg_cron:                 "pg_cron_$v"                              # 17 16 15 14 13 #
+  pg_task:                 "pg_task_$v"                              # 17 16 15 14 13 #
+  pg_later:                "pg_later_$v"                              # 17 16 15 14 13 #
+  pg_background:           "pg_background_$v"                        # 17 16 15 14 13 #
+
+  #--------------------------------#
+  # GIS:  extension
+  #--------------------------------#
+  postgis33:               "postgis33_$v"                            #       15 14 13 # el7 with pg12-15
+  postgis:                 "postgis33_$v"                            # 17 16 15 14 13 #
+  pgrouting:               "pgrouting_$v"                            # 17 16 15 14 13 #
+  pointcloud:              "pointcloud_$v"                           # 17 16 15 14 13 #
+  pg_h3:                   "h3-pg_$v"                                # 17 16 15 14 13 #
+  q3c:                     "q3c_$v"                                  # 17 16 15 14 13 #
+  ogr_fdw:                 "ogr_fdw_$v"                              # 17 16 15 14 13 #
+  geoip:                   "geoip_$v"                                 # 17 16 15 14 13 #
+  pg_polyline:             "pg_polyline_$v"                           # 17 16 15 14 13 #
+  pg_geohash:              "pg_geohash_$v"                           # 17 16 15 14 13 #
+  mobilitydb:              "mobilitydb_$v"                           # el7 n/a        #
+  pg_tzf:                  "pg_tzf_$v"                                # 17 16 15 14 13 #
+
+  #--------------------------------#
+  # RAG:  extension
+  #--------------------------------#
+  pgvector:                "pgvector_$v"                             # 17 16 15 14 13 #
+  vchord:                  "vchord_$v"                                # 17 16 15 14    #
+  pgvectorscale:           "pgvectorscale_$v"                         # 17 16 15 14 13 #
+  pg_vectorize:            "pg_vectorize_$v"                          # 17 16 15 14    #
+  pg_similarity:           "pg_similarity_$v"                        # 17 16 15 14 13 #
+  smlar:                   "smlar_$v"                                # 17 16 15 14 13 #
+  pg_summarize:            "pg_summarize_$v"                          # 17 16 15 14 13 #
+  pg_tiktoken:             "pg_tiktoken_$v"                           # 17 16 15 14 13 #
+  pg4ml:                   "pg4ml_$v"                                 # 17 16 15 14 13 #
+  pgml:                    "pgml_$v"                                  # 17 16 15 14 13 #
+
+  #--------------------------------#
+  # FTS:  extension
+  #--------------------------------#
+  pg_search:               "pg_search_$v"                             # 17 16 15 14    #
+  pgroonga:                "pgroonga_$v"                             # 17 16 15 14 13 #
+  pg_bigm:                 "pg_bigm_$v"                              # 17 16 15 14 13 #
+  zhparser:                "zhparser_$v"                             # 17 16 15 14 13 #
+  pg_bestmatch:            "pg_bestmatch_$v"                          # 17 16 15 14 13 #
+  vchord_bm25:             "vchord_bm25_$v"                           # 17 16 15 14    #
+  hunspell:                "hunspell_cs_cz_$v hunspell_de_de_$v hunspell_en_us_$v hunspell_fr_$v hunspell_ne_np_$v hunspell_nl_nl_$v hunspell_nn_no_$v hunspell_ru_ru_$v hunspell_ru_ru_aot_$v" # # hunspell_pt_pt_$v
+  hunspell_cs_cz:          "hunspell_cs_cz_$v"                        # 17 16 15 14 13 #
+  hunspell_de_de:          "hunspell_de_de_$v"                        # 17 16 15 14 13 #
+  hunspell_en_us:          "hunspell_en_us_$v"                        # 17 16 15 14 13 #
+  hunspell_fr:             "hunspell_fr_$v"                           # 17 16 15 14 13 #
+  hunspell_ne_np:          "hunspell_ne_np_$v"                        # 17 16 15 14 13 #
+  hunspell_nl_nl:          "hunspell_nl_nl_$v"                        # 17 16 15 14 13 #
+  hunspell_nn_no:          "hunspell_nn_no_$v"                        # 17 16 15 14 13 #
+  hunspell_pt_pt:          "hunspell_pt_pt_$v"                        # 17 16 15 14 13 # conflict with default pg dict
+  hunspell_ru_ru:          "hunspell_ru_ru_$v"                        # 17 16 15 14 13 #
+  hunspell_ru_ru_aot:      "hunspell_ru_ru_aot_$v"                    # 17 16 15 14 13 #
+
+  #--------------------------------#
+  # OLAP: extension
+  #--------------------------------#
+  citus:                   "citus_$v"                                # 17 16 15 14    # conflict with hydra
+  hydra:                   "hydra_$v"                                #    16 15 14 13 # conflict with citus, no pg17, obsolete
+  pg_analytics:            "pg_analytics_$v"                          # 17 16 15 14    #
+  pg_duckdb:               "pg_duckdb_$v"                            # 17 16 15 14    # invalidate duckdb_fdw
+  pg_mooncake:             "pg_mooncake_$v"                          # 17 16 15 14    #
+  duckdb_fdw:              "duckdb_fdw_$v"                           # 17 16 15 14 13 # invalidated by pg_duckdb
+  pg_parquet:              "pg_parquet_$v"                            # 17 16 15 14    #
+  pg_fkpart:               "pg_fkpart_$v"                             # 17 16 15 14 13 #
+  pg_partman:              "pg_partman_$v"                           # 17 16 15 14 13 #
+  plproxy:                 "plproxy_$v"                              # 17 16 15 14 13 #
+  pg_strom:                "pg_strom_$v"                             # 17 16 15 14 13 # exclude due to heavy cuda deps
+
+  #--------------------------------#
+  # FEAT: extension
+  #--------------------------------#
+  age:                     "apache-age_$v"                           # 17 16 15 14 13 #
+  hll:                     "hll_$v"                                  # 17 16 15 14 13 #
+  rum:                     "rum_$v"                                   # 17 16 15 14 13 #
+  pg_graphql:              "pg_graphql_$v"                            # 17 16 15 14    #
+  pg_jsonschema:           "pg_jsonschema_$v"                         # 17 16 15 14 13 #
+  jsquery:                 "jsquery_$v"                              # 17 16 15 14    #
+  pg_hint_plan:            "pg_hint_plan_$v"                         # 17 16 15 14 13 #
+  hypopg:                  "hypopg_$v"                               # 17 16 15 14 13 #
+  index_advisor:           "index_advisor_$v"                         # 17 16 15 14 13 #
+  pg_plan_filter:          "pg_plan_filter_$v"                       # 17 16 15 14 13 #
+  imgsmlr:                 "imgsmlr_$v"                              # 17 16 15 14 13 #
+  pg_ivm:                  "pg_ivm_$v"                               # 17 16 15 14 13 #
+  pg_incremental:          "pg_incremental_$v"                       # 17 16          #
+  pgmq:                    "pgmq_$v"                                  # 17 16 15 14 13 #
+  pgq:                     "pgq_$v"                                  # 17 16 15 14 13 #
+  pg_cardano:              "pg_cardano_$v"                            # 17 16 15 14 13 #
+  rdkit:                   "rdkit_$v"                                # el7 n/a        #
+  omnigres:                "omnigres_$v"                              # 17 16 15 14 13 #
+
+  #--------------------------------#
+  # LANG: extension
+  #--------------------------------#
+  pg_tle:                  "pg_tle_$v"                               # 17 16 15 14 13 #
+  plv8:                    "plv8_$v"                                 # 17 16 15 14 13 #
+  pllua:                   "pllua_$v"                                # 17 16 15 14 13 # no pg15- on el.aarch64
+  plprql:                  "plprql_$v"                                #    16 15 14 13 #
+  pldebugger:              "pldebugger_$v"                           # 17 16 15 14 13 #
+  plpgsql_check:           "plpgsql_check_$v"                        # 17 16 15 14 13 #
+  plprofiler:              "plprofiler_$v"                           # 17 16 15 14 13 #
+  plsh:                    "plsh_$v"                                 # 17 16 15 14 13 #
+  pljava:                  "pljava_$v"                               # el7 n/a  #
+  plr:                     "plr_$v"                                  # 17 16 15 14 13 # exclude due to heavy deps
+  pgtap:                   "pgtap_$v"                                # 17 16 15 14 13 # exclude due to broken perl deps
+  faker:                   "postgresql_faker_$v"                     # 17 16 15 14 13 # exclude due to broken perl deps
+  dbt2:                    "dbt2-pg$v-extensions"                    # 17 16 15 14 13 # exclude due to not used
+
+  #--------------------------------#
+  # TYPE: extension
+  #--------------------------------#
+  pg_prefix:               "prefix_$v"                               # 17 16 15 14 13 #
+  pg_semver:               "semver_$v"                               # 17 16 15 14 13 #
+  pgunit:                  "postgresql-unit_$v"                      # 17 16 15 14 13 #
+  pgpdf:                   "pgpdf_$v"                                # 17 16 15 14 13 #
+  pglite_fusion:           "pglite_fusion_$v"                         # 17 16 15 14 13 #
+  md5hash:                 "md5hash_$v"                              # 17 16 15 14 13 #
+  asn1oid:                 "asn1oid_$v"                              # 17 16 15 14 13 #
+  roaringbitmap:           "pg_roaringbitmap_$v"                     # 17 16 15 14 13 #
+  pgfaceting:              "pgfaceting_$v"                            # 17 16 15 14 13 #
+  pgsphere:                "pgsphere_$v"                             # 17 16 15 14 13 #
+  pg_country:              "pg_country_$v"                           # 17 16 15 14 13 #
+  pg_xenophile:            "pg_xenophile_$v"                          # 17 16 15 14 13 #
+  pg_currency:             "pg_currency_$v"                          # 17 16 15 14 13 #
+  pg_collection:           "pgcollection_$v"                         # 17 16 15 14    #
+  pgmp:                    "pgmp_$v"                                 # 17 16 15       #
+  numeral:                 "numeral_$v"                              # 17 16 15 14 13 #
+  pg_rational:             "pg_rational_$v"                          # 17 16 15 14 13 #
+  pguint:                  "pguint_$v"                               # 17 16 15 14 13 #
+  pg_uint128:              "pg_uint128_$v"                           # 17 16 15 14 13 #
+  hashtypes:               "hashtypes_$v"                            # 17 16 15 14    #
+  ip4r:                    "ip4r_$v"                                 # 17 16 15 14 13 #
+  pg_duration:             "pg_duration_$v"                          # 17             #
+  pg_uri:                  "pg_uri_$v"                               # 17 16 15 14 13 #
+  pgemailaddr:             "pg_emailaddr_$v"                         # 17 16 15 14 13 #
+  pg_acl:                  "acl_$v"                                  # 17 16 15 14 13 #
+  debversion:              "debversion_$v"                           # el7 n/a        #
+  pg_rrule:                "pg_rrule_$v"                             # el7 n/a        #
+  timestamp9:              "timestamp9_$v"                           # 17 16 15 14 13 #
+  chkpass:                 "chkpass_$v"                              # 17 16 15 14 13 #
+
+  #--------------------------------#
+  # UTIL: extension
+  #--------------------------------#
+  pg_gzip:                 "pgsql_gzip_$v"                           # 17 16 15 14 13 #
+  pg_bzip:                 "pg_bzip_$v"                              # 17 16 15 14 13 #
+  pg_zstd:                 "pg_zstd_$v"                              # 17 16 15 14 13 #
+  pg_http:                 "pgsql_http_$v"                           # 17 16 15 14 13 #
+  pg_net:                  "pg_net_$v"                               # 17 16 15 14 13 #
+  pg_curl:                 "pg_curl_$v"                              # 17 16 15 14 13 #
+  pgjq:                    "pgjq_$v"                                 # 17 16 15 14    #
+  pgjwt:                   "pgjwt_$v"                                 # 17 16 15 14 13 #
+  pg_smtp_client:          "pg_smtp_client_$v"                        # 17 16 15 14    #
+  pg_html5_email_address:  "pg_html5_email_address_$v"                # 17 16 15 14 13 #
+  url_encode:              "url_encode_$v"                           # 17 16 15 14 13 #
+  pgsql_tweaks:            "pgsql_tweaks_$v"                          # 17 16 15 14 13 #
+  pg_extra_time:           "pg_extra_time_$v"                         # 17 16 15 14 13 #
+  pgpcre:                  "pgpcre_$v"                                # 17 16 15 14 13 #
+  icu_ext:                 "icu_ext_$v"                              # 17 16 15 14 13 #
+  pgqr:                    "pgqr_$v"                                 # 17 16 15 14 13 #
+  pg_protobuf:             "pg_protobuf_$v"                           # 17 16 15 14 13 #
+  envvar:                  "pg_envvar_$v"                            # 17 16 15 14 13 #
+  floatfile:               "floatfile_$v"                            # 17 16 15 14 13 #
+  pg_readme:               "pg_readme_$v"                             # 17 16 15 14 13 #
+  ddl_historization:       "ddl_historization_$v"                     # 17 16 15 14 13 #
+  data_historization:      "data_historization_$v"                    # 17 16 15 14 13 #
+  pg_schedoc:              "pg_schedoc_$v"                            # 17 16 15 14 13 #
+  pg_hashlib:              "pg_hashlib_$v"                            # 17 16 15 14 13 #
+  pg_xxhash:               "pg_xxhash_$v"                            # 17 16 15 14 13 #
+  shacrypt:                "postgres_shacrypt_$v"                    # 17 16 15 14 13 #
+  cryptint:                "cryptint_$v"                             # 17 16 15 14 13 #
+  pg_ecdsa:                "pg_ecdsa_$v"                             # 17 16 15 14 13 #
+  pgsparql:                "pgsparql_$v"                              # 17 16 15 14 13 #
+
+  #--------------------------------#
+  # FUNC: extension
+  #--------------------------------#
+  pg_idkit:                "pg_idkit_$v"                              # 17 16 15 14 13 #
+  pg_uuidv7:               "pg_uuidv7_$v"                            # 17 16 15 14 13 #
+  permuteseq:              "permuteseq_$v"                           # 17 16 15 14 13 #
+  pg_hashids:              "pg_hashids_$v"                           # 17 16 15 14 13 #
+  sequential_uuids:        "sequential_uuids_$v"                      # 17 16 15 14 13 #
+  topn:                    "topn_$v"                                 # 17 16 15 14 13 #
+  quantile:                "quantile_$v"                             # 17 16 15 14 13 #
+  lower_quantile:          "lower_quantile_$v"                       # 17 16 15 14 13 #
+  count_distinct:          "count_distinct_$v"                       # 17 16 15 14 13 #
+  omnisketch:              "omnisketch_$v"                           # 17 16 15 14 13 #
+  ddsketch:                "ddsketch_$v"                             # 17 16 15 14 13 #
+  vasco:                   "vasco_$v"                                # 17 16 15 14 13 #
+  pgxicor:                 "pgxicor_$v"                              # 17 16 15 14 13 #
+  tdigest:                 "tdigest_$v"                              # 17 16 15 14 13 #
+  first_last_agg:          "first_last_agg_$v"                        # 17 16 15 14 13 #
+  extra_window_functions:  "extra_window_functions_$v"               # 17 16 15       #
+  floatvec:                "floatvec_$v"                             # 17 16 15 14 13 #
+  aggs_for_vecs:           "aggs_for_vecs_$v"                        # 17 16 15 14 13 #
+  aggs_for_arrays:         "aggs_for_arrays_$v"                      # 17 16 15 14 13 #
+  pg_arraymath:            "pg_arraymath_$v"                         # 17 16 15 14 13 #
+  pg_math:                 "pg_math_$v"                              # 17 16 15 14 13 #
+  pg_random:               "pg_random_$v"                            # 17 16 15 14 13 #
+  pg_base36:               "pg_base36_$v"                            # 17 16 15 14 13 #
+  pg_base62:               "pg_base62_$v"                            # 17 16 15 14 13 #
+  pg_base58:               "pg_base58_$v"                             # 17 16 15 14 13 #
+  pg_financial:            "pg_financial_$v"                         # 17 16 15 14 13 #
+
+  #--------------------------------#
+  # ADMIN: extension
+  #--------------------------------#
+  pg_repack:               "pg_repack_$v"                            # 17 16 15 14 13 #
+  pg_squeeze:              "pg_squeeze_$v"                           # 17 16 15 14 13 #
+  pg_dirtyread:            "pg_dirtyread_$v"                         # 17 16 15 14 13 #
+  pgfincore:               "pgfincore_$v"                            # 17 16 15 14 13 #
+  pg_cooldown:             "pg_cooldown_$v"                          # 17 16 15 14 13 #
+  pg_ddlx:                 "ddlx_$v"                                  # 17 16 15 14 13 #
+  pg_prioritize:           "pg_prioritize_$v"                        # 17 16 15       #
+  pg_checksums:            "pg_checksums_$v"                         #    16 15 14 13 #
+  pg_readonly:             "pg_readonly_$v"                          # 17 16 15 14 13 #
+  pg_upless:               "pg_upless_$v"                             # 17 16 15 14 13 #
+  pg_permissions:          "pg_permissions_$v"                        # 17 16 15 14 13 #
+  pgautofailover:          "pg_auto_failover_$v"                     #    16 15 14 13 #
+  pg_catcheck:             "pg_catcheck_$v"                          # 17 16 15 14 13 #
+  preprepare:              "preprepare_$v"                           # 17 16 15 14 13 #
+  pgcozy:                  "pgcozy_$v"                                # 17 16 15 14 13 #
+  pg_orphaned:             "pg_orphaned_$v"                          # 17 16 15 14 13 #
+  pg_crash:                "pg_crash_$v"                             # 17 16 15 14 13 #
+  pg_cheat_funcs:          "pg_cheat_funcs_$v"                       # 17 16 15 14 13 #
+  pg_fio:                  "pg_fio_$v"                                # 17 16 15 14 13 #
+  pg_savior:               "pg_savior_$v"                            # 17 16 15 14 13 #
+  safeupdate:              "safeupdate_$v"                           # 17 16 15 14 13 #
+  pg_drop_events:          "pg_drop_events_$v"                        # 17 16 15 14 13 #
+  table_log:               "table_log_$v"                             # 17 16 15 14 13 #
+  pgagent:                 "pgagent_$v"                              # 17 16 15 14 13 # exclude due to not used
+  pgpool:                  "pgpool-II-pg$v-extensions"                # 17 16 15 14 13 # exclude due to not used
+
+  #--------------------------------#
+  # STAT: extension
+  #--------------------------------#
+  pg_profile:              "pg_profile_$v"                           # 17 16 15 14 13 #
+  pg_tracing:              "pg_tracing_$v"                           # 17 16 15       #
+  pg_show_plans:           "pg_show_plans_$v"                        # 17 16 15 14 13 #
+  pg_stat_kcache:          "pg_stat_kcache_$v"                       # 17 16 15 14 13 #
+  pg_stat_monitor:         "pg_stat_monitor_$v"                      # 17 16 15 14 13 #
+  pg_qualstats:            "pg_qualstats_$v"                         # 17 16 15 14 13 #
+  pg_store_plans:          "pg_store_plans_$v"                       # 17 16 15 14 13 #
+  pg_track_settings:       "pg_track_settings_$v"                     # 17 16 15 14 13 #
+  pg_wait_sampling:        "pg_wait_sampling_$v"                     # 17 16 15 14 13 #
+  pgsentinel:              "pgsentinel_$v"                           # 17 16 15 14 13 #
+  system_stats:            "system_stats_$v"                         # 17 16 15 14 13 #
+  pg_meta:                 "pg_meta_$v"                               # 17 16 15 14 13 #
+  pgnodemx:                "pgnodemx_$v"                              # 17 16 15 14 13 #
+  pg_sqlog:                "pg_sqlog_$v"                              # 17 16 15 14 13 #
+  bgw_replstatus:          "bgw_replstatus_$v"                       # 17 16 15 14 13 #
+  pgmeminfo:               "pgmeminfo_$v"                            # 17 16 15 14 13 #
+  toastinfo:               "toastinfo_$v"                            # 17 16 15 14 13 #
+  pg_explain_ui:           "pg_explain_ui_$v"                         # 17 16 15 14 13 #
+  pg_relusage:             "pg_relusage_$v"                           # 17 16 15 14 13 #
+  pagevis:                 "pagevis_$v"                               # 17 16 15 14 13 #
+  powa:                    "powa_$v"                                 # 17 16 15 14 13 #
+
+  #--------------------------------#
+  # SEC:  extension
+  #--------------------------------#
+  passwordcheck:           "passwordcheck_cracklib_$v"               # 17 16 15 14 13 #
+  supautils:               "supautils_$v"                             # 17 16 15 14 13 #
+  pgsodium:                "pgsodium_$v"                             # 17 16 15 14 13 #
+  pg_vault:                "vault_$v"                                # 17 16 15 14 13 #
+  pg_session_jwt:          "pg_session_jwt_$v"                        # 17 16 15 14    #
+  pg_anon:                 "pg_anon_$v"                               # 17 16 15 14 13 #
+  pg_tde:                  "pg_tde_$v"                               #    16          #
+  pgsmcrypto:              "pgsmcrypto_$v"                            # 17 16 15 14 13 #
+  pgaudit:                 "pgaudit_$v"                              # 17 16          #
+  pgaudit17:               "pgaudit17_$v"                            #       15       # rpm pg15 only
+  pgaudit16:               "pgaudit16_$v"                            #          14    # rpm pg14 only
+  pgaudit15:               "pgaudit15_$v"                            #             13 # rpm pg13 only
+  pgaudit14:               "pgaudit14_$v"                            #                # rpm pg12 only
+  pgauditlogtofile:        "pgauditlogtofile_$v"                     # 17 16 15 14 13 #
+  pg_auth_mon:             "pg_auth_mon_$v"                          # 17 16 15 14 13 #
+  credcheck:               "credcheck_$v"                            # 17 16 15 14 13 #
+  pgcryptokey:             "pgcryptokey_$v"                           # 17 16 15 14 13 #
+  pg_jobmon:               "pg_jobmon_$v"                             # 17 16 15 14 13 #
+  logerrors:               "logerrors_$v"                            # 17 16 15 14 13 #
+  login_hook:              "login_hook_$v"                           # 17 16 15 14 13 #
+  set_user:                "set_user_$v"                             # 17 16 15 14 13 #
+  pg_snakeoil:             "pg_snakeoil_$v"                          # 17 16 15 14 13 #
+  pgextwlist:              "pgextwlist_$v"                           # 17 16 15 14 13 #
+  pg_auditor:              "pg_auditor_$v"                            # 17 16 15 14 13 #
+  sslutils:                "sslutils_$v"                             # 17 16 15 14 13 #
+  pg_noset:                "noset_$v"                                # 17 16 15 14 13 #
+
+  #--------------------------------#
+  # FDW:  extension
+  #--------------------------------#
+  wrappers:                "wrappers_$v"                              # 17 16 15 14    #
+  multicorn:               "multicorn2_$v"                           # 17 16 15 14 13 #
+  odbc_fdw:                "odbc_fdw_$v"                             # 17 16 15 14 13 #
+  jdbc_fdw:                "jdbc_fdw_$v"                             #    16 15 14 13 # no pg15- on el.aarch64
+  pgspider_ext:            "pgspider_ext_$v"                         # 17 16 15       #
+  mysql_fdw:               "mysql_fdw_$v"                            # 17 16 15 14 13 #
+  oracle_fdw:              "oracle_fdw_$v"                           # 17 16 15 14 13 # exclude due to heavy oracle deps
+  tds_fdw:                 "tds_fdw_$v"                              # 17 16 15 14 13 #
+  db2_fdw:                 "db2_fdw_$v"                              #    16 15 14 13 # exclude due to heavy db2 deps
+  sqlite_fdw:              "sqlite_fdw_$v"                           # 17 16 15 14 13 #
+  pgbouncer_fdw:           "pgbouncer_fdw_$v"                         # 17 16 15 14 13 #
+  mongo_fdw:               "mongo_fdw_$v"                            #    16 15 14 13 #
+  redis_fdw:               "redis_fdw_$v"                            # 17 16 15 14 13 #
+  pg_redis_pubsub:         "pg_redis_pubsub_$v"                      # 17 16 15 14 13 #
+  kafka_fdw:               "kafka_fdw_$v"                             #    16 15 14 13 #
+  hdfs_fdw:                "hdfs_fdw_$v"                             # 17 16 15 14 13 #
+  firebird_fdw:            "firebird_fdw_$v"                          # 17 16 15 14 13 #
+  aws_s3:                  "aws_s3_$v"                                # 17 16 15 14 13 #
+  log_fdw:                 "log_fdw_$v"                              # 17 16 15 14    #
+
+  #--------------------------------#
+  # SIM:  extension
+  #--------------------------------#
+  documentdb:              "documentdb_$v"                           # 17 16 15       #
+  orafce:                  "orafce_$v"                                # 17 16 15 14 13 #
+  pgtt:                    "pgtt_$v"                                 # 17 16 15 14 13 #
+  session_variable:        "session_variable_$v"                     # 17 16 15 14 13 #
+  pg_statement_rollback:   "pg_statement_rollback_$v"                # 17 16 15 14 13 #
+  pg_dbms_metadata:        "pg_dbms_metadata_$v"                      # 17 16 15 14 13 #
+  pg_dbms_lock:            "pg_dbms_lock_$v"                          # 17 16 15 14 13 #
+  pg_dbms_job:             "pg_dbms_job_$v"                           # 17 16 15 14 13 # exclude due to broken deps
+  babelfishpg_common:      "babelfishpg-common"                      #       15       # work with wiltondb pg15 kernel
+  babelfishpg_tsql:        "babelfishpg-tsql"                        #       15       # work with wiltondb pg15 kernel
+  babelfishpg_tds:         "babelfishpg-tds"                         #       15       # work with wiltondb pg15 kernel
+  babelfishpg_money:       "babelfishpg-money"                       #       15       # work with wiltondb pg15 kernel
+  spat:                    "spat_$v"                                 # 17             #
+  pgmemcache:              "pgmemcache_$v"                           # 17 16 15       #
+
+  #--------------------------------#
+  # ETL:  extension
+  #--------------------------------#
+  pglogical:               "pglogical_$v"                            # 17 16 15 14 13 #
+  pglogical_ticker:        "pglogical_ticker_$v"                     # 17 16 15 14 13 #
+  pgl_ddl_deploy:          "pgl_ddl_deploy_$v"                       # 17 16 15 14 13 #
+  pg_failover_slots:       "pg_failover_slots_$v"                    # 17 16 15 14 13 #
+  db_migrator:             "db_migrator_$v"                           # 17 16 15 14 13 #
+  wal2json:                "wal2json_$v"                             # 17 16 15 14 13 #
+  wal2mongo:               "wal2mongo_$v"                            #    16 15 14 13 #
+  decoderbufs:             "postgres-decoderbufs_$v"                 # 17 16 15 14 13 #
+  decoder_raw:             "decoder_raw_$v"                          # 17 16 15 14 13 #
+  mimeo:                   "mimeo_$v"                                 # 17 16 15 14 13 #
+  repmgr:                  "repmgr_$v"                               #    16 15 14 13 # exclude due to not used
+  pg_fact_loader:          "pg_fact_loader_$v"                       # 17 16 15 14 13 #
+  pg_bulkload:             "pg_bulkload_$v"                          # 17 16 15 14 13 #
+
+...
