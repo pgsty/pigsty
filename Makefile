@@ -2,7 +2,7 @@
 # File      :   Makefile
 # Desc      :   pigsty shortcuts
 # Ctime     :   2019-04-13
-# Mtime     :   2025-12-28
+# Mtime     :   2025-12-30
 # Path      :   Makefile
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -125,6 +125,11 @@ src:
 
 # common interactive configuration procedure
 c: configure
+
+# validate config inventory
+v: validate
+validate:
+	bin/validate
 ###############################################################
 
 
@@ -671,9 +676,9 @@ ext:
 ###############################################################
 #                        Inventory                            #
 ###############################################################
-.PHONY: default tip link doc all boot conf bootstrap config deploy \
+.PHONY: default tip link doc all boot conf configure bootstrap config deploy \
         src pkg \
-        c \
+        c v validate \
         infra pgsql repo repo-upstream repo-build repo-add node-repo repo-clean pgsql-add pgsql-rm pgsql-ext \
         grafana nginx cert docker app \
         deps dns start ssh tssh \
