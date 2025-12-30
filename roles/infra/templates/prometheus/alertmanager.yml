@@ -1,42 +1,205 @@
+{% raw %}
 ---
 #==============================================================#
 # File      :   alertmanager.yml
 # Ctime     :   2020-12-03
-# Mtime     :   2022-12-11
-# Desc      :   AlterManager Configuration File
+# Mtime     :   2024-12-30
+# Desc      :   AlertManager Configuration File
 # Path      :   /etc/alertmanager.yml
+# Docs      :   https://prometheus.io/docs/alerting/latest/configuration/
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
+#
+# IMPORTANT: CUSTOMIZE THIS FILE FOR YOUR ENVIRONMENT!
+#
+# The default configuration does NOT send notifications anywhere.
+# You MUST configure at least one receiver to receive alerts.
+#
+# HOW TO CUSTOMIZE:
+# -----------------
+# 1. Edit this template: roles/infra/templates/prometheus/alertmanager.yml
+#    Then deploy:  ./infra.yml -t alertmanager
+#
+# 2. Or edit deployed config directly: /etc/alertmanager.yml
+#    Then reload: systemctl reload alertmanager
+#
+# ALERT LABELS (from Pigsty rules in files/victoria/rules/*.yml):
+# ---------------------------------------------------------------
+#   level:    0 = CRIT (fatal)    1 = WARN (error)    2 = INFO (event)
+#   severity: CRIT | WARN | INFO
+#   category: pgsql | node | redis | etcd | minio | infra
+#   cls:      cluster name    ins: instance name    ip: instance ip
+#
+# RECEIVER TYPES (see examples below):
+# ------------------------------------
+#   webhook_configs     - Generic HTTP webhook (most flexible)
+#   email_configs       - Email via SMTP
+#   slack_configs       - Slack incoming webhook
+#   wechat_configs      - WeChat Work / WeCom (企业微信)
+#   pagerduty_configs   - PagerDuty incident management
+#   opsgenie_configs    - OpsGenie alerts
+#   telegram_configs    - Telegram bot
+#   discord_configs     - Discord webhook
+#   webex_configs       - Cisco Webex
+#   msteams_configs     - Microsoft Teams (via webhook)
+#   pushover_configs    - Pushover notifications
+#   victorops_configs   - VictorOps / Splunk On-Call
+#   sns_configs         - AWS SNS
+#
+#==============================================================#
 
-# CUSTOMIZE ACCORDING TO YOUR OWN ENVIRONMENT
 
 #--------------------------------------------------------------#
-# Global
+# Global Settings
 #--------------------------------------------------------------#
 global:
   resolve_timeout: 5m
 
+  # SMTP settings for email notifications
+  # smtp_smarthost: 'smtp.example.com:587'
+  # smtp_from: 'alertmanager@example.com'
+  # smtp_auth_username: 'alertmanager@example.com'
+  # smtp_auth_password: 'your-password'
+  # smtp_require_tls: true
+
+  # Slack API URL (can be overridden per receiver)
+  # slack_api_url: 'https://hooks.slack.com/services/xxx/yyy/zzz'
+
+  # WeChat Work settings
+  # wechat_api_url: 'https://qyapi.weixin.qq.com/cgi-bin/'
+  # wechat_api_corp_id: 'your-corp-id'
+
 
 #--------------------------------------------------------------#
-# Route
+# Route Tree
 #--------------------------------------------------------------#
-# https://prometheus.io/docs/alerting/latest/configuration/#route
 route:
+  receiver: 'default'
   group_by: ['alertname']
-  group_wait: 10s
-  group_interval: 10s
-  repeat_interval: 1h
-  receiver: 'web.hook'
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  # Child routes - uncomment and customize as needed
+  # routes:
+  #   # CRITICAL alerts (level=0) -> immediate notification
+  #   - receiver: 'critical'
+  #     matchers: [ level="0" ]
+  #     group_wait: 10s
+  #     repeat_interval: 1h
+  #
+  #   # PostgreSQL alerts -> DBA team
+  #   - receiver: 'dba-team'
+  #     matchers: [ category="pgsql" ]
+  #
+  #   # Node/Infra alerts -> SRE team
+  #   - receiver: 'sre-team'
+  #     matchers: [ category=~"node|infra" ]
 
 
 #--------------------------------------------------------------#
 # Receivers
 #--------------------------------------------------------------#
-# https://prometheus.io/docs/alerting/latest/configuration/#receiver
 receivers:
-  - name: 'web.hook'
-    # webhook_configs:
-    #   - url: 'http://127.0.0.1:5001/'
+
+  # Default receiver - does nothing (placeholder)
+  - name: 'default'
+
+  #----------------------------------------------------------#
+  # EXAMPLE: Webhook
+  #----------------------------------------------------------#
+  # - name: 'webhook'
+  #   webhook_configs:
+  #     - url: 'http://localhost:5001/webhook'
+  #       send_resolved: true
+
+  #----------------------------------------------------------#
+  # EXAMPLE: Email
+  #----------------------------------------------------------#
+  # - name: 'email'
+  #   email_configs:
+  #     - to: 'oncall@example.com'
+  #       send_resolved: true
+
+  #----------------------------------------------------------#
+  # EXAMPLE: Slack
+  #----------------------------------------------------------#
+  # - name: 'slack'
+  #   slack_configs:
+  #     - channel: '#alerts'
+  #       send_resolved: true
+
+  #----------------------------------------------------------#
+  # EXAMPLE: DingTalk (China) - requires webhook adapter
+  # https://github.com/timonwong/prometheus-webhook-dingtalk
+  #----------------------------------------------------------#
+  # - name: 'dingtalk'
+  #   webhook_configs:
+  #     - url: 'http://localhost:8060/dingtalk/webhook/send'
+  #       send_resolved: true
+
+  #----------------------------------------------------------#
+  # EXAMPLE: WeChat Work / WeCom (企业微信)
+  #----------------------------------------------------------#
+  # - name: 'wechat'
+  #   wechat_configs:
+  #     - corp_id: 'your-corp-id'
+  #       api_secret: 'your-secret'
+  #       agent_id: 'your-agent-id'
+  #       to_user: '@all'
+  #       send_resolved: true
+
+  #----------------------------------------------------------#
+  # EXAMPLE: Feishu / Lark (飞书) - requires webhook adapter
+  #----------------------------------------------------------#
+  # - name: 'feishu'
+  #   webhook_configs:
+  #     - url: 'http://localhost:9095/feishu'
+  #       send_resolved: true
+
+  #----------------------------------------------------------#
+  # EXAMPLE: PagerDuty
+  #----------------------------------------------------------#
+  # - name: 'pagerduty'
+  #   pagerduty_configs:
+  #     - routing_key: 'your-pagerduty-key'
+  #       send_resolved: true
+
+  #----------------------------------------------------------#
+  # EXAMPLE: Telegram
+  #----------------------------------------------------------#
+  # - name: 'telegram'
+  #   telegram_configs:
+  #     - bot_token: 'your-bot-token'
+  #       chat_id: 123456789
+  #       send_resolved: true
+
+
+#--------------------------------------------------------------#
+# Inhibit Rules (suppress alerts when source alert is firing)
+#--------------------------------------------------------------#
+inhibit_rules:
+  # When node is down, suppress other alerts from same node
+  - source_matchers: [ alertname="NodeDown" ]
+    target_matchers: [ category="node" ]
+    equal: ['ip']
+
+  # When PostgreSQL is down, suppress other pgsql alerts
+  #- source_matchers: [ alertname="PostgresDown" ]
+  #  target_matchers: [ category="pgsql" ]
+  #  equal: ['ins']
+
+#--------------------------------------------------------------#
+# Mute Time Intervals (optional)
+#--------------------------------------------------------------#
+# time_intervals:
+#   - name: 'maintenance-window'
+#     time_intervals:
+#       - weekdays: ['sunday']
+#         times:
+#           - start_time: '02:00'
+#             end_time: '06:00'
 
 ...
+{% endraw %}
