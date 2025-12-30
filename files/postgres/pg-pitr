@@ -4,7 +4,7 @@ set -uo pipefail
 # File      :   pg-pitr
 # Desc      :   Point-in-time recovery with pgbackrest
 # Ctime     :   2022-12-31
-# Mtime     :   2025-12-27
+# Mtime     :   2025-12-30
 # Path      :   /pg/bin/pg-pitr
 # Deps      :   pgbackrest, /etc/pgbackrest/pgbackrest.conf
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -74,14 +74,21 @@ EOF
 
 
 #--------------------------------------------------------------#
-# Utils
+# Log Util
 #--------------------------------------------------------------#
-__CN='\033[0m';__CR='\033[0;31m';__CG='\033[0;32m';
-__CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';
-log_info()  { printf "${__CG}[INFO] $*${__CN}\n" >&2; }
-log_warn()  { printf "${__CY}[WARN] $*${__CN}\n" >&2; }
-log_hint()  { printf "${__CB}$*${__CN}\n" >&2; }
-log_error() { printf "${__CR}[ERROR] $*${__CN}\n" >&2; exit 1; }
+if [[ -t 1 ]]; then
+    __CN='\033[0m';__CK='\033[0;30m';__CR='\033[0;31m';__CG='\033[0;32m';
+    __CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';__CC='\033[0;36m';__CW='\033[0;37m';
+else
+    __CN='';__CK='';__CR='';__CG='';__CY='';__CB='';__CM='';__CC='';__CW='';
+fi
+function log_info()  { printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n"; }
+function log_warn()  { printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n"; }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n"; }
+function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n"; }
+function log_title() { printf "[${__CG}$1${__CN}] ${__CG}$2${__CN}\n";   }
+function log_hint()  { printf "${__CB}$*${__CN}\n"; }
+function log_line()  { printf "${__CM}===== $* =====${__CN}\n"; }
 
 # Countdown timer for interactive terminals
 countdown() {
@@ -128,26 +135,26 @@ while [[ $# -gt 0 ]]; do
         -d|--default)
             METHOD="default" ;;
         -i|--immediate)
-            [[ "$METHOD" != "default" ]] && log_error "Multiple recovery targets specified"
+            [[ "$METHOD" != "default" ]] && { log_error "Multiple recovery targets specified"; exit 1; }
             METHOD="immediate" ;;
         -t|--time|--time=*)
-            [[ "$METHOD" != "default" ]] && log_error "Multiple recovery targets specified"
+            [[ "$METHOD" != "default" ]] && { log_error "Multiple recovery targets specified"; exit 1; }
             METHOD="time"
             if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
         -n|--name|--name=*)
-            [[ "$METHOD" != "default" ]] && log_error "Multiple recovery targets specified"
+            [[ "$METHOD" != "default" ]] && { log_error "Multiple recovery targets specified"; exit 1; }
             METHOD="name"
             if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
         -l|--lsn|--lsn=*)
-            [[ "$METHOD" != "default" ]] && log_error "Multiple recovery targets specified"
+            [[ "$METHOD" != "default" ]] && { log_error "Multiple recovery targets specified"; exit 1; }
             METHOD="lsn"
             if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
         -x|--xid|--xid=*)
-            [[ "$METHOD" != "default" ]] && log_error "Multiple recovery targets specified"
+            [[ "$METHOD" != "default" ]] && { log_error "Multiple recovery targets specified"; exit 1; }
             METHOD="xid"
             if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
         -b|--backup|--backup=*)
-            [[ "$METHOD" != "default" ]] && log_error "Multiple recovery targets specified"
+            [[ "$METHOD" != "default" ]] && { log_error "Multiple recovery targets specified"; exit 1; }
             METHOD="set"
             if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
         -X|--exclusive|--target-exclusive)
@@ -161,7 +168,7 @@ while [[ $# -gt 0 ]]; do
         --)
             shift; break ;;
         -*)
-            log_error "Unknown option: $1" ;;
+            log_error "Unknown option: $1"; exit 1 ;;
         *)
             break ;;
     esac
@@ -246,16 +253,16 @@ case "$METHOD" in
         CMD_ARGS+=("--type=immediate")
         ;;
     time)
-        CMD_ARGS+=("--type=time" "--target=\"$TARGET\"")
+        CMD_ARGS+=("--type=time" "--target=$TARGET")
         ;;
     name)
-        CMD_ARGS+=("--type=name" "--target=\"$TARGET\"")
+        CMD_ARGS+=("--type=name" "--target=$TARGET")
         ;;
     lsn)
-        CMD_ARGS+=("--type=lsn" "--target=\"$TARGET\"")
+        CMD_ARGS+=("--type=lsn" "--target=$TARGET")
         ;;
     xid)
-        CMD_ARGS+=("--type=xid" "--target=\"$TARGET\"")
+        CMD_ARGS+=("--type=xid" "--target=$TARGET")
         ;;
     set)
         CMD_ARGS+=("--set=$TARGET")
@@ -323,10 +330,10 @@ if [[ "$SKIP_CONFIRM" != true ]] && [ -t 0 ] && [ -t 1 ]; then
 fi
 
 log_info "Starting restore..."
-log_hint "$ $FULL_CMD"
+log_hint "$ pgbackrest ${CMD_ARGS[*]} restore"
 
-# Execute the restore command
-eval "$FULL_CMD"
+# Execute the restore command (using array to avoid eval security risks)
+pgbackrest "${CMD_ARGS[@]}" restore
 RC=$?
 
 if [[ $RC -eq 0 ]]; then

@@ -1,0 +1,266 @@
+#!/bin/bash
+set -uo pipefail
+#==============================================================#
+# File      :   pg-vacuum
+# Desc      :   Vacuum and freeze aging tables
+# Ctime     :   2018-05-18
+# Mtime     :   2025-12-30
+# Path      :   /pg/bin/pg-vacuum
+# Deps      :   psql, pg-role
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+PROG_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+# pg-vacuum [options] [database...]
+#
+# Vacuum and freeze aging tables to prevent transaction ID wraparound.
+# This script must run on primary instance with dbsu (postgres).
+#
+# Options:
+#   -h, --help          Show this help message
+#   -n, --dry-run       Show what would be done without executing
+#   -a, --age THRESH    Age threshold for freezing (default: 100000000)
+#   -r, --ratio PCT     Aging ratio threshold for full vacuum (default: 40)
+#
+# Examples:
+#   pg-vacuum                    # vacuum all databases
+#   pg-vacuum mydb               # vacuum specific database
+#   pg-vacuum -n mydb            # dry-run mode
+#   pg-vacuum -a 80000000 mydb   # custom age threshold
+#--------------------------------------------------------------#
+
+
+#--------------------------------------------------------------#
+# Log Util
+#--------------------------------------------------------------#
+if [[ -t 1 ]]; then
+    __CN='\033[0m';__CR='\033[0;31m';__CG='\033[0;32m';__CY='\033[0;33m'
+else
+    __CN='';__CR='';__CG='';__CY=''
+fi
+log_info()  { printf "[${__CG} OK ${__CN}] ${__CG}%s${__CN}\n" "$*"; }
+log_warn()  { printf "[${__CY}WARN${__CN}] ${__CY}%s${__CN}\n" "$*"; }
+log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}%s${__CN}\n" "$*"; }
+
+
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+# get table age by fullname, returns 0 if not found
+table_age() {
+    local db=$1 fullname=$2
+    local age
+    age=$(psql "${db}" -AXtwqc "SELECT age(relfrozenxid) FROM pg_class WHERE oid = '${fullname}'::RegClass;" 2>/dev/null)
+    echo "${age:-0}"
+}
+
+# get database age, returns 0 if failed
+database_age() {
+    local db=$1
+    local age
+    age=$(psql "${db}" -AXtwqc "SELECT age(datfrozenxid) FROM pg_database WHERE datname = '${db}';" 2>/dev/null)
+    echo "${age:-0}"
+}
+
+# calculate percentage of pages that need scanning, returns integer 0-100
+aging_ratio() {
+    local db=$1
+    local ratio
+    ratio=$(psql "${db}" -AXtwq <<-EOF 2>/dev/null
+WITH aging_table AS (
+    SELECT c.oid AS relid, c.relname, nsp.nspname,
+           greatest(age(c.relfrozenxid), age(t.relfrozenxid)) AS age, c.relpages
+    FROM pg_class c
+    LEFT JOIN pg_class t ON c.reltoastrelid = t.oid
+    LEFT JOIN pg_namespace nsp ON c.relnamespace = nsp.oid
+    WHERE c.relkind IN ('r', 'm') AND nsp.nspname NOT IN ('pg_catalog', 'information_schema')
+),
+aging_page AS (SELECT COALESCE(sum(relpages), 0)::NUMERIC AS aging_page FROM aging_table WHERE age > ${AGE_THRESHOLD}),
+total_page AS (SELECT COALESCE(NULLIF(sum(relpages), 0), 1)::NUMERIC AS total_page FROM aging_table)
+SELECT COALESCE((100.0 * (aging_page / total_page))::INTEGER, 0) FROM aging_page CROSS JOIN total_page;
+EOF
+)
+    echo "${ratio:-0}"
+}
+
+
+#--------------------------------------------------------------#
+# Freeze Tables
+#--------------------------------------------------------------#
+freeze_tables() {
+    local db=$1
+    shift
+    if [[ $# -eq 0 ]]; then
+        log_info "freeze ${db}: no aging tables found"
+        return 0
+    fi
+
+    log_info "freeze ${db} tables begin, count: $#"
+    for relname in "$@"; do
+        local before_age
+        before_age=$(table_age "${db}" "${relname}")
+        if [[ "${before_age}" == "0" ]]; then
+            log_warn "table ${db}.${relname} not found or age is 0, skip"
+            continue
+        fi
+
+        log_info "freeze table ${db}.${relname} begin, age: ${before_age}"
+        if [[ "${DRY_RUN}" == "true" ]]; then
+            log_info "[dry-run] VACUUM FREEZE ANALYZE ${relname}"
+        else
+            local output exit_code
+            output=$(psql "${db}" -Xqc "SET vacuum_cost_limit = 10000; SET vacuum_cost_delay = '1ms'; VACUUM FREEZE VERBOSE ${relname}; ANALYZE VERBOSE ${relname};" 2>&1)
+            exit_code=$?
+            echo "${output}" | head -20
+
+            local after_age
+            after_age=$(table_age "${db}" "${relname}")
+            if [[ ${exit_code} -ne 0 ]]; then
+                log_error "freeze table ${db}.${relname} failed"
+            elif [[ ${after_age} -ge ${before_age} ]]; then
+                log_warn "table ${db}.${relname} age not reduced: ${before_age} -> ${after_age}"
+            else
+                log_info "freeze table ${db}.${relname} done, age: ${before_age} -> ${after_age}"
+            fi
+        fi
+    done
+    log_info "freeze ${db} tables done"
+}
+
+
+#--------------------------------------------------------------#
+# Get Aging Tables
+#--------------------------------------------------------------#
+get_aging_tables() {
+    psql "$1" -AXtwq <<-EOF 2>/dev/null
+WITH aging_tables AS (
+    SELECT nsp.nspname || '.' || c.relname AS fullname,
+           greatest(age(c.relfrozenxid), age(t.relfrozenxid)) AS age, c.relpages
+    FROM pg_class c
+    LEFT JOIN pg_class t ON c.reltoastrelid = t.oid
+    LEFT JOIN pg_namespace nsp ON c.relnamespace = nsp.oid
+    WHERE c.relkind IN ('r', 'm') AND nsp.nspname NOT IN ('pg_catalog', 'information_schema')
+)
+SELECT fullname FROM aging_tables WHERE age > ${AGE_THRESHOLD} ORDER BY relpages ASC;
+EOF
+}
+
+
+#--------------------------------------------------------------#
+# Freeze Database
+#--------------------------------------------------------------#
+freeze_database() {
+    local db=$1
+    local db_age
+    db_age=$(database_age "${db}")
+    log_info "freeze database ${db} begin, age: ${db_age}"
+
+    # skip young databases
+    if [[ ${db_age} -lt ${AGE_THRESHOLD} ]]; then
+        log_info "database ${db} age ${db_age} < ${AGE_THRESHOLD}, skip"
+        return 0
+    fi
+
+    local ratio
+    ratio=$(aging_ratio "${db}")
+    log_info "database ${db} aging ratio: ${ratio}%"
+
+    if [[ ${ratio} -gt ${AGING_RATIO_THRESHOLD} ]]; then
+        # if too many pages need scanning, do full database vacuum
+        log_info "freeze full database ${db} (ratio ${ratio}% > ${AGING_RATIO_THRESHOLD}%)"
+        if [[ "${DRY_RUN}" == "true" ]]; then
+            log_info "[dry-run] VACUUM FREEZE ANALYZE (full database)"
+        else
+            local output exit_code
+            output=$(psql "${db}" -Xqc "SET vacuum_cost_limit = 10000; SET vacuum_cost_delay = '1ms'; VACUUM FREEZE VERBOSE; ANALYZE VERBOSE;" 2>&1)
+            exit_code=$?
+            echo "${output}" | tail -20
+            if [[ ${exit_code} -ne 0 ]]; then
+                log_error "freeze full database ${db} failed"
+            fi
+        fi
+    else
+        # otherwise vacuum only aging tables
+        log_info "freeze aging tables in ${db} (ratio ${ratio}% <= ${AGING_RATIO_THRESHOLD}%)"
+        freeze_tables "${db}" $(get_aging_tables "${db}")
+    fi
+
+    log_info "freeze database ${db} done"
+}
+
+
+#--------------------------------------------------------------#
+# Vacuum All Databases
+#--------------------------------------------------------------#
+vacuum_all() {
+    local databases
+    if [[ ${#TARGET_DATABASES[@]} -gt 0 ]]; then
+        databases="${TARGET_DATABASES[*]}"
+    else
+        databases=$(psql -AXtwqc "SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1','postgres') AND datallowconn;")
+    fi
+
+    log_info "vacuum databases: ${databases}"
+    for database in ${databases}; do
+        freeze_database "${database}"
+    done
+}
+
+
+#--------------------------------------------------------------#
+# Main
+#--------------------------------------------------------------#
+main() {
+    local lock_path="/tmp/pg-vacuum.lock"
+
+    # pre-flight check
+    local role=$("${PROG_DIR}/pg-role" 2>/dev/null)
+    if [[ "${role}" != "primary" ]]; then
+        log_error "this script must run on primary (current: ${role:-unknown})"
+        exit 1
+    fi
+
+    # acquire lock
+    if [[ -e "${lock_path}" ]] && kill -0 "$(cat "${lock_path}")" 2>/dev/null; then
+        log_error "pg-vacuum already running: pid=$(cat "${lock_path}")"
+        exit 2
+    fi
+    trap "rm -f ${lock_path}; exit" INT TERM EXIT
+    echo $$ > "${lock_path}"
+
+    log_info "pg-vacuum begin, pid: $$"
+    vacuum_all
+    log_info "pg-vacuum done"
+}
+
+
+#--------------------------------------------------------------#
+# Parse Arguments
+#--------------------------------------------------------------#
+DRY_RUN="false"
+AGE_THRESHOLD=100000000
+AGING_RATIO_THRESHOLD=40
+TARGET_DATABASES=()
+
+usage() {
+    grep '^#' "$0" | grep -v '#!/bin/bash' | sed 's/^#//g' | head -40
+    exit 0
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)     usage ;;
+        -n|--dry-run)  DRY_RUN="true"; shift ;;
+        -a|--age)      AGE_THRESHOLD="$2"; shift 2 ;;
+        -r|--ratio)    AGING_RATIO_THRESHOLD="$2"; shift 2 ;;
+        -*)            log_error "unknown option: $1"; usage ;;
+        *)             TARGET_DATABASES+=("$1"); shift ;;
+    esac
+done
+
+main

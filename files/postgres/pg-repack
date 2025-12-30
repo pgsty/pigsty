@@ -1,0 +1,315 @@
+#!/bin/bash
+set -uo pipefail
+#==============================================================#
+# File      :   pg-repack
+# Desc      :   Repack bloated tables and indexes
+# Ctime     :   2018-05-18
+# Mtime     :   2025-12-30
+# Path      :   /pg/bin/pg-repack
+# Deps      :   pg_repack, psql, pg-role
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+PROG_DIR="$(cd "$(dirname "$0")" && pwd)"
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+# pg-repack [options] [database...]
+#
+# Repack bloated tables and indexes in PostgreSQL databases.
+# This script must run on primary instance with dbsu (postgres).
+#
+# Options:
+#   -h, --help          Show this help message
+#   -n, --dry-run       Show what would be done without executing
+#   -t, --table         Repack tables only
+#   -i, --index         Repack indexes only
+#   -T, --timeout SEC   Lock wait timeout in seconds (default: 10)
+#   -j, --jobs NUM      Number of parallel jobs (default: 2)
+#
+# Examples:
+#   pg-repack                    # repack all databases
+#   pg-repack mydb               # repack specific database
+#   pg-repack -n mydb            # dry-run mode
+#   pg-repack -t mydb            # repack tables only
+#   pg-repack -i mydb            # repack indexes only
+#   pg-repack -T 30 -j 4 mydb    # custom timeout and jobs
+#--------------------------------------------------------------#
+
+
+#--------------------------------------------------------------#
+# Log Util
+#--------------------------------------------------------------#
+if [[ -t 1 ]]; then
+    __CN='\033[0m';__CR='\033[0;31m';__CG='\033[0;32m';__CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m'
+else
+    __CN='';__CR='';__CG='';__CY='';__CB='';__CM=''
+fi
+log_info()  { printf "[${__CG} OK ${__CN}] ${__CG}%s${__CN}\n" "$*"; }
+log_warn()  { printf "[${__CY}WARN${__CN}] ${__CY}%s${__CN}\n" "$*"; }
+log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}%s${__CN}\n" "$*"; }
+log_hint()  { printf "[${__CB}HINT${__CN}] ${__CB}%s${__CN}\n" "$*"; }
+
+
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+# kill vacuum/analyze queries to avoid lock contention
+kill_queries() {
+    local db=$1
+    local kill_count
+    kill_count=$(psql "${db}" -AXtwqc "SELECT count(pg_cancel_backend(pid)) FROM pg_stat_activity WHERE state <> 'idle' AND pid <> pg_backend_pid() AND (query ~* 'vacuum' OR query ~* 'analyze');" 2>/dev/null)
+    if [[ -n "${kill_count}" ]] && [[ "${kill_count}" -gt 0 ]]; then
+        log_warn "killed ${kill_count} vacuum/analyze queries in ${db}"
+    fi
+}
+
+# repack single table
+repack_table() {
+    local db=$1 relname=$2
+    if [[ "${DRY_RUN}" == "true" ]]; then
+        log_info "[dry-run] pg_repack ${db} -T ${LOCK_TIMEOUT} -j ${PARALLEL_JOBS} -t ${relname}"
+    else
+        kill_queries "${db}"
+        if pg_repack "${db}" -T "${LOCK_TIMEOUT}" -j "${PARALLEL_JOBS}" -t "${relname}"; then
+            log_info "repack table ${db}.${relname} done"
+        else
+            log_error "repack table ${db}.${relname} failed"
+        fi
+    fi
+}
+
+# repack single index
+repack_index() {
+    local db=$1 idxname=$2
+    if [[ "${DRY_RUN}" == "true" ]]; then
+        log_info "[dry-run] pg_repack ${db} -T ${LOCK_TIMEOUT} -i ${idxname}"
+    else
+        kill_queries "${db}"
+        if pg_repack "${db}" -T "${LOCK_TIMEOUT}" -i "${idxname}"; then
+            log_info "repack index ${db}.${idxname} done"
+        else
+            log_error "repack index ${db}.${idxname} failed"
+        fi
+    fi
+}
+
+
+#--------------------------------------------------------------#
+# Repack Tables
+#--------------------------------------------------------------#
+repack_tables() {
+    local db=$1
+    shift
+    if [[ $# -eq 0 ]]; then
+        log_info "repack ${db}: no bloat tables found"
+        return 0
+    fi
+    log_info "repack ${db} tables begin, count: $#"
+    for relname in "$@"; do
+        repack_table "${db}" "${relname}"
+    done
+    log_info "repack ${db} tables done"
+}
+
+
+#--------------------------------------------------------------#
+# Get Bloat Tables
+#--------------------------------------------------------------#
+get_bloat_tables() {
+    psql "$1" -AXtwq <<-'EOF'
+WITH bloat_tables AS (
+    SELECT nspname || '.' || relname AS relname,
+           size / 1048576 AS actual_mb,
+           ratio AS bloat_pct
+    FROM monitor.pg_table_bloat
+    WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'monitor')
+)
+-- 64 small + 16 medium + 4 large (ratio is 0-1 float, 0.4 = 40%)
+(SELECT relname FROM bloat_tables WHERE actual_mb < 256 AND bloat_pct > 0.4 ORDER BY bloat_pct DESC LIMIT 64) UNION
+(SELECT relname FROM bloat_tables WHERE actual_mb BETWEEN 256 AND 2048 AND bloat_pct > 0.3 ORDER BY bloat_pct DESC LIMIT 16) UNION
+(SELECT relname FROM bloat_tables WHERE actual_mb BETWEEN 2048 AND 8192 AND bloat_pct > 0.2 ORDER BY bloat_pct DESC LIMIT 4) UNION
+(SELECT relname FROM bloat_tables WHERE actual_mb BETWEEN 8192 AND 65536 AND bloat_pct > 0.15 ORDER BY bloat_pct DESC LIMIT 1);
+EOF
+}
+
+# warn about huge tables (>64GB) that need manual handling
+warn_huge_tables() {
+    local db=$1
+    local huge_tables
+    huge_tables=$(psql "${db}" -AXtwq <<-'EOF'
+SELECT nspname || '.' || relname || ' (' || pg_size_pretty(size) || ', ' || round(ratio::numeric * 100, 1) || '% bloat)'
+FROM monitor.pg_table_bloat
+WHERE size > 68719476736 AND ratio > 0.1
+ORDER BY size DESC LIMIT 10;
+EOF
+)
+    if [[ -n "${huge_tables}" ]]; then
+        log_hint "huge tables (>64GB) skipped, use explicit repack:"
+        echo "${huge_tables}" | while read -r line; do log_hint "  ${line}"; done
+    fi
+}
+
+
+#--------------------------------------------------------------#
+# Repack Indexes
+#--------------------------------------------------------------#
+repack_indexes() {
+    local db=$1
+    shift
+    if [[ $# -eq 0 ]]; then
+        log_info "repack ${db}: no bloat indexes found"
+        return 0
+    fi
+    log_info "repack ${db} indexes begin, count: $#"
+    for idxname in "$@"; do
+        repack_index "${db}" "${idxname}"
+    done
+    log_info "repack ${db} indexes done"
+}
+
+
+#--------------------------------------------------------------#
+# Get Bloat Indexes
+#--------------------------------------------------------------#
+get_bloat_indexes() {
+    psql "$1" -AXtwq <<-'EOF'
+WITH bloat_indexes AS (
+    SELECT nspname || '.' || relname AS idx_name,
+           size / 1048576 AS actual_mb,
+           ratio AS bloat_pct
+    FROM monitor.pg_index_bloat
+    WHERE nspname NOT IN ('pg_catalog', 'information_schema', 'monitor')
+)
+-- 64 small + 16 medium + 4 large + 2 xlarge (ratio is 0-1 float)
+(SELECT idx_name FROM bloat_indexes WHERE actual_mb < 128 AND bloat_pct > 0.4 ORDER BY bloat_pct DESC LIMIT 64) UNION
+(SELECT idx_name FROM bloat_indexes WHERE actual_mb BETWEEN 128 AND 1024 AND bloat_pct > 0.35 ORDER BY bloat_pct DESC LIMIT 16) UNION
+(SELECT idx_name FROM bloat_indexes WHERE actual_mb BETWEEN 1024 AND 8192 AND bloat_pct > 0.3 ORDER BY bloat_pct DESC LIMIT 4) UNION
+(SELECT idx_name FROM bloat_indexes WHERE actual_mb BETWEEN 8192 AND 65536 AND bloat_pct > 0.2 ORDER BY bloat_pct DESC LIMIT 1);
+EOF
+}
+
+# warn about huge indexes (>64GB) that need manual handling
+warn_huge_indexes() {
+    local db=$1
+    local huge_indexes
+    huge_indexes=$(psql "${db}" -AXtwq <<-'EOF'
+SELECT nspname || '.' || relname || ' (' || pg_size_pretty(size) || ', ' || round(ratio::numeric * 100, 1) || '% bloat)'
+FROM monitor.pg_index_bloat
+WHERE size > 68719476736 AND ratio > 0.1
+ORDER BY size DESC LIMIT 10;
+EOF
+)
+    if [[ -n "${huge_indexes}" ]]; then
+        log_hint "huge indexes (>64GB) skipped, use explicit repack:"
+        echo "${huge_indexes}" | while read -r line; do log_hint "  ${line}"; done
+    fi
+}
+
+
+#--------------------------------------------------------------#
+# Repack Database
+#--------------------------------------------------------------#
+repack_database() {
+    local db=$1
+    log_info "repack database ${db} begin"
+
+    # check if monitor schema exists
+    if ! psql "${db}" -AXtwqc "SELECT 1 FROM pg_namespace WHERE nspname = 'monitor'" 2>/dev/null | grep -q 1; then
+        log_warn "monitor schema not found in ${db}, skip (run pg_init_template first)"
+        return 0
+    fi
+
+    if [[ "${REPACK_INDEX_ONLY}" != "true" ]]; then
+        repack_tables "${db}" $(get_bloat_tables "${db}")
+        warn_huge_tables "${db}"
+    fi
+    if [[ "${REPACK_TABLE_ONLY}" != "true" ]]; then
+        repack_indexes "${db}" $(get_bloat_indexes "${db}")
+        warn_huge_indexes "${db}"
+    fi
+
+    log_info "repack database ${db} done"
+}
+
+
+#--------------------------------------------------------------#
+# Repack All Databases
+#--------------------------------------------------------------#
+repack_all() {
+    local databases
+    if [[ ${#TARGET_DATABASES[@]} -gt 0 ]]; then
+        databases="${TARGET_DATABASES[*]}"
+    else
+        databases=$(psql -AXtwqc "SELECT datname FROM pg_database WHERE datname NOT IN ('template0','template1','postgres') AND datallowconn;")
+    fi
+
+    log_info "repack databases: ${databases}"
+    for database in ${databases}; do
+        repack_database "${database}"
+    done
+}
+
+
+#--------------------------------------------------------------#
+# Main
+#--------------------------------------------------------------#
+main() {
+    local lock_path="/tmp/pg-repack.lock"
+
+    # pre-flight check
+    local role=$("${PROG_DIR}/pg-role" 2>/dev/null)
+    if [[ "${role}" != "primary" ]]; then
+        log_error "this script must run on primary (current: ${role:-unknown})"
+        exit 1
+    fi
+    if ! command -v pg_repack &>/dev/null; then
+        log_error "pg_repack command not found in PATH"
+        exit 2
+    fi
+
+    # acquire lock
+    if [[ -e "${lock_path}" ]] && kill -0 "$(cat "${lock_path}")" 2>/dev/null; then
+        log_error "pg-repack already running: pid=$(cat "${lock_path}")"
+        exit 3
+    fi
+    trap "rm -f ${lock_path}; exit" INT TERM EXIT
+    echo $$ > "${lock_path}"
+
+    log_info "pg-repack begin, pid: $$"
+    repack_all
+    log_info "pg-repack done"
+}
+
+
+#--------------------------------------------------------------#
+# Parse Arguments
+#--------------------------------------------------------------#
+DRY_RUN="false"
+REPACK_TABLE_ONLY="false"
+REPACK_INDEX_ONLY="false"
+LOCK_TIMEOUT=10
+PARALLEL_JOBS=2
+TARGET_DATABASES=()
+
+usage() {
+    grep '^#' "$0" | grep -v '#!/bin/bash' | sed 's/^#//g' | head -40
+    exit 0
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)     usage ;;
+        -n|--dry-run)  DRY_RUN="true"; shift ;;
+        -t|--table)    REPACK_TABLE_ONLY="true"; shift ;;
+        -i|--index)    REPACK_INDEX_ONLY="true"; shift ;;
+        -T|--timeout)  LOCK_TIMEOUT="$2"; shift 2 ;;
+        -j|--jobs)     PARALLEL_JOBS="$2"; shift 2 ;;
+        -*)            log_error "unknown option: $1"; usage ;;
+        *)             TARGET_DATABASES+=("$1"); shift ;;
+    esac
+done
+
+main
