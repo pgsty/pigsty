@@ -693,9 +693,43 @@ pg_recv_10:
 #==============================================================#
 # 0260 pg_sub
 #==============================================================#
+pg_sub_16:
+  name: pg_sub
+  desc: PostgreSQL subscription statistics (16+)
+  query: |-
+    SELECT 
+      s1.subname, subid AS id, pid, received_lsn, reported_lsn,
+      msg_send_time, msg_recv_time, reported_time,
+      apply_error_count, sync_error_count
+    FROM
+      (SELECT
+        subname, subid, pid,
+        received_lsn - '0/0' AS received_lsn, latest_end_lsn - '0/0' AS reported_lsn,
+        extract(epoch from last_msg_send_time) AS msg_send_time,
+        extract(epoch from last_msg_receipt_time) AS msg_recv_time,
+        extract(epoch from latest_end_time) AS reported_time
+      FROM pg_stat_subscription 
+      WHERE relid IS NULL AND leader_pid IS NULL) s1
+    LEFT OUTER JOIN pg_stat_subscription_stats s2 USING(subid);
+
+  ttl: {{ ttl_norm }}
+  min_version: 160000
+  tags: [ cluster ]
+  metrics:
+    - subname:             { usage: LABEL   ,description: Name of this subscription }
+    - id:                  { usage: GAUGE   ,description: OID of the subscription }
+    - pid:                 { usage: GAUGE   ,description: Process ID of the subscription leader apply worker }
+    - received_lsn:        { usage: COUNTER ,description: Last write-ahead log location received }
+    - reported_lsn:        { usage: COUNTER ,description: Last write-ahead log location reported to origin WAL sender }
+    - msg_send_time:       { usage: GAUGE   ,description: Send time of last message received from origin WAL sender }
+    - msg_recv_time:       { usage: GAUGE   ,description: Receipt time of last message received from origin WAL sender }
+    - reported_time:       { usage: GAUGE   ,description: Time of last write-ahead log location reported to origin WAL sender }
+    - apply_error_count:   { usage: COUNTER ,description: Number of times an error occurred while applying changes }
+    - sync_error_count:    { usage: COUNTER ,description: Number of times an error occurred during the initial table synchronization }
+
 pg_sub_15:
   name: pg_sub
-  desc: PostgreSQL subscription statistics (15+)
+  desc: PostgreSQL subscription statistics (15)
   query: |-
     SELECT 
       s1.subname, subid AS id, pid, received_lsn, reported_lsn,
@@ -713,6 +747,7 @@ pg_sub_15:
 
   ttl: {{ ttl_norm }}
   min_version: 150000
+  max_version: 160000
   tags: [ cluster ]
   metrics:
     - subname:             { usage: LABEL   ,description: Name of this subscription }
