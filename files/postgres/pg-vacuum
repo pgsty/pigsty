@@ -114,7 +114,13 @@ freeze_tables() {
             log_info "[dry-run] VACUUM FREEZE ANALYZE ${relname}"
         else
             local output exit_code
-            output=$(psql "${db}" -Xqc "SET vacuum_cost_limit = 10000; SET vacuum_cost_delay = '1ms'; VACUUM FREEZE VERBOSE ${relname}; ANALYZE VERBOSE ${relname};" 2>&1)
+            output=$(psql "${db}" -Xq <<-EOF 2>&1
+SET vacuum_cost_limit = 10000;
+SET vacuum_cost_delay = '1ms';
+VACUUM FREEZE VERBOSE ${relname};
+ANALYZE VERBOSE ${relname};
+EOF
+)
             exit_code=$?
             echo "${output}" | head -20
 
@@ -177,7 +183,13 @@ freeze_database() {
             log_info "[dry-run] VACUUM FREEZE ANALYZE (full database)"
         else
             local output exit_code
-            output=$(psql "${db}" -Xqc "SET vacuum_cost_limit = 10000; SET vacuum_cost_delay = '1ms'; VACUUM FREEZE VERBOSE; ANALYZE VERBOSE;" 2>&1)
+            output=$(psql "${db}" -Xq <<-'EOF' 2>&1
+SET vacuum_cost_limit = 10000;
+SET vacuum_cost_delay = '1ms';
+VACUUM FREEZE VERBOSE;
+ANALYZE VERBOSE;
+EOF
+)
             exit_code=$?
             echo "${output}" | tail -20
             if [[ ${exit_code} -ne 0 ]]; then
