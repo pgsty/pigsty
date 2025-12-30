@@ -10,10 +10,9 @@
       {{ (['victoria', 'prometheus', 'grafana', 'dnsmasq', 'nginx']
           + ([node_admin_username | default('dba')] if node_admin_enabled | default(true) else [])
           + ([node_user | default('root')]))
-         | difference(['root']) | unique | list }}
+         | reject('equalto', 'root') | unique | list }}
   shell: |
     #!/bin/bash
-    export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:$PATH
     getent group infra >/dev/null || groupadd -r infra
     NOLOGIN=$([ -x /sbin/nologin ] && echo /sbin/nologin || echo /usr/sbin/nologin)
     add_user() {
