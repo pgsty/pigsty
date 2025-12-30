@@ -2,11 +2,11 @@
 set -euo pipefail
 #==============================================================#
 # File      :   pg-badger
-# Desc      :   Generate pgbadger HTML report to /pg/stat/logs
+# Desc      :   Generate pgbadger HTML report to /pg/tmp/logs
 # Ctime     :   2021-09-17
-# Mtime     :   2021-11-09
+# Mtime     :   2025-12-30
 # Path      :   /pg/bin/pg-badger
-# Deps      :   pgbadger, /pg/stat
+# Deps      :   pgbadger, /pg/tmp
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -20,35 +20,42 @@ PROG_DIR="$(cd $(dirname $0) && pwd)"
 # pg-badger       incremental report for today's log
 # pg-badger full  full report for all historic log
 
-# run as postgres
-if [[ "$(whoami)" != "postgres" ]]; then
-	echo "run this as dbsu postgres"
+# run as postgres group member (dbsu)
+if ! id -nG | grep -qw postgres; then
+	echo "run this as dbsu (postgres group member)"
 	exit 1
 fi
-mkdir -p /pg/stat/logs
+mkdir -p /pg/tmp/logs
 
 MODE=${1-''}
 
 LOGDIR=$(grep 'log_directory' /pg/data/postgresql.conf | awk '{print $3}' | tr -d "'")
+if [[ -z "${LOGDIR}" ]]; then
+	LOGDIR="/pg/log/postgres"  # fallback to default
+fi
+if [[ ! -d "${LOGDIR}" ]]; then
+	echo "log directory not found: ${LOGDIR}"
+	exit 2
+fi
 
 
 #--------------------------------------------------------------#
 #                             Main                             #
 #--------------------------------------------------------------#
-if [[ ${LOGDIR} == "full" ]]; then
+if [[ "${MODE}" == "full" ]]; then
 	pgbadger \
-	   -I ${LOGDIR}/*.csv \
+	   -I "${LOGDIR}"/*.csv \
 	   -f csv \
-	   --outdir /pg/stat/logs \
+	   --outdir /pg/tmp/logs \
 	   --wide-char \
 	   --average 1 \
 	   --sample 3
 else
-    LATEST_LOGS="$(find ${LOGDIR} -name '*.csv' -mtime 0)"
+	LATEST_LOGS="$(find "${LOGDIR}" -name '*.csv' -mtime 0)"
 	pgbadger \
 	   -I ${LATEST_LOGS} \
 	   -f csv \
-	   --outdir /pg/stat/logs \
+	   --outdir /pg/tmp/logs \
 	   --wide-char \
 	   --average 1 \
 	   --sample 3

@@ -2,13 +2,30 @@
 set -uo pipefail
 #==============================================================#
 # File      :   pg-basebackup
-# Desc      :   PostgreSQL base backup script
+# Desc      :   PostgreSQL base backup script using pg_basebackup
 # Ctime     :   2018-12-06
-# Mtime     :   2022-12-17
+# Mtime     :   2025-12-30
 # Path      :   /pg/bin/pg-basebackup
 # Deps      :   pg_basebackup, psql, lz4, openssl, .pgpass
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# DEPRECATED: This script is a legacy backup tool using pg_basebackup.
+# For production use, prefer `pg-backup` which uses pgbackrest with:
+#   - Incremental/differential backups (saves storage & time)
+#   - Built-in compression, encryption, and parallelism
+#   - Point-in-time recovery (PITR) support
+#   - Remote backup repository support (S3, Azure, GCS, etc.)
+#
+# Use this script only when:
+#   - pgbackrest is not available or configured
+#   - You need a simple one-time backup to local disk
+#   - You're migrating data between clusters manually
+#
+# Also consider pg-fork to create instant copy efficiently.
+# Note: The RC4 encryption option (-e) uses a legacy cipher for
+# performance. For sensitive data, consider pgbackrest's built-in
+# encryption or use a stronger cipher externally.
 #==============================================================#
 PROG_NAME="$(basename $0)"
 PROG_DIR="$(cd $(dirname $0) && pwd)"
@@ -79,25 +96,21 @@ export PATH=/usr/pgsql/bin:${PATH}
 
 
 #--------------------------------------------------------------#
-#                             Utils                            #
+# Log Util
 #--------------------------------------------------------------#
-# logger functions
-function log_debug() {
-	[ -t 2 ] && printf "\033[0;34m[$(date "+%Y-%m-%d %H:%M:%S")][DEBUG] $*\033[0m\n" >&2 ||
-		printf "[$(date "+%Y-%m-%d %H:%M:%S")][DEBUG] $*\n" >&2
-}
-function log_info() {
-	[ -t 2 ] && printf "\033[0;32m[$(date "+%Y-%m-%d %H:%M:%S")][INFO] $*\033[0m\n" >&2 ||
-		printf "[$(date "+%Y-%m-%d %H:%M:%S")][INFO] $*\n" >&2
-}
-function log_warn() {
-	[ -t 2 ] && printf "\033[0;33m[$(date "+%Y-%m-%d %H:%M:%S")][WARN] $*\033[0m\n" >&2 ||
-		printf "[$(date "+%Y-%m-%d %H:%M:%S")][INFO] $*\n" >&2
-}
-function log_error() {
-	[ -t 2 ] && printf "\033[0;31m[$(date "+%Y-%m-%d %H:%M:%S")][ERROR] $*\033[0m\n" >&2 ||
-		printf "[$(date "+%Y-%m-%d %H:%M:%S")][INFO] $*\n" >&2
-}
+if [[ -t 1 ]]; then
+    __CN='\033[0m';__CK='\033[0;30m';__CR='\033[0;31m';__CG='\033[0;32m';
+    __CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';__CC='\033[0;36m';__CW='\033[0;37m';
+else
+    __CN='';__CK='';__CR='';__CG='';__CY='';__CB='';__CM='';__CC='';__CW='';
+fi
+function log_info()  { printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n"; }
+function log_warn()  { printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n"; }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n"; }
+function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n"; }
+function log_title() { printf "[${__CG}$1${__CN}] ${__CG}$2${__CN}\n";   }
+function log_hint()  { printf "${__CB}$*${__CN}\n"; }
+function log_line()  { printf "${__CM}===== $* =====${__CN}\n"; }
 
 # returns 't' on replica, psql access required
 function is_in_recovery() {

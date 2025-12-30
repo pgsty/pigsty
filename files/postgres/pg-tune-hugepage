@@ -4,7 +4,7 @@ set -euo pipefail
 # File      :   pg-tune-hugepage
 # Desc      :   Tune system hugepages precisely for PostgreSQL
 # Ctime     :   2023-02-23
-# Mtime     :   2022-03-17
+# Mtime     :   2025-12-30
 # Path      :   /pg/bin/pg-tune-hugepage
 # Deps      :   psql
 # Note      :   Run as root, works on PostgreSQL 15+
@@ -117,10 +117,10 @@ if [[ -n "${SAFETY_MARGIN}" ]] && [[ "${SAFETY_MARGIN}" =~ ^[0-9]+$ ]]; then
     echo "[INFO] Added safety margin of ${SAFETY_MARGIN} hugepages (${ORIGINAL_COUNT} → ${NR_HUGEPAGE})"
 fi
 
-# Identify PostgreSQL user's group ID
-DBSU_GID="$(id -g "${DBSU}")"
-if [[ -z "$DBSU_GID" ]] || ! [[ "$DBSU_GID" =~ ^[1-9][0-9]*$ ]]; then
-    echo "[ERROR] Invalid group ID for user ${DBSU}: ${DBSU_GID}"
+# Get postgres group ID (group name is always 'postgres' in pigsty)
+DBSU_GID="$(getent group postgres | cut -d: -f3)"
+if [[ -z "$DBSU_GID" ]] || ! [[ "$DBSU_GID" =~ ^[0-9]+$ ]]; then
+    echo "[ERROR] Cannot find 'postgres' group or invalid GID: ${DBSU_GID:-<empty>}"
     exit 1
 fi
 

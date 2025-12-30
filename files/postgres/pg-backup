@@ -4,7 +4,7 @@ set -euo pipefail
 # File      :   pg-backup
 # Desc      :   make physical backup with pgbackrest
 # Ctime     :   2022-12-29
-# Mtime     :   2025-03-17
+# Mtime     :   2025-12-30
 # Path      :   /pg/bin/pg-backup
 # Deps      :   pgbackrest, pg-role
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -47,8 +47,8 @@ if [[ "${CURRENT_ROLE}" != "primary" ]]; then
     exit 1
 fi
 
-if [[ "$(whoami)" != "postgres" ]]; then
-    echo "[FAIL] run this as dbsu postgres"
+if ! id -nG | grep -qw postgres; then
+    echo "[FAIL] run this as dbsu (postgres group member)"
     exit 2
 fi
 
