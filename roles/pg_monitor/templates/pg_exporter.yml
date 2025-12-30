@@ -2,8 +2,8 @@
 # Desc      :   pg_exporter metrics collector definition
 # Ver       :   PostgreSQL 10 ~ 18+ and pgbouncer 1.9~1.25+
 # Ctime     :   2019-12-09
-# Mtime     :   2025-12-27
-# Homepage  :   https://pigsty.io
+# Mtime     :   2025-12-30
+# Homepage  :   https://pigsty.io/docs/pg_exporter
 # Author    :   Ruohang Feng (rh@vonng.com)
 # License   :   Apache-2.0 @ https://github.com/pgsty/pg_exporter
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -601,7 +601,7 @@ pg_recv_13:
   desc: PostgreSQL walreceiver metrics 13+
   query: |-
     SELECT 
-      coalesce(sender_host, (regexp_match(conninfo, '.*host=(\S+).*'))[1]) AS sender_host, coalesce(sender_port::TEXT, (regexp_match(conninfo, '.*port=(\S+).*'))[1]) AS sender_port, slot_name,
+      coalesce(sender_host, (regexp_match(conninfo, '.*host=(\S+).*'))[1]) AS sender_host, coalesce(sender_port::TEXT, (regexp_match(conninfo, '.*port=(\S+).*'))[1]) AS sender_port, coalesce(slot_name, 'NULL') AS slot_name,
       pid, CASE status WHEN 'streaming' THEN 0 WHEN 'startup' THEN 1 WHEN 'catchup' THEN 2 WHEN 'backup' THEN 3 WHEN 'stopping' THEN 4 ELSE -1 END AS state,
       receive_start_lsn - '0/0' AS init_lsn,receive_start_tli AS init_tli,
       flushed_lsn - '0/0' AS flush_lsn,written_lsn - '0/0'AS write_lsn, received_tli AS flush_tli, latest_end_lsn - '0/0' AS reported_lsn,
@@ -632,7 +632,7 @@ pg_recv_11:
   desc: PostgreSQL walreceiver metrics v11+
   query: |-
     SELECT 
-      coalesce(sender_host, (regexp_match(conninfo, '.*host=(\S+).*'))[1]) AS sender_host, coalesce(sender_port::TEXT, (regexp_match(conninfo, '.*port=(\S+).*'))[1]) AS sender_port, slot_name,
+      coalesce(sender_host, (regexp_match(conninfo, '.*host=(\S+).*'))[1]) AS sender_host, coalesce(sender_port::TEXT, (regexp_match(conninfo, '.*port=(\S+).*'))[1]) AS sender_port, coalesce(slot_name, 'NULL') AS slot_name,
       pid, CASE status WHEN 'streaming' THEN 0 WHEN 'startup' THEN 1 WHEN 'catchup' THEN 2 WHEN 'backup' THEN 3 WHEN 'stopping' THEN 4 ELSE -1 END AS state,
       receive_start_lsn - '0/0' AS init_lsn,receive_start_tli AS init_tli,
       received_lsn - '0/0' AS flush_lsn, received_tli AS flush_tli, latest_end_lsn - '0/0' AS reported_lsn,
@@ -663,7 +663,7 @@ pg_recv_10:
   desc: PostgreSQL walreceiver metrics v10+
   query: |-
     SELECT 
-      (regexp_match(conninfo, '.*host=(\S+).*'))[1] AS sender_host, (regexp_match(conninfo, '.*port=(\S+).*'))[1] AS sender_port, slot_name,
+      (regexp_match(conninfo, '.*host=(\S+).*'))[1] AS sender_host, (regexp_match(conninfo, '.*port=(\S+).*'))[1] AS sender_port, coalesce(slot_name, 'NULL') AS slot_name,
       pid, CASE status WHEN 'streaming' THEN 0 WHEN 'startup' THEN 1 WHEN 'catchup' THEN 2 WHEN 'backup' THEN 3 WHEN 'stopping' THEN 4 ELSE -1 END AS state,
       receive_start_lsn - '0/0' AS init_lsn,receive_start_tli AS init_tli,
       received_lsn - '0/0' AS flush_lsn, received_tli AS flush_tli, latest_end_lsn - '0/0' AS reported_lsn,
