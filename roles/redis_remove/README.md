@@ -71,7 +71,7 @@ redis_remove (full role)
 | Variable          | Default | Description                    |
 |-------------------|---------|--------------------------------|
 | `redis_safeguard` | `false` | Prevent accidental removal     |
-| `redis_clean`     | `true`  | Remove data directories        |
+| `redis_rmdata`    | `true`  | Remove data directories        |
 | `redis_uninstall` | `false` | Uninstall Redis packages       |
 
 

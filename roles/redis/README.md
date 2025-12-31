@@ -67,11 +67,8 @@ redis (full role)
 ├── redis_exporter             # Deploy redis_exporter
 │
 ├── redis_instance             # Deploy Redis instances
-│   ├── redis_check            # Check existing instance
-│   ├── redis_clean            # Clean old data (if exists)
 │   ├── redis_config           # Generate config files
-│   ├── redis_launch           # Start Redis service
-│   └── redis_reload           # Reload configuration
+│   └── redis_launch           # Start Redis service
 │
 └── redis_register             # Register to monitoring
     ├── add_metrics            # Register Victoria targets
@@ -117,7 +114,6 @@ redis (full role)
 |-------------------------|---------|----------------------------|
 | `redis_password`        | `''`    | Auth password (empty=off)  |
 | `redis_rename_commands` | `{}`    | Rename dangerous commands  |
-| `redis_safeguard`       | `false` | Prevent accidental removal |
 
 ### Monitoring
 
