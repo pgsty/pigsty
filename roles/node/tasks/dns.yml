@@ -7,17 +7,18 @@
   when: node_write_etc_hosts|bool
   block:
 
-    # NOTE: dns records suffixed with "# pigsty meta" will be treated as meta node dns record and been wiped
+    # NOTE: dns records suffixed with "# pigsty dns" will be wiped and re-rendered
     - name: wipe pigsty dns entries
       lineinfile: path=/etc/hosts regexp='# pigsty dns$' state=absent
 
-    # NOTE: dns records write by pigsty will be suffixed with "# pigsty meta" mark
+    # NOTE: static dns records from node_default_etc_hosts and node_etc_hosts are suffixed with "# pigsty dns"
     - name: write static etc hosts entry
       lineinfile:
         path: /etc/hosts
         line: "{{ item | replace('${admin_ip}', admin_ip) }} # pigsty dns"
       with_items: "{{ node_default_etc_hosts|default([]) + node_etc_hosts|default([]) }}"
 
+    # NOTE: exchanged nodenames are suffixed with "# pigsty meta" and are NOT wiped on re-run
     - name: exchange nodename between nodes
       when: nodename_exchange|bool
       ignore_errors: true

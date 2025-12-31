@@ -9,7 +9,7 @@
 #--------------------------------------------------------------#
 # Check VIP config                                   [vip_check]
 #--------------------------------------------------------------#
-- name: check etcd identity
+- name: check vip identity
   tags: [ node_vip, vip_check ]
   assert:
     that:
@@ -28,6 +28,8 @@
     dest: /etc/keepalived/keepalived.conf
     mode: 0644
   vars:
+    # JMESPath query to find all hosts with same vip_address:
+    # [@.*] - flatten hostvars dict to array, [0] - unwrap outer array, [?...] - filter by vip_address
     vip_cluster_members_query: "[@.*][0][?vip_address=='{{ vip_address }}']"
 
 #--------------------------------------------------------------#
