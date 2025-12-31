@@ -13,6 +13,13 @@
           - minio_seq is defined and minio_seq|int >= 0
         fail_msg: variable 'minio_cluster' & 'minio_seq' are required for minio playbook
 
+    # Gather cluster metadata and calculate derived variables
+    # - minio_meta: list of all hosts in the same minio_cluster from inventory
+    # - minio_nodename: resolved node name, e.g., "minio-1.pigsty" from pattern "${minio_cluster}-${minio_seq}.pigsty"
+    # - minio_data_dirs: expanded data directories for multi-drive setups
+    #   Input:  "/data{1...4}/minio" (multi-drive notation)
+    #   Output: "/data1/minio,/data2/minio,/data3/minio,/data4/minio"
+    #   If no {x...y} pattern found, returns minio_data as-is (single drive mode)
     - name: get minio cluster info
       connection: local
       set_fact:
@@ -22,6 +29,14 @@
           {% set minio_multidriver =  minio_data | regex_search('{(\d+)...(\d+)}') %}{% if minio_multidriver and minio_multidriver != '' %}{% set minio_driver_min = (minio_data | regex_findall('{(\d+)...(\d+)}'))[0][0]|int %}{% set minio_driver_max = (minio_data | regex_findall('{(\d+)...(\d+)}'))[0][1]|int %}{% for i in range(minio_driver_min, minio_driver_max+1) | list %}{% if not loop.first %},{% endif %}{{ minio_data | regex_replace('{(\d+)...(\d+)}', i|string) }}{% endfor %}{% else %}{{ minio_data }}{% endif %}
       vars: { cluster_query: "[@.*][0][?minio_cluster=='{{ minio_cluster }}']" }
 
+    # Calculate cluster topology parameters from minio_meta
+    # - minio_cluster_size: number of unique nodes in the cluster (e.g., 4)
+    # - minio_cluster_members: sorted list of node IPs (e.g., [10.10.10.10, 10.10.10.11, ...])
+    # - minio_seq_min/max: minimum and maximum sequence numbers in cluster
+    # - minio_seq_range: MinIO's ellipsis notation for node range, e.g., "{1...4}"
+    #   Used to generate distributed volume URLs like: https://minio-{1...4}.pigsty:9000/data/minio
+    # - minio_member: comma-separated "IP hostname" pairs for DNS registration
+    #   e.g., "10.10.10.10 minio-1.pigsty,10.10.10.11 minio-2.pigsty,..."
     - name: building minio params
       connection: local
       set_fact:
@@ -32,6 +47,21 @@
         minio_seq_range={% raw %}{{% endraw %}{{ (minio_meta | json_query('[].minio_seq') | map('int') | list | min) if (minio_meta | length > 0) else 0 }}...{{ (minio_meta | json_query('[].minio_seq') | map('int') | list | max) if (minio_meta | length > 0) else 0 }}{% raw %}}{% endraw %}
         minio_member="{% for host in minio_meta %}{% if not loop.first %},{% endif %}{{ host.inventory_hostname }} {{ minio_node|replace('${minio_cluster}', host.minio_cluster)|replace('${minio_seq}', host.minio_seq|string) }}{% endfor %}"
 
+    # Calculate MINIO_VOLUMES environment variable for server startup
+    # Priority: user-defined minio_volumes > auto-calculated based on cluster mode
+    #
+    # Single-node mode (minio_cluster_size == 1):
+    #   Output: "/data/minio" or "/data{1...4}/minio" (just the data path)
+    #
+    # Multi-node distributed mode (minio_cluster_size > 1):
+    #   Output: "https://minio-{1...4}.pigsty:9000/data{1...4}/minio"
+    #   Format: <protocol>://<node_pattern>:<port><data_path>
+    #   MinIO server expands {x...y} notation to enumerate all nodes and drives
+    #
+    # Example for 4-node cluster with 4 drives each:
+    #   Input:  minio_data="/data{1...4}/minio", minio_seq_range="{1...4}"
+    #   Output: "https://minio-{1...4}.pigsty:9000/data{1...4}/minio"
+    #   Expands to 16 endpoints (4 nodes × 4 drives)
     - name: calculate or use minio volumes
       connection: local
       set_fact:
@@ -68,7 +98,7 @@
     - name: launch minio server service
       systemd: name=minio state=restarted enabled=yes daemon_reload=yes
     - name: wait for minio server online
-      wait_for: host=127.0.0.1 port={{ minio_port }} state=started timeout=10
+      wait_for: host=127.0.0.1 port={{ minio_port }} state=started timeout=60
 
 
 #--------------------------------------------------------------#
