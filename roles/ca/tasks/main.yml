@@ -7,19 +7,19 @@
   tags: ca_dir
   become: false
   connection: local
-  file: path={{ item }} state=directory mode=0755
+  file: path={{ item.path }} state=directory mode={{ item.mode }}
   with_items:
-    - files/pki
-    - files/pki/ca
-    - files/pki/csr
-    - files/pki/misc
-    - files/pki/etcd
-    - files/pki/nginx
-    - files/pki/infra
-    - files/pki/pgsql
-    - files/pki/minio
-    - files/pki/mongo
-    - files/pki/mysql
+    - { path: files/pki,       mode: '0755' }
+    - { path: files/pki/ca,    mode: '0700' }  # CA private key directory, restricted access
+    - { path: files/pki/csr,   mode: '0755' }
+    - { path: files/pki/misc,  mode: '0755' }
+    - { path: files/pki/etcd,  mode: '0755' }
+    - { path: files/pki/nginx, mode: '0755' }
+    - { path: files/pki/infra, mode: '0755' }
+    - { path: files/pki/pgsql, mode: '0755' }
+    - { path: files/pki/minio, mode: '0755' }
+    - { path: files/pki/mongo, mode: '0755' }
+    - { path: files/pki/mysql, mode: '0755' }
 
 #--------------------------------------------------------------#
 # Create or Reuse CA Private Key                    [ca_private]
@@ -70,7 +70,7 @@
       openssl_csr:
         path: files/pki/csr/ca.csr
         privatekey_path: files/pki/ca/ca.key
-        common_name: pigsty-ca
+        common_name: "{{ ca_cn }}"
         organization_name: pigsty
         organizational_unit_name: ca
         basic_constraints:
