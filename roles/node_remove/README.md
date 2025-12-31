@@ -70,28 +70,31 @@ node_remove (full role)
 
 ## Key Variables
 
-| Variable      | Default        | Description               |
-|---------------|----------------|---------------------------|
-| `vip_enabled` | `false`        | Whether VIP is enabled    |
-| `vip_address` | (none)         | VIP address to deregister |
-| `vector_data` | `/data/vector` | Vector data directory     |
+| Variable       | Default        | Description                     |
+|----------------|----------------|---------------------------------|
+| `nodename`     | (auto)         | Node name (from node_id)        |
+| `node_cluster` | `nodes`        | Node cluster name (for VIP DNS) |
+| `vip_enabled`  | `false`        | Whether VIP is enabled          |
+| `vip_address`  | (none)         | VIP address to deregister       |
+| `vector_data`  | `/data/vector` | Vector data directory           |
 
 
 ## Removal Scope
 
 The role removes:
 
-| Component        | What's Removed                              |
-|------------------|---------------------------------------------|
-| Victoria Metrics | `/infra/targets/node/<ip>.yml`              |
-| Ping Target      | `/infra/targets/ping/<ip>.yml`              |
-| VIP Ping Target  | `/infra/targets/ping/<vip>---<ip>.yml`      |
-| VIP DNS          | `/infra/hosts/<cluster>.vip`                |
-| HAProxy Nginx    | `/etc/nginx/conf.d/haproxy/upstream-*.conf` |
-| HAProxy Nginx    | `/etc/nginx/conf.d/haproxy/location-*.conf` |
-| Vector Config    | `/etc/vector/node.yaml`                     |
-| Vector Data      | `/data/vector`                              |
-| Profile Scripts  | `/etc/profile.d/node.sh`                    |
+| Component        | What's Removed                                  |
+|------------------|-------------------------------------------------|
+| Node Target      | `/infra/targets/node/<ip>.yml`                  |
+| Docker Target    | `/infra/targets/docker/<ip>.yml`                |
+| Ping Target      | `/infra/targets/ping/<ip>.yml`                  |
+| VIP Ping Target  | `/infra/targets/ping/<vip>---<ip>.yml`          |
+| VIP DNS          | `/infra/hosts/<cluster>.vip`                    |
+| HAProxy Nginx    | `/etc/nginx/conf.d/haproxy/upstream-<name>.conf`|
+| HAProxy Nginx    | `/etc/nginx/conf.d/haproxy/location-<name>.conf`|
+| Vector Config    | `/etc/vector/node.yaml`                         |
+| Vector Data      | `/data/vector`                                  |
+| Profile Scripts  | `/etc/profile.d/node.sh`, `node.alias.sh`       |
 
 
 ## See Also

@@ -133,33 +133,102 @@ node (full role)
 
 | Variable            | Default | Description            |
 |---------------------|---------|------------------------|
-| `node_repo_modules` | `node`  | Repo modules to enable |
+| `node_repo_modules` | `local` | Repo modules to enable |
 | `node_packages`     | `[]`    | Packages to install    |
 
 ### Admin
 
-| Variable                  | Default | Description       |
-|---------------------------|---------|-------------------|
-| `node_admin_enabled`      | `true`  | Create admin user |
-| `node_admin_username`     | `dba`   | Admin username    |
-| `node_admin_ssh_exchange` | `true`  | Exchange SSH keys |
+| Variable                  | Default  | Description          |
+|---------------------------|----------|----------------------|
+| `node_admin_enabled`      | `true`   | Create admin user    |
+| `node_admin_username`     | `dba`    | Admin username       |
+| `node_admin_uid`          | `88`     | Admin user UID/GID   |
+| `node_admin_sudo`         | `nopass` | Sudo privilege mode  |
+| `node_admin_ssh_exchange` | `true`   | Exchange SSH keys    |
+| `node_admin_pk_current`   | `true`   | Add current user key |
+| `node_admin_pk_list`      | `[]`     | Extra SSH public keys|
+
+**Sudo Modes** (`node_admin_sudo`):
+- `nopass`: Full sudo without password (default)
+- `all`: Full sudo with password required
+- `limit`: Limited commands without password (systemctl, journalctl, cat, less, tail, head)
 
 ### Time
 
 | Variable           | Default          | Description |
 |--------------------|------------------|-------------|
-| `node_timezone`    | `Asia/Hong_Kong` | Timezone    |
+| `node_timezone`    | `''`             | Timezone (empty to skip) |
 | `node_ntp_servers` | `[]`             | NTP servers |
+
+### Tuning
+
+| Variable              | Default | Description               |
+|-----------------------|---------|---------------------------|
+| `node_tune`           | `oltp`  | Tuned profile to apply    |
+| `node_hugepage_count` | `0`     | Number of 2MB hugepages   |
+| `node_hugepage_ratio` | `0`     | Hugepage memory ratio     |
+| `node_sysctl_params`  | `{}`    | Extra sysctl parameters   |
+
+**Tuned Profiles** (`node_tune`):
+- `oltp`: Optimized for transaction processing (low latency, high throughput)
+- `olap`: Optimized for analytical workloads (larger buffers, sequential I/O)
+- `crit`: Balanced for critical workloads
+- `tiny`: Minimal tuning for small/test systems
+- `none`: Skip tuning
 
 ### VIP
 
-| Variable        | Default | Description           |
-|-----------------|---------|-----------------------|
-| `vip_enabled`   | `false` | Enable keepalived VIP |
-| `vip_address`   | (none)  | VIP address with CIDR |
-| `vip_interface` | `eth0`  | Network interface     |
+| Variable        | Default  | Description                              |
+|-----------------|----------|------------------------------------------|
+| `vip_enabled`   | `false`  | Enable keepalived VIP                    |
+| `vip_address`   | (none)   | VIP address with CIDR                    |
+| `vip_vrid`      | (none)   | VRRP router ID (1-254)                   |
+| `vip_role`      | `backup` | Initial role                             |
+| `vip_preempt`   | `false`  | Enable VIP preemption                    |
+| `vip_interface` | `eth0`   | Network interface                        |
+| `vip_auth_pass` | `''`     | VRRP auth password (empty for auto)      |
+
+> **Note**: VIP requires `vip_address` and `vip_vrid` to be set. Multiple nodes
+> with the same `vip_address` form a VRRP cluster for automatic failover.
+> If `vip_auth_pass` is empty, the default `<cluster>-<vrid>` will be used.
 
 Full parameter list: [NODE Configuration](https://pigsty.io/docs/node/config)
+
+
+## Platform Support
+
+This role supports **RHEL/Rocky 8-10**, **Ubuntu 22-24**, and **Debian 12-13**.
+
+Some features have OS-specific implementations:
+- **THP Disable**: Handled by tuned profiles (cross-platform)
+- **Static Network**: RHEL uses `/etc/sysconfig/`, Debian uses systemd-resolved
+- **Firewall**: RHEL uses firewalld, Debian/Ubuntu uses ufw
+
+
+## Security Considerations
+
+The default configuration prioritizes **convenience for development/testing**.
+For production environments, review and adjust the following:
+
+| Setting | Default | Production Recommendation |
+|---------|---------|---------------------------|
+| `node_admin_sudo` | `nopass` | Use `limit` or `all` for least privilege |
+| `node_selinux_mode` | `permissive` | Consider `enforcing` for critical systems |
+| `node_firewall_public_port` | includes `5432` | Remove PostgreSQL port from public exposure |
+| `vip_auth_pass` | auto-generated | Set explicit strong password |
+
+**Recommended production settings**:
+
+```yaml
+node_admin_sudo: limit              # Limited sudo commands without password
+node_selinux_mode: enforcing        # Full SELinux enforcement
+node_firewall_public_port: [22, 80, 443]  # Remove 5432 from public
+vip_auth_pass: '<strong-secret>'    # Explicit VRRP authentication
+```
+
+**SSH Host Key Checking**: The admin user's SSH config disables `StrictHostKeyChecking`
+for cluster operations. This is necessary for ansible but allows potential MITM attacks.
+Ensure your network is trusted or use a bastion host.
 
 
 ## See Also

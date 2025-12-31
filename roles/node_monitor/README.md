@@ -81,11 +81,19 @@ node_monitor (from node.yml)
 
 ### node_exporter
 
-| Variable                | Default | Description          |
-|-------------------------|---------|----------------------|
-| `node_exporter_enabled` | `true`  | Enable node_exporter |
-| `node_exporter_port`    | `9100`  | Listen port          |
-| `node_exporter_options` | `''`    | Extra CLI options    |
+| Variable                | Default     | Description          |
+|-------------------------|-------------|----------------------|
+| `node_exporter_enabled` | `true`      | Enable node_exporter |
+| `node_exporter_port`    | `9100`      | Listen port          |
+| `node_exporter_options` | (see below) | Extra CLI options    |
+
+**Default Options**:
+```
+--no-collector.softnet --no-collector.nvme --collector.tcpstat --collector.processes
+```
+
+These defaults disable noisy/problematic collectors (softnet, nvme) while enabling
+useful ones (tcpstat for TCP connection stats, processes for process metrics).
 
 ### keepalived_exporter
 
@@ -96,11 +104,26 @@ node_monitor (from node.yml)
 
 ### Vector
 
-| Variable         | Default        | Description             |
-|------------------|----------------|-------------------------|
-| `vector_enabled` | `true`         | Enable vector log agent |
-| `vector_port`    | `9115`         | Metrics port            |
-| `vector_data`    | `/data/vector` | Data directory          |
+| Variable              | Default        | Description                          |
+|-----------------------|----------------|--------------------------------------|
+| `vector_enabled`      | `true`         | Enable vector log agent              |
+| `vector_port`         | `9598`         | Metrics port                         |
+| `vector_data`         | `/data/vector` | Data directory                       |
+| `vector_clean`        | `false`        | Purge data dir during init           |
+| `vector_read_from`    | `beginning`    | Read from beginning or end           |
+| `vector_log_endpoint` | `[ infra ]`    | Log destination (see below)          |
+
+**Log Endpoint Configuration** (`vector_log_endpoint`):
+
+| Value                              | Behavior                                              |
+|------------------------------------|-------------------------------------------------------|
+| `[ infra ]`                        | Auto-discover Victoria Logs on infra nodes (default)  |
+| `[ "http://host:9428/..." ]`       | Send to explicit Victoria Logs endpoint               |
+| `[]` (empty)                       | Disable log forwarding, only collect metrics          |
+
+> **Note**: Vector uses `current_boot_only: true`, meaning only logs since the
+> last system boot are collected. Historical logs are not re-ingested on restart
+> to avoid duplicates.
 
 ### HAProxy
 
@@ -116,7 +139,7 @@ node_monitor (from node.yml)
 |---------------------|--------------|------------------------|
 | node_exporter       | 9100         | System metrics         |
 | haproxy_exporter    | 9101         | HAProxy metrics        |
-| vector              | 9115         | Vector metrics         |
+| vector              | 9598         | Vector metrics         |
 | keepalived_exporter | 9650         | VIP/Keepalived metrics |
 
 
@@ -131,12 +154,39 @@ Creates target files at `/infra/targets/node/<ip>.yml`:
   targets:
     - 10.10.10.11:9100    # node_exporter
     - 10.10.10.11:9101    # haproxy_exporter
-    - 10.10.10.11:9115    # vector
+    - 10.10.10.11:9598    # vector
 ```
 
 ### Ping Targets
 
 Creates ping targets at `/infra/targets/ping/<ip>.yml` for ICMP monitoring.
+
+
+## Log Collection Architecture
+
+Vector collects logs from journald and forwards them to Victoria Logs:
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────────┐
+│   journald  │ ──► │   Vector    │ ──► │ Victoria Logs   │
+│  (syslog)   │     │  (agent)    │     │ (infra nodes)   │
+└─────────────┘     └─────────────┘     └─────────────────┘
+```
+
+**Log Fields Collected**:
+
+| Field     | Description                           |
+|-----------|---------------------------------------|
+| `_time`   | Timestamp in RFC3339 format           |
+| `message` | Log message content                   |
+| `app`     | Application identifier (SYSLOG_IDENTIFIER) |
+| `unit`    | Systemd unit name (without .service)  |
+| `pid`     | Process ID                            |
+| `level`   | Syslog level (info, warn, err, etc.)  |
+| `ip`      | Node IP address                       |
+| `ins`     | Node instance name (nodename)         |
+| `cls`     | Node cluster name (node_cluster)      |
+| `job`     | Log job identifier (`syslog`)         |
 
 
 ## See Also
