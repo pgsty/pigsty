@@ -42,9 +42,10 @@ roles/etcd/
 │   ├── main.yml              # Entry point
 │   └── config.yml            # [etcd_config] Configuration
 └── templates/
-    ├── etcd.conf.j2          # ETCD configuration
-    ├── etcd.service.j2       # Systemd service
-    └── etcdctl.sh.j2         # CLI environment
+    ├── etcd.conf             # ETCD configuration
+    ├── etcd.svc              # Systemd service unit
+    ├── etcd.pass             # Root password file
+    └── etcdctl.sh            # CLI environment setup
 ```
 
 
@@ -62,17 +63,18 @@ etcd (full role)
 ├── etcd_dir                   # Create directories
 │
 ├── etcd_config                # Configure etcd
-│   ├── etcd_conf              # Generate config file
-│   ├── etcd_cert              # TLS certificates
-│   └── etcd_env               # Environment setup
+│   ├── etcd_conf              # Generate config files (etcd.conf, etcd.pass, etcd.svc, etcdctl.sh)
+│   └── etcd_cert              # TLS certificates
+│       ├── etcd_cert_issue    # Issue certificates on localhost
+│       └── etcd_cert_copy     # Copy certificates to node
 │
-├── etcd_member                # Add member (for expansion)
+├── etcd_member                # Add member to existing cluster
 │
 ├── etcd_launch                # Start etcd service
 │
 ├── etcd_auth                  # Enable RBAC authentication
 │
-└── etcd_register              # Register to monitoring
+└── etcd_register              # Register to monitoring (add_metrics)
 ```
 
 
@@ -109,7 +111,7 @@ ETCD requires 1, 3, 5, or 7 nodes for proper quorum:
 
 | Nodes | Fault Tolerance | Recommended |
 |-------|-----------------|-------------|
-| 1     | 0               | Dev only    |
+| 1     | 0               | Demo / Dev  |
 | 3     | 1               | Minimum HA  |
 | 5     | 2               | Production  |
 | 7     | 3               | Large scale |
