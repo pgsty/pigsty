@@ -1384,8 +1384,9 @@ INSERT INTO pigsty.default_var VALUES
 (273, 'vip_role', '"backup"', 'NODE', 'NODE_VIP', 'enum', 'I', 'optional, `master/backup`, backup by default, use as init role', NULL),
 (274, 'vip_preempt', 'false', 'NODE', 'NODE_VIP', 'bool', 'C/I', 'optional, `true/false`, false by default, enable vip preemption', NULL),
 (275, 'vip_interface', '"eth0"', 'NODE', 'NODE_VIP', 'string', 'C/I', 'node vip network interface to listen, `eth0` by default', NULL),
-(276, 'vip_dns_suffix', '""', 'NODE', 'NODE_VIP', 'string', 'C', 'node vip dns name suffix, `.vip` by default', NULL),
-(277, 'vip_exporter_port', '9650', 'NODE', 'NODE_VIP', 'port', 'C', 'keepalived exporter listen port, 9650 by default', NULL),
+(276, 'vip_dns_suffix', '""', 'NODE', 'NODE_VIP', 'string', 'C', 'node vip dns name suffix, empty string by default', NULL),
+(277, 'vip_auth_pass', '""', 'NODE', 'NODE_VIP', 'password', 'C', 'vrrp authentication password, empty to use `<cls>-<vrid>` as default', NULL),
+(278, 'vip_exporter_port', '9650', 'NODE', 'NODE_VIP', 'port', 'C', 'keepalived exporter listen port, 9650 by default', NULL),
 
 (280, 'haproxy_enabled', 'true', 'NODE', 'HAPROXY', 'bool', 'C', 'enable haproxy on this node?', NULL),
 (281, 'haproxy_clean', 'false', 'NODE', 'HAPROXY', 'bool', 'G/C/A', 'cleanup all existing haproxy config?', NULL),
