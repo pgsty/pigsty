@@ -4,7 +4,7 @@
 #--------------------------------------------------------------#
 - name: calculate offline package names
   tags: [ always , cache_id ]
-  become: no
+  become: false
   connection: local
   set_fact:
     cache_filename: "{{ cache_pkg_name|replace('${version}', version)|replace('${os}', node_os_code)|replace('${arch}', os_arch) }}"
@@ -30,7 +30,7 @@
 #--------------------------------------------------------------#
 - name: create and trim local repo
   tags: cache_create
-  become: yes
+  become: true
   shell: |
     {% if os_package|default('rpm') == 'rpm' %}
     cd "{{ repo_home }}/{{ repo_name }}";
@@ -67,7 +67,7 @@
 #--------------------------------------------------------------#
 - name: create cache tarball
   tags: cache_tgz
-  become: yes
+  become: true
   shell: |
     tar cvf - -C "{{ repo_home }}" {% for item in cache_repo_list %}{{ item }} {% endfor %} | gzip -9 > /tmp/pkg.tgz
     chmod a+r /tmp/pkg.tgz;
@@ -81,7 +81,7 @@
 #--------------------------------------------------------------#
 - name: fetch cache tarball from target node
   tags: cache_fetch
-  become: no
+  become: false
   synchronize:
     src: /tmp/pkg.tgz
     dest: "{{ cache_dirname }}/{{ cache_filename }}"

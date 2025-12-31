@@ -10,7 +10,7 @@
         msg: "ETCDCTL_ENDPOINTS={% for ip in groups[etcd_cluster]|sort %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
 
     - name: generate etcd config
-      become: yes
+      become: true
       template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
       vars:
         etcdctl_endpoints: "{% for ip in groups[etcd_cluster]|default([]) %}{% if not loop.first %},{% endif %}https://{{ ip }}:{{ etcd_port }}{% endfor %}"
@@ -26,7 +26,7 @@
 #--------------------------------------------------------------#
 - name: generate etcd server certs
   tags: [ etcd_cert, etcd_cert_issue ]
-  become: no
+  become: false
   delegate_to: localhost
   block:
 
@@ -68,7 +68,7 @@
 #--------------------------------------------------------------#
 - name: copy etcd certs
   tags: [ etcd_cert, etcd_cert_copy ]
-  become: yes
+  become: true
   copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
   with_items:
     - { src: "files/pki/ca/ca.crt"                    ,dest: "/etc/etcd/ca.crt"     ,owner: "etcd", group: "etcd" ,mode: "0644" }

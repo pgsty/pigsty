@@ -6,8 +6,8 @@
 # especially when removing entire cluster
 - name: remove postgres replica
   tags: pg_replica
-  become: yes
-  ignore_errors: yes
+  become: true
+  ignore_errors: true
   when: pg_role != 'primary'
   block:
 
@@ -39,8 +39,8 @@
 # then shutdown remaining processes with brute force
 - name: remove postgres primary
   tags: pg_primary
-  become: yes
-  ignore_errors: yes
+  become: true
+  ignore_errors: true
   when: pg_role == 'primary'
   block:
 
@@ -80,7 +80,7 @@
     - groups['etcd'] is defined
     - groups['etcd'] | length > 0
   delegate_to: '{{ groups["etcd"][0] }}'
-  become: yes
+  become: true
   environment:
     ETCDCTL_ENDPOINTS: "{{ groups['etcd'] | map('regex_replace', '^(.*)$', 'https://\\1:' + etcd_port|string) | join(',') }}"
     ETCDCTL_CACERT: "/etc/etcd/ca.crt"

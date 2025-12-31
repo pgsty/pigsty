@@ -100,7 +100,7 @@
 #--------------------------------------------------------------#
 - name: check nginx cert key exists
   tags: [ nginx_cert, nginx_cert_check ]
-  become: no
+  become: false
   delegate_to: localhost
   block:
     - name: check files/pki/nginx/pigsty.key exists
@@ -117,7 +117,7 @@
 
 - name: generate nginx cert
   tags: [ nginx_cert, nginx_cert_issue ]
-  become: no
+  become: false
   delegate_to: localhost
   when: not nginx_cert_exists | bool
   block:
@@ -169,7 +169,7 @@
 
 - name: link nginx certs
   tags: [ nginx_cert, nginx_cert_copy ]
-  become: yes
+  become: true
   ignore_errors: true
   command: /etc/nginx/link-cert
 
@@ -246,7 +246,7 @@
 # 6. Nginx Certbot                               [nginx_certbot]
 #--------------------------------------------------------------#
 - name: sign nginx certs with certbot
-  become: yes
+  become: true
   tags: nginx_certbot
   when: certbot_sign is defined and certbot_sign | bool
   ignore_errors: true

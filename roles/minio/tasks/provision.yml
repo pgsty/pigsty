@@ -20,7 +20,7 @@
 # mcli alias set sss https://sss.pigsty:9000 minioadmin S3User.MinIO
 - name: write minio alias to infra nodes
   tags: minio_alias
-  become: no
+  become: false
   delegate_to: '{{ item }}'
   shell: mcli alias set {{ minio_alias }} {% if minio_endpoint is defined and minio_endpoint != '' %}{{ minio_endpoint }}{% else %}{% if minio_https|bool %}https{% else %}http{% endif %}://{{ minio_domain }}:{{ minio_port }}{% endif %} {{ minio_access_key }} {{ minio_secret_key }}
   args: { executable: /bin/bash }
@@ -34,7 +34,7 @@
 # if minio_cluster_members is overlapping with the infra group, we should not write alias to infra nodes again
 - name: write minio alias to minio cluster nodes
   tags: minio_alias
-  become: no
+  become: false
   when: item not in groups["infra"]|default([])
   delegate_to: '{{ item }}'
   shell: mcli alias set {{ minio_alias }} {% if minio_endpoint is defined and minio_endpoint != '' %}{{ minio_endpoint }}{% else %}{% if minio_https|bool %}https{% else %}http{% endif %}://{{ minio_domain }}:{{ minio_port }}{% endif %} {{ minio_access_key }} {{ minio_secret_key }}
@@ -54,7 +54,7 @@
 - name: create minio buckets
   tags: minio_bucket
   when: minio_buckets|length > 0
-  become: no
+  become: false
   delegate_to: '{{ minio_cluster_members[0] }}'
   block:
 
@@ -82,7 +82,7 @@
 - name: create minio users
   tags: minio_user
   when: minio_users|length > 0
-  become: no
+  become: false
   delegate_to: '{{ minio_cluster_members[0] }}'
   shell: |
     set +o history

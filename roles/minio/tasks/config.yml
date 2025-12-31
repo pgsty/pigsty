@@ -16,7 +16,7 @@
 - name: generate certs for minio
   tags: [ minio_cert, minio_cert_issue ]
   when: minio_https|bool
-  become: no
+  become: false
   delegate_to: localhost
   block:
 
@@ -58,7 +58,7 @@
 #--------------------------------------------------------------#
 - name: copy minio certs
   tags: [ minio_cert, minio_cert_copy ]
-  become: yes
+  become: true
   block:
     - name: create minio cert dir
       when: minio_https|bool
@@ -75,7 +75,7 @@
     - name: disable minio https by removing certs
       when: not minio_https|bool
       file: path=/home/{{ minio_user }}/.minio/certs state=absent
-      ignore_errors: yes
+      ignore_errors: true
 
 
 #--------------------------------------------------------------#

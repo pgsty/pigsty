@@ -79,7 +79,7 @@
 #       - { name: wiki     ,owner: dbuser_wiki     ,revokeconn: true ,comment: wiki meta database }
 #--------------------------------------------------------------#
 - name: PGSQL DB
-  become: yes
+  become: true
   hosts: all
   gather_facts: no
   tasks:
@@ -131,7 +131,7 @@
     #----------------------------------------------------------#
     # register grafana database as grafana datasource (skip if state=absent)
     - include_tasks: roles/pg_monitor/tasks/register_grafana.yml
-      ignore_errors: yes
+      ignore_errors: true
       tags: [ register, grafana, add_ds ]
       when: db_def.state is not defined or db_def.state != 'absent'
       vars: { database: "{{ db_def }}" }
@@ -141,7 +141,7 @@
     #----------------------------------------------------------#
     # unregister grafana database datasource (only when state=absent)
     - include_tasks: roles/pg_remove/tasks/grafana.yml
-      ignore_errors: yes
+      ignore_errors: true
       tags: [ unregister, grafana, rm_ds ]
       when: db_def.state is defined and db_def.state == 'absent'
       vars: { database: "{{ db_def }}" }
