@@ -2,44 +2,71 @@
 ---
 #==============================================================#
 # File      :   cert.yml
-# Desc      :   issue certificates with local CA
+# Desc      :   Issue certificates signed by Pigsty self-signed CA
 # Ctime     :   2022-11-19
-# Mtime     :   2023-02-07
+# Mtime     :   2025-12-31
 # Path      :   cert.yml
-# Docs      :   https://doc.pgsty.com/infra/playbook
-# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Docs      :   https://pigsty.io/docs/infra/cert
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# This playbook issues X.509 certificates using the Pigsty CA.
+# Prerequisites: CA must exist at files/pki/ca/ (created by infra.yml)
+#
+# Usage:
+#   ./cert.yml -e cn=<common_name>                    # basic usage
+#   ./cert.yml -e cn=<name> -e expire=3650d           # custom validity
+#   ./cert.yml -e cn=<name> -e key=<path> -e crt=<path>  # custom output
+#
+# Examples:
+#   ./cert.yml -e cn=dbuser_dba           # PostgreSQL client cert
+#   ./cert.yml -e cn=dbuser_monitor       # Monitor user cert
+#   ./cert.yml -e cn=myapp -e '{"san":["DNS:myapp.local","IP:10.0.0.1"]}'
+#
+# Output:
+#   files/pki/misc/<cn>.key   # Private key (mode 0600)
+#   files/pki/misc/<cn>.crt   # Certificate (mode 0600)
+#   files/pki/csr/<cn>.csr    # CSR file (intermediate, can be deleted)
 #==============================================================#
 
 
-#---------------------------------------------------------------
-# Example:
-#  issue postgres admin/monitor user client certificate:
-#      ./cert.yml -e cn=dbuser_dba
-#      ./cert.yml -e cn=dbuser_monitor
-#  cert are generated under files/pki/misc/<cn>.{key,crt} by default
-#---------------------------------------------------------------
 - name: Issue Cert
   hosts: localhost
   gather_facts: no
   become: false
   vars:
 
-    # CERT INFORMATION
-    cn: pigsty                       # add cn here, required  [INPUT]
-    san:                             # add subject alternative names here
-      - DNS:localhost               # dns records
-      - IP:127.0.0.1                # ip addresses
-    org: pigsty                      # organization name
-    unit: pigsty                     # organization unit name
-    expire: 7300d                    # 20 years
-    #key: files/pki/misc/misc.key    # private key path       [OUTPUT]
-    #crt: files/pki/misc/misc.crt    # certificate file path  [OUTPUT]
-    csr: files/pki/csr/tmp.csr       # temporary csr file path
+    #----------------------------------------------------------#
+    # Certificate Subject Information
+    #----------------------------------------------------------#
+    cn: pigsty                        # Common Name, REQUIRED, pass via -e cn=<name>
+    san:                              # Subject Alternative Names (optional)
+      - DNS:localhost                 #   - DNS names for the certificate
+      - IP:127.0.0.1                  #   - IP addresses for the certificate
+    org: pigsty                       # Organization name in certificate
+    unit: pigsty                      # Organizational Unit name
+
+    #----------------------------------------------------------#
+    # Certificate Validity
+    #----------------------------------------------------------#
+    expire: 7300d                     # Validity period: 20 years by default
+                                      # Use shorter period for sensitive certs
+                                      # e.g., expire=365d for 1 year
+
+    #----------------------------------------------------------#
+    # Output Paths (auto-generated from cn if not specified)
+    #----------------------------------------------------------#
+    # key: files/pki/misc/<cn>.key    # Private key output path
+    # crt: files/pki/misc/<cn>.crt    # Certificate output path
+    csr: files/pki/csr/tmp.csr        # CSR path (overwritten if cn-based)
+
 
   tasks:
 
-    # if key & crt path are not specified, generate them with cn
+    #----------------------------------------------------------#
+    # 1. Determine Output Paths
+    #----------------------------------------------------------#
+    # If key/crt not explicitly provided, derive from cn
     - name: set crt, key, csr path
       when: key is not defined and crt is not defined
       set_fact:
@@ -47,13 +74,21 @@
         crt: "files/pki/misc/{{ cn }}.crt"
         csr: "files/pki/csr/{{ cn }}.csr"
 
-    - name: generate key {{ key_path }}
+    #----------------------------------------------------------#
+    # 2. Generate Private Key
+    #----------------------------------------------------------#
+    # Creates RSA private key if not exists, mode 0600 for security
+    - name: generate private key
       connection: local
       openssl_privatekey:
         path: "{{ key }}"
         mode: 0600
 
-    - name: generate csr {{ csr_path }}
+    #----------------------------------------------------------#
+    # 3. Generate Certificate Signing Request (CSR)
+    #----------------------------------------------------------#
+    # CSR contains subject info and SAN, signed by private key
+    - name: generate signing request
       connection: local
       openssl_csr:
         path: "{{ csr }}"
@@ -62,9 +97,13 @@
         organization_name: "{{ org }}"
         organizational_unit_name: "{{ unit }}"
         subject_alt_name: "{{ san }}"
-        force: true
+        force: true                   # Always regenerate CSR
 
-    - name: signing crt {{ csr_path }}
+    #----------------------------------------------------------#
+    # 4. Sign Certificate with CA
+    #----------------------------------------------------------#
+    # Issue certificate using Pigsty CA (files/pki/ca/ca.{key,crt})
+    - name: sign certificate with CA
       connection: local
       openssl_certificate:
         path: "{{ crt }}"
@@ -72,11 +111,14 @@
         ownca_path: files/pki/ca/ca.crt
         ownca_privatekey_path: files/pki/ca/ca.key
         provider: ownca
-        selfsigned_not_after: "+{{ expire }}"
+        ownca_not_after: "+{{ expire }}"
         mode: 0600
 
-    - name: print summary
+    #----------------------------------------------------------#
+    # 5. Print Result
+    #----------------------------------------------------------#
+    - name: print certificate paths
       debug:
-        msg: "{{ key }} {{ crt }}"
+        msg: "Certificate issued: {{ key }} {{ crt }}"
 
 ...
