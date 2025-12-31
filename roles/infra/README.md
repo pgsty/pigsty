@@ -16,6 +16,8 @@ The `infra` role deploys the Pigsty infrastructure stack on admin nodes:
 - **Nginx**: Web server and reverse proxy
 - **Victoria Metrics**: Time-series database for metrics
 - **Victoria Logs**: Log aggregation and storage
+- **Victoria Traces**: Distributed tracing backend
+- **VMAlert**: Alert rule evaluation engine
 - **Alertmanager**: Alert management and routing
 - **Blackbox Exporter**: Probe-based monitoring
 - **Grafana**: Visualization and dashboards
@@ -99,11 +101,17 @@ infra (full role)
 │
 ├── victoria                   # Victoria Metrics stack
 │   ├── vmetrics               # VictoriaMetrics
+│   │   ├── vmetrics_clean     # Clean old data
 │   │   ├── vmetrics_config    # Generate config
 │   │   └── vmetrics_launch    # Start service
 │   ├── vlogs                  # VictoriaLogs
+│   │   ├── vlogs_clean        # Clean old data
 │   │   ├── vlogs_config       # Generate config
 │   │   └── vlogs_launch       # Start service
+│   ├── vtraces                # VictoriaTraces
+│   │   ├── vtraces_clean      # Clean old data
+│   │   ├── vtraces_config     # Generate config
+│   │   └── vtraces_launch     # Start service
 │   └── vmalert                # VMAlert
 │       ├── vmalert_config     # Generate config
 │       └── vmalert_launch     # Start service
@@ -150,8 +158,31 @@ infra (full role)
 | Variable               | Default | Description                |
 |------------------------|---------|----------------------------|
 | `vmetrics_enabled`     | `true`  | Enable VictoriaMetrics     |
+| `vmetrics_clean`       | `false` | Clean data during init     |
 | `vmetrics_port`        | `8428`  | Listen port                |
-| `vmetrics_retention`   | `90d`   | Data retention period      |
+
+### Victoria Logs
+
+| Variable               | Default | Description                |
+|------------------------|---------|----------------------------|
+| `vlogs_enabled`        | `true`  | Enable VictoriaLogs        |
+| `vlogs_clean`          | `false` | Clean data during init     |
+| `vlogs_port`           | `9428`  | Listen port                |
+
+### Victoria Traces
+
+| Variable               | Default | Description                |
+|------------------------|---------|----------------------------|
+| `vtraces_enabled`      | `true`  | Enable VictoriaTraces      |
+| `vtraces_clean`        | `false` | Clean data during init     |
+| `vtraces_port`         | `10428` | Listen port                |
+
+### VMAlert
+
+| Variable               | Default | Description                |
+|------------------------|---------|----------------------------|
+| `vmalert_enabled`      | `true`  | Enable VMAlert             |
+| `vmalert_port`         | `8880`  | Listen port                |
 
 ### Grafana
 
@@ -162,12 +193,19 @@ infra (full role)
 | `grafana_admin_username` | `admin`  | Admin username |
 | `grafana_admin_password` | `pigsty` | Admin password |
 
+### Blackbox Exporter
+
+| Variable               | Default | Description                |
+|------------------------|---------|----------------------------|
+| `blackbox_enabled`     | `true`  | Enable Blackbox Exporter   |
+| `blackbox_port`        | `9115`  | Listen port                |
+
 ### Alertmanager
 
 | Variable               | Default | Description                |
 |------------------------|---------|----------------------------|
 | `alertmanager_enabled` | `true`  | Enable Alertmanager        |
-| `alertmanager_port`    | `9093`  | Listen port                |
+| `alertmanager_port`    | `9059`  | Listen port                |
 
 Full parameter list: [INFRA Configuration](https://pigsty.io/docs/infra/param)
 
@@ -180,8 +218,9 @@ Full parameter list: [INFRA Configuration](https://pigsty.io/docs/infra/param)
 | Nginx            | 80/443       | HTTP/HTTPS            |
 | VictoriaMetrics  | 8428         | Metrics database      |
 | VictoriaLogs     | 9428         | Log aggregation       |
+| VictoriaTraces   | 10428        | Distributed tracing   |
 | VMAlert          | 8880         | Alert evaluation      |
-| Alertmanager     | 9093         | Alert management      |
+| Alertmanager     | 9059         | Alert management      |
 | Blackbox         | 9115         | Probe exporter        |
 | Grafana          | 3000         | Visualization         |
 
