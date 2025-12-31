@@ -5,7 +5,7 @@
 - name: remove node target from victoria
   tags: [ node_deregister, deregister, rm_metrics ]
   become: yes
-  ignore_errors: yes
+  ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   file: state=absent path=/infra/targets/node/{{ inventory_hostname }}.yml
@@ -13,7 +13,7 @@
 - name: remove docker target from victoria
   tags: [ node_deregister, deregister, rm_metrics ]
   become: yes
-  ignore_errors: yes
+  ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   file: state=absent path=/infra/targets/docker/{{ inventory_hostname }}.yml
@@ -21,7 +21,7 @@
 - name: remove node ping target from victoria
   tags: [ node_deregister, deregister, rm_metrics ]
   become: yes
-  ignore_errors: yes
+  ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   file: state=absent path=/infra/targets/ping/{{ inventory_hostname }}.yml
@@ -30,7 +30,7 @@
   tags: [ node_deregister, deregister, rm_metrics ]
   when: vip_enabled|bool and vip_address is defined and vip_address != ''
   become: yes
-  ignore_errors: yes
+  ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   file: state=absent path=/infra/targets/ping/{{ vip_address }}---{{ inventory_hostname }}.yml
@@ -39,7 +39,7 @@
   tags: [ node_deregister, deregister, rm_dns ]
   when: vip_enabled|bool
   become: yes
-  ignore_errors: yes
+  ignore_errors: true
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   file: state=absent path=/infra/hosts/{{ node_cluster }}.vip
@@ -57,7 +57,7 @@
 - name: stop and disable keepalived service
   tags: vip
   when: vip_enabled|bool
-  ignore_errors: yes
+  ignore_errors: true
   systemd: name=keepalived state=stopped enabled=no daemon_reload=yes
 
 #--------------------------------------------------------------#
@@ -65,7 +65,7 @@
 #--------------------------------------------------------------#
 - name: stop and disable haproxy
   tags: haproxy
-  ignore_errors: yes
+  ignore_errors: true
   block:
     - name: stop and disable haproxy
       systemd: name=haproxy state=stopped enabled=no daemon_reload=yes
@@ -77,7 +77,7 @@
 #--------------------------------------------------------------#
 - name: stop and disable node_exporter service
   tags: node_exporter
-  ignore_errors: yes
+  ignore_errors: true
   systemd: name=node_exporter state=stopped enabled=no daemon_reload=yes
 
 #--------------------------------------------------------------#
@@ -86,7 +86,7 @@
 - name: stop and disable keepalived_exporter service
   tags: vip_exporter
   when: vip_enabled|bool
-  ignore_errors: yes
+  ignore_errors: true
   systemd: name=keepalived_exporter state=stopped enabled=no daemon_reload=yes
 
 #--------------------------------------------------------------#
@@ -106,7 +106,7 @@
 #--------------------------------------------------------------#
 - name: stop and disable vector service
   tags: vector
-  ignore_errors: yes
+  ignore_errors: true
   block:
     - name: stop vector service
       systemd: name=vector state=stopped enabled=no daemon_reload=yes
@@ -118,7 +118,7 @@
 #--------------------------------------------------------------#
 - name: remove node etc profile
   tags: profile
-  ignore_errors: yes
+  ignore_errors: true
   file:
     path: "/etc/profile.d/{{ item }}"
     state: absent

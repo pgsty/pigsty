@@ -15,7 +15,7 @@
       loop: '{{ groups["infra"]|default([]) }}'
       file: path=/etc/nginx/conf.d/haproxy state=directory owner=root
 
-    # /etc/nginx/conf.d/haproxy/upstream-{{ pg_instance }}.conf
+    # /etc/nginx/conf.d/haproxy/upstream-{{ nodename }}.conf
     - name: register haproxy upstream to nginx
       delegate_to: '{{ item }}'
       loop: '{{ groups["infra"]|default([]) }}'
@@ -26,7 +26,7 @@
               server {{ inventory_hostname }}:{{ haproxy_exporter_port }} max_fails=0;
           }
 
-    # /etc/nginx/conf.d/haproxy/location-{{ pg_instance }}.conf
+    # /etc/nginx/conf.d/haproxy/location-{{ nodename }}.conf
     - name: register haproxy url location to nginx
       delegate_to: '{{ item }}'
       loop: '{{ groups["infra"]|default([]) }}'
@@ -179,7 +179,7 @@
     content: |
       # {{ inventory_hostname }}
       - labels: { ip: {{ inventory_hostname }} , ins: {{ nodename }} , cls: {{ node_cluster|default('nodes') }} }
-        targets: [ {{inventory_hostname }} ]
+        targets: [ {{ inventory_hostname }} ]
 
 - name: register node vip as ping target
   tags: [ node_vip, node_register, register, add_metrics ]
