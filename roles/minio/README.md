@@ -177,8 +177,9 @@ minio_users:
 MinIO uses TLS certificates signed by Pigsty CA:
 
 - **CA**: `files/pki/ca/ca.crt`
-- **Server Cert**: `/var/lib/minio/certs/public.crt`
-- **Server Key**: `/var/lib/minio/certs/private.key`
+- **Server Cert**: `/home/minio/.minio/certs/public.crt`
+- **Server Key**: `/home/minio/.minio/certs/private.key`
+- **CA on Server**: `/home/minio/.minio/certs/CAs/ca.crt`
 
 
 ## See Also
