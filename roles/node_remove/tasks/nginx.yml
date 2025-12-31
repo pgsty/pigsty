@@ -4,16 +4,16 @@
 #--------------------------------------------------------------#
 - name: remove haproxy instance from nginx
   become: yes
-  ignore_errors: yes
+  ignore_errors: true
   block:
 
-    # /etc/nginx/conf.d/haproxy/upstream-{{ pg_instance }}.conf
+    # /etc/nginx/conf.d/haproxy/upstream-{{ nodename }}.conf
     - name: remove haproxy upstream from nginx
       delegate_to: '{{ item }}'
       loop: '{{ groups["infra"]|default([]) }}'
       file: state=absent path=/etc/nginx/conf.d/haproxy/upstream-{{ nodename }}.conf
 
-    # /etc/nginx/conf.d/haproxy/location-{{ pg_instance }}.conf
+    # /etc/nginx/conf.d/haproxy/location-{{ nodename }}.conf
     - name: remove haproxy url location from nginx
       delegate_to: '{{ item }}'
       loop: '{{ groups["infra"]|default([]) }}'
