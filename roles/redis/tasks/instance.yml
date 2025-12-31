@@ -78,15 +78,16 @@
 
     # services name examples:  redis-test-1-6379 , redis-sentinel-2-26379
     - name: render systemd svc for {{ redis_cluster }}-{{ redis_node }}-{{ port }} @ {{ inventory_hostname }}
-      template: src={{ service_template }} dest={{ systemd_dir }}/{{ svcname }} owner=root mode=644
-      vars:
-        svcname: "{{ redis_cluster }}-{{ redis_node }}-{{ port }}.service"
-        service_template: "{% if redis_mode == 'sentinel' %}redis-sentinel.svc{% else %}redis.svc{% endif %}"
+      template: src=redis.svc dest={{ systemd_dir }}/{{ redis_cluster }}-{{ redis_node }}-{{ port }}.service owner=root mode=644
 
 
 #--------------------------------------------------------------#
 # launch                                          [redis_launch]
 #--------------------------------------------------------------#
+# NOTE: No health check after launch for performance reasons.
+# When deploying many instances in batch, health checks would
+# significantly slow down the deployment process. Users can
+# verify instance status manually with: redis-cli -p <port> ping
 - name: launch {{ redis_cluster }}-{{ redis_node }}-{{ port }} @ {{ inventory_hostname }}
   tags: [ redis_instance, redis_launch ]
   # systemd: name="{{ redis_cluster }}-{{ redis_node }}-{{ port }}.service" state=restarted enabled=yes daemon_reload=yes

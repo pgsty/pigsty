@@ -1,5 +1,5 @@
 [Unit]
-Description=Redis Instance {{ redis_cluster }}-{{ redis_node }}-{{ port }} @ {{ inventory_hostname }}:{{ port }}
+Description=Redis {% if redis_mode == 'sentinel' %}Sentinel {% endif %}Instance {{ redis_cluster }}-{{ redis_node }}-{{ port }} @ {{ inventory_hostname }}:{{ port }}
 Documentation=https://redis.io/documentation
 #AssertPathExists=/var/log/redis
 #AssertPathExists=/var/run/redis
@@ -7,7 +7,7 @@ Documentation=https://redis.io/documentation
 AssertPathExists=/etc/redis/{{ redis_cluster }}-{{ redis_node }}-{{ port }}.conf
 
 [Service]
-ExecStart=/bin/redis-server /etc/redis/{{ redis_cluster }}-{{ redis_node }}-{{ port }}.conf --daemonize no --supervised systemd
+ExecStart=/bin/redis-server /etc/redis/{{ redis_cluster }}-{{ redis_node }}-{{ port }}.conf {% if redis_mode == 'sentinel' %}--sentinel {% endif %}--daemonize no --supervised systemd
 ExecStop=/usr/libexec/redis-shutdown {{ redis_cluster }}-{{ redis_node }}-{{ port }}
 #ExecStop=/bin/redis-cli -p {{ port }} shutdown
 WorkingDirectory={{ redis_fs_main }}/redis/{{ redis_cluster }}-{{ redis_node }}-{{ port }}

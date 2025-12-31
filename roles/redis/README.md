@@ -48,8 +48,7 @@ roles/redis/
 └── templates/
     ├── redis.conf            # Redis config template
     ├── redis-sentinel.conf   # Sentinel config template
-    ├── redis.svc             # Systemd service template
-    ├── redis-sentinel.svc    # Sentinel service template
+    ├── redis.svc             # Systemd service template (unified for all modes)
     └── redis.yaml            # Vector logging config
 ```
 
