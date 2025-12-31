@@ -151,7 +151,6 @@
   block:
 
     - name: calculate repo packages
-      tags: haha
       become: false
       connection: local
       set_fact:
@@ -195,7 +194,23 @@
 #--------------------------------------------------------------#
 # 3.8 Create repo                                  [repo_create]
 #--------------------------------------------------------------#
-# create local yum/apt repo
+# Create local yum/apt repo with metadata
+#
+# DIRTY PACKAGE CLEANUP:
+# When downloading packages from upstream repos, some unwanted packages may
+# be pulled in as dependencies or from multi-arch repos. These must be
+# removed before creating the repo to avoid conflicts and reduce repo size:
+#
+# - *.i686.rpm (EL7): 32-bit packages from multilib repos, not needed on x86_64
+# - *i386.deb (Debian/Ubuntu): 32-bit packages, same reason as above
+# - patroni*3.0.4*: Duplicated old version that conflicts with newer patroni
+#   (PGDG repo sometimes has multiple versions, we keep only the latest)
+#
+# These "dirty" packages can cause:
+# - Package conflicts during installation
+# - Unnecessary disk space usage
+# - Confusion when multiple versions exist
+#--------------------------------------------------------------#
 - name: create local repo
   tags: [ repo_create, repo_new ]
   shell:
@@ -203,9 +218,9 @@
       {% if os_package|default('rpm') == 'rpm' %}
       cd "{{ repo_home }}/{{ repo_name }}";
       {% if os_version|int == 7 %}
-      rm -f *.i686.rpm;       # remove i686 packages
+      rm -f *.i686.rpm;       # remove 32-bit i686 packages (EL7 multilib)
       {% endif %}
-      rm -rf patroni*3.0.4*;  # remove duplicated old version
+      rm -rf patroni*3.0.4*;  # remove old patroni 3.0.4 (keep latest version only)
       createrepo_c {{ repo_home }}/{{ repo_name }}
       {% if os_version|int >= 8 and os_version|int < 10 %}
       repo2module -s stable . modules.yaml;
@@ -216,7 +231,7 @@
       
       {% elif os_package|default('rpm') == 'deb' %}
       cd {{ repo_home }}/{{ repo_name }};
-      rm -f *i386.deb;   # remove i386 packages
+      rm -f *i386.deb;
       rm -rf Packages.gz;
       dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz
       md5sum *.deb > {{ repo_home }}/{{ repo_name }}/repo_complete || /bin/true
