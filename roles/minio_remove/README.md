@@ -15,7 +15,7 @@ The `minio_remove` role removes MinIO instances:
 - Check safeguard protection
 - Pause for confirmation (3 seconds)
 - Deregister from Victoria Metrics
-- Remove DNS records from dnsmasq
+- Remove DNS records (dnsmasq and /etc/hosts)
 - Stop MinIO service (graceful then force)
 - Remove data directories (optional)
 - Uninstall packages (optional)
@@ -58,7 +58,7 @@ minio_remove (full role)
 │
 ├── minio_deregister           # Deregister from monitoring
 │   ├── rm_metrics             # Remove Victoria targets
-│   └── rm_dns                 # Remove DNS records
+│   └── rm_dns                 # Remove DNS records (dnsmasq & /etc/hosts)
 │
 ├── minio_svc                  # Stop MinIO service
 │
@@ -98,9 +98,9 @@ Override with:
 | Component    | What's Removed                             |
 |--------------|--------------------------------------------|
 | Monitoring   | `/infra/targets/minio/<cluster>-<seq>.yml` |
-| DNS          | `/infra/hosts/<cluster>-<seq>`             |
+| DNS          | `/infra/hosts/<cluster>-<seq>`, `/etc/hosts` entries |
 | Service      | `minio.service` (systemd)                  |
-| Config       | `/etc/default/minio`, `/var/lib/minio`     |
+| Config       | `/etc/default/minio`, `/home/minio/.minio` |
 | Data         | All directories in `minio_data`            |
 | Logging      | via syslog                                 |
 | Packages     | `minio`, `mcli` (if enabled)               |
