@@ -4,7 +4,7 @@
 # File      :   redis-rm.yml
 # Desc      :   remove redis cluster / node /instance
 # Ctime     :   2022-03-20
-# Mtime     :   2025-12-12
+# Mtime     :   2025-12-31
 # Path      :   redis-rm.yml
 # Docs      :   https://doc.pgsty.com/redis/playbook
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -14,11 +14,14 @@
   hosts: all
   become: true
   gather_facts: no
-  roles: [{ role: node_id }, { role: redis_remove }]
+  ignore_errors: true
+  roles:
+    - { role: node_id,      when: redis_cluster is defined }
+    - { role: redis_remove, when: redis_cluster is defined }
   vars:
     #redis_safeguard: false           # prevent purging running redis instance?
-    #redis_rmdata: true               # remove redis data dir? (/data/redis/...)
-    redis_uninstall: false            # uninstall redis & redis_exporter? false by default
+    #redis_rm_data: true              # remove redis data dir? (/data/redis/...)
+    redis_rm_pkg: false               # uninstall redis & redis_exporter? false by default
 
 
 #--------------------------------------------------------------#
@@ -26,9 +29,12 @@
 #--------------------------------------------------------------#
 #  Remove cluster `redis-test`
 #     redis-rm.yml -l redis-test
+#         -e redis_rm_data=true      # remove redis data by default
+#         -e redis_rm_pkg=false      # do not uninstall redis packages by default
+#         -e redis_safeguard=false   # safeguard is not enabled by default
 #
 #  Remove cluster `redis-test`, and uninstall packages
-#     redis-rm.yml -l redis-test -e redis_uninstall=true
+#     redis-rm.yml -l redis-test -e redis_rm_pkg=true
 #
 #  Remove all instance on redis node 10.10.10.13
 #     redis-rm.yml -l 10.10.10.13
@@ -47,12 +53,13 @@
 #--------------------------------------------------------------#
 # Tasks
 #--------------------------------------------------------------#
+# redis_safeguard  : check safeguard and abort if enabled
 # redis_deregister : remove monitor target from infra
 #   - rm_metrics   : remove redis metrics from victoria
 #   - rm_logs      : remove redis logs from vector
 # redis_exporter   : stop and disable redis_exporter
 # redis            : stop and disable redis cluster/node/instance
-# redis_data       : remove redis data (rdb, aof)
-# redis_pkg        : uninstall redis & redis_exporter packages
+# redis_data       : remove redis data (disable with `redis_rm_data=false`)
+# redis_pkg        : uninstall redis packages (enable with `redis_rm_pkg=true`)
 #--------------------------------------------------------------#
 ...

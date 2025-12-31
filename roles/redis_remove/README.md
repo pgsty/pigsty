@@ -12,14 +12,15 @@
 
 The `redis_remove` role removes Redis instances from a node:
 
-- Check safeguard protection
+- Check safeguard protection (`redis_safeguard`)
 - Deregister from Victoria Metrics
 - Deregister from Vector logging
 - Stop redis_exporter service
 - Stop Redis instance services
-- Remove data directories (optional)
-- Uninstall packages (optional)
+- Remove data directories (`redis_rm_data`)
+- Uninstall packages (`redis_rm_pkg`)
 
+Only nodes with `redis_cluster` defined will be affected.
 Supports removing single instance (via `redis_port`) or entire node.
 
 
@@ -71,8 +72,8 @@ redis_remove (full role)
 | Variable          | Default | Description                    |
 |-------------------|---------|--------------------------------|
 | `redis_safeguard` | `false` | Prevent accidental removal     |
-| `redis_rmdata`    | `true`  | Remove data directories        |
-| `redis_uninstall` | `false` | Uninstall Redis packages       |
+| `redis_rm_data`   | `true`  | Remove data directories        |
+| `redis_rm_pkg`    | `false` | Uninstall Redis packages       |
 
 
 ## CLI Arguments

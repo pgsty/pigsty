@@ -1463,8 +1463,6 @@ INSERT INTO pigsty.default_var VALUES
 (711, 'redis_exporter_enabled', 'true', 'REDIS', 'REDIS', 'bool', 'C', 'install redis exporter on redis nodes?', NULL),
 (712, 'redis_exporter_port', '9121', 'REDIS', 'REDIS', 'port', 'C', 'redis exporter listen port, 9121 by default', NULL),
 (713, 'redis_exporter_options', '""', 'REDIS', 'REDIS', 'string', 'C/I', 'cli args and extra options for redis exporter', NULL),
-(720, 'redis_safeguard', 'false', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'prevent purging running redis instance? (redis_remove)', NULL),
-(722, 'redis_rmdata', 'true', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'remove redis data dir? (redis_remove)', NULL),
 (723, 'redis_mode', '"standalone"', 'REDIS', 'REDIS', 'enum', 'C', 'redis mode: standalone,cluster,sentinel', NULL),
 (724, 'redis_conf', '"redis.conf"', 'REDIS', 'REDIS', 'string', 'C', 'redis config template path, except sentinel', NULL),
 (725, 'redis_bind_address', '"0.0.0.0"', 'REDIS', 'REDIS', 'ip', 'C', 'redis bind address, empty string will use host ip', NULL),
@@ -1476,6 +1474,9 @@ INSERT INTO pigsty.default_var VALUES
 (731, 'redis_rename_commands', '{}', 'REDIS', 'REDIS', 'dict', 'C', 'rename redis dangerous commands', NULL),
 (732, 'redis_cluster_replicas', '1', 'REDIS', 'REDIS', 'int', 'C', 'replica number for one master in redis cluster', NULL),
 (733, 'redis_sentinel_monitor', '[]', 'REDIS', 'REDIS', 'master[]', 'C', 'sentinel master list, works on sentinel cluster only', NULL),
+(750, 'redis_safeguard', 'false', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'prevent purging running redis instance?', NULL),
+(751, 'redis_rm_data', 'true', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'remove redis data dir? (/data/redis/...)', NULL),
+(752, 'redis_rm_pkg', 'false', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'uninstall redis & redis_exporter packages?', NULL),
 
 -- PGSQL PARAMETERS
 (801, 'pg_mode', '"pgsql"', 'PGSQL', 'PG_ID', 'enum', 'C', 'pgsql cluster mode: pgsql,citus,gpsql,mssql,mysql,ivory,polar', NULL),

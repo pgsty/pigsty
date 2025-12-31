@@ -18,6 +18,9 @@ The `redis` role deploys **Redis** instances in various modes:
 - Create Redis instances (standalone/cluster/sentinel)
 - Register to monitoring system
 
+**Idempotent**: Re-running the playbook will update config and restart services.
+Only nodes with `redis_cluster` defined will be affected.
+
 Redis supports three deployment modes:
 - **Standalone**: Single instance or master-replica
 - **Cluster**: Native Redis cluster with sharding
