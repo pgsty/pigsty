@@ -2,88 +2,136 @@
 ---
 #==============================================================#
 # File      :   cache.yml
-# Desc      :   make offline package cache from target nodes
+# Desc      :   Create offline package cache from infra nodes
 # Ctime     :   2024-08-22
-# Mtime     :   2024-12-16
+# Mtime     :   2024-12-31
 # Path      :   cache.yml
-# Docs      :   https://doc.pgsty.com/infra/playbook
+# Docs      :   https://pigsty.io/docs/setup/offline
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
+# This playbook creates an offline package tarball from an
+# existing local repository on infra nodes. The tarball can be
+# used for air-gapped/offline installations.
+#
+# Prerequisites:
+#   - Pigsty must be installed on the target node with repo_enabled
+#   - Local repo must exist at /www/pigsty (run infra.yml first)
+#
+# Output:
+#   dist/${version}/pigsty-pkg-${version}.${os}.${arch}.tgz
+#
+# Example:
+#   ./cache.yml -l infra          # from infra group
+#   ./cache.yml -l 10.10.10.10    # from specific node
+#==============================================================#
 
-# the default dir for collecting offline package is dist/${version}
-- name: CREATE LOCAL DIR
-  become: false
+
+#--------------------------------------------------------------#
+# PLAY 1: Create local directory for cache tarball   [cache_dir]
+#--------------------------------------------------------------#
+- name: CREATE LOCAL DIST DIR
   hosts: localhost
+  become: false
   gather_facts: no
   tags: cache_dir
   tasks:
-    - name: create local directory
-      file: path={{ cache_pkg_dir|default('dist/${version}') | replace('${version}', version|default('v4.0.0')) }} state=directory
+    - name: create local dist directory
+      file:
+        path: "{{ cache_pkg_dir | default('dist/${version}') | replace('${version}', version | default('v4.0.0')) }}"
+        state: directory
+        mode: '0755'
 
 
-# gather offline packages from target nodes (the infra node with repo enabled)
+#--------------------------------------------------------------#
+# PLAY 2: Make offline package from target node       [id,cache]
+#--------------------------------------------------------------#
+# This play runs on the target infra node to:
+#   1. Detect node identity (OS, version, architecture)
+#   2. Clean dirty packages and recreate repo metadata
+#   3. Create compressed tarball at /tmp/pkg.tgz
+#   4. Fetch tarball back to control node
+#--------------------------------------------------------------#
 - name: MAKE OFFLINE PACKAGE
   hosts: all
   become: true
   gather_facts: no
   vars:
     #version: v4.0.0
-    #cache_pkg_dir: 'dist/${version}'  # where to store the cached package? dist/${version} by default
-    #cache_pkg_name: 'pigsty-pkg-${version}.${os}.${arch}.tgz' # cache offline package filename pattern
-    #cache_repo: pigsty                # target repo(s) to be cached, use `,` to separate multiple repos
+    #cache_repo: pigsty                 # target repo(s) to be cached, use `,` to separate multiple repos
+    #cache_pkg_dir: 'dist/${version}'   # where to store the cached package? dist/${version} by default
+    #cache_pkg_name: 'pigsty-pkg-${version}.${os}.${arch}.tgz'  # cache offline package filename pattern
   roles:
-    - { role: node_id       , tags: id       }  # get node identity (always)
-    - { role: cache         , tags: cache    }  # make offline package
+    - { role: node_id, tags: id    }   # detect node identity
+    - { role: cache,   tags: cache }   # create and fetch cache tarball
 
 
-# the default dir for collecting offline package is dist/${version}
-- name: CREATE LOCAL DIR
-  become: false
+#--------------------------------------------------------------#
+# PLAY 3: Calculate checksums and display info      [cache_info]
+#--------------------------------------------------------------#
+- name: SHOW CACHE TARBALL INFO
   hosts: localhost
+  become: false
   gather_facts: no
   tags: cache_info
   tasks:
 
-    - name: create cache directory
+    - name: ensure cache directory exists
       file:
-        path: "{{ cache_pkg_dir|default('dist/${version}') | replace('${version}', version|default('v4.0.0')) }}"
+        path: "{{ cache_pkg_dir | default('dist/${version}') | replace('${version}', version | default('v4.0.0')) }}"
         state: directory
         mode: '0755'
 
-    - name: calculate cache tarball md5 checksum
+    - name: calculate cache tarball checksums
       shell: |
-        cd {{ cache_pkg_dir|default('dist/${version}') | replace('${version}', version|default('v4.0.0')) }}
+        cd "{{ cache_pkg_dir|default('dist/${version}') | replace('${version}', version|default('v4.0.0')) }}"
         md5sum *.tgz > checksums
         cat checksums
         ls -lh *.tgz
-      register: cache_md5
+      register: cache_result
 
-    - name: show cache tarball md5 checksum
+    - name: display cache information
       debug:
-        msg: "{{ cache_md5.stdout_lines }}"
+        msg: "{{ cache_result.stdout_lines }}"
 
 
-#---------------------------------------------------------------
-# Usage
-#---------------------------------------------------------------
-# 1. make sure your nodes are already installed with pigsty!
-# 2. make sure target nodes are the infra nodes with repo enabled!
+#==============================================================#
+# Usage Examples
+#==============================================================#
 #
-#     cache.yml -l infra        # make offline package from the infra group
-#     cache.yml -l 10.10.10.10  # make offline package from the ad hoc node
+#   ./cache.yml -l infra              # create cache from infra group
+#   ./cache.yml -l 10.10.10.10        # create cache from specific node
+#   ./cache.yml -l infra -t cache_dir # create local dist dir only
 #
-# The tarball will be generated @ /tmp/pkg.tgz, and copy to dist/${version}
-#---------------------------------------------------------------
-# Tasks
-#---------------------------------------------------------------
-# cache_dir     : create local dist dir for cache tarball
-# id            : calculate node identity
-# cache_id      : calculate cache tarball name
-# cache_check   : check repo directories exists
-# cache_create  : adjust and recreate local yum/apt repo
-# cache_tgz     : make cache tarball from local repos
-# cache_fetch   : fetch cache tarball from target nodes
-# cache_info    : generate cache md5sum and print size
-#---------------------------------------------------------------
+#   # Override version
+#   ./cache.yml -l infra -e version=v4.0.0
+#
+#   # Cache multiple repos
+#   ./cache.yml -l infra -e cache_repo=pigsty,minio
+#
+#==============================================================#
+# Tag Reference
+#==============================================================#
+#
+#   cache_dir    : create local dist directory (localhost)
+#   id           : detect node identity (OS, version, arch)
+#   cache        : full cache role execution
+#   cache_id     : calculate cache tarball filename
+#   cache_check  : verify repo directories exist and not empty
+#   cache_create : clean dirty packages, recreate repo metadata
+#   cache_tgz    : create /tmp/pkg.tgz tarball on target
+#   cache_fetch  : fetch tarball from target to control node
+#   cache_info   : calculate md5sum and display file sizes
+#
+#==============================================================#
+# Workflow
+#==============================================================#
+#
+#   1. Ensure Pigsty is installed:  ./install.yml
+#   2. Create offline package:      ./cache.yml -l infra
+#   3. Transfer to air-gapped env:  scp dist/v4.0.0/*.tgz target:/tmp/
+#   4. Bootstrap with package:      ./bootstrap -p /tmp/pigsty-pkg-*.tgz
+#   5. Configure and install:       ./configure && ./install.yml
+#
+#==============================================================#
 ...

@@ -2,10 +2,13 @@
 #--------------------------------------------------------------#
 # 0. Identifier                                       [cache_id]
 #--------------------------------------------------------------#
+# Calculate output filename based on version, OS, and architecture
+# Uses placeholders from cache_pkg_name and cache_pkg_dir variables
+# Example: pigsty-pkg-v4.0.0.el9.x86_64.tgz -> dist/v4.0.0/
+#--------------------------------------------------------------#
 - name: calculate offline package names
   tags: [ always , cache_id ]
   become: false
-  connection: local
   set_fact:
     cache_filename: "{{ cache_pkg_name|replace('${version}', version)|replace('${os}', node_os_code)|replace('${arch}', os_arch) }}"
     cache_dirname: "{{ cache_pkg_dir | replace('${version}', version) }}"
@@ -14,6 +17,9 @@
 
 #--------------------------------------------------------------#
 # 1. Check                                         [cache_check]
+#--------------------------------------------------------------#
+# Verify that repository directories exist and contain packages
+# Fails if any specified repo directory is empty or missing
 #--------------------------------------------------------------#
 - name: check repo dirs exists & not empty
   tags: cache_check
@@ -28,6 +34,25 @@
 #--------------------------------------------------------------#
 # 2. Create Repo                                  [cache_create]
 #--------------------------------------------------------------#
+# Clean up dirty packages and recreate repository metadata
+#
+# DIRTY PACKAGE CLEANUP:
+# Before creating the cache, unwanted packages are removed to
+# reduce tarball size and avoid installation conflicts:
+#
+# - *.i686.rpm (EL7): 32-bit packages from multilib repos
+# - *i386.deb (DEB): 32-bit packages not needed on x86_64
+# - patroni*3.0.4*: Old version that conflicts with newer patroni
+# - proj-data* (EL9+): Large optional geospatial data (~500MB)
+# - *docs*: Documentation packages (unnecessary for runtime)
+#
+# METADATA GENERATION:
+# - RPM: createrepo_c creates repodata/ with repomd.xml
+# - RPM EL8/9: repo2module adds DNF module metadata (modules.yaml)
+# - DEB: dpkg-scanpackages creates Packages.gz
+#
+# Note: repo2module is NOT available on EL7 (yum) or EL10+
+#--------------------------------------------------------------#
 - name: create and trim local repo
   tags: cache_create
   become: true
@@ -41,15 +66,15 @@
     {% endif %}
     rm -rf patroni*3.0.4*;  # remove duplicated old version
     rm -rf *docs*;          # remove unnecessary docs
-    
+
     createrepo_c {{ repo_home }}/{{ repo_name }}
-    {% if os_version|int >= 8 %}
+    {% if os_version|int >= 8 and os_version|int < 10 %}
     repo2module -s stable . modules.yaml;
     modifyrepo_c --mdtype=modules modules.yaml repodata/;
     {% endif %}
-    
+
     md5sum *.rpm > {{ repo_home }}/{{ repo_name }}/repo_complete || /bin/true
-    
+
     {% elif os_package == 'deb' %}
     cd {{ repo_home }}/{{ repo_name }};
     rm -f *i386.deb;   # remove i386 packages
@@ -65,6 +90,10 @@
 #--------------------------------------------------------------#
 # 3. Create Cache Tarball                            [cache_tgz]
 #--------------------------------------------------------------#
+# Create compressed tarball of all repo directories
+# Tarball is created at /tmp/pkg.tgz on the target node
+# Uses maximum gzip compression (-9) for smallest size
+#--------------------------------------------------------------#
 - name: create cache tarball
   tags: cache_tgz
   become: true
@@ -73,11 +102,16 @@
     chmod a+r /tmp/pkg.tgz;
   args:
     executable: /bin/bash
-    chdir: "{{ repo_home }}/{{ repo_name }}"
 
 
 #--------------------------------------------------------------#
 # 4. Fetch Cache Tarball                           [cache_fetch]
+#--------------------------------------------------------------#
+# Pull tarball from target node to control node using rsync
+# Destination: {{ cache_dirname }}/{{ cache_filename }}
+# Example: dist/v4.0.0/pigsty-pkg-v4.0.0.el9.x86_64.tgz
+#
+# Note: Requires rsync on both control and target nodes
 #--------------------------------------------------------------#
 - name: fetch cache tarball from target node
   tags: cache_fetch
