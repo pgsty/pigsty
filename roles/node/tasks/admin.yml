@@ -82,14 +82,18 @@
       shell: |
         usermod -aG admin "{{ node_user | default('root') }}" || /bin/true;
 
-    # node_admin_sudo: all = require password, nopass = no password required
+    # node_admin_sudo: all = require password, nopass = no password required, limit = limited commands
     - name: grant admin user sudo privilege
       copy:
         dest: /etc/sudoers.d/{{ node_admin_username }}
         mode: 0440
         content: |
-          {% if node_admin_sudo == 'nopass' %}%admin ALL=(ALL) NOPASSWD: ALL{% endif %}
-          {% if node_admin_sudo == 'all' %}%admin ALL=(ALL) ALL{% endif %}
+          {% if node_admin_sudo == 'nopass' %}%admin ALL=(ALL) NOPASSWD: ALL
+          {% elif node_admin_sudo == 'all' %}%admin ALL=(ALL) ALL
+          {% elif node_admin_sudo == 'limit' %}%admin ALL=(ALL) NOPASSWD: /bin/systemctl, /usr/bin/journalctl, /bin/cat, /bin/less, /bin/tail, /bin/head
+          {% else %}# node_admin_sudo={{ node_admin_sudo }} not recognized, using nopass as default
+          %admin ALL=(ALL) NOPASSWD: ALL
+          {% endif %}
 
     - name: touch admin user ssh config
       copy: src=ssh.config dest=/home/{{ node_admin_username }}/.ssh/config mode=0600 owner={{ node_admin_username }} group=admin
