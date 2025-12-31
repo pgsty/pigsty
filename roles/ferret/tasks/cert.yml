@@ -22,12 +22,7 @@
         common_name: "{{ mongo_instance }}"
         organization_name: pigsty
         organizational_unit_name: mongo
-        subject_alt_name:
-          - IP:127.0.0.1
-          - DNS:localhost
-          - "IP:{{ inventory_hostname }}"
-          - "DNS:{{ mongo_instance }}"
-          - "DNS:{{ nodename|default('') }}"
+        subject_alt_name: "{{ ['IP:127.0.0.1', 'DNS:localhost', 'IP:' ~ inventory_hostname, 'DNS:' ~ mongo_instance] + (['DNS:' ~ nodename] if nodename is defined and nodename != '' else []) }}"
 
     - name: issue mongo server certificate
       connection: local
