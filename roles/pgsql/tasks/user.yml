@@ -16,8 +16,6 @@
 # state: create -> create/update user (default)
 # skip system users: postgres, replicator, dbuser_dba, dbuser_monitor
 #--------------------------------------------------------------#
-# HINT: DROP SOP WOULD BE MUCH MORE COMPLICATED!
-
 - name: drop user {{ user.name }}
   tags: [ pg_user, pg_user_drop ]
   ignore_errors: true
@@ -27,9 +25,9 @@
     - user.name not in ['postgres', pg_replication_username|default('replicator'), pg_admin_username|default('dbuser_dba'), pg_monitor_username|default('dbuser_monitor')]
   become_user: "{{ pg_dbsu|default('postgres') }}"
   shell: |
-    {{ pg_bin_dir|default('/usr/pgsql/bin') }}/psql -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} -d postgres -AXtwe <<-'EOSQL'
-    DROP ROLE IF EXISTS "{{ user.name }}";
-    EOSQL
+    /pg/bin/pg-drop-role "{{ user.name }}" "{{ pg_dbsu|default('postgres') }}" \
+      -h {{ pg_localhost|default('/var/run/postgresql') }} \
+      -p {{ pg_port|default(5432) }} --force
   args: { executable: /bin/bash }
 
 

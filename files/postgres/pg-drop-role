@@ -1,0 +1,753 @@
+#!/bin/bash
+#==============================================================#
+# File      :   pg-drop-role
+# Desc      :   Drop a postgres role safely with all dependencies
+# Ctime     :   2026-01-01
+# Mtime     :   2026-01-01
+# Path      :   /pg/bin/pg-drop-role
+# Deps      :   psql
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# Usage:    pg-drop-role <role_name> [successor_role] [options]
+# Example:  pg-drop-role olduser postgres
+#           pg-drop-role olduser --dry-run
+#           pg-drop-role olduser --check
+#           pg-drop-role olduser postgres -h /tmp -p 5432
+#==============================================================#
+PROG_NAME="$(basename $0)"
+PROG_DIR="$(cd $(dirname $0) && pwd)"
+
+#--------------------------------------------------------------#
+# Global Variables
+#--------------------------------------------------------------#
+TARGET_ROLE=""
+SUCCESSOR_ROLE="postgres"
+PGHOST="${PGHOST:-/var/run/postgresql}"
+PGPORT="${PGPORT:-5432}"
+PGDATABASE="${PGDATABASE:-postgres}"
+PGUSER="${PGUSER:-postgres}"
+PSQL="${PSQL:-psql}"
+DRY_RUN=false
+VERBOSE=false
+FORCE=false
+CHECK_ONLY=false
+AUDIT_LOG=""
+PROTECTED_ROLES="postgres replicator dbuser_dba dbuser_monitor"
+TERMINATION_TIMEOUT=10
+
+#--------------------------------------------------------------#
+# Log Util
+#--------------------------------------------------------------#
+if [[ -t 1 ]]; then
+    __CN='\033[0m';__CK='\033[0;30m';__CR='\033[0;31m';__CG='\033[0;32m';
+    __CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';__CC='\033[0;36m';__CW='\033[0;37m';
+else
+    __CN='';__CK='';__CR='';__CG='';__CY='';__CB='';__CM='';__CC='';__CW='';
+fi
+function log_info()  { printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n"; }
+function log_warn()  { printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n"; }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n"; }
+function log_debug() { if [[ "${VERBOSE}" == "true" ]]; then printf "[${__CB}DEBUG${__CN}] ${__CB}$*${__CN}\n"; fi }
+function log_hint()  { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n"; }
+function log_title() { printf "[${__CG}$1${__CN}] ${__CG}$2${__CN}\n";   }
+function log_line()  { printf "\n${__CM}===== $* =====${__CN}\n"; }
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+function usage() {
+    cat <<-EOF
+NAME
+    ${PROG_NAME} - Safely drop a PostgreSQL role with all dependencies
+
+SYNOPSIS
+    ${PROG_NAME} <role_name> [successor_role] [OPTIONS]
+
+DESCRIPTION
+    This script safely removes a PostgreSQL role by:
+    1. Creating audit snapshot of all dependencies
+    2. Checking if role exists and is not protected
+    3. Disabling login (ALTER ROLE ... NOLOGIN)
+    4. Terminating all active connections
+    5. Transferring database/tablespace ownership
+    6. For each database: REASSIGN OWNED + DROP OWNED
+    7. Revoking group memberships
+    8. Final DROP ROLE
+
+    SAFETY GUARANTEE: If REASSIGN OWNED fails, DROP OWNED will NOT
+    be executed for that database, preventing accidental data loss.
+
+OPTIONS
+    -s, --successor <role>   Successor role for ownership transfer (default: postgres)
+    -h, --host <host>        Database server host (default: /var/run/postgresql)
+    -p, --port <port>        Database server port (default: 5432)
+    -d, --dbname <db>        Initial database to connect (default: postgres)
+    -U, --username <user>    Database superuser (default: postgres)
+    --psql <path>            Path to psql binary (default: psql)
+    --dry-run                Show what would be done without executing
+    --check                  Only check dependencies, don't modify anything
+    --force                  Force drop even if role has active sessions
+    --timeout <seconds>      Connection termination timeout (default: 10)
+    -v, --verbose            Enable verbose output
+    --help                   Show this help message
+
+EXAMPLES
+    # Check what would be affected (safe, read-only)
+    ${PROG_NAME} olduser --check
+
+    # Dry run to see exact SQL statements
+    ${PROG_NAME} olduser --dry-run -v
+
+    # Drop role 'olduser', transfer to 'postgres'
+    ${PROG_NAME} olduser
+
+    # Drop role with custom successor
+    ${PROG_NAME} olduser newowner
+
+    # Force drop with active sessions
+    ${PROG_NAME} olduser --force
+
+PROTECTED ROLES
+    The following roles cannot be dropped: ${PROTECTED_ROLES}
+
+EXIT CODES
+    0 - Success
+    1 - Error (connection, permission, or operation failure)
+    2 - Role does not exist (not an error, just nothing to do)
+
+EOF
+    exit 0
+}
+
+#--------------------------------------------------------------#
+# Argument Parsing
+#--------------------------------------------------------------#
+function parse_args() {
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -s|--successor)
+                SUCCESSOR_ROLE="$2"
+                shift 2
+                ;;
+            -h|--host)
+                PGHOST="$2"
+                shift 2
+                ;;
+            -p|--port)
+                PGPORT="$2"
+                shift 2
+                ;;
+            -d|--dbname)
+                PGDATABASE="$2"
+                shift 2
+                ;;
+            -U|--username)
+                PGUSER="$2"
+                shift 2
+                ;;
+            --psql)
+                PSQL="$2"
+                shift 2
+                ;;
+            --dry-run)
+                DRY_RUN=true
+                shift
+                ;;
+            --check)
+                CHECK_ONLY=true
+                shift
+                ;;
+            --force)
+                FORCE=true
+                shift
+                ;;
+            --timeout)
+                TERMINATION_TIMEOUT="$2"
+                shift 2
+                ;;
+            -v|--verbose)
+                VERBOSE=true
+                shift
+                ;;
+            --help)
+                usage
+                ;;
+            -*)
+                log_error "Unknown option: $1"
+                usage
+                ;;
+            *)
+                if [[ -z "${TARGET_ROLE}" ]]; then
+                    TARGET_ROLE="$1"
+                elif [[ "${SUCCESSOR_ROLE}" == "postgres" ]]; then
+                    SUCCESSOR_ROLE="$1"
+                fi
+                shift
+                ;;
+        esac
+    done
+
+    # Validate required arguments
+    if [[ -z "${TARGET_ROLE}" ]]; then
+        log_error "Target role name is required"
+        usage
+    fi
+
+    # Initialize audit log path
+    AUDIT_LOG="/tmp/pg_drop_role_${TARGET_ROLE}_$(date +%Y%m%d_%H%M%S).log"
+}
+
+#--------------------------------------------------------------#
+# Database Functions
+#--------------------------------------------------------------#
+
+# Escape single quotes in role name for safe SQL
+function escape_sql() {
+    echo "${1//\'/\'\'}"
+}
+
+function psql_query() {
+    local sql="$1"
+    local db="${2:-${PGDATABASE}}"
+    ${PSQL} -h "${PGHOST}" -p "${PGPORT}" -U "${PGUSER}" -d "${db}" -AXtqw -c "${sql}" 2>/dev/null
+}
+
+# Execute SQL with proper error handling
+# Returns: 0 on success, non-zero on failure
+# Outputs: error message on failure
+function psql_exec() {
+    local sql="$1"
+    local db="${2:-${PGDATABASE}}"
+
+    if [[ "${DRY_RUN}" == "true" ]]; then
+        log_hint "[DRY-RUN] Would execute on '${db}':"
+        echo "    ${sql}"
+        return 0
+    fi
+
+    log_debug "Executing on '${db}': ${sql}"
+
+    local output
+    local rc
+    output=$(${PSQL} -h "${PGHOST}" -p "${PGPORT}" -U "${PGUSER}" -d "${db}" -AXtqw -c "${sql}" 2>&1)
+    rc=$?
+
+    if [[ ${rc} -ne 0 ]]; then
+        echo "${output}"
+    fi
+
+    return ${rc}
+}
+
+#--------------------------------------------------------------#
+# Audit Snapshot
+#--------------------------------------------------------------#
+function create_audit_snapshot() {
+    local escaped_role=$(escape_sql "${TARGET_ROLE}")
+
+    log_info "Creating audit snapshot: ${AUDIT_LOG}"
+
+    {
+        echo "========================================================"
+        echo "PostgreSQL Role Deletion Audit Log"
+        echo "========================================================"
+        echo "Timestamp     : $(date -Iseconds)"
+        echo "Target Role   : ${TARGET_ROLE}"
+        echo "Successor Role: ${SUCCESSOR_ROLE}"
+        echo "Server        : ${PGHOST}:${PGPORT}"
+        echo "Dry Run       : ${DRY_RUN}"
+        echo "Force         : ${FORCE}"
+        echo ""
+        echo "=== Role Attributes ==="
+        psql_query "SELECT rolname, rolsuper, rolinherit, rolcreaterole, rolcreatedb, rolcanlogin, rolreplication, rolconnlimit, rolvaliduntil FROM pg_roles WHERE rolname = '${escaped_role}'"
+        echo ""
+        echo "=== Owned Databases ==="
+        psql_query "SELECT datname FROM pg_database WHERE datdba = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')"
+        echo ""
+        echo "=== Owned Tablespaces ==="
+        psql_query "SELECT spcname FROM pg_tablespace WHERE spcowner = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')"
+        echo ""
+        echo "=== Group Memberships (member of) ==="
+        psql_query "SELECT r.rolname FROM pg_auth_members m JOIN pg_roles r ON r.oid = m.roleid WHERE m.member = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')"
+        echo ""
+        echo "=== Group Memberships (has members) ==="
+        psql_query "SELECT r.rolname FROM pg_auth_members m JOIN pg_roles r ON r.oid = m.member WHERE m.roleid = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')"
+        echo ""
+        echo "=== All Dependencies (pg_shdepend) ==="
+        psql_query "
+            SELECT COALESCE(d.datname, 'GLOBAL') AS database,
+                   CASE s.deptype WHEN 'o' THEN 'OWNER' WHEN 'a' THEN 'ACL' WHEN 'r' THEN 'POLICY' ELSE s.deptype::text END AS dep_type,
+                   s.classid::regclass AS catalog,
+                   s.objid
+            FROM pg_shdepend s
+            LEFT JOIN pg_database d ON s.dbid = d.oid
+            WHERE s.refobjid = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')
+            ORDER BY d.datname, s.deptype
+        "
+        echo ""
+        echo "=== Active Connections ==="
+        psql_query "SELECT pid, datname, application_name, client_addr, state, query_start FROM pg_stat_activity WHERE usename = '${escaped_role}'"
+        echo ""
+        echo "========================================================"
+    } > "${AUDIT_LOG}" 2>&1
+
+    log_info "Audit snapshot saved"
+}
+
+#--------------------------------------------------------------#
+# Check Mode (Read-Only Analysis)
+#--------------------------------------------------------------#
+function run_check_mode() {
+    local escaped_role=$(escape_sql "${TARGET_ROLE}")
+
+    log_line "Dependency Analysis for '${TARGET_ROLE}'"
+
+    # Active connections
+    local active=$(psql_query "SELECT COUNT(*) FROM pg_stat_activity WHERE usename = '${escaped_role}'")
+    echo "Active connections    : ${active}"
+
+    # Owned databases
+    local owned_dbs=$(psql_query "SELECT string_agg(datname, ', ') FROM pg_database WHERE datdba = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')")
+    echo "Owned databases       : ${owned_dbs:-none}"
+
+    # Owned tablespaces
+    local owned_ts=$(psql_query "SELECT string_agg(spcname, ', ') FROM pg_tablespace WHERE spcowner = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')")
+    echo "Owned tablespaces     : ${owned_ts:-none}"
+
+    # Member of groups
+    local member_of=$(psql_query "SELECT string_agg(r.rolname, ', ') FROM pg_auth_members m JOIN pg_roles r ON r.oid = m.roleid WHERE m.member = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')")
+    echo "Member of groups      : ${member_of:-none}"
+
+    # Has members
+    local has_members=$(psql_query "SELECT string_agg(r.rolname, ', ') FROM pg_auth_members m JOIN pg_roles r ON r.oid = m.member WHERE m.roleid = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')")
+    echo "Has members           : ${has_members:-none}"
+
+    echo ""
+    echo "Dependencies by Database:"
+    echo "-------------------------"
+    psql_query "
+        SELECT COALESCE(d.datname, 'GLOBAL') AS database,
+               COUNT(*) AS total,
+               SUM(CASE WHEN s.deptype = 'o' THEN 1 ELSE 0 END) AS owners,
+               SUM(CASE WHEN s.deptype = 'a' THEN 1 ELSE 0 END) AS acls,
+               SUM(CASE WHEN s.deptype = 'r' THEN 1 ELSE 0 END) AS policies
+        FROM pg_shdepend s
+        LEFT JOIN pg_database d ON s.dbid = d.oid
+        WHERE s.refobjid = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')
+        GROUP BY d.datname
+        ORDER BY d.datname
+    " | column -t -s '|'
+
+    echo ""
+    local total_deps=$(psql_query "SELECT COUNT(*) FROM pg_shdepend WHERE refobjid = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')")
+    echo "Total dependencies    : ${total_deps}"
+
+    echo ""
+    log_info "Check complete. Use without --check to perform actual deletion."
+    log_hint "Use --dry-run to see exact SQL statements that would be executed."
+}
+
+#--------------------------------------------------------------#
+# Pre-flight Checks
+#--------------------------------------------------------------#
+function check_connectivity() {
+    log_line "Pre-flight Checks"
+
+    # Test connection
+    if ! psql_query "SELECT 1" >/dev/null 2>&1; then
+        log_error "Cannot connect to PostgreSQL at ${PGHOST}:${PGPORT}"
+        exit 1
+    fi
+    log_info "Connected to PostgreSQL at ${PGHOST}:${PGPORT}"
+
+    # Check if running as superuser
+    local is_super=$(psql_query "SELECT current_setting('is_superuser')")
+    if [[ "${is_super}" != "on" ]]; then
+        log_error "Must run as superuser (current user: ${PGUSER})"
+        exit 1
+    fi
+    log_info "Running as superuser: ${PGUSER}"
+}
+
+function check_role_exists() {
+    local escaped_role=$(escape_sql "${TARGET_ROLE}")
+    local exists=$(psql_query "SELECT 1 FROM pg_roles WHERE rolname = '${escaped_role}'")
+    if [[ "${exists}" != "1" ]]; then
+        log_warn "Role '${TARGET_ROLE}' does not exist, nothing to do"
+        exit 2
+    fi
+    log_info "Target role '${TARGET_ROLE}' exists"
+}
+
+function check_protected_role() {
+    for protected in ${PROTECTED_ROLES}; do
+        if [[ "${TARGET_ROLE}" == "${protected}" ]]; then
+            log_error "Role '${TARGET_ROLE}' is protected and cannot be dropped"
+            exit 1
+        fi
+    done
+    log_info "Role '${TARGET_ROLE}' is not protected"
+}
+
+function check_successor_exists() {
+    local escaped_successor=$(escape_sql "${SUCCESSOR_ROLE}")
+    local exists=$(psql_query "SELECT 1 FROM pg_roles WHERE rolname = '${escaped_successor}'")
+    if [[ "${exists}" != "1" ]]; then
+        log_error "Successor role '${SUCCESSOR_ROLE}' does not exist"
+        exit 1
+    fi
+    log_info "Successor role '${SUCCESSOR_ROLE}' exists"
+}
+
+#--------------------------------------------------------------#
+# Step 1: Disable Login & Terminate Connections
+#--------------------------------------------------------------#
+function disable_and_terminate() {
+    local escaped_role=$(escape_sql "${TARGET_ROLE}")
+
+    log_line "Step 1: Disable Login & Terminate Connections"
+
+    # Check active connections
+    local active_count=$(psql_query "SELECT COUNT(*) FROM pg_stat_activity WHERE usename = '${escaped_role}'")
+    log_info "Active connections for '${TARGET_ROLE}': ${active_count}"
+
+    # Disable login first to prevent new connections
+    log_info "Disabling login for '${TARGET_ROLE}'..."
+    local result
+    result=$(psql_exec "ALTER ROLE \"${TARGET_ROLE}\" NOLOGIN" 2>&1)
+    if [[ $? -ne 0 && "${DRY_RUN}" != "true" ]]; then
+        log_error "Failed to disable login: ${result}"
+        exit 1
+    fi
+
+    if [[ "${active_count}" -gt 0 ]]; then
+        if [[ "${FORCE}" != "true" && "${DRY_RUN}" != "true" ]]; then
+            log_warn "Role has ${active_count} active connection(s). Use --force to terminate."
+            log_hint "Or manually run: SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename = '${TARGET_ROLE}';"
+            exit 1
+        fi
+
+        log_warn "Terminating ${active_count} active connection(s)..."
+        psql_exec "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE usename = '${escaped_role}' AND pid <> pg_backend_pid()"
+
+        # Wait for termination with timeout
+        if [[ "${DRY_RUN}" != "true" ]]; then
+            local attempt=0
+            while [[ ${attempt} -lt ${TERMINATION_TIMEOUT} ]]; do
+                sleep 1
+                active_count=$(psql_query "SELECT COUNT(*) FROM pg_stat_activity WHERE usename = '${escaped_role}'")
+                if [[ "${active_count}" -eq 0 ]]; then
+                    log_info "All connections terminated"
+                    return 0
+                fi
+                attempt=$((attempt + 1))
+                log_debug "Waiting for connections to terminate... (${active_count} remaining, attempt ${attempt}/${TERMINATION_TIMEOUT})"
+            done
+
+            log_error "Failed to terminate all connections after ${TERMINATION_TIMEOUT} seconds (${active_count} remaining)"
+            exit 1
+        fi
+    else
+        log_info "No active connections to terminate"
+    fi
+}
+
+#--------------------------------------------------------------#
+# Step 2: Transfer Shared Objects (Databases & Tablespaces)
+#--------------------------------------------------------------#
+function transfer_shared_objects() {
+    local escaped_role=$(escape_sql "${TARGET_ROLE}")
+    local transfer_failed=false
+
+    log_line "Step 2: Transfer Shared Objects"
+
+    # Transfer databases ownership
+    local owned_dbs=$(psql_query "SELECT datname FROM pg_database WHERE datdba = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')")
+    if [[ -n "${owned_dbs}" ]]; then
+        log_warn "Role '${TARGET_ROLE}' owns the following database(s):"
+        for db in ${owned_dbs}; do
+            log_hint "  - ${db}"
+            local result
+            result=$(psql_exec "ALTER DATABASE \"${db}\" OWNER TO \"${SUCCESSOR_ROLE}\"" 2>&1)
+            if [[ $? -ne 0 && "${DRY_RUN}" != "true" ]]; then
+                log_error "Failed to transfer database '${db}': ${result}"
+                transfer_failed=true
+            else
+                log_debug "Database '${db}' ownership transferred"
+            fi
+        done
+    else
+        log_info "No databases owned by '${TARGET_ROLE}'"
+    fi
+
+    # Transfer tablespaces ownership
+    local owned_ts=$(psql_query "SELECT spcname FROM pg_tablespace WHERE spcowner = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')")
+    if [[ -n "${owned_ts}" ]]; then
+        log_warn "Role '${TARGET_ROLE}' owns the following tablespace(s):"
+        for ts in ${owned_ts}; do
+            log_hint "  - ${ts}"
+            local result
+            result=$(psql_exec "ALTER TABLESPACE \"${ts}\" OWNER TO \"${SUCCESSOR_ROLE}\"" 2>&1)
+            if [[ $? -ne 0 && "${DRY_RUN}" != "true" ]]; then
+                log_error "Failed to transfer tablespace '${ts}': ${result}"
+                transfer_failed=true
+            else
+                log_debug "Tablespace '${ts}' ownership transferred"
+            fi
+        done
+    else
+        log_info "No tablespaces owned by '${TARGET_ROLE}'"
+    fi
+
+    if [[ "${transfer_failed}" == "true" ]]; then
+        log_error "Some shared objects failed to transfer. Aborting to prevent data loss."
+        log_hint "Please fix the issues above and retry."
+        exit 1
+    fi
+
+    log_info "Shared objects transferred successfully"
+}
+
+#--------------------------------------------------------------#
+# Step 3: Process Each Database (REASSIGN + DROP OWNED)
+#--------------------------------------------------------------#
+function process_all_databases() {
+    local escaped_role=$(escape_sql "${TARGET_ROLE}")
+
+    log_line "Step 3: Process All Databases"
+
+    # Get list of all databases (excluding templates, but including template1 for cleanup)
+    local databases=$(psql_query "SELECT datname FROM pg_database WHERE datallowconn = true ORDER BY datname")
+
+    if [[ -z "${databases}" ]]; then
+        log_error "No accessible databases found"
+        exit 1
+    fi
+
+    local db_count=$(echo "${databases}" | wc -l | tr -d ' ')
+    log_info "Processing ${db_count} database(s)..."
+
+    local current=0
+    local failed_dbs=""
+
+    for db in ${databases}; do
+        current=$((current + 1))
+        log_info "[${current}/${db_count}] Processing database: ${db}"
+
+        #----------------------------------------------------------#
+        # CRITICAL SAFETY: REASSIGN must succeed before DROP OWNED
+        #----------------------------------------------------------#
+
+        # Step 3a: REASSIGN OWNED
+        local reassign_result
+        reassign_result=$(psql_exec "REASSIGN OWNED BY \"${TARGET_ROLE}\" TO \"${SUCCESSOR_ROLE}\"" "${db}" 2>&1)
+        local reassign_rc=$?
+
+        if [[ "${DRY_RUN}" != "true" && ${reassign_rc} -ne 0 ]]; then
+            # Check if it's just "no objects" (not a real error)
+            if [[ "${reassign_result}" != *"ERROR"* ]]; then
+                log_debug "REASSIGN OWNED completed (no objects or warnings)"
+            else
+                log_error "REASSIGN OWNED failed in '${db}': ${reassign_result}"
+                log_warn "SKIPPING DROP OWNED for '${db}' to prevent data loss!"
+                failed_dbs="${failed_dbs} ${db}"
+                continue  # CRITICAL: Skip DROP OWNED if REASSIGN failed
+            fi
+        fi
+
+        # Step 3b: DROP OWNED (only if REASSIGN succeeded)
+        local drop_result
+        drop_result=$(psql_exec "DROP OWNED BY \"${TARGET_ROLE}\"" "${db}" 2>&1)
+        local drop_rc=$?
+
+        if [[ "${DRY_RUN}" != "true" && ${drop_rc} -ne 0 ]]; then
+            if [[ "${drop_result}" != *"ERROR"* ]]; then
+                log_debug "DROP OWNED completed (no objects or warnings)"
+            else
+                log_error "DROP OWNED failed in '${db}': ${drop_result}"
+                failed_dbs="${failed_dbs} ${db}"
+            fi
+        fi
+
+        log_debug "Database '${db}' processed"
+    done
+
+    if [[ -n "${failed_dbs}" ]]; then
+        log_error "Failed to fully process some databases:${failed_dbs}"
+        log_hint "The role may not be droppable. Please manually check these databases."
+        log_hint "Audit log saved to: ${AUDIT_LOG}"
+        # Don't exit here - let drop_role() fail naturally with proper error message
+    fi
+
+    log_info "Database processing completed"
+}
+
+#--------------------------------------------------------------#
+# Step 4: Revoke Group Memberships
+#--------------------------------------------------------------#
+function revoke_memberships() {
+    local escaped_role=$(escape_sql "${TARGET_ROLE}")
+
+    log_line "Step 4: Revoke Group Memberships"
+
+    # Roles that this role is a member of
+    local member_of=$(psql_query "
+        SELECT r.rolname
+        FROM pg_auth_members m
+        JOIN pg_roles r ON r.oid = m.roleid
+        WHERE m.member = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')
+    ")
+
+    if [[ -n "${member_of}" ]]; then
+        log_info "Revoking memberships from '${TARGET_ROLE}':"
+        for role in ${member_of}; do
+            log_hint "  - REVOKE \"${role}\" FROM \"${TARGET_ROLE}\""
+            psql_exec "REVOKE \"${role}\" FROM \"${TARGET_ROLE}\""
+        done
+    else
+        log_info "No group memberships to revoke"
+    fi
+
+    # Roles that are members of this role
+    local has_members=$(psql_query "
+        SELECT r.rolname
+        FROM pg_auth_members m
+        JOIN pg_roles r ON r.oid = m.member
+        WHERE m.roleid = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')
+    ")
+
+    if [[ -n "${has_members}" ]]; then
+        log_info "Revoking '${TARGET_ROLE}' from its members:"
+        for role in ${has_members}; do
+            log_hint "  - REVOKE \"${TARGET_ROLE}\" FROM \"${role}\""
+            psql_exec "REVOKE \"${TARGET_ROLE}\" FROM \"${role}\""
+        done
+    else
+        log_info "No members to revoke from"
+    fi
+}
+
+#--------------------------------------------------------------#
+# Step 5: Final Drop Role
+#--------------------------------------------------------------#
+function drop_role() {
+    local escaped_role=$(escape_sql "${TARGET_ROLE}")
+
+    log_line "Step 5: Final Drop Role"
+
+    # Final verification: check for remaining dependencies
+    local remaining_deps=$(psql_query "
+        SELECT COUNT(*) FROM pg_shdepend
+        WHERE refobjid = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')
+    ")
+
+    if [[ "${remaining_deps}" -gt 0 && "${DRY_RUN}" != "true" ]]; then
+        log_warn "Role '${TARGET_ROLE}' still has ${remaining_deps} remaining dependencies"
+
+        if [[ "${VERBOSE}" == "true" ]]; then
+            log_hint "Remaining dependencies:"
+            psql_query "
+                SELECT COALESCE(d.datname, 'GLOBAL') AS database,
+                       CASE s.deptype
+                           WHEN 'o' THEN 'OWNER'
+                           WHEN 'a' THEN 'ACL'
+                           WHEN 'r' THEN 'POLICY'
+                           ELSE s.deptype::text
+                       END AS type,
+                       s.classid::regclass AS catalog,
+                       s.objid
+                FROM pg_shdepend s
+                LEFT JOIN pg_database d ON s.dbid = d.oid
+                WHERE s.refobjid = (SELECT oid FROM pg_roles WHERE rolname = '${escaped_role}')
+            " | sed 's/^/    /'
+        else
+            log_hint "Run with -v to see details"
+        fi
+    fi
+
+    log_info "Dropping role '${TARGET_ROLE}'..."
+    local result
+    result=$(psql_exec "DROP ROLE IF EXISTS \"${TARGET_ROLE}\"" 2>&1)
+    local rc=$?
+
+    # Verify deletion
+    if [[ "${DRY_RUN}" != "true" ]]; then
+        if [[ ${rc} -ne 0 ]]; then
+            log_error "DROP ROLE failed: ${result}"
+            log_hint "Check for remaining dependencies with:"
+            log_hint "  SELECT * FROM pg_shdepend WHERE refobjid = (SELECT oid FROM pg_roles WHERE rolname = '${TARGET_ROLE}');"
+            log_hint "Audit log saved to: ${AUDIT_LOG}"
+            exit 1
+        fi
+
+        local still_exists=$(psql_query "SELECT 1 FROM pg_roles WHERE rolname = '${escaped_role}'")
+        if [[ "${still_exists}" == "1" ]]; then
+            log_error "Role '${TARGET_ROLE}' still exists after DROP ROLE"
+            log_hint "This should not happen. Please check PostgreSQL logs."
+            exit 1
+        fi
+        log_info "Role '${TARGET_ROLE}' has been successfully dropped"
+    else
+        log_info "[DRY-RUN] Role '${TARGET_ROLE}' would be dropped"
+    fi
+}
+
+#--------------------------------------------------------------#
+# Summary Report
+#--------------------------------------------------------------#
+function print_summary() {
+    log_line "Summary"
+
+    if [[ "${DRY_RUN}" == "true" ]]; then
+        log_warn "DRY-RUN mode - no changes were made"
+        log_hint "Remove --dry-run to execute actual deletion"
+    else
+        log_info "Role '${TARGET_ROLE}' has been completely removed"
+        log_info "All objects transferred to '${SUCCESSOR_ROLE}'"
+        log_info "Audit log saved to: ${AUDIT_LOG}"
+    fi
+
+    echo ""
+}
+
+#--------------------------------------------------------------#
+# Main Entry
+#--------------------------------------------------------------#
+function main() {
+    parse_args "$@"
+
+    echo ""
+    log_line "PostgreSQL Role Deletion Tool"
+    echo "  Target Role    : ${TARGET_ROLE}"
+    echo "  Successor Role : ${SUCCESSOR_ROLE}"
+    echo "  Server         : ${PGHOST}:${PGPORT}"
+    echo "  Dry Run        : ${DRY_RUN}"
+    echo "  Check Only     : ${CHECK_ONLY}"
+    echo "  Force          : ${FORCE}"
+
+    check_connectivity
+    check_role_exists
+    check_protected_role
+    check_successor_exists
+
+    # Check mode - read only analysis
+    if [[ "${CHECK_ONLY}" == "true" ]]; then
+        run_check_mode
+        exit 0
+    fi
+
+    # Create audit snapshot before any modifications
+    create_audit_snapshot
+
+    disable_and_terminate
+    transfer_shared_objects
+    process_all_databases
+    revoke_memberships
+    drop_role
+
+    print_summary
+}
+
+main "$@"
