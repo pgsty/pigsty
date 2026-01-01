@@ -82,7 +82,7 @@ docker (full role)
 | Variable               | Default            | Description                    |
 |------------------------|--------------------|--------------------------------|
 | `docker_enabled`       | `false`            | Enable Docker on this node     |
-| `docker_data`          | `/var/lib/docker`  | Docker data directory          |
+| `docker_data`          | `/data/docker`     | Docker data directory          |
 
 ### Storage & Runtime
 
@@ -166,15 +166,15 @@ The role generates `/etc/docker/daemon.json`:
 
 ```json
 {
-  "data-root": "/var/lib/docker",
-  "storage-driver": "overlay2",
+  "data-root": "/data/docker",
   "exec-opts": ["native.cgroupdriver=systemd"],
-  "registry-mirrors": [],
   "log-driver": "json-file",
-  "log-opts": {
-    "max-size": "10m",
-    "max-file": "3"
-  }
+  "log-opts": { "max-size": "100m" },
+  "storage-driver": "overlay2",
+  "metrics-addr" : "0.0.0.0:9323",
+  "experimental" : true,
+  "max-concurrent-downloads": 8,
+  "registry-mirrors" : []
 }
 ```
 
