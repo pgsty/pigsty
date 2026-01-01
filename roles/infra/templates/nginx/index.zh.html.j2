@@ -83,6 +83,19 @@
             color: var(--color-text);
             background-color: var(--color-bg);
             min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .main-content {
+            flex: 1 0 auto;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, #f0f9ff 0%, #e8f4f8 100%);
+        }
+
+        .footer {
+            flex-shrink: 0;
         }
 
         a {
@@ -253,7 +266,6 @@
         .hero {
             padding-top: calc(64px + var(--space-3xl));
             padding-bottom: var(--space-2xl);
-            background: linear-gradient(180deg, #f0f9ff 0%, var(--color-bg) 100%);
             position: relative;
             overflow: hidden;
         }
@@ -402,10 +414,10 @@
            Topology Matrix Section
            ======================================== */
         .topology-section {
-            padding: var(--space-3xl) 0;
-            background: linear-gradient(180deg, var(--color-bg) 0%, #e8f4f8 100%);
+            padding: var(--space-lg) 0 var(--space-xl);
             position: relative;
             overflow: hidden;
+            flex: 1 0 auto;
         }
 
         .topology-section::before {
@@ -440,10 +452,11 @@
             height: 20px;
             color: var(--color-text-secondary);
             transition: transform var(--transition-base);
+            transform: rotate(180deg);
         }
 
         .topology-toggle.collapsed .topology-toggle-icon {
-            transform: rotate(-90deg);
+            transform: rotate(0deg);
         }
 
         .topology-wrapper {
@@ -598,7 +611,7 @@
            Services Section
            ======================================== */
         .section {
-            padding: var(--space-2xl) 0;
+            padding: var(--space-lg) 0;
         }
 
         .section-header {
@@ -1070,6 +1083,7 @@
     </style>
 </head>
 <body>
+    <main class="main-content">
     <!-- Header -->
     <header class="header" id="header">
         <div class="container">
@@ -1091,7 +1105,7 @@
                     <span>PIGSTY</span>
                 </a>
                 <nav class="nav">
-                    <a href="https://pigsty.cc/" class="nav-link">文档</a>
+                    <a href="https://pigsty.cc/docs" class="nav-link">文档</a>
                     <a href="https://github.com/pgsty/pigsty" class="nav-link" aria-label="GitHub">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="vertical-align: middle;">
                             <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
@@ -1143,7 +1157,7 @@
                         </svg>
                         监控面板
                     </a>
-                    <a href="https://doc.pgsty.com" class="btn btn-secondary">
+                    <a href="https://pigsty.cc/docs" class="btn btn-secondary">
                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                         </svg>
@@ -1236,8 +1250,10 @@
                     <tbody>
 {% set nodes_list = [] %}
 {% set pg_clusters = {} %}
-{% if groups is defined and 'nodes' in groups %}
-{%   for host in groups['nodes'] %}
+{% set seen_hosts = {} %}
+{% for host in groups['all'] | default([]) | sort %}
+{%   if host not in seen_hosts %}
+{%     set _ = seen_hosts.update({host: true}) %}
 {%     set node_info = hostvars[host] | default({}) %}
 {%     set pg_cluster = node_info.pg_cluster | default('') %}
 {%     set pg_seq = node_info.pg_seq | default('') %}
@@ -1254,8 +1270,8 @@
           'minio_cluster': node_info.minio_cluster | default(''),
           'minio_seq': node_info.minio_seq | default('')
         }) %}
-{%   endfor %}
-{% endif %}
+{%   endif %}
+{% endfor %}
 {% for node in nodes_list | sort(attribute='ip') %}
                         <tr data-ip="{{ node.ip }}">
                             <td>
@@ -1307,6 +1323,7 @@
             </div>
         </div>
     </section>
+    </main>
 
     <!-- Footer -->
     <footer class="footer">
