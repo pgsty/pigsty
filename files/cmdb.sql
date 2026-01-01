@@ -1411,7 +1411,7 @@ INSERT INTO pigsty.default_var VALUES
 
 -- DOCKER PARAMETERS
 (400, 'docker_enabled', 'false', 'NODE', 'DOCKER', 'bool', 'C', 'enable docker on this node?', NULL),
-(401, 'docker_data', '"/var/lib/docker"', 'DOCKER', 'DOCKER', 'path', 'G/C/I', 'docker data directory, /var/lib/docker by default', NULL),
+(401, 'docker_data', '"/data/docker"', 'DOCKER', 'DOCKER', 'path', 'G/C/I', 'docker data directory, /data/docker by default', NULL),
 (402, 'docker_storage_driver', '"overlay2"', 'DOCKER', 'DOCKER', 'enum', 'C', 'docker storage driver, overlay2 by default', NULL),
 (403, 'docker_cgroups_driver', '"systemd"', 'DOCKER', 'DOCKER', 'enum', 'C', 'docker cgroup fs driver: cgroupfs,systemd', NULL),
 (404, 'docker_registry_mirrors', '[]', 'DOCKER', 'DOCKER', 'string[]', 'C', 'docker registry mirror list', NULL),
