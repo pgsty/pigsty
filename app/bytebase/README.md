@@ -4,7 +4,7 @@ Bytebase: https://www.bytebase.com/
 
 open-source schema migrator for PostgreSQL (and other databases)
 
-Check public demo: http://ddl.pgsty.com, username: `admin@pigsty.cc`, password: `pigsty`
+Check public demo: http://ddl.pigsty.io, username: `admin@pigsty.cc`, password: `pigsty`
 
 If you want to access bytebase through SSL, you have to trust `files/pki/ca/ca.crt` on your browser (or use the dirty hack `thisisunsafe` in chrome)
 

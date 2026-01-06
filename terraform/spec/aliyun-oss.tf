@@ -4,7 +4,7 @@
 # Ctime     :   2024-12-12
 # Mtime     :   2025-12-25
 # Path      :   terraform/spec/aliyun-oss.yml
-# Docs      :   https://doc.pgsty.com/prepare/terraform
+# Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#

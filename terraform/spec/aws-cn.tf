@@ -4,7 +4,7 @@
 # Ctime     :   2020-05-12
 # Mtime     :   2024-11-19
 # Path      :   terraform/spec/aws-cn.yml
-# Docs      :   https://doc.pgsty.com/prepare/terraform
+# Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#

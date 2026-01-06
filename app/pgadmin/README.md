@@ -2,7 +2,7 @@
 
 PGADMIN4: https://www.pgadmin.org/
 
-Tutorial: https://doc.pgsty.com/software/pgadmin/
+Tutorial: https://pigsty.io/docs/app/pgadmin
 
 pgAdmin is the most popular and feature rich Open Source administration and development platform for PostgreSQL.
 

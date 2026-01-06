@@ -1,10 +1,10 @@
 ---
 #==============================================================#
-# File      :   pigsty.yml
+# File      :   meta.yml
 # Desc      :   Pigsty default 1-node online install config
 # Ctime     :   2020-05-22
 # Mtime     :   2025-12-28
-# Docs      :   https://doc.pgsty.com/config
+# Docs      :   https://pigsty.io/docs/conf/meta
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -27,7 +27,7 @@ all:
   children:
 
     #----------------------------------------------#
-    # PGSQL : https://doc.pgsty.com/pgsql
+    # PGSQL : https://pigsty.io/docs/pgsql
     #----------------------------------------------#
     # this is an example single-node postgres cluster with pgvector installed, with one biz database & two biz users
     pg-meta:
@@ -38,28 +38,28 @@ all:
       vars:
         pg_cluster: pg-meta
 
-        # install, load, create pg extensions: https://doc.pgsty.com/pgsql/extension
+        # install, load, create pg extensions: https://pigsty.io/docs/pgsql/ext/
         pg_extensions: [ postgis, pgvector ]
 
-        # define business users/roles : https://doc.pgsty.com/pgsql/user
+        # define business users/roles : https://pigsty.io/docs/pgsql/config/user
         pg_users:
           - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin   ] ,comment: pigsty admin user }
           - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
 
-        # define business databases : https://doc.pgsty.com/pgsql/db
+        # define business databases : https://pigsty.io/docs/pgsql/config/db
         pg_databases:
           - name: meta
             baseline: cmdb.sql
             comment: "pigsty meta database"
             schemas: [pigsty]
-            # define extensions in database : https://doc.pgsty.com/pgsql/extension/create
+            # define extensions in database : https://pigsty.io/docs/pgsql/ext/create
             extensions: [ postgis, vector ]
 
-        # define HBA rules : https://doc.pgsty.com/pgsql/hba
+        # define HBA rules : https://pigsty.io/docs/pgsql/config/hba
         pg_hba_rules:
           - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
 
-        # define backup policies: https://doc.pgsty.com/pgsql/backup
+        # define backup policies: https://pigsty.io/docs/pgsql/backup
         node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every day 1am
 
         # define (OPTIONAL) L2 VIP that bind to primary
@@ -69,17 +69,17 @@ all:
 
 
     #----------------------------------------------#
-    # INFRA : https://doc.pgsty.com/infra
+    # INFRA : https://pigsty.io/docs/infra
     #----------------------------------------------#
     infra:
       hosts:
         10.10.10.10: { infra_seq: 1 }
       vars:
-        repo_enabled: false   # disable in 1-node mode :  https://doc.pgsty.com/admin/repo
+        repo_enabled: false   # disable in 1-node mode :  https://pigsty.io/docs/infra/admin/repo
         #repo_extra_packages: [ pg18-main ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
 
     #----------------------------------------------#
-    # ETCD : https://doc.pgsty.com/etcd
+    # ETCD : https://pigsty.io/docs/etcd
     #----------------------------------------------#
     etcd:
       hosts:
@@ -89,7 +89,7 @@ all:
         etcd_safeguard: false             # prevent purging running etcd instance?
 
     #----------------------------------------------#
-    # MINIO : https://doc.pgsty.com/minio
+    # MINIO : https://pigsty.io/docs/minio
     #----------------------------------------------#
     #minio:
     #  hosts:
@@ -102,15 +102,15 @@ all:
     #      - { access_key: s3user_data ,secret_key: S3User.Data   ,policy: data  }
 
     #----------------------------------------------#
-    # DOCKER : https://doc.pgsty.com/docker
-    # APP    : https://doc.pgsty.com/app
+    # DOCKER : https://pigsty.io/docs/docker
+    # APP    : https://pigsty.io/docs/app
     #----------------------------------------------#
     # launch example pgadmin app with: ./app.yml (http://10.10.10.10:8885 admin@pigsty.cc / pigsty)
     app:
       hosts: { 10.10.10.10: {} }
       vars:
         docker_enabled: true                # enabled docker with ./docker.yml
-        #docker_registry_mirrors: ["https://docker.1panel.live","https://docker.1ms.run","https://docker.xuanyuan.me","https://registry-1.docker.io"]
+        docker_registry_mirrors: ["https://docker.1panel.live","https://docker.1ms.run","https://docker.xuanyuan.me","https://registry-1.docker.io"]
         app: pgadmin                        # specify the default app name to be installed (in the apps)
         apps:                               # define all applications, appname: definition
           pgadmin:                          # pgadmin app definition (app/pgadmin -> /opt/pgadmin)
@@ -125,11 +125,11 @@ all:
   vars:
 
     #----------------------------------------------#
-    # INFRA : https://doc.pgsty.com/infra
+    # INFRA : https://pigsty.io/docs/infra
     #----------------------------------------------#
     version: v4.0.0                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
-    region: china                     # upstream mirror region: default|china|europe
+    region: default                   # upstream mirror region: default|china|europe
     proxy_env:                        # global proxy env when downloading packages
       no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.myqcloud.com,*.tsinghua.edu.cn"
       # http_proxy:  # set your proxy here: e.g http://user:pass@proxy.xxx.com
@@ -141,7 +141,7 @@ all:
       #minio  : { domain: m.pigsty ,endpoint: "${admin_ip}:9001" ,scheme: https ,websocket: true }
 
     #----------------------------------------------#
-    # NODE : https://doc.pgsty.com/node/param
+    # NODE : https://pigsty.io/docs/node/param
     #----------------------------------------------#
     nodename_overwrite: false             # do not overwrite node hostname on single node mode
     node_tune: oltp                       # node tuning specs: oltp,olap,tiny,crit
@@ -152,7 +152,7 @@ all:
     #node_packages: [openssh-server]      # packages to be installed current nodes with the latest version
 
     #----------------------------------------------#
-    # PGSQL : https://doc.pgsty.com/pgsql/param
+    # PGSQL : https://pigsty.io/docs/pgsql/param
     #----------------------------------------------#
     pg_version: 18                      # default postgres version
     pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
@@ -161,7 +161,7 @@ all:
     #pg_extensions: [ pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
 
     #----------------------------------------------#
-    # BACKUP : https://doc.pgsty.com/pgsql/backup
+    # BACKUP : https://pigsty.io/docs/pgsql/backup
     #----------------------------------------------#
     # if you want to use minio as backup repo instead of 'local' fs, uncomment this, and configure `pgbackrest_repo`
     # you can also use external object storage as backup repo
@@ -208,7 +208,7 @@ all:
     #    retention_full: 14            # keep full backup for last 14 days
 
     #----------------------------------------------#
-    # PASSWORD : https://doc.pgsty.com/config/security
+    # PASSWORD : https://pigsty.io/docs/setup/security/
     #----------------------------------------------#
     grafana_admin_password: pigsty
     grafana_view_password: DBUser.Viewer
