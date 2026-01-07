@@ -2,7 +2,7 @@
 # File      :   aliyun-full.yml
 # Desc      :   4-node full sandbox env for x86_64/aarch64
 # Ctime     :   2020-05-12
-# Mtime     :   2025-12-25
+# Mtime     :   2025-01-07
 # Path      :   terraform/spec/aliyun-full.yml
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -45,8 +45,8 @@ locals {
       d12   = "^debian_12_11_x64"
       d13   = "^debian_13_2_x64"
       u20   = "^ubuntu_20_04_x64"
-      u22   = "^ubuntu_22_04_x64"
-      u24   = "^ubuntu_24_04_x64"
+      u22   = "^ubuntu_22_04_x64_20G"
+      u24   = "^ubuntu_24_04_x64_20G"
       an8   = "^anolisos_8_9_x64"
       al3   = "^aliyun_3_0_x64"
     }
@@ -56,8 +56,8 @@ locals {
       el10   = "^rockylinux_10_0_arm64"
       d12   = "^debian_12_11_arm64"
       d13   = "^debian_13_2_arm64"
-      u22   = "^ubuntu_22_04_arm64"
-      u24   = "^ubuntu_24_04_arm64"
+      u22   = "^ubuntu_22_04_arm64_20G"
+      u24   = "^ubuntu_24_04_arm64_20G"
     }
   }
   selected_images = local.image_regex_map[var.architecture]

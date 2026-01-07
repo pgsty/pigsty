@@ -2,7 +2,7 @@
 # File      :   aliyun-pro.yml
 # Desc      :   5-node building env for x86_64/aarch64
 # Ctime     :   2024-12-12
-# Mtime     :   2025-12-25
+# Mtime     :   2026-01-07
 # Path      :   terraform/spec/aliyun-pro.yml
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -39,8 +39,8 @@ locals {
       d12   = "^debian_12_11_x64"
       d13   = "^debian_13_2_x64"
       u20   = "^ubuntu_20_04_x64"
-      u22   = "^ubuntu_22_04_x64"
-      u24   = "^ubuntu_24_04_x64"
+      u22   = "^ubuntu_22_04_x64_20G"
+      u24   = "^ubuntu_24_04_x64_20G"
       an8   = "^anolisos_8_9_x64"
       al3   = "^aliyun_3_0_x64"
     }
@@ -50,8 +50,8 @@ locals {
       el10   = "^rockylinux_10_0_arm64"
       d12   = "^debian_12_11_arm64"
       d13   = "^debian_13_2_arm64"
-      u22   = "^ubuntu_22_04_arm64"
-      u24   = "^ubuntu_24_04_arm64"
+      u22   = "^ubuntu_22_04_arm64_20G"
+      u24   = "^ubuntu_24_04_arm64_20G"
     }
   }
   selected_images = local.image_regex_map[var.architecture]
@@ -111,33 +111,33 @@ resource "alicloud_security_group_rule" "allow_all_tcp" {
 #======================================#
 # EL8 AMD64 / ARM64
 #======================================#
-# data "alicloud_images" "el8_img" {
-#   owners     = "system"
-#   name_regex = local.selected_images.el8
-# }
-#
-# resource "alicloud_instance" "pg-el8" {
-#   instance_name                 = "pg-el8"
-#   host_name                     = "pg-el8"
-#   private_ip                    = "10.10.10.8"
-#   instance_type                 = local.selected_instype
-#   image_id                      = "${data.alicloud_images.el8_img.images.0.id}"
-#   vswitch_id                    = "${alicloud_vswitch.vsw.id}"
-#   security_groups               = ["${alicloud_security_group.default.id}"]
-#   password                      = "PigstyDemo4"
-#   instance_charge_type          = "PostPaid"
-#   internet_charge_type          = "PayByTraffic"
-#   spot_strategy                 = local.spot_policy
-#   spot_price_limit              = local.spot_price_limit
-#   internet_max_bandwidth_out    = local.bandwidth
-#   system_disk_category          = "cloud_essd"
-#   system_disk_performance_level = "PL1"
-#   system_disk_size              = local.disk_size
-# }
-#
-# output "el8_ip" {
-#   value = "${alicloud_instance.pg-el8.public_ip}"
-# }
+data "alicloud_images" "el8_img" {
+  owners     = "system"
+  name_regex = local.selected_images.el8
+}
+
+resource "alicloud_instance" "pg-el8" {
+  instance_name                 = "pg-el8"
+  host_name                     = "pg-el8"
+  private_ip                    = "10.10.10.8"
+  instance_type                 = local.selected_instype
+  image_id                      = "${data.alicloud_images.el8_img.images.0.id}"
+  vswitch_id                    = "${alicloud_vswitch.vsw.id}"
+  security_groups               = ["${alicloud_security_group.default.id}"]
+  password                      = "PigstyDemo4"
+  instance_charge_type          = "PostPaid"
+  internet_charge_type          = "PayByTraffic"
+  spot_strategy                 = local.spot_policy
+  spot_price_limit              = local.spot_price_limit
+  internet_max_bandwidth_out    = local.bandwidth
+  system_disk_category          = "cloud_essd"
+  system_disk_performance_level = "PL1"
+  system_disk_size              = local.disk_size
+}
+
+output "el8_ip" {
+  value = "${alicloud_instance.pg-el8.public_ip}"
+}
 
 
 
