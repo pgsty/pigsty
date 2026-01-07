@@ -76,11 +76,11 @@ ferret (full role)
 
 ### Identity (Required)
 
-| Variable       | Level    | Description                      |
-|----------------|----------|----------------------------------|
-| `mongo_cluster`| CLUSTER  | MongoDB cluster name             |
-| `mongo_seq`    | INSTANCE | Instance sequence number         |
-| `mongo_pgurl`  | INSTANCE | PostgreSQL connection URL        |
+| Variable        | Level    | Description               |
+|-----------------|----------|---------------------------|
+| `mongo_cluster` | CLUSTER  | MongoDB cluster name      |
+| `mongo_seq`     | INSTANCE | Instance sequence number  |
+| `mongo_pgurl`   | INSTANCE | PostgreSQL connection URL |
 
 ### Network
 
