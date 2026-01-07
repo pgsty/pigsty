@@ -17,7 +17,7 @@ You can pass the following environment variables to the script:
 
 ```bsah
 # Grafana Endpoint / Username / Password
-ENDPOINT = os.environ.get("GRAFANA_ENDPOINT", 'http://g.pigsty:3000')
+ENDPOINT = os.environ.get("GRAFANA_ENDPOINT", 'http://i.pigsty/ui')
 USERNAME = os.environ.get("GRAFANA_USERNAME", 'admin')
 PASSWORD = os.environ.get("GRAFANA_PASSWORD", 'pigsty')
 

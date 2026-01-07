@@ -90,7 +90,7 @@ In addition to the main templates, Pigsty provides a set of demo templates for d
 * [demo/remote.yml](demo/remote.yml) : example config for monitoring a remote pgsql cluster or RDS PG.
 * [demo/redis.yml](demo/redis.yml) : example config for redis clusters
 * [demo/minio.yml](demo/minio.yml) : example config for a 3-node minio clusters
-* [demo/demo.yml](demo/demo.yml) : config file for the pigsty [public demo](https://demo.pigsty.cc)
+* [demo/demo.yml](demo/demo.yml) : config file for the pigsty [public demo](https://demo.pigsty.io)
 
 ----------
 
