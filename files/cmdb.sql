@@ -2,7 +2,7 @@
 -- # File      :   cmdb.sql
 -- # Desc      :   Pigsty CMDB baseline
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2025-12-13
+-- # Mtime     :   2026-01-07
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -469,9 +469,7 @@ SELECT p.key                                                            AS local
        v.vars                                                           AS cls_var
 FROM group_var gv,
      jsonb_each(value) p,
-     (SELECT vars
-      FROM group_config
-      WHERE cls IN (SELECT cls FROM pigsty.group_var WHERE key = 'pg_exporters' LIMIT 1)) v
+     (SELECT vars FROM group_config WHERE cls IN (SELECT cls FROM pigsty.group_var WHERE key = 'pg_exporters' LIMIT 1)) v
 WHERE gv.key = 'pg_exporters';
 COMMENT ON VIEW pigsty.pg_remote IS 'pigsty remote postgres instances';
 
@@ -1290,7 +1288,7 @@ INSERT INTO pigsty.default_var VALUES
 
 (150, 'dns_enabled', 'true', 'INFRA', 'DNS', 'bool', 'G/I', 'setup dnsmasq on this infra node?', NULL),
 (151, 'dns_port', '53', 'INFRA', 'DNS', 'port', 'G', 'dns server listen port, 53 by default', NULL),
-(152, 'dns_records', '["${admin_ip} i.pigsty", "${admin_ip} api.pigsty adm.pigsty cli.pigsty ddl.pigsty lab.pigsty git.pigsty m.pigsty wiki.pigsty"]', 'INFRA', 'DNS', 'string[]', 'G', 'dynamic dns records resolved by dnsmasq', NULL),
+(152, 'dns_records', '["${admin_ip} i.pigsty", "${admin_ip} m.pigsty supa.pigsty api.pigsty adm.pigsty cli.pigsty ddl.pigsty"]', 'INFRA', 'DNS', 'string[]', 'G', 'dynamic dns records resolved by dnsmasq', NULL),
 
 (162, 'vmetrics_scrape_interval', '"10s"', 'INFRA', 'VICTORIA', 'interval', 'G', 'victoria global scrape interval, 10s by default', NULL),
 (163, 'vmetrics_scrape_timeout', '"8s"', 'INFRA', 'VICTORIA', 'interval', 'G', 'victoria global scrape timeout, 8s by default', NULL),
@@ -1343,7 +1341,7 @@ INSERT INTO pigsty.default_var VALUES
 
 (220, 'node_repo_modules', '"local"', 'NODE', 'NODE_PACKAGE', 'string', 'C/A', 'upstream repo to be added on node, local by default', NULL),
 (221, 'node_repo_remove', 'true', 'NODE', 'NODE_PACKAGE', 'bool', 'C/A', 'remove existing repo on node?', NULL),
-(223, 'node_packages', '[]', 'NODE', 'NODE_PACKAGE', 'string[]', 'C', 'packages to be installed current nodes', NULL),
+(223, 'node_packages', '["openssh-server"]', 'NODE', 'NODE_PACKAGE', 'string[]', 'C', 'packages to be installed current nodes', NULL),
 (224, 'node_default_packages', '[]', 'NODE', 'NODE_PACKAGE', 'string[]', 'G', 'default packages to be installed on all nodes', NULL),
 
 (230, 'node_selinux_mode', '"permissive"', 'NODE', 'NODE_SEC', 'enum', 'C', 'selinux mode: enforcing,permissive,disabled', NULL),
@@ -1407,7 +1405,7 @@ INSERT INTO pigsty.default_var VALUES
 (292, 'vector_data', '"/data/vector"', 'NODE', 'VECTOR', 'path', 'C', 'vector data dir, /data/vector by default', NULL),
 (293, 'vector_port', '9598', 'NODE', 'VECTOR', 'port', 'C', 'vector metrics port, 9598 by default', NULL),
 (294, 'vector_read_from', '"beginning"', 'NODE', 'VECTOR', 'enum', 'C', 'vector read from beginning or end', NULL),
-(295, 'vector_log_endpoint', '[ infra ]', 'NODE', 'VECTOR', 'cidr[]', 'C', 'if defined, sending vector log to this endpoint.', NULL),
+(295, 'vector_log_endpoint', '["infra"]', 'NODE', 'VECTOR', 'cidr[]', 'C', 'if defined, sending vector log to this endpoint.', NULL),
 
 -- DOCKER PARAMETERS
 (400, 'docker_enabled', 'false', 'NODE', 'DOCKER', 'bool', 'C', 'enable docker on this node?', NULL),
@@ -1450,7 +1448,7 @@ INSERT INTO pigsty.default_var VALUES
 (630, 'minio_provision', 'true', 'MINIO', 'MINIO', 'bool', 'G/C', 'run minio provisioning tasks?', NULL),
 (631, 'minio_alias', '"sss"', 'MINIO', 'MINIO', 'string', 'G', 'alias name for local minio deployment', NULL),
 (632, 'minio_buckets', '[{"name": "pgsql"}, {"name": "meta", "versioning": true}, {"name": "data"}]', 'MINIO', 'MINIO', 'bucket[]', 'C', 'list of minio bucket to be created', NULL),
-(634, 'minio_users', '[{"access_key": "pgbackrest", "secret_key": "S3User.Backup", "policy": "pgsql"}, {"access_key": "s3user_meta", "secret_key": "S3User.Meta", "policy": "pgsql"}, {"access_key": "s3user_data", "secret_key": "S3User.Data", "policy": "pgsql"}]', 'MINIO', 'MINIO', 'user[]', 'C', 'list of minio user to be created', NULL),
+(634, 'minio_users', '[{"access_key": "pgbackrest", "secret_key": "S3User.Backup", "policy": "pgsql"}, {"access_key": "s3user_meta", "secret_key": "S3User.Meta", "policy": "meta"}, {"access_key": "s3user_data", "secret_key": "S3User.Data", "policy": "data"}]', 'MINIO', 'MINIO', 'user[]', 'C', 'list of minio user to be created', NULL),
 (650, 'minio_safeguard', 'false', 'MINIO', 'MINIO_REMOVE', 'bool', 'G/C/A', 'prevents purging minio instance? false by default', NULL),
 (651, 'minio_rm_data', 'true', 'MINIO', 'MINIO_REMOVE', 'bool', 'G/C/A', 'purging minio data and config? true by default', NULL),
 (652, 'minio_rm_pkg', 'false', 'MINIO', 'MINIO_REMOVE', 'bool', 'G/C/A', 'uninstall minio packages? false by default', NULL),
@@ -1539,25 +1537,26 @@ INSERT INTO pigsty.default_var VALUES
 (873, 'pg_conf', '"oltp.yml"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'config template: oltp,olap,crit,tiny. `oltp.yml` by default', NULL),
 (874, 'pg_max_conn', '"auto"', 'PGSQL', 'PG_BOOTSTRAP', 'int', 'C', 'postgres max connections, `auto` will use recommended value', NULL),
 (875, 'pg_shared_buffer_ratio', '0.25', 'PGSQL', 'PG_BOOTSTRAP', 'float', 'C', 'postgres shared buffer memory ratio, 0.25 by default, 0.1~0.4', NULL),
-(876, 'pg_io_method', '"worker"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'io method for postgres: auto,sync,worker,io_uring, worker by default', NULL),
+(876, 'pg_io_method', '"worker"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'io method for postgres: auto,fsync,worker,io_uring, worker by default', NULL),
 (877, 'pg_rto', '30', 'PGSQL', 'PG_BOOTSTRAP', 'int', 'C', 'recovery time objective in seconds,  `30s` by default', NULL),
 (878, 'pg_rpo', '1048576', 'PGSQL', 'PG_BOOTSTRAP', 'int', 'C', 'recovery point objective in bytes, `1MiB` at most by default', NULL),
 (879, 'pg_libs', '"pg_stat_statements, auto_explain"', 'PGSQL', 'PG_BOOTSTRAP', 'string', 'C', 'preloaded libraries, `pg_stat_statements,auto_explain` by default', NULL),
 (880, 'pg_delay', '0', 'PGSQL', 'PG_BOOTSTRAP', 'interval', 'I', 'replication apply delay for standby cluster leader', NULL),
 (881, 'pg_checksum', 'true', 'PGSQL', 'PG_BOOTSTRAP', 'bool', 'C', 'enable data checksum for postgres cluster?', NULL),
-(882, 'pg_encoding', '"UTF8"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database cluster encoding, `UTF8` by default', NULL),
-(883, 'pg_locale', '"C"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database cluster local, `C` by default', NULL),
-(884, 'pg_lc_collate', '"C"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database cluster collate, `C` by default', NULL),
-(885, 'pg_lc_ctype', '"C"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database character type, `C` by default', NULL),
-(886, 'pgsodium_key', NULL, 'PGSQL', 'PG_BOOTSTRAP', 'string', 'C', 'pgsodium key, 64 hex digit, default to sha256(pg_cluster) if not specified', NULL),
-(887, 'pgsodium_getkey_script', NULL, 'PGSQL', 'PG_BOOTSTRAP', 'path', 'C', 'pgsodium getkey script path, `pgsodium_getkey` in template by default', NULL),
+(882, 'pg_pwd_enc', '"scram-sha-256"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'passwords encryption algorithm: scram-sha-256 by default', NULL),
+(883, 'pg_encoding', '"UTF8"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database cluster encoding, `UTF8` by default', NULL),
+(884, 'pg_locale', '"C"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database cluster local, `C` by default', NULL),
+(885, 'pg_lc_collate', '"C"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database cluster collate, `C` by default', NULL),
+(886, 'pg_lc_ctype', '"C"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database character type, `C` by default', NULL),
+(890, 'pgsodium_key', NULL, 'PGSQL', 'PG_BOOTSTRAP', 'string', 'C', 'pgsodium key, 64 hex digit, default to sha256(pg_cluster) if not specified', NULL),
+(891, 'pgsodium_getkey_script', NULL, 'PGSQL', 'PG_BOOTSTRAP', 'path', 'C', 'pgsodium getkey script path, `pgsodium_getkey` in template by default', NULL),
 
 (900, 'pg_provision', 'true', 'PGSQL', 'PG_PROVISION', 'bool', 'C', 'provision postgres cluster after bootstrap', NULL),
 (901, 'pg_init', '"pg-init"', 'PGSQL', 'PG_PROVISION', 'string', 'G/C', 'provision init script for cluster template, `pg-init` by default', NULL),
-(902, 'pg_default_roles', '[{"name": "dbrole_readonly", "login": false, "comment": "role for global read-only access"}, {"name": "dbrole_offline", "login": false, "comment": "role for restricted read-only access"}, {"name": "dbrole_readwrite", "login": false, "roles": ["dbrole_readonly"], "comment": "role for global read-write access"}, {"name": "dbrole_admin", "login": false, "roles": ["pg_monitor", "dbrole_readwrite"], "comment": "role for object creation"}, {"name": "postgres", "comment": "system superuser", "superuser": true}, {"name": "replicator", "roles": ["pg_monitor", "dbrole_readonly"], "comment": "system replicator", "replication": true}, {"name": "dbuser_dba", "roles": ["dbrole_admin"], "comment": "pgsql admin user", "pgbouncer": true, "pool_mode": "session", "superuser": true, "pool_connlimit": 16}, {"name": "dbuser_monitor", "roles": ["pg_monitor"], "comment": "pgsql monitor user", "pgbouncer": true, "pool_mode": "session", "parameters": {"log_min_duration_statement": 1000}, "pool_connlimit": 8}]', 'PGSQL', 'PG_PROVISION', 'role[]', 'G/C', 'default roles and users in postgres cluster', NULL),
+(902, 'pg_default_roles', '[{"name": "dbrole_readonly", "login": false, "comment": "role for global read-only access"}, {"name": "dbrole_offline", "login": false, "comment": "role for restricted read-only access"}, {"name": "dbrole_readwrite", "login": false, "roles": ["dbrole_readonly"], "comment": "role for global read-write access"}, {"name": "dbrole_admin", "login": false, "roles": ["pg_monitor", "dbrole_readwrite"], "comment": "role for object creation"}, {"name": "postgres", "comment": "system superuser", "superuser": true}, {"name": "replicator", "roles": ["pg_monitor", "dbrole_readonly"], "comment": "system replicator", "replication": true}, {"name": "dbuser_dba", "roles": ["dbrole_admin"], "comment": "pgsql admin user", "pgbouncer": true, "pool_mode": "session", "superuser": true, "pool_connlimit": 16}, {"name": "dbuser_monitor", "roles": ["pg_monitor", "dbrole_readonly"], "comment": "pgsql monitor user", "pgbouncer": true, "pool_mode": "session", "parameters": {"log_min_duration_statement": 1000}, "pool_connlimit": 8}]', 'PGSQL', 'PG_PROVISION', 'role[]', 'G/C', 'default roles and users in postgres cluster', NULL),
 (903, 'pg_default_privileges', '["GRANT USAGE      ON SCHEMAS   TO dbrole_readonly", "GRANT SELECT     ON TABLES    TO dbrole_readonly", "GRANT SELECT     ON SEQUENCES TO dbrole_readonly", "GRANT EXECUTE    ON FUNCTIONS TO dbrole_readonly", "GRANT USAGE      ON SCHEMAS   TO dbrole_offline", "GRANT SELECT     ON TABLES    TO dbrole_offline", "GRANT SELECT     ON SEQUENCES TO dbrole_offline", "GRANT EXECUTE    ON FUNCTIONS TO dbrole_offline", "GRANT INSERT     ON TABLES    TO dbrole_readwrite", "GRANT UPDATE     ON TABLES    TO dbrole_readwrite", "GRANT DELETE     ON TABLES    TO dbrole_readwrite", "GRANT USAGE      ON SEQUENCES TO dbrole_readwrite", "GRANT UPDATE     ON SEQUENCES TO dbrole_readwrite", "GRANT TRUNCATE   ON TABLES    TO dbrole_admin", "GRANT REFERENCES ON TABLES    TO dbrole_admin", "GRANT TRIGGER    ON TABLES    TO dbrole_admin", "GRANT CREATE     ON SCHEMAS   TO dbrole_admin"]', 'PGSQL', 'PG_PROVISION', 'string[]', 'G/C', 'default privileges when created by admin user', NULL),
 (904, 'pg_default_schemas', '["monitor"]', 'PGSQL', 'PG_PROVISION', 'string[]', 'G/C', 'default schemas to be created', NULL),
-(905, 'pg_default_extensions', '[{"name": "adminpack", "schema": "pg_catalog"}, {"name": "pg_stat_statements", "schema": "monitor"}, {"name": "pgstattuple", "schema": "monitor"}, {"name": "pg_buffercache", "schema": "monitor"}, {"name": "pageinspect", "schema": "monitor"}, {"name": "pg_prewarm", "schema": "monitor"}, {"name": "pg_visibility", "schema": "monitor"}, {"name": "pg_freespacemap", "schema": "monitor"}, {"name": "postgres_fdw", "schema": "public"}, {"name": "file_fdw", "schema": "public"}, {"name": "btree_gist", "schema": "public"}, {"name": "btree_gin", "schema": "public"}, {"name": "pg_trgm", "schema": "public"}, {"name": "intagg", "schema": "public"}, {"name": "intarray", "schema": "public"}, {"name": "pg_repack"}]', 'PGSQL', 'PG_PROVISION', 'extension[]', 'G/C', 'default extensions to be created', NULL),
+(905, 'pg_default_extensions', '[{"name": "pg_stat_statements", "schema": "monitor"}, {"name": "pgstattuple", "schema": "monitor"}, {"name": "pg_buffercache", "schema": "monitor"}, {"name": "pageinspect", "schema": "monitor"}, {"name": "pg_prewarm", "schema": "monitor"}, {"name": "pg_visibility", "schema": "monitor"}, {"name": "pg_freespacemap", "schema": "monitor"}, {"name": "postgres_fdw", "schema": "public"}, {"name": "file_fdw", "schema": "public"}, {"name": "btree_gist", "schema": "public"}, {"name": "btree_gin", "schema": "public"}, {"name": "pg_trgm", "schema": "public"}, {"name": "intagg", "schema": "public"}, {"name": "intarray", "schema": "public"}, {"name": "pg_repack"}]', 'PGSQL', 'PG_PROVISION', 'extension[]', 'G/C', 'default extensions to be created', NULL),
 (906, 'pg_reload', 'true', 'PGSQL', 'PG_PROVISION', 'bool', 'A', 'reload postgres after hba changes', NULL),
 (907, 'pg_default_hba_rules', '[{"db": "all", "addr": "local", "auth": "ident", "user": "${dbsu}", "title": "dbsu access via local os user ident"}, {"db": "replication", "addr": "local", "auth": "ident", "user": "${dbsu}", "title": "dbsu replication from local os ident"}, {"db": "replication", "addr": "localhost", "auth": "pwd", "user": "${repl}", "title": "replicator replication from localhost"}, {"db": "replication", "addr": "intra", "auth": "pwd", "user": "${repl}", "title": "replicator replication from intranet"}, {"db": "postgres", "addr": "intra", "auth": "pwd", "user": "${repl}", "title": "replicator postgres db from intranet"}, {"db": "all", "addr": "localhost", "auth": "pwd", "user": "${monitor}", "title": "monitor from localhost with password"}, {"db": "all", "addr": "infra", "auth": "pwd", "user": "${monitor}", "title": "monitor from infra host with password"}, {"db": "all", "addr": "infra", "auth": "ssl", "user": "${admin}", "title": "admin @ infra nodes with pwd & ssl"}, {"db": "all", "addr": "world", "auth": "ssl", "user": "${admin}", "title": "admin @ everywhere with ssl & pwd"}, {"db": "all", "addr": "localhost", "auth": "pwd", "user": "+dbrole_readonly", "title": "pgbouncer read/write via local socket"}, {"db": "all", "addr": "intra", "auth": "pwd", "user": "+dbrole_readonly", "title": "read/write biz user via password"}, {"db": "all", "addr": "intra", "auth": "pwd", "user": "+dbrole_offline", "title": "allow etl offline tasks from intranet"}]', 'PGSQL', 'PG_PROVISION', 'hba[]', 'G/C', 'postgres default host-based authentication rules', NULL),
 (908, 'pgb_default_hba_rules', '[{"db": "pgbouncer", "addr": "local", "auth": "peer", "user": "${dbsu}", "title": "dbsu local admin access with os ident"}, {"db": "all", "addr": "localhost", "auth": "pwd", "user": "all", "title": "allow all user local access with pwd"}, {"db": "pgbouncer", "addr": "intra", "auth": "pwd", "user": "${monitor}", "title": "monitor access via intranet with pwd"}, {"db": "all", "addr": "world", "auth": "deny", "user": "${monitor}", "title": "reject all other monitor access addr"}, {"db": "all", "addr": "intra", "auth": "pwd", "user": "${admin}", "title": "admin access via intranet with pwd"}, {"db": "all", "addr": "world", "auth": "deny", "user": "${admin}", "title": "reject all other admin access addr"}, {"db": "all", "addr": "intra", "auth": "pwd", "user": "all", "title": "allow all user intra access with pwd"}]', 'PGSQL', 'PG_PROVISION', 'hba[]', 'G/C', 'pgbouncer default host-based authentication rules', NULL),

@@ -212,7 +212,7 @@ ls -la /www/pigsty/
 
 ```bash
 # On internet-connected build machine:
-1. Install Pigsty normally:     ./bootstrap && ./configure && ./install.yml
+1. Install Pigsty normally:     ./bootstrap && ./configure && ./deploy.yml
 2. Create offline package:      ./cache.yml -l infra
 
 # Transfer tarball to air-gapped environment
@@ -220,7 +220,7 @@ ls -la /www/pigsty/
 # On air-gapped target machine:
 3. Bootstrap with package:      ./bootstrap -p pigsty-pkg-*.tgz
 4. Configure:                   ./configure
-5. Install:                     ./install.yml
+5. Install:                     ./deploy.yml
 ```
 
 
