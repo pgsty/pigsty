@@ -1,9 +1,9 @@
 #==============================================================#
-# File      :   aliyun-meta.yml
-# Desc      :   1-node env for x86_64/aarch64
+# File      :   aliyun-s3.tf
+# Desc      :   1-node pigsty meta for Aliyun with MinIO/S3
 # Ctime     :   2020-05-12
 # Mtime     :   2025-01-07
-# Path      :   terraform/spec/aliyun-meta.yml
+# Path      :   terraform/spec/aliyun-s3.tf
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -23,7 +23,7 @@ variable "architecture" {
 variable "distro" {
   description = "The distro code (el8,el9,u22,u24,d12,d13)"
   type        = string
-  default     = "el10"     # el7/el8/el9/el10/d11/d12/d13/u20/u22/an8
+  default     = "el9"       # el7/el8/el9/el10/d11/d12/d13/u20/u22/an8
 }
 
 locals {
@@ -32,8 +32,8 @@ locals {
   spot_policy = "SpotWithPriceLimit"    # NoSpot, SpotWithPriceLimit, SpotAsPriceGo
   spot_price_limit = 5                  # only valid when spot_policy is SpotWithPriceLimit
   instance_type_map = {
-    amd64 = "ecs.c9i.large"
-    arm64 = "ecs.c8y.large"
+    amd64 = "ecs.c9i.xlarge"
+    arm64 = "ecs.c8y.xlarge"
   }
   image_regex_map = {
     amd64 = {
@@ -140,4 +140,75 @@ resource "alicloud_instance" "pg-meta" {
 # print the meta IP address after provisioning
 output "meta_ip" {
   value = "${alicloud_instance.pg-meta.public_ip}"
+}
+
+#resource "alicloud_instance" "pg-test-groups" {
+#  for_each                      = toset(["1", "2", "3"])
+#  instance_name                 = "pg-test-${each.key}"
+#  host_name                     = "pg-test-${each.key}"
+#  private_ip                    = "10.10.10.1${each.key}"
+#  instance_type                 = local.selected_instype
+#  image_id                      = "${data.alicloud_images.img.images.0.id}"
+#  vswitch_id                    = "${alicloud_vswitch.vsw.id}"
+#  security_groups               = ["${alicloud_security_group.default.id}"]
+#  password                      = "PigstyDemo4"
+#  instance_charge_type          = "PostPaid"
+#  internet_charge_type          = "PayByTraffic"
+#  spot_strategy                 = "SpotAsPriceGo"
+#  system_disk_category          = "cloud_essd"
+#  system_disk_performance_level = "PL1"
+#  system_disk_size              = 40
+#  #internet_max_bandwidth_out    = 100 # no public ip
+#}
+
+#===========================================================#
+# The OSS bucket for PITR
+#===========================================================#
+resource "alicloud_oss_bucket" "pigsty-oss" {
+  bucket = "pigsty-oss"
+}
+
+resource "alicloud_oss_bucket_acl" "pigsty-oss-acl" {
+  bucket = alicloud_oss_bucket.pigsty-oss.bucket
+  acl    = "private"
+}
+
+resource "alicloud_ram_user" "pigsty-oss-user" {
+  name = "pigsty-oss-user"
+  display_name = "pigsty-oss-rw-user"
+}
+
+resource "alicloud_ram_access_key" "pigsty-oss-key" {
+  user_name = alicloud_ram_user.pigsty-oss-user.name
+  secret_file = "~/pigsty.sk"
+}
+data "alicloud_caller_identity" "current" {}
+resource "alicloud_ram_policy" "pigsty-oss-policy" {
+  policy_name = "pigsty-oss-policy"
+  description = "Policy for read/write access to Pigsty S3 bucket"
+  policy_document = <<EOF
+{
+  "Version": "1",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "oss:*",
+      "Resource": [
+        "acs:oss:*:${data.alicloud_caller_identity.current.account_id}:${alicloud_oss_bucket.pigsty-oss.bucket}",
+        "acs:oss:*:${data.alicloud_caller_identity.current.account_id}:${alicloud_oss_bucket.pigsty-oss.bucket}/*"
+      ]
+    }
+  ]
+}
+EOF
+}
+
+resource "alicloud_ram_user_policy_attachment" "pigsty-oss-user-policy-bind" {
+  user_name   = alicloud_ram_user.pigsty-oss-user.name
+  policy_name = alicloud_ram_policy.pigsty-oss-policy.policy_name
+  policy_type = "Custom" #alicloud_ram_policy.pigsty-oss-policy.type
+}
+
+output "pigsty-oss-ak" {
+  value = alicloud_ram_access_key.pigsty-oss-key.user_name
 }

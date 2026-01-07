@@ -1,158 +1,220 @@
+#==============================================================#
+# File      :   tencentcloud-meta.tf
+# Desc      :   1-node pigsty meta for Tencent Cloud (Debian 12/13)
+# Ctime     :   2025-01-07
+# Mtime     :   2025-01-07
+# Path      :   terraform/spec/tencentcloud-meta.tf
+# Docs      :   https://pigsty.io/docs/deploy/terraform
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+
+#===========================================================#
+# Architecture, Instance Type, OS Images
+#===========================================================#
+variable "architecture" {
+  description = "The architecture type (amd64 or arm64)"
+  type        = string
+  default     = "amd64"    # comment this to use arm64
+  #default     = "arm64"   # uncomment this to use arm64
+}
+
+variable "distro" {
+  description = "The distro code (d12 or d13)"
+  type        = string
+  default     = "d12"      # d12 = Debian 12, d13 = Debian 13
+}
+
+variable "region" {
+  description = "Tencent Cloud region"
+  type        = string
+  default     = "ap-guangzhou"
+}
+
+variable "zone" {
+  description = "Tencent Cloud availability zone"
+  type        = string
+  default     = "ap-guangzhou-7"
+}
+
+variable "password" {
+  description = "Instance password"
+  type        = string
+  default     = "PigstyDemo4"
+}
+
+locals {
+  bandwidth = 100  # internet bandwidth in Mbps
+  disk_size = 40   # system disk size in GB
+
+  # Instance types for Tencent Cloud
+  # S5 for amd64, SR1 for arm64
+  instance_type_map = {
+    amd64 = "S5.MEDIUM4"    # 2 vCPU, 4 GiB
+    arm64 = "SR1.MEDIUM4"   # 2 vCPU, 4 GiB (ARM)
+  }
+
+  # Image names for Debian
+  # Use data source to query latest Debian images
+  image_name_map = {
+    amd64 = {
+      d12 = "Debian Server 12"
+      d13 = "Debian Server 13"
+    }
+    arm64 = {
+      d12 = "Debian Server 12"
+      d13 = "Debian Server 13"
+    }
+  }
+
+  selected_instype   = local.instance_type_map[var.architecture]
+  selected_image_name = local.image_name_map[var.architecture][var.distro]
+}
+
+
+#===========================================================#
+# Terraform Provider
+#===========================================================#
 terraform {
   required_providers {
     tencentcloud = {
       source  = "tencentcloudstack/tencentcloud"
-      version = "1.81.23"
+      version = "~> 1.81"
     }
   }
 }
 
-# add your credentials here or pass them via env
+
+#===========================================================#
+# Credentials
+#===========================================================#
+# Add your credentials via environment variables:
 # export TENCENTCLOUD_SECRET_ID="????????????????????"
 # export TENCENTCLOUD_SECRET_KEY="????????????????????"
-# e.g : ./tencentcloud-key.sh
 provider "tencentcloud" {
-  # secret_id = "????????????????????"
-  # secret_key = "????????????????????"
-  region = "${var.tencentcloud_region}"
+  region = var.region
 }
 
-variable "tencentcloud_region" {
-  default = "ap-guangzhou"
-  type    = string
-}
-variable "tencentcloud_zone" {
-  default = "ap-guangzhou-7"
-  type    = string
-}
-variable "tencentcloud_instance_password" {
-  default = "PigstyDemo4"
-  type    = string
-}
-variable "tencentcloud_vpc_cidr" {
-  default = "10.10.10.0/24"
-  type    = string
-}
-variable "tencentcloud_subnet_cidr" {
-  default = "10.10.10.0/25"
-  type    = string
-}
-variable "biz_prefix" {
-  default = "demo"
-  type    = string
-}
 
-# instance type 2c2g
-data tencentcloud_instance_types "t2c2g" {
-  cpu_core_count   = 2
-  memory_size      = 2
-  exclude_sold_out = true
-  filter {
-    name   = "instance-charge-type"
-    values = ["POSTPAID_BY_HOUR"]
-  }
-  filter {
-    name   = "zone"
-    values = ["${var.tencentcloud_zone}"]
-  }
-}
-# instance type 2c4g
-data tencentcloud_instance_types "t2c4g" {
+#===========================================================#
+# Data Sources
+#===========================================================#
+# Query available instance types
+data "tencentcloud_instance_types" "default" {
   cpu_core_count   = 2
   memory_size      = 4
   exclude_sold_out = true
+
   filter {
     name   = "instance-charge-type"
     values = ["POSTPAID_BY_HOUR"]
   }
   filter {
     name   = "zone"
-    values = ["${var.tencentcloud_zone}"]
+    values = [var.zone]
   }
 }
 
-# AVAILABLE PUBLIC IMAGES: https://console.cloud.tencent.com/cvm/image/detail?rid=8&id=img-no575grb
-# EL7: CentOS 7.9 : img-l8og963d
-# EL8: Rocky Linux 8.6 : img-no575grb
-# EL9: Rocky Linux 9.2 : img-no59bf11
-# U22: Ubuntu 22.04 :  img-487zeit5
-# D12: Debian 12 : img-7ag0z2jt
-
-data "tencentcloud_images" "rocky8" {
+# Query Debian images
+data "tencentcloud_images" "debian" {
   image_type = ["PUBLIC_IMAGE"]
-  os_name    = "Rocky Linux 8"
-}
-data "tencentcloud_images" "rocky9" {
-  image_type = ["PUBLIC_IMAGE"]
-  os_name    = "Rocky Linux 9"
+  os_name    = local.selected_image_name
 }
 
-# add vpc network
-resource "tencentcloud_vpc" "vpc" {
-  name       = "${var.biz_prefix}-pigsty-vpc"
-  cidr_block = "${var.tencentcloud_vpc_cidr}"
+
+#===========================================================#
+# VPC
+#===========================================================#
+resource "tencentcloud_vpc" "pigsty_vpc" {
+  name       = "pigsty-vpc"
+  cidr_block = "10.10.10.0/24"
+  tags = {
+    Project   = "pigsty"
+    ManagedBy = "terraform"
+  }
 }
 
-# add route table for pigsty demo network
-resource "tencentcloud_route_table" "route_table" {
-  name   = "${var.biz_prefix}-pigsty-rtb"
-  vpc_id = "${tencentcloud_vpc.vpc.id}"
+
+#===========================================================#
+# Route Table
+#===========================================================#
+resource "tencentcloud_route_table" "pigsty_rt" {
+  name   = "pigsty-rt"
+  vpc_id = tencentcloud_vpc.pigsty_vpc.id
 }
 
-# add subnet for pigsty demo network
-resource "tencentcloud_subnet" "subnet" {
-  name              = "${var.biz_prefix}-pigsty-subnet"
-  cidr_block        = "${var.tencentcloud_subnet_cidr}"
-  availability_zone = "${var.tencentcloud_zone}"
-  vpc_id            = "${tencentcloud_vpc.vpc.id}"
-  route_table_id    = "${tencentcloud_route_table.route_table.id}"
+
+#===========================================================#
+# Subnet
+#===========================================================#
+resource "tencentcloud_subnet" "pigsty_subnet" {
+  name              = "pigsty-subnet"
+  cidr_block        = "10.10.10.0/24"
+  availability_zone = var.zone
+  vpc_id            = tencentcloud_vpc.pigsty_vpc.id
+  route_table_id    = tencentcloud_route_table.pigsty_rt.id
 }
 
-# add default security group and allow all tcp traffic
-resource "tencentcloud_security_group" "security_group" {
-  name = "${var.biz_prefix}-pigsty-sg"
+
+#===========================================================#
+# Security Group
+#===========================================================#
+resource "tencentcloud_security_group" "pigsty_sg" {
+  name        = "pigsty-sg"
+  description = "Pigsty Security Group - Allow all traffic (demo only)"
 }
-resource "tencentcloud_security_group_lite_rule" "security_group_rule" {
-  security_group_id = "${tencentcloud_security_group.security_group.id}"
-  ingress           = [
+
+resource "tencentcloud_security_group_lite_rule" "pigsty_sg_rule" {
+  security_group_id = tencentcloud_security_group.pigsty_sg.id
+
+  ingress = [
     "ACCEPT#0.0.0.0/0#ALL#ALL"
   ]
+
   egress = [
     "ACCEPT#0.0.0.0/0#ALL#ALL"
   ]
 }
 
-# https://registry.terraform.io/providers/tencentcloudstack/tencentcloud/latest/docs/resources/instance
-resource "tencentcloud_instance" "pg-meta-1" {
-  instance_name              = "pg-meta-1"
-  hostname                   = "pg-meta-1"
-  instance_type              = data.tencentcloud_instance_types.t2c4g.instance_types.0.instance_type
-  availability_zone          = "${var.tencentcloud_zone}"
-  vpc_id                     = "${tencentcloud_vpc.vpc.id}"
-  subnet_id                  = "${tencentcloud_subnet.subnet.id}"
-  orderly_security_groups    = ["${tencentcloud_security_group.security_group.id}"]
-  image_id                   = data.tencentcloud_images.rocky8.images.0.image_id
-  password                   = "${var.tencentcloud_instance_password}"
+
+#===========================================================#
+# CVM Instance: pg-meta
+#===========================================================#
+resource "tencentcloud_instance" "pg-meta" {
+  instance_name              = "pg-meta"
+  hostname                   = "pg-meta"
+  instance_type              = local.selected_instype
+  availability_zone          = var.zone
+  vpc_id                     = tencentcloud_vpc.pigsty_vpc.id
+  subnet_id                  = tencentcloud_subnet.pigsty_subnet.id
+  orderly_security_groups    = [tencentcloud_security_group.pigsty_sg.id]
+  image_id                   = data.tencentcloud_images.debian.images.0.image_id
+  password                   = var.password
   private_ip                 = "10.10.10.10"
-  allocate_public_ip         = true # alloc a public IP
-  internet_max_bandwidth_out = 40 # 40Mbps
+  allocate_public_ip         = true
+  internet_max_bandwidth_out = local.bandwidth
+
+  system_disk_type = "CLOUD_PREMIUM"
+  system_disk_size = local.disk_size
+
+  tags = {
+    Name      = "pg-meta"
+    Project   = "pigsty"
+    ManagedBy = "terraform"
+  }
 }
 
-resource "tencentcloud_instance" "pg-test-groups" {
-  for_each = toset(["1", "2", "3"])
 
-  instance_name           = "pg-test-${each.key}"
-  hostname                = "pg-test-${each.key}"
-  private_ip              = "10.10.10.1${each.key}"
-  instance_type           = data.tencentcloud_instance_types.t2c2g.instance_types.0.instance_type
-  availability_zone       = "${var.tencentcloud_zone}"
-  vpc_id                  = "${tencentcloud_vpc.vpc.id}"
-  subnet_id               = "${tencentcloud_subnet.subnet.id}"
-  orderly_security_groups = ["${tencentcloud_security_group.security_group.id}"]
-  image_id                = data.tencentcloud_images.rocky8.images.0.image_id
-  password                = "${var.tencentcloud_instance_password}"
+#===========================================================#
+# Output
+#===========================================================#
+output "meta_ip" {
+  description = "Public IP of pg-meta instance"
+  value       = tencentcloud_instance.pg-meta.public_ip
 }
 
-output "tencentcloud_admin_ip" {
-  value = "${tencentcloud_instance.pg-meta-1.public_ip}"
+output "ssh_command" {
+  description = "SSH command to connect (use sshpass or ssh key)"
+  value       = "sshpass -p ${var.password} ssh root@${tencentcloud_instance.pg-meta.public_ip}"
 }
