@@ -6,8 +6,8 @@
 #┃ Desc  :   pg_exporter metrics for restricted polardb ins    ┃#
 #┃ Ver   :   PostgreSQL 10~17 pgbouncer 1.8-1.23+              ┃#
 #┃ Ctime :   2023-09-10                                        ┃#
-#┃ Mtime :   2025-02-14                                        ┃#
-#┃ License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/   ┃#
+#┃ Mtime :   2025-01-07                                        ┃#
+#┃ License:  Apache-2.0 @ https://pigsty.io/docs/about/license/┃#
 #┃ Copyright : 2018-2026  Ruohang Feng / Vonng (rh@vonng.com)  ┃#
 #┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛#
 #################################################################
@@ -1371,14 +1371,14 @@ pg_origin:
     - cluster
 
   metrics:
-    - roiname:
+    - roname:
         usage: LABEL
         description: The external, user defined, name of a replication origin.
     - remote_lsn:
-        usage: LABEL
+        usage: COUNTER
         description: The origin node's LSN up to which data has been replicated.
     - local_lsn:
-        usage: LABEL
+        usage: COUNTER
         description: This node's LSN at which remote_lsn has been replicated.
         # This node's LSN at which remote_lsn has been replicated. Used to flush commit records before persisting data to disk when using asynchronous commits.
 
@@ -1443,7 +1443,7 @@ pg_size:
 pg_archiver:
   name: pg_archiver
   desc: PostgreSQL archiver process statistics
-  query: SELECT archived_count AS finish_count, failed_count, extract(EPOCH FROM last_archived_time) AS last_finish_time, extract(EPOCH FROM last_failed_time) AS last_failed_time, extract(EPOCH FROM stats_reset) AS reset_time FROM pg_stat_archiver;
+  query: SELECT archived_count AS finish_count, failed_count, extract(EPOCH FROM last_archived_time) AS finish_time, extract(EPOCH FROM last_failed_time) AS failed_time, extract(EPOCH FROM stats_reset) AS reset_time FROM pg_stat_archiver;
   ttl: 60
   min_version: 090400
   tags:
@@ -1456,11 +1456,11 @@ pg_archiver:
     - failed_count:
         usage: COUNTER
         description: Number of failed attempts for archiving WAL files
-    - last_finish_time:
-        usage: COUNTER
+    - finish_time:
+        usage: GAUGE
         description: Time of the last successful archive operation
-    - last_failed_time:
-        usage: COUNTER
+    - failed_time:
+        usage: GAUGE
         description: Time of the last failed archival operation
     - reset_time:
         usage: GAUGE
@@ -1811,7 +1811,7 @@ pg_recovery_prefetch:
         usage: COUNTER
         description: Number of blocks not prefetched because they didn't exist yet
     - skip_fpw:
-        usage: GAUGE
+        usage: COUNTER
         description: Number of blocks not prefetched because a full page image was included in the WAL
     - skip_rep:
         usage: COUNTER
@@ -1826,7 +1826,7 @@ pg_recovery_prefetch:
         usage: GAUGE
         description: How many prefetches have been initiated but are not yet known to have completed
     - reset_time:
-        usage: COUNTER
+        usage: GAUGE
         description: Time at which these recovery prefetch statistics were last reset
 
 
@@ -1867,7 +1867,7 @@ pg_slru_13:
         usage: COUNTER
         description: Number of truncates for this SLRU
     - reset_time:
-        usage: COUNTER
+        usage: GAUGE
         description: Time at which these statistics were last reset
 
 
@@ -1937,7 +1937,7 @@ pg_wal_14:
         scale: 1e-3
         description: Total amount of time spent syncing WAL files to disk via issue_xlog_fsync request, in seconds
     - reset_time:
-        usage: COUNTER
+        usage: GAUGE
         description: When statistics were last reset
 
 
@@ -2021,7 +2021,7 @@ pg_backend:
 pg_xact:
   name: pg_xact
   desc: PostgreSQL transaction identifier metrics
-  query: WITH snap(v) AS (SELECT txid_current_snapshot()), xset(v) AS  (SELECT txid_snapshot_xip(v) FROM snap), xnum(v) AS (SELECT count(*) from xset), xmin(v) AS (SELECT txid_snapshot_xmin(v) FROM snap), xmax(v) AS (SELECT txid_snapshot_xmin(v) FROM snap) SELECT xmin.v AS xmin, xmax.v AS xmax, xnum.v AS xnum FROM xmin, xmax, xnum;
+  query: WITH snap(v) AS (SELECT txid_current_snapshot()), xset(v) AS  (SELECT txid_snapshot_xip(v) FROM snap), xnum(v) AS (SELECT count(*) from xset), xmin(v) AS (SELECT txid_snapshot_xmin(v) FROM snap), xmax(v) AS (SELECT txid_snapshot_xmax(v) FROM snap) SELECT xmin.v AS xmin, xmax.v AS xmax, xnum.v AS xnum FROM xmin, xmax, xnum;
 
   ttl: 10
   min_version: 090400
@@ -2513,7 +2513,7 @@ pg_db_14:
         usage: COUNTER
         description: Number of database sessions to this database that were terminated by operator intervention
     - reset_time:
-        usage: COUNTER
+        usage: GAUGE
         description: Time at which database statistics were last reset
 
 
@@ -2633,7 +2633,7 @@ pg_db_12_13:
         description: Time spent writing data file blocks by backends in this database, in seconds
         # Time spent writing data file blocks by backends in this database, in milliseconds (if track_io_timing is enabled, otherwise zero)
     - reset_time:
-        usage: COUNTER
+        usage: GAUGE
         description: Time at which database statistics were last reset
 
 
@@ -2744,7 +2744,7 @@ pg_db_10_11:
         description: Time spent writing data file blocks by backends in this database, in seconds
         # Time spent writing data file blocks by backends in this database, in milliseconds (if track_io_timing is enabled, otherwise zero)
     - reset_time:
-        usage: COUNTER
+        usage: GAUGE
         description: Time at which database statistics were last reset
 
 
