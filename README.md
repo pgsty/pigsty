@@ -102,7 +102,7 @@ pig sty deploy   # run the deploy.yml playbook
 [root@pg-meta ~]# curl -fsSL https://repo.pigsty.io/get | bash -s v4.0.0
 [v4.0.0] ===========================================
 $ curl -fsSL https://repo.pigsty.io/get | bash
-[Docs] https://doc.pgsty.com
+[Docs] https://pigsty.io/docs
 [Demo] https://demo.pigsty.io
 [Repo] https://github.com/pgsty/pigsty
 [Download] ===========================================

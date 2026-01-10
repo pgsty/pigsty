@@ -2,7 +2,7 @@
 # File      :   Makefile
 # Desc      :   pigsty shortcuts
 # Ctime     :   2019-04-13
-# Mtime     :   2026-01-09
+# Mtime     :   2026-01-10
 # Path      :   Makefile
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -538,7 +538,7 @@ ctrio:
 cfull:
 	./configure -s -c ha/full
 csimu:
-	./configure -s -c ha/full
+	./configure -s -c ha/simu
 coss:
 	cp conf/build/oss.yml pigsty.yml
 cpro:
