@@ -2,7 +2,7 @@
 -- # File      :   cmdb.sql
 -- # Desc      :   Pigsty CMDB baseline
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2026-01-07
+-- # Mtime     :   2026-01-11
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -27,6 +27,12 @@ COMMENT ON TYPE pigsty.job_status IS 'pigsty job status';
 
 CREATE TYPE pigsty.var_level AS ENUM ('default', 'global', 'group', 'host', 'ins', 'arg');
 COMMENT ON TYPE pigsty.var_level IS 'pigsty parameters level';
+
+CREATE TYPE pigsty.db_state AS ENUM ('create', 'recreate', 'absent');
+COMMENT ON TYPE pigsty.db_state IS 'postgres database lifecycle state';
+
+CREATE TYPE pigsty.user_state AS ENUM ('create', 'absent');
+COMMENT ON TYPE pigsty.user_state IS 'postgres user lifecycle state';
 
 
 --===========================================================--
@@ -95,6 +101,21 @@ COMMENT ON COLUMN pigsty.default_var.type     IS 'param type';
 COMMENT ON COLUMN pigsty.default_var.level    IS 'param level: G/C/N/I/A';
 COMMENT ON COLUMN pigsty.default_var.summary  IS 'param short description';
 COMMENT ON COLUMN pigsty.default_var.detail   IS 'param long description';
+
+
+--===========================================================--
+--                      package_map                          --
+--===========================================================--
+-- OS-specific package alias mapping (loaded from node_id/vars)
+
+CREATE TABLE IF NOT EXISTS pigsty.package_map
+(
+    key   TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+);
+COMMENT ON TABLE pigsty.package_map IS 'OS-specific package alias mapping';
+COMMENT ON COLUMN pigsty.package_map.key IS 'package alias name';
+COMMENT ON COLUMN pigsty.package_map.value IS 'actual package list';
 
 
 --===========================================================--
@@ -351,7 +372,7 @@ CREATE OR REPLACE VIEW pigsty.pg_service AS
            value ->> 'dest'                 AS dst_port,
            value ->> 'check'                AS check_url,
            value ->> 'selector'             AS selector,
-           value ->> 'selector_backup'      AS selector_backup,
+           value ->> 'backup'               AS selector_backup,
            (value ->> 'maxconn')::INTEGER   AS maxconn,
            (value ->> 'balance')            AS balance,
            (value ->> 'options')            AS options,
@@ -366,12 +387,19 @@ DROP VIEW IF EXISTS pigsty.pg_database;
 CREATE OR REPLACE VIEW pigsty.pg_database AS
     SELECT cls,
            value ->> 'name'                                      AS datname,
+           coalesce((value ->> 'state')::pigsty.db_state, 'create'::pigsty.db_state) AS state,
            value ->> 'owner'                                     AS owner,
            value ->> 'template'                                  AS template,
            value ->> 'encoding'                                  AS encoding,
            value ->> 'locale'                                    AS locale,
            value ->> 'lc_collate'                                AS lc_collate,
            value ->> 'lc_ctype'                                  AS lc_ctype,
+           value ->> 'locale_provider'                           AS locale_provider,
+           value ->> 'icu_locale'                                AS icu_locale,
+           value ->> 'icu_rules'                                 AS icu_rules,
+           value ->> 'builtin_locale'                            AS builtin_locale,
+           coalesce((value ->> 'is_template')::BOOLEAN, false)   AS is_template,
+           (value ->> 'strategy')                                AS strategy,
            coalesce((value ->> 'allowconn')::BOOLEAN, true)      AS allowconn,
            coalesce((value ->> 'revokeconn')::BOOLEAN, false)    AS revokeconn,
            (value ->> 'tablespace')                              AS tablespace,
@@ -381,8 +409,10 @@ CREATE OR REPLACE VIEW pigsty.pg_database AS
            coalesce((value -> 'schemas')::JSONB, '[]'::JSONB)    AS schemas,
            coalesce((value -> 'extensions')::JSONB, '[]'::JSONB) AS extensions,
            coalesce((value -> 'parameters')::JSONB, '{}'::JSONB) AS parameters,
+           (value ->> 'baseline')                                AS baseline,
            (value ->> 'pool_mode')                               AS pool_mode,
            (value ->> 'pool_connlimit')::INTEGER                 AS pool_connlimit,
+           (value ->> 'pool_auth_user')                          AS pool_auth_user,
            value                                                 AS database
     FROM pigsty.pg_cluster, jsonb_array_elements(pg_databases);
 COMMENT ON VIEW pigsty.pg_database IS 'pigsty postgres databases definition';
@@ -395,6 +425,7 @@ DROP VIEW IF EXISTS pigsty.pg_users;
 CREATE OR REPLACE VIEW pigsty.pg_users AS
     SELECT cls,
        (u ->> 'name')                                  AS name,
+       coalesce((u ->> 'state')::pigsty.user_state, 'create'::pigsty.user_state) AS state,
        (u ->> 'password')                              AS password,
        starts_with(u ->> 'password', 'md5')            AS is_md5pwd,
        coalesce((u ->> 'login')::BOOLEAN, true)        AS login,
@@ -416,7 +447,8 @@ CREATE OR REPLACE VIEW pigsty.pg_users AS
        (u ->> 'pool_size')::INTEGER                    AS pool_size,
        (u ->> 'pool_size_reserve')::INTEGER            AS pool_size_reserve,
        (u ->> 'pool_size_min')::INTEGER                AS pool_size_min,
-       (u ->> 'pool_max_db_conn')::INTEGER             AS pool_max_db_conn,
+       (u ->> 'pool_connlimit')::INTEGER               AS pool_connlimit,
+       (u ->> 'pool_connlimit')::INTEGER               AS pool_max_db_conn,  -- legacy alias
        u                                               AS "user"
     FROM pigsty.pg_cluster, jsonb_array_elements(pg_users) AS u;
 COMMENT ON VIEW pigsty.pg_users IS 'pigsty postgres users definition';

@@ -4,16 +4,16 @@
 # File      :   inventory_load
 # Desc      :   load pigsty config into cmdb structure
 # Ctime     :   2022-05-05
-# Mtime     :   2022-12-05
+# Mtime     :   2026-01-11
 # Path      :   bin/inventory_cmdb
-# Deps      :   argparse, os, json, yaml
+# Deps      :   argparse, os, json, yaml, platform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 __author__ = 'Vonng (rh@vonng.com)'
 
 from argparse import ArgumentParser
-import os, json, yaml
+import os, json, yaml, platform
 
 
 def usage():
@@ -121,8 +121,135 @@ def load_conf(conf, pgurl):
         raise
 
 
+############################
+# OS-specific default vars
+############################
+# mapping: xxx_default -> xxx in pigsty.default_var
+OS_DEFAULT_PARAMS = {
+    'repo_packages_default': 'repo_packages',
+    'repo_extra_packages_default': 'repo_extra_packages',
+    'node_packages_default': 'node_packages',
+    'infra_packages_default': 'infra_packages',
+    'repo_upstream_default': 'repo_upstream',
+}
+
+SQL_UPDATE_DEFAULT_VAR = '''UPDATE pigsty.default_var SET value = %s WHERE key = %s;'''
+SQL_TRUNCATE_PACKAGE_MAP = '''TRUNCATE pigsty.package_map;'''
+SQL_INSERT_PACKAGE_MAP = '''INSERT INTO pigsty.package_map (key, value) VALUES (%s, %s);'''
+
+
+def detect_os():
+    """Detect OS vendor, version and architecture, return (prefix, fallback, arch) or (None, None, None)"""
+    arch = platform.machine()
+    if arch == 'arm64':
+        arch = 'aarch64'  # macOS uses arm64
+
+    os_release = '/etc/os-release'
+    if not os.path.exists(os_release):
+        return (None, None, arch)
+
+    os_info = {}
+    try:
+        with open(os_release, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if '=' in line:
+                    parts = line.split('=', 1)
+                    if len(parts) == 2:
+                        k, v = parts
+                        os_info[k] = v.strip('"').strip("'")
+    except Exception:
+        return (None, None, arch)
+
+    vendor = os_info.get('ID', '').lower()
+    version = os_info.get('VERSION_ID', '')
+    if '.' in version:
+        version = version.split('.')[0]
+
+    # determine OS prefix and fallback
+    if vendor in ('rhel', 'centos', 'rocky', 'alma', 'almalinux', 'fedora', 'ol', 'anolis', 'openeuler'):
+        prefix = 'el' + version
+        fallback = 'el9'
+    elif vendor == 'debian':
+        prefix = 'd' + version
+        fallback = 'd12'
+    elif vendor == 'ubuntu':
+        prefix = 'u' + version
+        fallback = 'u22'
+    else:
+        return (None, None, arch)
+
+    return (prefix, fallback, arch)
+
+
+def load_os_defaults(pgurl):
+    """Load OS-specific default parameters into pigsty.default_var"""
+    if not pgurl or not PIGSTY_HOME:
+        return
+
+    prefix, fallback, arch = detect_os()
+    if prefix is None:
+        return  # silently skip on non-Linux or unknown OS
+
+    vars_dir = os.path.join(PIGSTY_HOME, 'roles', 'node_id', 'vars')
+    vars_file = os.path.join(vars_dir, '%s.%s.yml' % (prefix, arch))
+
+    # fallback if exact match not found
+    if not os.path.exists(vars_file):
+        vars_file = os.path.join(vars_dir, '%s.%s.yml' % (fallback, arch))
+        if not os.path.exists(vars_file):
+            print("[INFO] skip os-specific defaults: %s.%s.yml not found" % (prefix, arch))
+            return
+
+    # parse vars file
+    os_vars = None
+    try:
+        with open(vars_file, 'r') as f:
+            os_vars = yaml.safe_load(f)
+    except Exception as e:
+        print("[WARN] fail to parse %s: %s" % (vars_file, e))
+        return
+    if not os_vars:
+        return
+
+    # collect default_var updates
+    updates = []
+    for src_key, dst_key in OS_DEFAULT_PARAMS.items():
+        if src_key in os_vars:
+            updates.append((json.dumps(os_vars[src_key]), dst_key))
+
+    # collect package_map entries
+    pkg_map = []
+    if 'package_map' in os_vars and isinstance(os_vars['package_map'], dict):
+        for k, v in os_vars['package_map'].items():
+            pkg_map.append((k, str(v)))
+
+    if not updates and not pkg_map:
+        return
+
+    # apply updates to database
+    try:
+        import psycopg2
+        conn = psycopg2.connect(pgurl)
+        cur = conn.cursor()
+        try:
+            if updates:
+                cur.executemany(SQL_UPDATE_DEFAULT_VAR, updates)
+            if pkg_map:
+                cur.execute(SQL_TRUNCATE_PACKAGE_MAP)
+                cur.executemany(SQL_INSERT_PACKAGE_MAP, pkg_map)
+            conn.commit()
+            print("[INFO] load os-specific defaults from %s" % os.path.basename(vars_file))
+        finally:
+            cur.close()
+            conn.close()
+    except Exception as e:
+        print("[WARN] fail to update os defaults: %s" % e)
+
+
 if __name__ == '__main__':
     args = parser.parse_args()
     print("[INFO] load pigsty config from %s into %s" % (args.path, args.data))
     conf = parse_conf(args.path)
     load_conf(conf, args.data)
+    load_os_defaults(args.data)
