@@ -3,7 +3,7 @@
 # File      :   trio.yml
 # Desc      :   Pigsty 3-node security enhance template
 # Ctime     :   2020-05-22
-# Mtime     :   2026-01-07
+# Mtime     :   2026-01-11
 # Docs      :   https://pigsty.io/docs/conf/trio
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -39,9 +39,9 @@ all:
         etcd_safeguard: false # safeguard against purging
         etcd_clean: true # purge etcd during init process
 
-    #minio: # minio cluster, s3 compatible object storage
-    #  hosts: { 10.10.10.10: { minio_seq: 1 } }
-    #  vars: { minio_cluster: minio }
+    minio: # minio cluster, s3 compatible object storage
+      hosts: { 10.10.10.10: { minio_seq: 1 } }
+      vars: { minio_cluster: minio }
 
     pg-meta: # 3 instance postgres cluster `pg-meta`
       hosts:
@@ -81,7 +81,7 @@ all:
       # all_proxy:   # set your proxy here: e.g http://user:pass@proxy.xxx.com
     infra_portal:                     # infra services exposed via portal
       home         : { domain: i.pigsty }     # default domain name
-      #minio        : { domain: m.pigsty ,endpoint: "${admin_ip}:9001" ,scheme: https ,websocket: true }
+      minio        : { domain: m.pigsty ,endpoint: "${admin_ip}:9001" ,scheme: https ,websocket: true }
     #node_etc_hosts: [ '${admin_ip} i.pigsty sss.pigsty' ]
 
     #----------------------------------#
@@ -92,6 +92,36 @@ all:
     repo_extra_packages: [ pg18-main ] #,pg18-core ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
     pg_version: 18                    # default postgres version
     #pg_extensions: [ pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
+
+    #----------------------------------#
+    # MinIO Related Options
+    #----------------------------------#
+    node_etc_hosts: [ '${admin_ip} i.pigsty sss.pigsty' ]
+    pgbackrest_method: minio          # if you want to use minio as backup repo instead of 'local' fs, uncomment this
+    pgbackrest_repo:                  # pgbackrest repo: https://pgbackrest.org/configuration.html#section-repository
+      local:                          # default pgbackrest repo with local posix fs
+        path: /pg/backup              # local backup directory, `/pg/backup` by default
+        retention_full_type: count    # retention full backups by count
+        retention_full: 2             # keep 2, at most 3 full backup when using local fs repo
+      minio:                          # optional minio repo for pgbackrest
+        type: s3                      # minio is s3-compatible, so s3 is used
+        s3_endpoint: sss.pigsty       # minio endpoint domain name, `sss.pigsty` by default
+        s3_region: us-east-1          # minio region, us-east-1 by default, useless for minio
+        s3_bucket: pgsql              # minio bucket name, `pgsql` by default
+        s3_key: pgbackrest            # minio user access key for pgbackrest
+        s3_key_secret: S3User.Backup  # minio user secret key for pgbackrest
+        s3_uri_style: path            # use path style uri for minio rather than host style
+        path: /pgbackrest             # minio backup path, default is `/pgbackrest`
+        storage_port: 9000            # minio port, 9000 by default
+        storage_ca_file: /etc/pki/ca.crt  # minio ca file path, `/etc/pki/ca.crt` by default
+        block: y                      # Enable block incremental backup
+        bundle: y                     # bundle small files into a single file
+        bundle_limit: 20MiB           # Limit for file bundles, 20MiB for object storage
+        bundle_size: 128MiB           # Target size for file bundles, 128MiB for object storage
+        cipher_type: aes-256-cbc      # enable AES encryption for remote backup repo
+        cipher_pass: pgBackRest       # AES encryption password, default is 'pgBackRest'
+        retention_full_type: time     # retention full backup by time on minio repo
+        retention_full: 14            # keep full backup for last 14 days
 
     #----------------------------------------------#
     # PASSWORD : https://pigsty.io/docs/setup/security/

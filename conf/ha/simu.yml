@@ -3,7 +3,7 @@
 # File      :   simu.yml
 # Desc      :   Pigsty Simubox: a 20 node prod simulation env
 # Ctime     :   2023-07-20
-# Mtime     :   2025-12-23
+# Mtime     :   2026-01-11
 # Docs      :   https://pigsty.io/docs/conf/simu
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -20,9 +20,9 @@ all:
     # ./docker.yml -l infra (optional)
     infra:
       hosts:
-        10.10.10.10: {}
-        10.10.10.11: { repo_enabled: false }
-        10.10.10.12: { repo_enabled: false }
+        10.10.10.10: { infra_seq: 1 }
+        10.10.10.11: { infra_seq: 2, repo_enabled: false }
+        10.10.10.12: { infra_seq: 3, repo_enabled: false }
       vars:
         docker_enabled: true
         node_conf: oltp         # use oltp template for infra nodes
@@ -42,44 +42,18 @@ all:
 
 
     #==========================================================#
-    # nodes: 23 nodes
-    #==========================================================#
-    # ./node.yml
-    nodes:
-      hosts:
-        10.10.10.10 : { nodename: meta1  ,node_cluster: meta   ,pg_cluster: pg-meta  ,pg_seq: 1 ,pg_role: primary, infra_seq: 1 }
-        10.10.10.11 : { nodename: meta2  ,node_cluster: meta   ,pg_cluster: pg-meta  ,pg_seq: 2 ,pg_role: replica, infra_seq: 2 }
-        10.10.10.12 : { nodename: meta3  ,node_cluster: meta   ,pg_cluster: pg-meta  ,pg_seq: 3 ,pg_role: replica, infra_seq: 3 }
-        10.10.10.18 : { nodename: proxy1 ,node_cluster: proxy  ,vip_address: 10.10.10.20 ,vip_vrid: 20 ,vip_interface: eth1 ,vip_role: master }
-        10.10.10.19 : { nodename: proxy2 ,node_cluster: proxy  ,vip_address: 10.10.10.20 ,vip_vrid: 20 ,vip_interface: eth1 ,vip_role: backup }
-        10.10.10.21 : { nodename: minio1 ,node_cluster: minio  ,minio_cluster: minio ,minio_seq: 1 }
-        10.10.10.22 : { nodename: minio2 ,node_cluster: minio  ,minio_cluster: minio ,minio_seq: 2 }
-        10.10.10.23 : { nodename: minio3 ,node_cluster: minio  ,minio_cluster: minio ,minio_seq: 3 }
-        10.10.10.24 : { nodename: minio4 ,node_cluster: minio  ,minio_cluster: minio ,minio_seq: 4 }
-        10.10.10.25 : { nodename: etcd1  ,node_cluster: etcd   ,etcd_cluster: etcd ,etcd_seq: 1 }
-        10.10.10.26 : { nodename: etcd2  ,node_cluster: etcd   ,etcd_cluster: etcd ,etcd_seq: 2 }
-        10.10.10.27 : { nodename: etcd3  ,node_cluster: etcd   ,etcd_cluster: etcd ,etcd_seq: 3 }
-        10.10.10.28 : { nodename: etcd4  ,node_cluster: etcd   ,etcd_cluster: etcd ,etcd_seq: 4 }
-        10.10.10.29 : { nodename: etcd5  ,node_cluster: etcd   ,etcd_cluster: etcd ,etcd_seq: 5 }
-        10.10.10.31 : { nodename: pg-src-1 ,node_cluster: pg-src ,node_id_from_pg: true }
-        10.10.10.32 : { nodename: pg-src-2 ,node_cluster: pg-src ,node_id_from_pg: true }
-        10.10.10.33 : { nodename: pg-src-3 ,node_cluster: pg-src ,node_id_from_pg: true }
-        10.10.10.41 : { nodename: pg-dst-1 ,node_cluster: pg-dst ,node_id_from_pg: true }
-        10.10.10.42 : { nodename: pg-dst-2 ,node_cluster: pg-dst ,node_id_from_pg: true }
-        10.10.10.43 : { nodename: pg-dst-3 ,node_cluster: pg-dst ,node_id_from_pg: true }
-
-    #==========================================================#
     # etcd: 5 nodes dedicated etcd cluster
     #==========================================================#
     # ./etcd.yml -l etcd;
     etcd:
       hosts:
-        10.10.10.25: {}
-        10.10.10.26: {}
-        10.10.10.27: {}
-        10.10.10.28: {}
-        10.10.10.29: {}
-      vars: {}
+        10.10.10.25: { etcd_seq: 1 }
+        10.10.10.26: { etcd_seq: 2 }
+        10.10.10.27: { etcd_seq: 3 }
+        10.10.10.28: { etcd_seq: 4 }
+        10.10.10.29: { etcd_seq: 5 }
+      vars:
+        etcd_cluster: etcd
 
     #==========================================================#
     # minio: 4 nodes dedicated minio cluster
@@ -87,11 +61,12 @@ all:
     # ./minio.yml -l minio;
     minio:
       hosts:
-        10.10.10.21: {}
-        10.10.10.22: {}
-        10.10.10.23: {}
-        10.10.10.24: {}
+        10.10.10.21: { minio_seq: 1 }
+        10.10.10.22: { minio_seq: 2 }
+        10.10.10.23: { minio_seq: 3 }
+        10.10.10.24: { minio_seq: 4 }
       vars:
+        minio_cluster: minio
         minio_data: '/data{1...4}' # 4 node x 4 disk
         minio_users:                      # list of minio user to be created
           - { access_key: pgbackrest  ,secret_key: S3User.Backup ,policy: pgsql }
@@ -105,10 +80,13 @@ all:
     # ./node.yml -l proxy
     proxy:
       hosts:
-        10.10.10.18: {}
-        10.10.10.19: {}
+        10.10.10.18: { vip_role: master }
+        10.10.10.19: { vip_role: backup }
       vars:
         vip_enabled: true
+        vip_address: 10.10.10.20
+        vip_vrid: 20
+        vip_interface: eth1
         haproxy_services:      # expose minio service : sss.pigsty:9000
           - name: minio        # [REQUIRED] service name, unique
             port: 9000         # [REQUIRED] service port, unique
@@ -164,9 +142,9 @@ all:
     # ./pgsql.yml -l pg-src
     pg-src:
       hosts:
-        10.10.10.31: { pg_seq: 1 ,pg_role: primary }
-        10.10.10.32: { pg_seq: 2 ,pg_role: replica }
-        10.10.10.33: { pg_seq: 3 ,pg_role: replica }
+        10.10.10.31: { pg_seq: 1, pg_role: primary }
+        10.10.10.32: { pg_seq: 2, pg_role: replica }
+        10.10.10.33: { pg_seq: 3, pg_role: replica }
       vars:
         pg_cluster: pg-src
         pg_vip_enabled: true
@@ -182,9 +160,9 @@ all:
     # ./pgsql.yml -l pg-dst
     pg-dst:
       hosts:
-        10.10.10.41: { pg_seq: 1 ,pg_role: primary }
-        10.10.10.42: { pg_seq: 2 ,pg_role: replica }
-        10.10.10.43: { pg_seq: 3 ,pg_role: replica }
+        10.10.10.41: { pg_seq: 1, pg_role: primary }
+        10.10.10.42: { pg_seq: 2, pg_role: replica }
+        10.10.10.43: { pg_seq: 3, pg_role: replica }
       vars:
         pg_cluster: pg-dst
         pg_vip_enabled: true
@@ -324,7 +302,7 @@ all:
     #==========================================================#
     # NODE
     #==========================================================#
-    node_id_from_pg: false            # use nodename rather than pg identity as hostname
+    node_id_from_pg: true             # use nodename rather than pg identity as hostname
     node_conf: tiny                   # use small node template
     node_timezone: Asia/Hong_Kong     # use Asia/Hong_Kong Timezone
     node_dns_servers:                 # DNS servers in /etc/resolv.conf
