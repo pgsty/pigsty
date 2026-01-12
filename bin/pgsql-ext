@@ -1,0 +1,110 @@
+#!/bin/bash
+set -uo pipefail
+#==============================================================#
+# File      :   pgsql-ext
+# Desc      :   Install PostgreSQL Extensions on Cluster
+# Ctime     :   2025-01-12
+# Mtime     :   2025-01-12
+# Path      :   bin/pgsql-ext
+# Deps      :   ansible-playbook, pgsql.yml
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+APP_NAME="$(basename $0)"
+APP_DIR="$(cd $(dirname $0) && pwd)"
+PIGSTY_HOME=$(cd $(dirname ${APP_DIR}) && pwd)
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+# bin/pgsql-ext <cls>              # install all extensions defined in inventory
+# bin/pgsql-ext <cls> [ext...]     # install specific extensions
+
+
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+__CN='\033[0m';__CK='\033[0;30m';__CR='\033[0;31m';__CG='\033[0;32m';
+__CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';__CC='\033[0;36m';__CW='\033[0;37m';
+function log_info() {  printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n";   }
+function log_warn() {  printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n";   }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n";   }
+function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n"; }
+function log_input() { printf "[${__CM} IN ${__CN}] ${__CM}$*\n=> ${__CN}"; }
+function log_hint()  { printf "${__CB}$*${__CN}\n"; }
+function log_line()  { printf "${__CM}[$*] ===========================================${__CN}\n"; }
+
+
+#--------------------------------------------------------------#
+# Param
+#--------------------------------------------------------------#
+PG_CLUSTER=${1-''}
+if [[ -z "${PG_CLUSTER}" ]]; then
+    log_error "pg_cluster is empty"
+    log_hint "Usage:"
+    log_hint "    bin/pgsql-ext <cls>            # install all extensions defined in inventory"
+    log_hint "    bin/pgsql-ext <cls> [ext...]   # install specific extensions"
+    exit 1
+fi
+
+
+#--------------------------------------------------------------#
+# Install All Extensions               [ 1 arg = install all ext ]
+#--------------------------------------------------------------#
+# if only 1 arg is given, arg1 = pg_cluster
+# all extensions defined in pg_extensions will be installed
+if (($# == 1)); then
+    log_line "EXECUTE"
+    log_warn "install extensions for cluster '${PG_CLUSTER}'"
+    log_hint "$ ./pgsql.yml -l '${PG_CLUSTER}' -t pg_ext"
+
+    "${PIGSTY_HOME}/pgsql.yml" -l "${PG_CLUSTER}" -t pg_ext
+    RETURN_CODE=$?
+
+    log_line "SUMMARY"
+    if [[ ${RETURN_CODE} -eq 0 ]]; then
+        log_info "install extensions for '${PG_CLUSTER}' complete"
+        exit 0
+    else
+        log_error "fail to install extensions for '${PG_CLUSTER}'"
+        exit 2
+    fi
+fi
+
+
+#--------------------------------------------------------------#
+# Install Specific Extensions       [2+ args = install specific ext]
+#--------------------------------------------------------------#
+# if more than 1 args is given, arg1 = pg_cluster, arg2+ = extension list
+# each extension will be installed on the cluster
+EXT_LIST=""
+EXT_JSON="["
+for ((i=2; i<=$#; i++))
+do
+    EXT_NAME="${!i}"
+    if [[ -n "${EXT_LIST}" ]]; then
+        EXT_LIST="${EXT_LIST}, ${EXT_NAME}"
+        EXT_JSON="${EXT_JSON},\"${EXT_NAME}\""
+    else
+        EXT_LIST="${EXT_NAME}"
+        EXT_JSON="${EXT_JSON}\"${EXT_NAME}\""
+    fi
+done
+EXT_JSON="${EXT_JSON}]"
+
+log_line "EXECUTE"
+log_warn "install extensions [ ${EXT_LIST} ] on '${PG_CLUSTER}'"
+log_hint "$ ./pgsql.yml -l '${PG_CLUSTER}' -t pg_ext -e '{\"pg_extensions\": ${EXT_JSON}}'"
+
+"${PIGSTY_HOME}/pgsql.yml" -l "${PG_CLUSTER}" -t pg_ext -e "{\"pg_extensions\": ${EXT_JSON}}"
+RETURN_CODE=$?
+
+log_line "SUMMARY"
+if [[ ${RETURN_CODE} -eq 0 ]]; then
+    log_info "install extensions [ ${EXT_LIST} ] on '${PG_CLUSTER}' complete"
+    exit 0
+else
+    log_error "fail to install extensions [ ${EXT_LIST} ] on '${PG_CLUSTER}'"
+    exit 3
+fi
