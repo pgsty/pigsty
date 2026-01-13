@@ -30,6 +30,10 @@
 {% endif %}
 {% set pg_effective_io_method = pg_io_method if pg_io_method|default('auto') != 'auto' else ('io_uring' if (os_package|default('rpm') == 'deb' or os_version|default(9)|int >= 10) else 'worker') %}
 {% set pg_io_workers = ([[(node_cpu|int * 0.25)|round(0,'ceil')|int, 4]|max, 16])|min|int %}
+{# shared rto presets: [ttl, loop_wait, retry_timeout, primary_start_timeout, safety_margin] #}
+{% set pg_rto_presets = {'fast':[20,5,5,5,5],'norm':[30,5,10,15,5],'safe':[60,10,20,60,10],'wide':[120,30,30,120,15]} %}
+{% set pg_rto_mode = pg_rto if pg_rto in pg_rto_presets else ('fast' if pg_rto|int<30 else ('norm' if pg_rto|int<45 else ('safe' if pg_rto|int<90 else 'wide'))) %}
+{% set pg_ttl=pg_rto_presets[pg_rto_mode][0] %}{% set pg_loop_wait=pg_rto_presets[pg_rto_mode][1] %}{% set pg_retry_timeout=pg_rto_presets[pg_rto_mode][2] %}{% set pg_primary_start_timeout=pg_rto_presets[pg_rto_mode][3] %}{% set pg_safety_margin=pg_rto_presets[pg_rto_mode][4] %}
 
 #==============================================================#
 # Summary for patroni OLTP config template (4-128 cpu cores)
@@ -143,7 +147,7 @@ tags:
 watchdog:
   mode: {{ patroni_watchdog_mode }}
   device: /dev/watchdog
-  #safety_margin: {{ ([(pg_rto|int - 5) , 0])|max }}   # -1 to use ttl/2
+  safety_margin: {{ pg_safety_margin }}
 
 #--------------------------------------------------------------#
 # bootstrap
@@ -216,22 +220,22 @@ bootstrap:
     #----------------------------------------------------------#
     # important parameters
     #----------------------------------------------------------#
-    # constraint: ttl >: loop_wait + retry_timeout * 2
+    # constraint: ttl >= loop_wait + retry_timeout * 2
 
     # the TTL to acquire the leader lock (in seconds). Think of it as the length of time before initiation of the automatic failover process. Default value: 30
     # config this according to your network condition to avoid false-positive failover
-    ttl: {{ pg_rto }}
+    ttl: {{ pg_ttl }}
 
     # the number of seconds the loop will sleep. Default value: 10
     # this is patroni check loop interval
-    loop_wait: {{ (pg_rto / 3)|round(0, 'ceil')|int }}
+    loop_wait: {{ pg_loop_wait }}
 
     # timeout for DCS and PostgreSQL operation retries (in seconds). DCS or network issues shorter than this will not cause Patroni to demote the leader. Default value: 10
-    retry_timeout: {{ (pg_rto / 3)|round(0, 'ceil')|int }}
+    retry_timeout: {{ pg_retry_timeout }}
 
     # the amount of time a primary is allowed to recover from failures before failover is triggered (in seconds)
     # Max RTO: 2 loop wait + primary_start_timeout
-    primary_start_timeout: {{ (pg_rto / 3)|round(0, 'ceil')|int }}
+    primary_start_timeout: {{ pg_primary_start_timeout }}
 
     # important: candidate will not be promoted if replication lag is higher than this
     # maximum RPO: 1MB

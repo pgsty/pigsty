@@ -1570,7 +1570,7 @@ INSERT INTO pigsty.default_var VALUES
 (874, 'pg_max_conn', '"auto"', 'PGSQL', 'PG_BOOTSTRAP', 'int', 'C', 'postgres max connections, `auto` will use recommended value', NULL),
 (875, 'pg_shared_buffer_ratio', '0.25', 'PGSQL', 'PG_BOOTSTRAP', 'float', 'C', 'postgres shared buffer memory ratio, 0.25 by default, 0.1~0.4', NULL),
 (876, 'pg_io_method', '"worker"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'io method for postgres: auto,fsync,worker,io_uring, worker by default', NULL),
-(877, 'pg_rto', '30', 'PGSQL', 'PG_BOOTSTRAP', 'int', 'C', 'recovery time objective in seconds,  `30s` by default', NULL),
+(877, 'pg_rto', '"norm"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'shared rto mode: fast,norm,safe,wide (or seconds for compatibility)', NULL),
 (878, 'pg_rpo', '1048576', 'PGSQL', 'PG_BOOTSTRAP', 'int', 'C', 'recovery point objective in bytes, `1MiB` at most by default', NULL),
 (879, 'pg_libs', '"pg_stat_statements, auto_explain"', 'PGSQL', 'PG_BOOTSTRAP', 'string', 'C', 'preloaded libraries, `pg_stat_statements,auto_explain` by default', NULL),
 (880, 'pg_delay', '0', 'PGSQL', 'PG_BOOTSTRAP', 'interval', 'I', 'replication apply delay for standby cluster leader', NULL),
