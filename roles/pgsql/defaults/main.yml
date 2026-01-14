@@ -75,7 +75,12 @@ pg_conf: oltp.yml                 # config template: oltp,olap,crit,tiny. `oltp.
 pg_max_conn: auto                 # postgres max connections, `auto` will use recommended value
 pg_shared_buffer_ratio: 0.25      # postgres shared buffers ratio, 0.25 by default, 0.1~0.4
 pg_io_method: worker              # io method for postgres, auto,fsync,worker,io_uring, worker by default
-pg_rto: norm                      # rto mode: fast,norm,safe,wide, or seconds, default: norm
+pg_rto: norm                      # shared rto mode for patroni & haproxy: fast,norm,safe,wide
+pg_rto_plan:                      # shared rto plan: [ttl, loop, retry, start, margin, inter, fastinter, downinter, rise, fall]
+  fast: [ 20  ,5  ,5  ,5   ,5  ,'1s' ,'500ms' ,'1s' ,2 ,2 ] # fast, 20s RTO
+  norm: [ 30  ,5  ,10 ,15  ,5  ,'2s' ,'1s'    ,'2s' ,2 ,3 ] # norm, 30s RTO
+  safe: [ 60  ,10 ,20 ,60  ,10 ,'3s' ,'1s'    ,'2s' ,2 ,3 ] # safe, 60s RTO
+  wide: [ 120 ,30 ,30 ,120 ,15 ,'5s' ,'2s'    ,'5s' ,3 ,5 ] # wide, 120s RTO
 pg_rpo: 1048576                   # recovery point objective in bytes, `1MiB` at most by default
 pg_libs: 'pg_stat_statements, auto_explain'  # preloaded libraries, `pg_stat_statements,auto_explain` by default
 pg_delay: 0                       # replication apply delay for standby cluster leader

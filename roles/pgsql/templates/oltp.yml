@@ -30,10 +30,9 @@
 {% endif %}
 {% set pg_effective_io_method = pg_io_method if pg_io_method|default('auto') != 'auto' else ('io_uring' if (os_package|default('rpm') == 'deb' or os_version|default(9)|int >= 10) else 'worker') %}
 {% set pg_io_workers = ([[(node_cpu|int * 0.25)|round(0,'ceil')|int, 4]|max, 16])|min|int %}
-{# shared rto presets: [ttl, loop_wait, retry_timeout, primary_start_timeout, safety_margin] #}
-{% set pg_rto_presets = {'fast':[20,5,5,5,5],'norm':[30,5,10,15,5],'safe':[60,10,20,60,10],'wide':[120,30,30,120,15]} %}
-{% set pg_rto_mode = pg_rto if pg_rto in pg_rto_presets else ('fast' if pg_rto|int<30 else ('norm' if pg_rto|int<45 else ('safe' if pg_rto|int<90 else 'wide'))) %}
-{% set pg_ttl=pg_rto_presets[pg_rto_mode][0] %}{% set pg_loop_wait=pg_rto_presets[pg_rto_mode][1] %}{% set pg_retry_timeout=pg_rto_presets[pg_rto_mode][2] %}{% set pg_primary_start_timeout=pg_rto_presets[pg_rto_mode][3] %}{% set pg_safety_margin=pg_rto_presets[pg_rto_mode][4] %}
+{% set pg_rto_mode = pg_rto if pg_rto in pg_rto_plan else 'norm' %}
+{% set rto = pg_rto_plan[pg_rto_mode] %}
+{% set pg_ttl = rto[0] %}{% set pg_loop_wait = rto[1] %}{% set pg_retry_timeout = rto[2] %}{% set pg_primary_start_timeout = rto[3] %}{% set pg_safety_margin = rto[4] %}
 
 #==============================================================#
 # Summary for patroni OLTP config template (4-128 cpu cores)

@@ -323,7 +323,7 @@ pg-meta:
         backup: "[? pg_role == `primary`]"  # backup server selector
         maxconn: 3000                   # optional, max allowed front-end connection
         balance: roundrobin             # optional, haproxy load balance algorithm (roundrobin by default, other: leastconn)
-        options: 'inter 3s fastinter 1s downinter 5s rise 3 fall 3 on-marked-down shutdown-sessions slowstart 30s maxconn 3000 maxqueue 128 weight 100'
+        #options: 'inter 3s fastinter 1s downinter 5s rise 3 fall 3 on-marked-down shutdown-sessions slowstart 30s maxconn 3000 maxqueue 128 weight 100'
     pg_hba_rules:
       - {user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes'}
     pg_vip_enabled: true

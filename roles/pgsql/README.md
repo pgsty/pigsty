@@ -202,15 +202,40 @@ pgsql (full role)
 
 ### Bootstrap
 
-| Variable                 | Default    | Description          |
-|--------------------------|------------|----------------------|
-| `pg_data`                | `/pg/data` | Data directory       |
-| `pg_port`                | `5432`     | Listen port          |
-| `pg_conf`                | `oltp.yml` | Config template      |
-| `pg_max_conn`            | `auto`     | Max connections      |
-| `pg_shared_buffer_ratio` | `0.25`     | Shared buffers ratio |
-| `patroni_enabled`        | `true`     | Enable Patroni       |
-| `patroni_port`           | `8008`     | Patroni API port     |
+| Variable                 | Default    | Description                                   |
+|--------------------------|------------|-----------------------------------------------|
+| `pg_data`                | `/pg/data` | Data directory                                |
+| `pg_port`                | `5432`     | Listen port                                   |
+| `pg_conf`                | `oltp.yml` | Config template                               |
+| `pg_max_conn`            | `auto`     | Max connections                               |
+| `pg_shared_buffer_ratio` | `0.25`     | Shared buffers ratio                          |
+| `pg_rto`                 | `norm`     | RTO mode: fast,norm,safe,wide                 |
+| `pg_rto_plan`            | `{...}`    | RTO presets for Patroni HA & HAProxy HC       |
+| `patroni_enabled`        | `true`     | Enable Patroni                                |
+| `patroni_port`           | `8008`     | Patroni API port                              |
+
+**`pg_rto_plan`** - shared RTO presets for Patroni HA and HAProxy health check:
+
+```yaml
+pg_rto_plan:  # [ttl, loop, retry, start, margin, inter, fastinter, downinter, rise, fall]
+  fast: [ 20  ,5  ,5  ,5   ,5  ,'1s' ,'500ms' ,'1s' ,2 ,2 ]   # shared rto fast, 20s RTO
+  norm: [ 30  ,5  ,10 ,15  ,5  ,'2s' ,'1s'    ,'2s' ,2 ,3 ]   # shared rto norm, 30s RTO
+  safe: [ 60  ,10 ,20 ,60  ,10 ,'3s' ,'1s'    ,'2s' ,2 ,3 ]   # shared rto safe, 60s RTO
+  wide: [ 120 ,30 ,30 ,120 ,15 ,'5s' ,'2s'    ,'5s' ,3 ,5 ]   # shared rto wide, 120s RTO
+```
+
+| Index | Parameter               | Component | Description                          |
+|-------|-------------------------|-----------|--------------------------------------|
+| 0     | `ttl`                   | Patroni   | Leader lock TTL (seconds)            |
+| 1     | `loop_wait`             | Patroni   | Main loop sleep interval (seconds)   |
+| 2     | `retry_timeout`         | Patroni   | DCS/PostgreSQL retry timeout         |
+| 3     | `primary_start_timeout` | Patroni   | Primary recovery wait time           |
+| 4     | `safety_margin`         | Patroni   | Watchdog safety margin               |
+| 5     | `inter`                 | HAProxy   | Health check interval                |
+| 6     | `fastinter`             | HAProxy   | Fast check interval on state change  |
+| 7     | `downinter`             | HAProxy   | Check interval when server is down   |
+| 8     | `rise`                  | HAProxy   | Successful checks to mark UP         |
+| 9     | `fall`                  | HAProxy   | Failed checks to mark DOWN           |
 
 ### Backup
 
