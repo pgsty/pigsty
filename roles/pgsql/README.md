@@ -218,10 +218,10 @@ pgsql (full role)
 
 ```yaml
 pg_rto_plan:  # [ttl, loop, retry, start, margin, inter, fastinter, downinter, rise, fall]
-  fast: [ 20  ,5  ,5  ,5   ,5  ,'1s' ,'500ms' ,'1s' ,2 ,2 ]   # shared rto fast, 20s RTO
-  norm: [ 30  ,5  ,10 ,15  ,5  ,'2s' ,'1s'    ,'2s' ,2 ,3 ]   # shared rto norm, 30s RTO
-  safe: [ 60  ,10 ,20 ,60  ,10 ,'3s' ,'1s'    ,'2s' ,2 ,3 ]   # shared rto safe, 60s RTO
-  wide: [ 120 ,30 ,30 ,120 ,15 ,'5s' ,'2s'    ,'5s' ,3 ,5 ]   # shared rto wide, 120s RTO
+  fast: [ 20  ,5  ,5  ,15 ,5  ,'1s' ,'0.5s' ,'1s' ,3 ,3 ]  # rto < 30s
+  norm: [ 30  ,5  ,10 ,25 ,5  ,'2s' ,'1s'   ,'2s' ,3 ,3 ]  # rto < 45s
+  safe: [ 60  ,10 ,20 ,45 ,10 ,'3s' ,'1.5s' ,'3s' ,3 ,3 ]  # rto < 90s
+  wide: [ 120 ,20 ,30 ,95 ,15 ,'4s' ,'2s'   ,'4s' ,3 ,3 ]  # rto < 150s
 ```
 
 | Index | Parameter               | Component | Description                          |
