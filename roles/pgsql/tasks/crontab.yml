@@ -1,0 +1,21 @@
+---
+#--------------------------------------------------------------#
+# Setup Postgres DBSU Crontab                        [pg_crontab]
+#--------------------------------------------------------------#
+- name: setup postgres dbsu crontab
+  tags: pg_crontab
+  when: pg_crontab | length > 0
+  copy:
+    dest: "{% if os_package == 'deb' %}/var/spool/cron/crontabs/{% else %}/var/spool/cron/{% endif %}{{ pg_dbsu }}"
+    owner: "{{ pg_dbsu }}"
+    group: "{% if os_package == 'deb' %}crontab{% else %}{{ pg_dbsu }}{% endif %}"
+    mode: '0600'
+    content: |
+      # Pigsty Managed Crontab for {{ pg_dbsu }}
+      SHELL=/bin/bash
+      PATH=/usr/pgsql/bin:/pg/bin:/usr/local/bin:/usr/bin:/usr/sbin:/bin:/sbin
+      MAILTO=""
+      {% for job in pg_crontab %}
+      {{ job }}
+      {% endfor %}
+...

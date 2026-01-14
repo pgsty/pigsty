@@ -329,8 +329,8 @@ pg-meta:
     pg_vip_enabled: true
     pg_vip_address: 10.10.10.2/24
     pg_vip_interface: eth1
-    node_crontab:  # make a full backup 1 am everyday
-      - '00 01 * * * postgres /pg/bin/pg-backup full'
+    pg_crontab:  # make a full backup 1 am everyday
+      - '00 01 * * * /pg/bin/pg-backup full'
 
 ```
 
@@ -578,7 +578,7 @@ pg-meta:
     pg_hba_rules: # supabase hba rules, require access from docker network
       - { user: all ,db: postgres  ,addr: intra         ,auth: pwd ,title: 'allow supabase access from intranet'    }
       - { user: all ,db: postgres  ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow access from local docker network' }
-    node_crontab: [ '00 01 * * * postgres /pg/bin/pg-backup full' ] # make a full backup every 1am
+    pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
 ```
 
 ![](https://pigsty.io/img/docs/supa-home.png)

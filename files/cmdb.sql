@@ -2,7 +2,7 @@
 -- # File      :   cmdb.sql
 -- # Desc      :   Pigsty CMDB baseline
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2026-01-11
+-- # Mtime     :   2026-01-14
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -1526,6 +1526,7 @@ INSERT INTO pigsty.default_var VALUES
 (822, 'pg_services', '[]', 'PGSQL', 'PG_BUSINESS', 'service[]', 'C', 'postgres business services', NULL),
 (823, 'pg_hba_rules', '[]', 'PGSQL', 'PG_BUSINESS', 'hba[]', 'C', 'business hba rules for postgres', NULL),
 (824, 'pgb_hba_rules', '[]', 'PGSQL', 'PG_BUSINESS', 'hba[]', 'C', 'business hba rules for pgbouncer', NULL),
+(825, 'pg_crontab', '[]', 'PGSQL', 'PG_BUSINESS', 'string[]', 'C', 'postgres crontab entries for dbsu', NULL),
 (831, 'pg_replication_username', '"replicator"', 'PGSQL', 'PG_BUSINESS', 'username', 'G', 'postgres replication username, `replicator` by default', NULL),
 (832, 'pg_replication_password', '"DBUser.Replicator"', 'PGSQL', 'PG_BUSINESS', 'password', 'G', 'postgres replication password, `DBUser.Replicator` by default', NULL),
 (833, 'pg_admin_username', '"dbuser_dba"', 'PGSQL', 'PG_BUSINESS', 'username', 'G', 'postgres admin username, `dbuser_dba` by default', NULL),
