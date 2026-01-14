@@ -176,7 +176,7 @@ git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v4.0.0
 
 Pigsty uses a [**modular**](https://pigsty.io/docs/concept/arch) design. you can [**use one or all**](https://pigsty.io/docs/deploy/planning), Best of breed products. Integrated as a platform.
 
-[![board](https://pigsty.io/img/hero.png)](https://pigsty.io/docs/concept/arch)
+[![board](https://pigsty.io/img/pigsty/motherboard.gif)](https://pigsty.io/docs/concept/arch)
 
 [![PGSQL](https://img.shields.io/badge/PGSQL-%233E668F?style=flat&logo=postgresql&labelColor=3E668F&logoColor=white)](https://pigsty.io/docs/pgsql) Self-healing PostgreSQL HA cluster powered by Patroni, Pgbouncer, PgBackrest & HAProxy
 
