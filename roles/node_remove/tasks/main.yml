@@ -114,6 +114,32 @@
       file: path={{ vector_data|default('/data/vector') }} state=absent
 
 #--------------------------------------------------------------#
+# restore default crontab                         [node_crontab]
+#--------------------------------------------------------------#
+- name: restore default etc crontab
+  tags: node_crontab
+  when: node_crontab_overwrite|default(true)|bool
+  ignore_errors: true
+  copy:
+    dest: /etc/crontab
+    mode: '0644'
+    content: |
+      SHELL=/bin/bash
+      PATH=/sbin:/bin:/usr/sbin:/usr/bin
+      MAILTO=root
+
+      # For details see man 4 crontabs
+
+      # Example of job definition:
+      # .---------------- minute (0 - 59)
+      # |  .------------- hour (0 - 23)
+      # |  |  .---------- day of month (1 - 31)
+      # |  |  |  .------- month (1 - 12) OR jan,feb,mar,apr ...
+      # |  |  |  |  .---- day of week (0 - 6) (Sunday=0 or 7) OR sun,mon,tue,wed,thu,fri,sat
+      # |  |  |  |  |
+      # *  *  *  *  * user-name  command to be executed
+
+#--------------------------------------------------------------#
 # remove node etc profile                              [profile]
 #--------------------------------------------------------------#
 - name: remove node etc profile
