@@ -4,14 +4,12 @@ set -uo pipefail
 # File      :   pg-failover-callback
 # Desc      :   Patroni event callback script
 # Ctime     :   2018-12-06
-# Mtime     :   2025-12-30
+# Mtime     :   2026-01-14
 # Path      :   /pg/bin/pg-failover-callback
 # Deps      :   pg-role
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
-PROG_NAME="$(basename $0)"
-PROG_DIR="$(cd $(dirname $0) && pwd)"
 
 
 #--------------------------------------------------------------#
@@ -28,8 +26,13 @@ function usage() {
 		DESCRIPTION
 			This is patroni pg event callback scripts, it will be invoked
 			by patroni when certain event happens:
-			Available events: on_stop|on_start|on_role_change
-			Available roles:  master|replica
+			Available events: on_start|on_stop|on_restart|on_reload|on_role_change
+			  - on_start:       PostgreSQL starts
+			  - on_stop:        PostgreSQL stops
+			  - on_restart:     PostgreSQL restarts (without role change)
+			  - on_reload:      Configuration reload triggered
+			  - on_role_change: Role promotion or demotion
+			Available roles:  primary|replica
 			<cluster> will be passed as target cluster name
 
 		EXAMPLES
@@ -46,30 +49,49 @@ function usage() {
 #                             Path                             #
 #--------------------------------------------------------------#
 LOGPATH=$(grep -A2 'log:' /etc/patroni/patroni.yml 2>/dev/null | head -n3 | awk '/dir:/ {print $2}')
-LOGPATH=${LOGPATH:-/pg/log/patroni}  # fallback to /pg/log if not found
+LOGPATH="${LOGPATH:-/pg/log/patroni}"
 
 
-function on_role_change_handler() {
-	local role=$1
-	local cluster=$2
-	local detect_role=$(/pg/bin/pg-role)
-	printf "\033[0;32m[$(date "+%Y-%m-%d %H:%M:%S")][${HOSTNAME}][role_change@${cluster}] new_role=${role} detect_role=${detect_role} \033[0m\n" >>$LOGPATH/callback.log
-
-  # perform two checkpoint after failover
-  printf "\033[0;32m[$(date "+%Y-%m-%d %H:%M:%S")][${HOSTNAME}] CHECKPOINT \033[0m\n" >>$LOGPATH/callback.log
-	psql -Atqwc 'CHECKPOINT;CHECKPOINT;'
-}
-
-function on_stop_handler() {
-	local role=$1
-	local cluster=$2
-	exit 0
+#--------------------------------------------------------------#
+#                           Handlers                           #
+#--------------------------------------------------------------#
+function log_callback() {
+	printf "[%s][%s] %s\n" "$(date '+%Y-%m-%d %H:%M:%S')" "${HOSTNAME}" "$*" >>"${LOGPATH}/callback.log"
 }
 
 function on_start_handler() {
-	local role=$1
-	local cluster=$2
-	exit 0
+	local role="$1"
+	local cluster="$2"
+	log_callback "on_start: cluster=${cluster} role=${role} started"
+}
+
+function on_stop_handler() {
+	local role="$1"
+	local cluster="$2"
+	log_callback "on_stop: cluster=${cluster} role=${role} stopped"
+}
+
+function on_restart_handler() {
+	local role="$1"
+	local cluster="$2"
+	log_callback "on_restart: cluster=${cluster} role=${role} restarted"
+}
+
+function on_reload_handler() {
+	local role="$1"
+	local cluster="$2"
+	log_callback "on_reload: cluster=${cluster} role=${role} reloaded"
+}
+
+function on_role_change_handler() {
+	local role="$1"
+	local cluster="$2"
+	local detect_role
+	detect_role=$(/pg/bin/pg-role 2>/dev/null || echo "unknown")
+	log_callback "on_role_change: cluster=${cluster} new_role=${role} detect_role=${detect_role}"
+	log_callback "on_role_change: executing CHECKPOINT"
+	psql -Atqwc 'CHECKPOINT;CHECKPOINT;' 2>/dev/null || true
+	log_callback "on_role_change: CHECKPOINT complete"
 }
 
 
@@ -81,39 +103,49 @@ function main() {
 		echo "[ERROR] pg-failover-callback requires 3 arguments: event role cluster (got $#)" >&2
 		exit 1
 	fi
-	local event=$1
-	local role=$2
-	local cluster=$3
+	local event="$1"
+	local role="$2"
+	local cluster="$3"
 
 	# unify role to primary & replica
-	case ${role} in
-	primary | p | master | m | leader | l)
+	case "${role}" in
+	primary|p|master|m|leader|l|promoted)
 		role="primary"
 		;;
-	standby | s | replica | r | slave)
+	standby|s|replica|r|slave|demoted)
 		role="replica"
 		;;
 	*)
-		exit 1
+		role="unknown"
 		;;
 	esac
 
-	# log event and call handler
-	printf "\033[0;32m[$(date "+%Y-%m-%d %H:%M:%S")][${HOSTNAME}][event=${event}] [cluster=${cluster}] [role=${role}]\033[0m\n" >>$LOGPATH/callback.log
-	case ${event} in
-	on_stop)
-		on_stop_handler ${role} ${cluster}
-		;;
+	# log event to callback.log
+	log_callback "${event}: cluster=${cluster} role=${role}"
+
+	# call event handler
+	case "${event}" in
 	on_start)
-		on_start_handler ${role} ${cluster}
+		on_start_handler "${role}" "${cluster}"
+		;;
+	on_stop)
+		on_stop_handler "${role}" "${cluster}"
+		;;
+	on_restart)
+		on_restart_handler "${role}" "${cluster}"
+		;;
+	on_reload)
+		on_reload_handler "${role}" "${cluster}"
 		;;
 	on_role_change)
-		on_role_change_handler ${role} ${cluster}
+		on_role_change_handler "${role}" "${cluster}"
 		;;
 	*)
-		usage
+		log_callback "WARN: unknown event=${event} cluster=${cluster} role=${role}"
 		;;
 	esac
+
+	exit 0
 }
 
 main "$@"
