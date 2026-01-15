@@ -3,7 +3,7 @@
 # File      :   simu.yml
 # Desc      :   Pigsty Simubox: a 20 node prod simulation env
 # Ctime     :   2023-07-20
-# Mtime     :   2026-01-11
+# Mtime     :   2026-01-14
 # Docs      :   https://pigsty.io/docs/conf/simu
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
@@ -132,9 +132,6 @@ all:
         pg_hba_rules:
           - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
         pg_libs: 'pg_stat_statements, auto_explain' # add timescaledb to shared_preload_libraries
-        pg_crontab:  # make a full backup on monday 1am, and an incremental backup during weekdays
-          - '00 01 * * 1 /pg/bin/pg-backup full'
-          - '00 01 * * 2,3,4,5,6,7 /pg/bin/pg-backup'
 
     #==========================================================#
     # pg-src: dedicate 3 node source cluster
@@ -346,7 +343,9 @@ all:
         cipher_pass: pgBackRest       # AES encryption password, default is 'pgBackRest'
         retention_full_type: time     # retention full backup by time on minio repo
         retention_full: 14            # keep full backup for last 14 days
-
+    pg_crontab:  # make a full backup on monday 1am, and an incremental backup during weekdays
+      - '00 * * * 1   /pg/bin/pg-backup'
+      - '00 05 * * *  /pg/bin/pg-vaccum'
 
     #==========================================================#
     # Repo
