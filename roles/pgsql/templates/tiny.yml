@@ -41,7 +41,7 @@
 
 # Node: {{ node_cpu }}C{{ node_mem_gb }}G , node_tune = {{ node_tune }}
 # Memory: {{ node_mem_mb }}MB , Disk : {{ [ (node_fs_bytes|int / 1073741824)|round(0, 'ceil')|int , 1 ] | max }}GB {{ pg_storage_type|default('SSD') }} @ {{ pg_fs_main }}
-# ETCD: {% for ip in groups['etcd']|sort %}{{ ip }}:{{ etcd_port }} {% endfor %}
+# ETCD: {% for ip in groups['etcd']|default([])|sort %}{{ ip }}:{{ etcd_port }} {% endfor %}
 
 #--------------------------------------------------------------#
 # pgconf, maxconn, workmem   = {{ pg_conf }} , {{ pg_max_connections }} , {{ pg_workmem }}MB
@@ -84,32 +84,13 @@ log:
 # etcd
 #--------------------------------------------------------------#
 etcd3:
-  hosts: '{% for ip in groups['etcd']|sort %}{% if not loop.first %},{% endif %}{{ ip }}:{{ etcd_port }}{% endfor %}'
-  protocol: https
+  hosts: '{% for ip in groups['etcd']|default([])|sort %}{% if not loop.first %},{% endif %}{{ ip }}:{{ etcd_port }}{% endfor %}'
   cacert: /pg/cert/ca.crt
   cert:   /pg/cert/server.crt
   key:    /pg/cert/server.key
+  protocol: https
   username: '{{ pg_shard if pg_mode == "citus" else pg_cluster }}'
   password: '{{ pg_etcd_password | default(pg_shard if pg_mode == "citus" else pg_cluster, true) }}'
-
-#--------------------------------------------------------------#
-# api
-#--------------------------------------------------------------#
-# how to expose patroni service
-restapi:
-  listen: {{ inventory_hostname }}:{{ patroni_port }}
-  connect_address: {{ inventory_hostname }}:{{ patroni_port }}
-{% if patroni_ssl_enabled|bool %}
-  cacert:   '/pg/cert/ca.crt'
-  certfile: '/pg/cert/server.crt'
-  keyfile:  '/pg/cert/server.key'
-  verify_client: none  # none|optional|required
-{% endif %}
-  # unsafe api can only be accessed from meta nodes with auth
-  authentication:
-    username: '{{ patroni_username }}'
-    password: '{{ patroni_password }}'
-  allowlist: [ {{ pg_allow_list|join(', ') }} ]
 
 #--------------------------------------------------------------#
 # ctl
@@ -117,12 +98,31 @@ restapi:
 ctl:
 {% if patroni_ssl_enabled|bool %}
   insecure: false
-  cacert:   '/pg/cert/ca.crt'
-  certfile: '/pg/cert/server.crt'
-  keyfile:  '/pg/cert/server.key'
-{% else %}
+  cacert:   /pg/cert/ca.crt
+  certfile: /pg/cert/server.crt
+  keyfile:  /pg/cert/server.key
+{% else %}                                      # patroni_ssl disabled
   insecure: true
+{% endif %}                                     # end of patroni_ssl_enabled
+
+#--------------------------------------------------------------#
+# api
+#--------------------------------------------------------------#
+# how to expose patroni service
+restapi:
+{% if patroni_ssl_enabled|bool %}
+  cacert:   /pg/cert/ca.crt
+  certfile: /pg/cert/server.crt
+  keyfile:  /pg/cert/server.key
+  verify_client: none            # none|optional|required
 {% endif %}
+  listen: {{ inventory_hostname }}:{{ patroni_port }}
+  connect_address: {{ inventory_hostname }}:{{ patroni_port }}
+  # unsafe api can only be accessed from meta nodes with auth
+  authentication:
+    username: '{{ patroni_username }}'
+    password: '{{ patroni_password }}'
+  allowlist: [ {{ pg_allow_list|join(', ') }} ]
 
 #--------------------------------------------------------------#
 # tags
@@ -290,7 +290,7 @@ bootstrap:
         #------------------------------------------------------#
         # AUTHENTICATION
         #------------------------------------------------------#
-        password_encryption: {{ pg_pwd_enc }}
+        password_encryption: {{ pg_pwd_enc|default('scram-sha-256') }}
         ssl: 'on'                               # enable server ssl
         ssl_cert_file: '/pg/cert/server.crt'    # public cert path
         ssl_key_file: '/pg/cert/server.key'     # private key path
@@ -339,9 +339,9 @@ bootstrap:
         checkpoint_completion_target: 0.80      # 0.5 -> 0.8
 {% if pgbackrest_enabled|bool %}
         archive_mode: 'on'
-        archive_timeout: 300                    # 5 min timeout for archiving
+        archive_timeout: 300                    # 5min archive timeout
         archive_command: 'pgbackrest --stanza={{ pg_cluster }} archive-push %p'
-{% endif %}
+{% endif %}                                     # end of pgbackrest_enabled
 
         #------------------------------------------------------#
         # REPLICATION
@@ -379,7 +379,7 @@ bootstrap:
         log_destination: csvlog                 # use standard csv log
 {% endif %}
         logging_collector: 'on'                 # enable csvlog
-        log_directory: {{ pg_log_dir }}         # postgres log dir
+        log_directory: {{ pg_log_dir }}         # postgres log directory
         log_timezone: 'UTC'                     # always use UTC timezone for logging
         log_filename: 'postgresql-%a.log'       # rotate on weekly basis
         log_file_mode: '0640'                   # allow group log read
@@ -413,7 +413,7 @@ bootstrap:
         # autovacuum_analyze_scale_factor: 0.04   # fraction of table size before analyze  10% -> 4%
         autovacuum_vacuum_cost_delay: -1        # default vacuum cost delay: same as vacuum_cost_delay
         autovacuum_vacuum_cost_limit: -1        # default vacuum cost limit: same as vacuum_cost_limit
-        autovacuum_freeze_max_age: 1000000000   # age > 1 billion triggers force vacuum
+        autovacuum_freeze_max_age: 1000000000   # age > 1e9 triggers force vacuum
 
         #------------------------------------------------------#
         # CLIENT
@@ -513,7 +513,7 @@ postgresql:
   #------------------------------------------------------------#
   # how to react to database operations
   #------------------------------------------------------------#
-  # event callback script log: {{ patroni_log_dir }}/callback.log
+  # event callback script log: /pg/log/patroni/callback.log
   callbacks:
     on_start: /pg/bin/pg-failover-callback
     on_stop: /pg/bin/pg-failover-callback
@@ -557,11 +557,12 @@ postgresql:
   # host based authentication, overwrite default pg_hba.conf
   #------------------------------------------------------------#
   # pg_hba:
-  #   - local  all          postgres             ident
-  #   - local  all          all                  {{ pg_pwd_enc }}
-  #   - host   all          all       0.0.0.0/0  {{ pg_pwd_enc }}
-  #   - local  replication  postgres             ident
-  #   - local  replication  all                  {{ pg_pwd_enc }}
-  #   - host   replication  all       0.0.0.0/0  {{ pg_pwd_enc }}
+  #   - local  all          postgres            ident
+  #   - local  all          all                 {{ pg_pwd_enc }}
+  #   - host   all          all      0.0.0.0/0  {{ pg_pwd_enc }}
+  #   - local  replication  postgres            ident
+  #   - local  replication  all                 {{ pg_pwd_enc }}
+  #   - host   replication  all      0.0.0.0/0  {{ pg_pwd_enc }}
 
-...
+... # end of patroni tiny template
+
