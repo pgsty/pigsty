@@ -48,6 +48,11 @@ alias k="kubectl"
 alias h="history"
 alias m="mcli"
 alias mc="mcli"
+alias d="docker"
+alias dc="docker compose"
+alias x="claude"
+alias xx="claude --dangerously-skip-permissions"
+alias oc="opencode"
 function v() {
 	[ $# -eq 0 ] && vi . || vi $@
 }

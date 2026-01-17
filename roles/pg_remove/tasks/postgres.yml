@@ -1,4 +1,3 @@
----
 #--------------------------------------------------------------#
 # Remove Follower                                   [pg_replica]
 #--------------------------------------------------------------#
@@ -7,7 +6,6 @@
 - name: remove postgres replica
   tags: pg_replica
   become: true
-  ignore_errors: true
   when: pg_role != 'primary'
   block:
 
@@ -40,7 +38,6 @@
 - name: remove postgres primary
   tags: pg_primary
   become: true
-  ignore_errors: true
   when: pg_role == 'primary'
   block:
 
@@ -72,7 +69,6 @@
 # delegate to first etcd node (which has etcdctl and certs)
 - name: remove postgres metadata from etcd
   tags: pg_meta
-  ignore_errors: true
   when:
     - pg_role == 'primary'
     - pg_cluster != ''
@@ -93,5 +89,3 @@
     etcdctl del "{{ pg_meta_prefix }}" --prefix=true
   args: { executable: /bin/bash }
   no_log: true
-
-...

@@ -162,5 +162,4 @@ REVOKE INHERIT OPTION FOR "{{ rname }}" FROM "{{ member }}";
 -- User '{{ user.name }}' will NOT be added to /etc/pgbouncer/userlist.txt
 {% endif %}
 
-
---==================================================================--
+----------------------------------------------------------------------
