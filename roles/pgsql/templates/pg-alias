@@ -15,19 +15,6 @@ alias pt-start='sudo systemctl start patroni'
 alias pt-stop='sudo systemctl stop patroni'
 alias pt-reload='sudo systemctl reload patroni'
 alias pt-restart='sudo systemctl restart patroni'
-
-function pg() {
-    local patroni_conf="/infra/conf/patronictl.yml"
-    if [ ! -r ${patroni_conf} ]; then
-        patroni_conf="/etc/patroni/patroni.yml"
-        if [ ! -r ${patroni_conf} ]; then
-        	echo "error: patronictl config not found"
-            return 1
-        fi
-    fi
-    patronictl -c ${patroni_conf} "$@"
-}
-
 alias pg-s='ps -fp $(pgrep -u postgres); systemctl status patroni; pg list'
 alias pg-start='pg_ctl -D {{ pg_data|default('/pg/data') }} start'
 alias pg-stop='pg_ctl -D {{ pg_data|default('/pg/data') }} stop'
@@ -68,6 +55,18 @@ alias pg-kill="psql -wc \"SELECT pg_terminate_backend(pid) AS killed, NOW()-back
 alias pg-kk="while true; do psql -wc \"SELECT pg_terminate_backend(pid) AS killed, NOW()-backend_start AS time,datname, usename, application_name AS appname, client_addr,state FROM pg_stat_activity WHERE backend_type = 'client backend' and application_name != 'pg_exporter' and pid <> pg_backend_pid();\"; sleep 0.1; done"
 alias pg-cancel="psql -wc \"SELECT pg_cancel_backend(pid) AS canceled, NOW()-state_change AS time, datname, usename, application_name AS appname, client_addr,state FROM pg_stat_activity WHERE backend_type = 'client backend' and pid <> pg_backend_pid();\""
 alias pg-cc="while true; do psql -wc \"SELECT pg_cancel_backend(pid) AS canceled, NOW()-state_change AS time, datname, usename, application_name AS appname, client_addr,state FROM pg_stat_activity WHERE backend_type = 'client backend' and pid <> pg_backend_pid();\"; sleep 0.1; done"
+
+function pg() {
+    local patroni_conf="/infra/conf/patronictl.yml"
+    if [ ! -r ${patroni_conf} ]; then
+        patroni_conf="/etc/patroni/patroni.yml"
+        if [ ! -r ${patroni_conf} ]; then
+        	echo "error: patronictl config not found"
+            return 1
+        fi
+    fi
+    patronictl -c ${patroni_conf} "$@"
+}
 
 #--------------------------------------------------------------#
 # pgbouncer (pgb)

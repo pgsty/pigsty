@@ -4,7 +4,7 @@ set -euo pipefail
 # File      :   pg-backup
 # Desc      :   make physical backup with pgbackrest
 # Ctime     :   2022-12-29
-# Mtime     :   2025-12-30
+# Mtime     :   2026-01-18
 # Path      :   /pg/bin/pg-backup
 # Deps      :   pgbackrest, pg-role
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -36,16 +36,14 @@ PROG_DIR="$(cd $(dirname $0) && pwd)"
 #--------------------------------------------------------------#
 BACKUP_MODE=${1-''}
 
-
-#--------------------------------------------------------------#
-# Check
-#--------------------------------------------------------------#
 CURRENT_ROLE=$(/pg/bin/pg-role)
 if [[ "${CURRENT_ROLE}" != "primary" ]]; then
     echo "[FAIL] this script should run on pgsql primary instance, got ${CURRENT_ROLE}"
     echo "This may not be a problem since this script is designed to fail fast on replica instance to avoid backup conflicts."
     exit 1
-fi
+else
+    echo "[INFO] run on primary instance"
+fi # this script only runs on primary instance
 
 if ! id -nG | grep -qw postgres; then
     echo "[FAIL] run this as dbsu (postgres group member)"

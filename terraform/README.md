@@ -22,7 +22,7 @@ There are lots of cloud providers out there. Choose one that fits your needs.
 | **AWS**          | [aws.tf](spec/aws.tf)                   | t3.medium / t4g.medium          | ~$30         | Yes         |
 | **Azure**        | [azure.tf](spec/azure.tf)               | Standard_B2s / Standard_B2ps_v2 | ~$30         | Yes         |
 | **GCP**          | [gcp.tf](spec/gcp.tf)                   | e2-medium / t2a-standard-2      | ~$25         | Yes         |
-| **Tencent**      | [tencentcloud.tf](spec/tencentcloud.tf) | S5.MEDIUM4 / SR1.MEDIUM4        | ~$20         | Yes         |
+| **Tencent**      | [qcloud.tf](spec/tencentcloud.tf)       | S5.MEDIUM4 / SR1.MEDIUM4        | ~$20         | Yes         |
 | **Hetzner**      | [hetzner.tf](spec/hetzner.tf)           | cx22 / cax21                    | **~$4.5**    | Yes         |
 | **Vultr**        | [vultr.tf](spec/vultr.tf)               | vc2-2c-4gb                      | ~$20         | No          |
 | **DigitalOcean** | [digitalocean.tf](spec/digitalocean.tf) | s-2vcpu-4gb                     | ~$24         | No          |
@@ -300,5 +300,5 @@ terraform init
 * [spec/aliyun-s3.tf](spec/aliyun-s3.tf) - Aliyun single node with OSS/S3 bucket for PITR
 * [spec/aliyun-full.tf](spec/aliyun-full.tf) - Aliyun 4-node sandbox
 * [spec/aliyun-pro.tf](spec/aliyun-pro.tf) - Aliyun multi-distro build environment
-* [spec/tencentcloud.tf](spec/tencentcloud.tf) - Tencent Cloud single node
+* [spec/qcloud.tf](spec/qcloud.tf) - Tencent Cloud single node
 * [spec/aws-cn.tf](spec/aws-cn.tf) - AWS China region

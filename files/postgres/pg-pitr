@@ -90,19 +90,7 @@ function log_title() { printf "[${__CG}$1${__CN}] ${__CG}$2${__CN}\n";   }
 function log_hint()  { printf "${__CB}$*${__CN}\n"; }
 function log_line()  { printf "${__CM}===== $* =====${__CN}\n"; }
 
-# Countdown timer for interactive terminals
-countdown() {
-    local seconds=${1:-5}
-    if [ -t 0 ] && [ -t 1 ]; then
-        for ((i=seconds; i>0; i--)); do
-            printf "\r${__CY}Starting in $i seconds... (Ctrl+C to abort)${__CN}"
-            sleep 1
-        done
-        printf "\n"
-    else
-        log_info "Non-interactive mode, skipping countdown..."
-    fi
-}
+
 
 
 #--------------------------------------------------------------#
@@ -323,6 +311,23 @@ log_warn "==========================================="
 log_warn "WARNING: Point-In-Time Recovery Operation"
 log_warn "This will OVERWRITE data in: $DATA_DIR"
 log_warn "==========================================="
+
+#--------------------------------------------------------------#
+# Countdown
+#--------------------------------------------------------------#
+# Countdown timer for interactive terminals
+countdown() {
+    local seconds=${1:-5}
+    if [ -t 0 ] && [ -t 1 ]; then
+        for ((i=seconds; i>0; i--)); do
+            printf "\r${__CY}Starting in $i seconds... (Ctrl+C to abort)${__CN}"
+            sleep 1
+        done
+        printf "\n"
+    else
+        log_info "Non-interactive mode, skipping countdown..."
+    fi
+}
 
 if [[ "$SKIP_CONFIRM" != true ]] && [ -t 0 ] && [ -t 1 ]; then
     log_hint "Press Ctrl+C to abort"
