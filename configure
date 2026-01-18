@@ -121,33 +121,18 @@ function check_version(){
     fi
 }
 
-
-#----------------------------------------------#
-# proxy
-#----------------------------------------------#
-function check_proxy(){
-  if [[ "${USE_PROXY}" == "true" ]]; then
-    if [[ "${HTTP_PROXY}" == '' && ${http_proxy} != '' ]]; then
-      #log_info "use http_proxy instead of HTTP_PROXY"
-      HTTP_PROXY=${http_proxy}
+function check_proxy_env(){
+    if [[ "${USE_PROXY}" == "true" ]]; then
+        # use lowercase http_proxy if HTTP_PROXY is not set
+        [[ "${HTTP_PROXY}" == '' && "${http_proxy}" != '' ]] && HTTP_PROXY=${http_proxy}
+        # use default no_proxy if NO_PROXY is not set
+        [[ "${NO_PROXY}" == '' ]] && NO_PROXY=${DEFAULT_NO_PROXY}
+        # use ALL_PROXY as HTTP_PROXY if HTTP_PROXY is not set
+        [[ "${ALL_PROXY}" != '' && "${HTTP_PROXY}" == '' ]] && HTTP_PROXY=${ALL_PROXY}
+        # use ALL_PROXY as HTTPS_PROXY if HTTPS_PROXY is not set
+        [[ "${ALL_PROXY}" != '' && "${HTTPS_PROXY}" == '' ]] && HTTPS_PROXY=${ALL_PROXY}
+        log_info "proxy = from env"
     fi
-
-    if [[ "${NO_PROXY}" == '' ]]; then
-      #log_info "use the default no proxy"
-      NO_PROXY=${DEFAULT_NO_PROXY}
-    fi
-
-    if [[ "${ALL_PROXY}" != '' && ${HTTP_PROXY} == '' ]]; then
-      #log_info "use ALL_PROXY as HTTP_PROXY"
-      HTTP_PROXY=${ALL_PROXY}
-    fi
-
-    if [[ "${ALL_PROXY}" != '' && ${HTTPS_PROXY} == '' ]]; then
-      #log_info "use ALL_PROXY as HTTPS_PROXY"
-      HTTPS_PROXY=${ALL_PROXY}
-    fi
-    log_info "proxy = from env"
-  fi
 }
 
 
@@ -583,7 +568,7 @@ function check_config(){
     fi
     cat "${config_src}" > "${config_dst}"
 
-    # copy target config, and replace IP placeholder for singleton templates
+    # replace placeholder IP 10.10.10.10 with primary_ip for singleton templates
     case "${mode}" in
       build/*) # do not replace ip for build templates
         log_warn "skip ip replacement (due to conf/${MODE})"
@@ -617,10 +602,10 @@ function check_config(){
         rm -rf "${config_dst}e"
     fi
 
-    # add proxy_env from current env
+    # add proxy_env to config from current environment variables
     if [[ "${USE_PROXY}" == "true" ]]; then
-        local proxy_txt_ori="    proxy_env:"
-        local proxy_txt="${proxy_txt_ori}"
+        local proxy_txt="    proxy_env:"
+        local proxy_txt_ori="${proxy_txt}"
         # build proxy_env config from non-empty environment variable
         [[ "${HTTP_PROXY}"  != "" ]] && proxy_txt="${proxy_txt}\n      http_proxy: \"${HTTP_PROXY}\""
         [[ "${HTTPS_PROXY}" != "" ]] && proxy_txt="${proxy_txt}\n      https_proxy: \"${HTTPS_PROXY}\""
@@ -795,7 +780,7 @@ function main(){
     check_vendor_version  # release       = ...,
     check_sudo            # current_user  = NOPASSWD sudo
     check_ssh             # current_user  = NOPASSWD ssh[:port]
-    check_proxy           # use_proxy     = true|false
+    check_proxy_env       # use_proxy     = true|false
     check_ipaddr          # primary_ip (arg|probe|input)                    (INTERACTIVE: ask for ip)
     check_admin           # check current_user@primary_ip nopass ssh sudo
     check_conf            # check config template
