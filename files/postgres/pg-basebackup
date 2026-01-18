@@ -4,7 +4,7 @@ set -uo pipefail
 # File      :   pg-basebackup
 # Desc      :   PostgreSQL base backup script using pg_basebackup
 # Ctime     :   2018-12-06
-# Mtime     :   2025-12-30
+# Mtime     :   2026-01-18
 # Path      :   /pg/bin/pg-basebackup
 # Deps      :   pg_basebackup, psql, lz4, openssl, .pgpass
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -120,8 +120,14 @@ function is_in_recovery() {
 
 # get primary IP address (which could be 10.x.x.x or 192.x.x.x)
 function local_ip() {
-	echo $(/sbin/ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' |
-		grep -v 127.0.0.1 | grep -Eo '(10|192)\.([0-9]*\.){2}[0-9]*' | head -n1)
+	# try ip command first (modern Linux), fallback to ifconfig
+	if command -v ip &>/dev/null; then
+		ip -4 addr show | grep -oP 'inet \K(10|192)\.[0-9.]+' | head -n1
+	elif command -v ifconfig &>/dev/null; then
+		ifconfig | grep -Eo 'inet (addr:)?([0-9]*\.){3}[0-9]*' | grep -v 127.0.0.1 | grep -Eo '(10|192)\.([0-9]*\.){2}[0-9]*' | head -n1
+	else
+		hostname -I 2>/dev/null | awk '{print $1}'
+	fi
 }
 
 # return cluster_name, psql access required
@@ -169,15 +175,19 @@ function make_backup() {
 # Desc: kill existing running backup process
 #--------------------------------------------------------------#
 function kill_base_backup() {
-	local pids=$(ps aux | grep pg_basebackup | grep -e "-Xf")
-	log_warn "killing basebackup processes ${pids}"
-
+	local pids
+	pids=$(pgrep -f "pg_basebackup.*-Xf" 2>/dev/null || true)
+	if [[ -z "${pids}" ]]; then
+		log_info "no pg_basebackup processes found"
+		return 0
+	fi
+	log_warn "killing basebackup processes: ${pids}"
 	for pid in ${pids}; do
-		log_warn "kill basebackup process: $pid"
-		echo $pid | awk '{print $2}' | xargs -n1 kill
-		log_info "kill basebackup process ${pid} done"
+		if kill -0 "${pid}" 2>/dev/null; then
+			log_warn "kill basebackup process: ${pid}"
+			kill "${pid}" 2>/dev/null || true
+		fi
 	done
-
 	log_warn "basebackup processes killed"
 }
 

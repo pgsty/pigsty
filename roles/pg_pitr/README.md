@@ -127,8 +127,8 @@ pg_pitr:
   # Post-recovery action: pause, promote, shutdown
   action: pause
 
-  # Preserve archive settings after recovery?
-  archive: false
+  # Preserve archive settings after recovery? (set false for exploratory PITR)
+  archive: true
 
   # Database filtering
   db_include: []                   # Include only these databases

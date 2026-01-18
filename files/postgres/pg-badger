@@ -51,9 +51,14 @@ if [[ "${MODE}" == "full" ]]; then
 	   --average 1 \
 	   --sample 3
 else
-	LATEST_LOGS="$(find "${LOGDIR}" -name '*.csv' -mtime 0)"
+	# find today's log files
+	mapfile -t LATEST_LOGS < <(find "${LOGDIR}" -name '*.csv' -mtime 0 2>/dev/null)
+	if [[ ${#LATEST_LOGS[@]} -eq 0 ]]; then
+		echo "no log files found for today in ${LOGDIR}"
+		exit 0
+	fi
 	pgbadger \
-	   -I ${LATEST_LOGS} \
+	   -I "${LATEST_LOGS[@]}" \
 	   -f csv \
 	   --outdir /pg/tmp/logs \
 	   --wide-char \

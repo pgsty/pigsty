@@ -4,7 +4,7 @@ set -uo pipefail
 # File      :   pg-pitr
 # Desc      :   Point-in-time recovery with pgbackrest
 # Ctime     :   2022-12-31
-# Mtime     :   2025-12-30
+# Mtime     :   2026-01-19
 # Path      :   /pg/bin/pg-pitr
 # Deps      :   pgbackrest, /etc/pgbackrest/pgbackrest.conf
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -168,20 +168,32 @@ done
 # Validation
 #--------------------------------------------------------------#
 # Check pgbackrest
-command -v pgbackrest &>/dev/null || log_error "pgbackrest not found in PATH"
+if ! command -v pgbackrest &>/dev/null; then
+    log_error "pgbackrest not found in PATH"
+    exit 1
+fi
 
 # Check config file
 PGBACKREST_CONF="/etc/pgbackrest/pgbackrest.conf"
-[[ -f "$PGBACKREST_CONF" ]] || log_error "pgbackrest config not found: $PGBACKREST_CONF"
+if [[ ! -f "$PGBACKREST_CONF" ]]; then
+    log_error "pgbackrest config not found: $PGBACKREST_CONF"
+    exit 1
+fi
 
 # Auto-detect stanza if not specified
 if [[ -z "$STANZA" ]]; then
     STANZA=$(grep -oP '^\[\K[^\]:]+(?=\])' "$PGBACKREST_CONF" | head -n1)
-    [[ -z "$STANZA" ]] && log_error "Cannot auto-detect stanza from config"
+    if [[ -z "$STANZA" ]]; then
+        log_error "Cannot auto-detect stanza from config"
+        exit 1
+    fi
 fi
 
 # Validate data directory path
-[[ "$DATA_DIR" == /* ]] || log_error "Data directory must be absolute path: $DATA_DIR"
+if [[ "$DATA_DIR" != /* ]]; then
+    log_error "Data directory must be absolute path: $DATA_DIR"
+    exit 1
+fi
 
 # Validate recovery target based on method
 case "$METHOD" in
@@ -189,35 +201,42 @@ case "$METHOD" in
         # Accept: YYYY-MM-DD HH:MM:SS with optional .microseconds and optional timezone
         # Examples: "2025-01-01 12:00:00", "2025-01-01 12:00:00+08", "2025-01-01 12:00:00.123456+08:00"
         if [[ ! "$TARGET" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}[\ T][0-9]{2}:[0-9]{2}:[0-9]{2}(\.[0-9]+)?([+-][0-9]{2}(:[0-9]{2})?)?$ ]]; then
-            log_error "Invalid time format: $TARGET
-Expected: YYYY-MM-DD HH:MM:SS[.usec][+/-TZ]
-Examples: 2025-01-01 12:00:00+08, 2025-01-01 04:00:00+00"
+            log_error "Invalid time format: $TARGET"
+            log_hint "Expected: YYYY-MM-DD HH:MM:SS[.usec][+/-TZ]"
+            log_hint "Examples: 2025-01-01 12:00:00+08, 2025-01-01 04:00:00+00"
+            exit 1
         fi
         ;;
     lsn)
         # LSN format: hex/hex (case insensitive)
         TARGET=$(echo "$TARGET" | tr '[:lower:]' '[:upper:]')
         if [[ ! "$TARGET" =~ ^[0-9A-F]{1,8}/[0-9A-F]{1,8}$ ]]; then
-            log_error "Invalid LSN format: $TARGET
-Expected: X/X where X is 1-8 hex digits
-Example: 0/7C82CB8"
+            log_error "Invalid LSN format: $TARGET"
+            log_hint "Expected: X/X where X is 1-8 hex digits"
+            log_hint "Example: 0/7C82CB8"
+            exit 1
         fi
         ;;
     xid)
         if [[ ! "$TARGET" =~ ^[0-9]+$ ]] || [[ "$TARGET" -le 0 ]] || [[ "$TARGET" -ge 4294967296 ]]; then
-            log_error "Invalid XID: $TARGET
-Expected: positive 32-bit integer (1 to 4294967295)"
+            log_error "Invalid XID: $TARGET"
+            log_hint "Expected: positive 32-bit integer (1 to 4294967295)"
+            exit 1
         fi
         ;;
     name)
-        [[ -z "$TARGET" ]] && log_error "Restore point name cannot be empty"
+        if [[ -z "$TARGET" ]]; then
+            log_error "Restore point name cannot be empty"
+            exit 1
+        fi
         ;;
     set)
         # Backup label: 'latest' or YYYYMMDD-HHMMSSF format
         if [[ "$TARGET" != "latest" ]] && [[ ! "$TARGET" =~ ^[0-9]{8}-[0-9]{6}F(_[0-9]{8}-[0-9]{6}(D|I))?$ ]]; then
-            log_error "Invalid backup label: $TARGET
-Expected: 'latest' or backup label like 20251225-120000F
-Check available backups with: pgbackrest info --stanza=$STANZA"
+            log_error "Invalid backup label: $TARGET"
+            log_hint "Expected: 'latest' or backup label like 20251225-120000F"
+            log_hint "Check available backups with: pgbackrest info --stanza=$STANZA"
+            exit 1
         fi
         ;;
 esac
