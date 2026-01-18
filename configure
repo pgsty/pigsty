@@ -36,7 +36,7 @@ USE_PROXY=false                   # use global env http_proxy, https_proxy, all_
 SKIP=false                        # skip ip probe (convenient if using fixed templates)
 SSH_PORT=""                       # default SSH port
 GENERATE_PASSWORD=false           # generate random passwords for security
-DEFAULT_NO_PROXY="localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,mirror.*,*.myqcloud.com,*.tsinghua.edu.cn,*.fedoraproject.org"
+DEFAULT_NO_PROXY="localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,mirror.*,*.tsinghua.edu.cn"
 
 
 #--------------------------------------------------------------#
@@ -127,7 +127,6 @@ function check_version(){
 #----------------------------------------------#
 function check_proxy(){
   if [[ "${USE_PROXY}" == "true" ]]; then
-
     if [[ "${HTTP_PROXY}" == '' && ${http_proxy} != '' ]]; then
       #log_info "use http_proxy instead of HTTP_PROXY"
       HTTP_PROXY=${http_proxy}
@@ -599,7 +598,7 @@ function check_config(){
     esac
 
     # replace node_tune & pg_conf with tiny or oltp according to current node cpu count
-    if (($(getconf _NPROCESSORS_ONLN)<4)); then
+    if (($(getconf _NPROCESSORS_ONLN)<4)); then   # use tiny template for cpu < 4
         log_warn "replace oltp template with tiny due to cpu < 4"
         sed -ie "s/pg_conf: oltp.yml/pg_conf: tiny.yml/g" "${config_dst}"
         sed -ie "s/node_tune: oltp/node_tune: tiny/g"     "${config_dst}"
@@ -628,15 +627,15 @@ function check_config(){
         [[ "${ALL_PROXY}"   != "" ]] && proxy_txt="${proxy_txt}\n      all_proxy: \"${ALL_PROXY}\""
         [[ "${NO_PROXY}"    != "" ]] && proxy_txt="${proxy_txt}\n      no_proxy: \"${NO_PROXY}\""
         # remove existing proxy_env config and replace with the new one:
-        if [[ $proxy_txt != "${proxy_txt_ori}" ]]; then
+        if [[ $proxy_txt != "${proxy_txt_ori}" ]]; then   # overwrite only if we have proxy settings
             sed -ie "/^\s*proxy_env:.*$/d" "${config_dst}"
             sed -ie "/^\s*https\?_proxy:.*$/d" "${config_dst}"
             sed -ie "/^\s*all_proxy:.*$/d" "${config_dst}"
             sed -ie "/^\s*no_proxy:.*$/d" "${config_dst}"
             sed -ie "s%^\(\s\{4\}region:.\+\)$%\1\n${proxy_txt}%g" "${config_dst}"
             rm -rf "${config_dst}e"
-        fi
-    fi
+        fi  # end of proxy_env insertion
+    fi  # end of USE_PROXY
 
     # if PGVER is non-empty, upsert pg_version accordingly
     if [[ -n "${PGVER}" && "${mode}" != "mssql" && "${mode}" != "polar"  ]]; then

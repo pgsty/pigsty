@@ -17,9 +17,9 @@ PATH=/usr/pgsql/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
 #--------------------------------------------------------------#
 # use AUTO or "" as password will fetch from database
 # use NULL as password will set empty password ""
-# enc method will be fetched from password_encryption parameter
-# md5 passwords will be calc by pg md5 salt algorithm
-# scram pwd cannot be calculated, use plain-text instead
+# encryption method will be fetched from password_encryption param
+# md5 passwords will be calculated by pg md5 salt algorithm
+# scram-sha5 pwd cannot be calculated, use plain-text instead
 #--------------------------------------------------------------#
 
 
@@ -58,16 +58,18 @@ function pgbouncer_create_user() {
     AUTO | auto | "") # fetch db password
         entry=$(psql -AXtwq -U postgres -d postgres -c "SELECT concat('\"', rolname, '\" \"', rolpassword, '\"') FROM pg_authid WHERE rolname = '${username}'")
         if [[ ! -z ${entry} ]]; then
-            echo "pwd fetched via postgres: ${entry}"
+            echo "password fetched via postgres: ${entry}"
         else
-            echo "pwd fetching failed for ${username} ${password}"
+            echo "password fetching failed for ${username} ${password}"
             exit 1
         fi
         ;;
     *)
-        pwdenc=$(psql -AXtwq -U postgres -d postgres -c "SHOW password_encryption;" 2>/dev/null)
-        case $pwdenc in
-        md5)
+        password_encryption=$(psql -AXtwq -U postgres -d postgres -c "SHOW password_encryption;" 2>/dev/null)
+        if [[ ${password_encryption} == "scram-sha-256" ]]; then
+            entry="\"${username}\" \"${password}\""
+            echo "SCRAM pwd cannot be calculated, use AUTO to fetch from postgres"
+        elif [[ ${password_encryption} == "md5" ]]; then
             if [[ ${password} == md5* ]] && [[ ${#password} == 35 ]]; then # just use the md5password
                 entry="\"${username}\" \"${password}\""
                 echo "md5pwd given: ${entry}"
@@ -76,20 +78,15 @@ function pgbouncer_create_user() {
                 entry="\"${username}\" \"${md5_mon_pass}\""
                 echo "md5pwd calculated: ${entry}"
             fi
-            ;;
-        scram-sha-256)
-            entry="\"${username}\" \"${password}\""
-            echo "SCRAM pwd cannot be calculated, use AUTO to fetch from postgres"
-            ;;
-        esac
-        ;;
+        fi
+        ;;  # end of password calculation
     esac
 
     # if username already exists
     if grep -q ${username} ${userlist}; then
         sed -i "/^\"${username}\"[[:blank:]]*.*$/d" ${userlist}
     fi
-    # write "username" "password" to userlist
+    # write the "username" "password" pair to userlist
     echo "${entry}" >> ${userlist};
     cat ${userlist} | sort -r | uniq > "${userlist}e";
     mv -f "${userlist}e" "${userlist}"
