@@ -53,6 +53,10 @@ alias dc="docker compose"
 alias x="claude"
 alias xx="claude --dangerously-skip-permissions"
 alias oc="opencode"
+alias gc='git checkout'
+alias gst="git status"
+alias gci="git commit"
+alias gpm='git push origin main'
 function v() {
 	[ $# -eq 0 ] && vi . || vi $@
 }
@@ -70,6 +74,7 @@ alias pp="sudo su - postgres"
 alias vl="sudo cat /var/log/messages"
 alias ntps="sudo chronyc -a makestep"
 alias node-mt="curl -sL localhost:9100/metrics | grep -v '#' | grep node_"
+alias vec-mt="curl -sL localhost:9598/metrics | grep -v '#' | grep vector_"
 #--------------------------------------------------------------#
 # ls corlor
 [ ls --color ] >/dev/null 2>&1 && colorflag="--color" || colorflag="-G"
@@ -101,33 +106,6 @@ alias urlenc='python -c "import sys, urllib as ul; print(ul.quote(sys.argv[1]));
 alias urldec='python -c "import sys, urllib as ul; print(ul.unquote(sys.argv[1]));"'
 alias b64enc='python -c "import sys,base64 as b;print(b.b64encode(sys.argv[1]));"'
 alias b64dec='python -c "import sys,base64 as b;print(b.b64decode(sys.argv[1]));"'
-#--------------------------------------------------------------#
-# alias g='git'
-alias ga='git add'
-alias gb='git branch'
-alias gc='git checkout'
-alias gci="git commit"
-alias gl='git log'
-alias glg='git log --graph --oneline --decorate --date=short --pretty=format:"%C(yellow)%h%Creset %Cgreen%ad%Creset %Cblue%an%Creset %Cred%d%Creset %s"'
-alias gp="git pull"
-alias gps='git push'
-alias gpm='git push origin main'
-alias gs='git switch'
-alias gst="git status"
-if [ -f /usr/share/bash-completion/completions/git ]; then
-  source /usr/share/bash-completion/completions/git
-  # ___git_complete g __git_main
-  __git_complete ga git_add
-  __git_complete gb git_branch
-  __git_complete gc git_checkout
-  __git_complete gci git_commit
-  __git_complete gl git_log
-  __git_complete glg git_log
-  __git_complete gp git_pull
-  __git_complete gps git_push
-  __git_complete gs git_switch
-fi
-
 #--------------------------------------------------------------#
 # utils
 function tz() {

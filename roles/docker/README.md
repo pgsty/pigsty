@@ -14,7 +14,6 @@ The `docker` role installs **Docker** container runtime on nodes:
 
 - Install Docker CE and docker-compose plugin
 - Add admin user to docker group
-- Configure bash completion and aliases
 - Create data directory
 - Configure Docker daemon (registry mirrors, storage driver)
 - Launch Docker service
@@ -37,9 +36,6 @@ Docker is used to run stateless applications alongside Pigsty.
 roles/docker/
 ├── defaults/
 │   └── main.yml              # Default variables
-├── files/
-│   ├── docker                # Bash completion script
-│   └── docker.sh             # Docker aliases
 ├── meta/
 │   └── main.yml              # Role dependencies
 ├── tasks/
@@ -59,8 +55,6 @@ docker (full role)
 ├── docker_install             # Install Docker packages
 │
 ├── docker_admin               # Add admin to docker group
-│
-├── docker_alias               # Bash completion & aliases
 │
 ├── docker_dir                 # Create data directory
 │

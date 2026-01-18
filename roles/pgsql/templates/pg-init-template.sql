@@ -690,4 +690,4 @@ GRANT SELECT ON monitor.disk_free TO pg_monitor;
 --==================================================================--
 -- This script will be executed on primary instance among a newly created
 -- postgres cluster. it will be executed as dbsu on template1 database
--- put your own customize logic here, and make sure they are idempotent
+-- add your customization logic here (make sure they are idempotent)
