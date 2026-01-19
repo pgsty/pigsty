@@ -2,7 +2,7 @@
 -- # File      :   supabase.sql
 -- # Desc      :   Pigsty self-hosting supabase baseline schema
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2025-07-01
+-- # Mtime     :   2026-01-19
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -12,6 +12,79 @@
 --   gather from: https://github.com/supabase/postgres/tree/develop/migrations/db/init-scripts
 -- the migration: schema from supabase docker compose
 --   gather from: https://github.com/supabase/postgres/tree/develop/migrations/db/migrations
+
+
+----------------------------------------------------
+-- Pigsty Role Integration: Default Privileges
+----------------------------------------------------
+-- Fix for GitHub Issue #679
+-- https://github.com/pgsty/pigsty/issues/679
+--
+-- Supabase admin roles (supabase_auth_admin, supabase_storage_admin,
+-- supabase_functions_admin) create tables during runtime migrations.
+-- Without default privileges, these tables are not accessible to
+-- Pigsty's standard roles (dbrole_readonly, dbrole_readwrite, etc.)
+--
+-- This section grants default privileges so that objects created by
+-- Supabase admin roles automatically inherit proper permissions.
+----------------------------------------------------
+
+-- supabase_auth_admin: creates objects in auth schema
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT USAGE      ON SCHEMAS   TO dbrole_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT SELECT     ON TABLES    TO dbrole_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT SELECT     ON SEQUENCES TO dbrole_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT EXECUTE    ON FUNCTIONS TO dbrole_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT USAGE      ON SCHEMAS   TO dbrole_offline;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT SELECT     ON TABLES    TO dbrole_offline;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT SELECT     ON SEQUENCES TO dbrole_offline;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT EXECUTE    ON FUNCTIONS TO dbrole_offline;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT INSERT     ON TABLES    TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT UPDATE     ON TABLES    TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT DELETE     ON TABLES    TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT USAGE      ON SEQUENCES TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT UPDATE     ON SEQUENCES TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT TRUNCATE   ON TABLES    TO dbrole_admin;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT REFERENCES ON TABLES    TO dbrole_admin;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT TRIGGER    ON TABLES    TO dbrole_admin;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_auth_admin GRANT CREATE     ON SCHEMAS   TO dbrole_admin;
+
+-- supabase_storage_admin: creates objects in storage schema
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT USAGE      ON SCHEMAS   TO dbrole_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT SELECT     ON TABLES    TO dbrole_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT SELECT     ON SEQUENCES TO dbrole_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT EXECUTE    ON FUNCTIONS TO dbrole_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT USAGE      ON SCHEMAS   TO dbrole_offline;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT SELECT     ON TABLES    TO dbrole_offline;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT SELECT     ON SEQUENCES TO dbrole_offline;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT EXECUTE    ON FUNCTIONS TO dbrole_offline;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT INSERT     ON TABLES    TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT UPDATE     ON TABLES    TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT DELETE     ON TABLES    TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT USAGE      ON SEQUENCES TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT UPDATE     ON SEQUENCES TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT TRUNCATE   ON TABLES    TO dbrole_admin;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT REFERENCES ON TABLES    TO dbrole_admin;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT TRIGGER    ON TABLES    TO dbrole_admin;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_storage_admin GRANT CREATE     ON SCHEMAS   TO dbrole_admin;
+
+-- supabase_functions_admin: creates objects in supabase_functions schema
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT USAGE      ON SCHEMAS   TO dbrole_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT SELECT     ON TABLES    TO dbrole_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT SELECT     ON SEQUENCES TO dbrole_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT EXECUTE    ON FUNCTIONS TO dbrole_readonly;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT USAGE      ON SCHEMAS   TO dbrole_offline;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT SELECT     ON TABLES    TO dbrole_offline;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT SELECT     ON SEQUENCES TO dbrole_offline;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT EXECUTE    ON FUNCTIONS TO dbrole_offline;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT INSERT     ON TABLES    TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT UPDATE     ON TABLES    TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT DELETE     ON TABLES    TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT USAGE      ON SEQUENCES TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT UPDATE     ON SEQUENCES TO dbrole_readwrite;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT TRUNCATE   ON TABLES    TO dbrole_admin;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT REFERENCES ON TABLES    TO dbrole_admin;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT TRIGGER    ON TABLES    TO dbrole_admin;
+ALTER DEFAULT PRIVILEGES FOR ROLE supabase_functions_admin GRANT CREATE     ON SCHEMAS   TO dbrole_admin;
 
 
 --===========================================================--
@@ -2142,3 +2215,4 @@ ALTER function supabase_functions.http_request() SET search_path = supabase_func
 REVOKE ALL ON FUNCTION supabase_functions.http_request() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION supabase_functions.http_request() TO postgres, anon, authenticated, service_role;
 COMMIT;
+
