@@ -16,12 +16,12 @@ repo_extra_packages_default: [ pgsql-main ]
 # default node packages to be installed (if `node_default_packages` is not explicitly set)
 node_packages_default:
   - lz4,unzip,bzip2,pv,jq,git,ncdu,make,patch,bash,lsof,wget,uuid,tuned,nvme-cli,numactl,sysstat,iotop,htop,rsync,tcpdump
-  - python3,socat,lrzsz,net-tools,ipvsadm,telnet,ca-certificates,openssl,keepalived,etcd,haproxy,chrony,pig
+  - python3,socat,lrzsz,net-tools,ipvsadm,telnet,ca-certificates,openssl,keepalived,etcd,haproxy,chrony,cronie,pig,uv
   - zlib,yum,audit,bind-utils,readline,vim-minimal,node_exporter,grubby,openssh-server,openssh-clients,chkconfig,vector
 
 # default infra packages to be installed (if `infra_packages` is not explicitly set)
 infra_packages_default:
-  - grafana,grafana-plugins,grafana-victorialogs-ds,grafana-victoriametrics-ds,victoria-metrics,victoria-logs,victoria-traces,vmutils,vlogscli,alertmanager,uv
+  - grafana,grafana-plugins,grafana-victorialogs-ds,grafana-victoriametrics-ds,victoria-metrics,victoria-logs,victoria-traces,vmutils,vlogscli,alertmanager
   - node_exporter,blackbox_exporter,nginx_exporter,pg_exporter,pev2,nginx,dnsmasq,ansible,etcd,python3-requests,redis,mcli,restic,certbot,python3-certbot-nginx
 
 # postgres home dir in various mode
@@ -84,10 +84,10 @@ package_map:
   #--------------------------------#
   node-bootstrap:          "ansible python3 python3-requests python3.12-jmespath python3-cryptography dnf-utils modulemd-tools createrepo_c sshpass"
   infra-package:           "nginx dnsmasq etcd haproxy vip-manager node_exporter keepalived_exporter pg_exporter pgbackrest_exporter redis_exporter redis minio mcli pig"
-  infra-addons:            "grafana grafana-plugins grafana-victoriametrics-ds grafana-victorialogs-ds victoria-metrics victoria-logs victoria-traces vlogscli vmutils vector alertmanager uv"
+  infra-addons:            "grafana grafana-plugins grafana-victoriametrics-ds grafana-victorialogs-ds victoria-metrics victoria-logs victoria-traces vlogscli vmutils vector alertmanager"
   extra-modules:           "blackbox_exporter nginx_exporter pev2 certbot python3-certbot-nginx docker-ce docker-compose-plugin ferretdb2 duckdb restic juicefs vray grafana-infinity-ds opencode"
   node-package1:           "lz4 unzip bzip2 zlib yum pv jq git ncdu make patch bash lsof wget uuid tuned nvme-cli numactl grubby sysstat iotop htop rsync tcpdump perf flamegraph chkconfig"
-  node-package2:           "netcat socat ftp lrzsz net-tools ipvsadm bind-utils telnet audit ca-certificates readline vim-minimal keepalived chrony openssl openssh-server openssh-clients"
+  node-package2:           "netcat socat ftp lrzsz net-tools ipvsadm bind-utils telnet audit ca-certificates readline vim-minimal keepalived openssl openssh-server openssh-clients chrony cronie"
   pgsql-utility:           "patroni patroni-etcd pgbouncer pgbackrest pgbadger pg_timetable pgFormatter pg_filedump pgxnclient timescaledb-tools timescaledb-event-streamer"
 
   #--------------------------------#
@@ -158,8 +158,8 @@ package_map:
   pgsql-gis:               "postgis36_$v pgrouting_$v pointcloud_$v q3c_$v ogr_fdw_$v geoip_$v pg_polyline_$v pg_geohash_$v pg_tzf_$v"
   pgsql-rag:               "pgvector_$v vchord_$v pgvectorscale_$v pg_vectorize_$v pg_similarity_$v smlar_$v pg_summarize_$v pg_tiktoken_$v pg4ml_$v"
   pgsql-fts:               "pgroonga_$v pg_bigm_$v zhparser_$v pg_bestmatch_$v vchord_bm25_$v pg_tokenizer_$v pg_biscuit_$v pg_textsearch_$v hunspell_cs_cz_$v hunspell_de_de_$v hunspell_en_us_$v hunspell_fr_$v hunspell_ne_np_$v hunspell_nl_nl_$v hunspell_nn_no_$v hunspell_ru_ru_$v hunspell_ru_ru_aot_$v"
-  pgsql-olap:              "citus_$v pg_duckdb_$v pg_mooncake_$v pg_clickhouse_$v pg_parquet_$v pg_fkpart_$v pg_partman_$v plproxy_$v"
-  pgsql-feat:              "apache-age_$v hll_$v pg_ttl_index_$v pg_graphql_$v pg_jsonschema_$v jsquery_$v pg_hint_plan_$v hypopg_$v index_advisor_$v pg_plan_filter_$v imgsmlr_$v pg_ivm_$v pg_incremental_$v pgmq_$v pgq_$v pg_cardano_$v"
+  pgsql-olap:              "citus_$v pg_duckdb_$v pg_mooncake_$v pg_clickhouse_$v pg_parquet_$v pg_fkpart_$v pg_partman_$v plproxy_$v" # pg_strom_18
+  pgsql-feat:              "apache-age_$v hll_$v rum_$v pg_ttl_index_$v pg_graphql_$v pg_jsonschema_$v jsquery_$v pg_hint_plan_$v hypopg_$v index_advisor_$v pg_plan_filter_$v imgsmlr_$v pg_ivm_$v pg_incremental_$v pgmq_$v pgq_$v pg_cardano_$v"
   pgsql-lang:              "pg_tle_$v plv8_$v pljs_$v plprql_$v pldebugger_$v plpgsql_check_$v plsh_$v pljava_$v plxslt_$v pgtap_$v postgresql_faker_$v" # plr_18
   pgsql-type:              "prefix_$v semver_$v postgresql-unit_$v pgpdf_$v pglite_fusion_$v md5hash_$v asn1oid_$v pg_roaringbitmap_$v pgfaceting_$v pgsphere_$v pg_country_$v pg_xenophile_$v pg_currency_$v pgcollection_$v pgmp_$v numeral_$v pg_rational_$v pguint_$v pg_uint128_$v hashtypes_$v ip4r_$v pg_duration_$v pg_uri_$v pg_emailaddr_$v acl_$v pg_rrule_$v timestamp9_$v chkpass_$v"
   pgsql-util:              "pg_gzip_$v pg_bzip_$v pg_zstd_$v pg_http_$v pg_net_$v pg_curl_$v pg_retry_$v pgjq_$v pgjwt_$v pg_smtp_client_$v pg_html5_email_address_$v url_encode_$v pgsql_tweaks_$v pg_extra_time_$v pgpcre_$v icu_ext_$v pgqr_$v pg_protobuf_$v pg_envvar_$v floatfile_$v pg_render_$v pg_readme_$v ddl_historization_$v data_historization_$v pg_schedoc_$v pg_hashlib_$v pg_xxhash_$v shacrypt_$v cryptint_$v pg_ecdsa_$v pgsparql_$v"
@@ -189,8 +189,8 @@ package_map:
   pg18-gis:                "postgis36_18 pgrouting_18 pointcloud_18 q3c_18 ogr_fdw_18 geoip_18 pg_polyline_18 pg_geohash_18 pg_tzf_18"
   pg18-rag:                "pgvector_18 vchord_18 pgvectorscale_18 pg_vectorize_18 pg_similarity_18 smlar_18 pg_summarize_18 pg_tiktoken_18 pg4ml_18"
   pg18-fts:                "pgroonga_18 pg_bigm_18 zhparser_18 pg_bestmatch_18 vchord_bm25_18 pg_tokenizer_18 pg_biscuit_18 pg_textsearch_18 hunspell_cs_cz_18 hunspell_de_de_18 hunspell_en_us_18 hunspell_fr_18 hunspell_ne_np_18 hunspell_nl_nl_18 hunspell_nn_no_18 hunspell_ru_ru_18 hunspell_ru_ru_aot_18"
-  pg18-olap:               "citus_18 pg_duckdb_18 pg_mooncake_18 pg_clickhouse_18 pg_parquet_18 pg_fkpart_18 pg_partman_18 plproxy_18"
-  pg18-feat:               "apache-age_18 hll_18 pg_ttl_index_18 pg_graphql_18 pg_jsonschema_18 jsquery_18 pg_hint_plan_18 hypopg_18 index_advisor_18 pg_plan_filter_18 imgsmlr_18 pg_ivm_18 pg_incremental_18 pgmq_18 pgq_18 pg_cardano_18"
+  pg18-olap:               "citus_18 pg_duckdb_18 pg_mooncake_18 pg_clickhouse_18 pg_parquet_18 pg_fkpart_18 pg_partman_18 plproxy_18" # pg_strom_18
+  pg18-feat:               "apache-age_18 hll_18 rum_18 pg_ttl_index_18 pg_graphql_18 pg_jsonschema_18 jsquery_18 pg_hint_plan_18 hypopg_18 index_advisor_18 pg_plan_filter_18 imgsmlr_18 pg_ivm_18 pg_incremental_18 pgmq_18 pgq_18 pg_cardano_18"
   pg18-lang:               "pg_tle_18 plv8_18 pljs_18 plprql_18 pldebugger_18 plpgsql_check_18 plsh_18 pljava_18 plxslt_18 pgtap_18 postgresql_faker_18" # plr_18
   pg18-type:               "prefix_18 semver_18 postgresql-unit_18 pgpdf_18 pglite_fusion_18 md5hash_18 asn1oid_18 pg_roaringbitmap_18 pgfaceting_18 pgsphere_18 pg_country_18 pg_xenophile_18 pg_currency_18 pgcollection_18 pgmp_18 numeral_18 pg_rational_18 pguint_18 pg_uint128_18 hashtypes_18 ip4r_18 pg_duration_18 pg_uri_18 pg_emailaddr_18 acl_18 pg_rrule_18 timestamp9_18 chkpass_18"
   pg18-util:               "pg_gzip_18 pg_bzip_18 pg_zstd_18 pg_http_18 pg_net_18 pg_curl_18 pg_retry_18 pgjq_18 pgjwt_18 pg_smtp_client_18 pg_html5_email_address_18 url_encode_18 pgsql_tweaks_18 pg_extra_time_18 pgpcre_18 icu_ext_18 pgqr_18 pg_protobuf_18 pg_envvar_18 floatfile_18 pg_render_18 pg_readme_18 ddl_historization_18 data_historization_18 pg_schedoc_18 pg_hashlib_18 pg_xxhash_18 shacrypt_18 cryptint_18 pg_ecdsa_18 pgsparql_18"
@@ -441,7 +441,7 @@ package_map:
   pg_fkpart:               "pg_fkpart_$v"                             # 18 17 16 15 14 13
   pg_partman:              "pg_partman_$v"                            # 18 17 16 15 14 13
   plproxy:                 "plproxy_$v"                               # 18 17 16 15 14 13
-  pg_strom:                "pg_strom_$v"                              #    17 16 15 14 13
+  pg_strom:                "pg_strom_$v"                              # 18 17 16 15 14 13
 
 
   #--------------------------------#
@@ -449,7 +449,7 @@ package_map:
   #--------------------------------#
   age:                     "apache-age_$v"                            # 18 17 16 15 14 13
   hll:                     "hll_$v"                                   # 18 17 16 15 14 13
-  rum:                     "rum_$v"                                   #    17 16 15 14 13
+  rum:                     "rum_$v"                                   # 18 17 16 15 14 13
   pg_ai_query:             "pg_ai_query_$v"                           #                  
   pg_ttl_index:            "pg_ttl_index_$v"                          # 18 17 16 15 14 13
   pg_graphql:              "pg_graphql_$v"                            # 18 17 16 15 14   

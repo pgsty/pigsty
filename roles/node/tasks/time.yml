@@ -31,9 +31,15 @@
       tags: node_ntp_launch
       systemd: name=chronyd enabled=true state=restarted
 
+
 #--------------------------------------------------------------#
 # Setup Node Crontab                                 [node_cron]
 #--------------------------------------------------------------#
+# launch cron service unconditionally (cron on deb, crond on rpm)
+- name: launch cron service
+  tags: node_crontab
+  systemd: name="{% if os_package == 'deb' %}cron{% else %}crond{% endif %}" state=started enabled=true
+
 - name: setup node crontab
   tags: node_crontab
   when: node_crontab|length > 0
@@ -56,7 +62,6 @@
           MAILTO=root
           
           # For details see man 4 crontabs
-          
           # Example of job definition:
           # .---------------- minute (0 - 59)
           # |  .------------- hour (0 - 23)
