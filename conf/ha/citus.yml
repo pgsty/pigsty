@@ -1,0 +1,130 @@
+---
+#==============================================================#
+# File      :   citus.yml
+# Desc      :   13-node Citus (6-group Distributive) Config Template
+# Ctime     :   2020-05-22
+# Mtime     :   2025-01-20
+# Docs      :   https://pigsty.io/docs/conf/citus
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+# This is the config template for Citus Distributive Cluster
+# tutorial: https://pigsty.io/docs/pgsql/kernel/citus
+# we will use the local repo for cluster bootstrapping
+#
+# Topology:
+#   - pg-citus0: coordinator (10.10.10.10)         VIP: 10.10.10.19
+#   - pg-citus1: worker group 1 (10.10.10.21, 22)  VIP: 10.10.10.29
+#   - pg-citus2: worker group 2 (10.10.10.31, 32)  VIP: 10.10.10.39
+#   - pg-citus3: worker group 3 (10.10.10.41, 42)  VIP: 10.10.10.49
+#   - pg-citus4: worker group 4 (10.10.10.51, 52)  VIP: 10.10.10.59
+#   - pg-citus5: worker group 5 (10.10.10.61, 62)  VIP: 10.10.10.69
+#   - pg-citus6: worker group 6 (10.10.10.71, 72)  VIP: 10.10.10.79
+#
+# Usage:
+#   curl https://repo.pigsty.io/get | bash
+#   ./configure -c citus
+#   ./deploy.yml
+
+all:
+  children:
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 }}}
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1  }}, vars: { etcd_cluster: etcd }}
+    pg-meta:
+      hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
+      vars:
+        pg_cluster: pg-meta
+        pg_users:
+          - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin   ] ,comment: pigsty admin user }
+          - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
+        pg_databases: { name: meta ,baseline: cmdb.sql comment: "pigsty meta database" ,schemas: [pigsty] ,extensions: [ postgis, vector ]}
+        pg_hba_rules: [{ user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }]
+        pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every day 1am
+
+    #----------------------------------------------------------#
+    # pg-citus: 6 cluster groups, 12 nodes total
+    #----------------------------------------------------------#
+    pg-citus:
+      hosts:
+
+        # coordinator (group 0) on infra node
+        10.10.10.21: { pg_group: 0, pg_cluster: pg-citus1 ,pg_vip_address: 10.10.10.29/24 ,pg_seq: 1, pg_role: primary }
+        10.10.10.22: { pg_group: 0, pg_cluster: pg-citus1 ,pg_vip_address: 10.10.10.29/24 ,pg_seq: 2, pg_role: replica }
+
+        # worker group 2
+        10.10.10.31: { pg_group: 1, pg_cluster: pg-citus2 ,pg_vip_address: 10.10.10.39/24 ,pg_seq: 1, pg_role: primary }
+        10.10.10.32: { pg_group: 1, pg_cluster: pg-citus2 ,pg_vip_address: 10.10.10.39/24 ,pg_seq: 2, pg_role: replica }
+
+        # worker group 3
+        10.10.10.41: { pg_group: 2, pg_cluster: pg-citus3 ,pg_vip_address: 10.10.10.49/24 ,pg_seq: 1, pg_role: primary }
+        10.10.10.42: { pg_group: 2, pg_cluster: pg-citus3 ,pg_vip_address: 10.10.10.49/24 ,pg_seq: 2, pg_role: replica }
+
+        # worker group 4
+        10.10.10.51: { pg_group: 3, pg_cluster: pg-citus4 ,pg_vip_address: 10.10.10.59/24 ,pg_seq: 1, pg_role: primary }
+        10.10.10.52: { pg_group: 3, pg_cluster: pg-citus4 ,pg_vip_address: 10.10.10.59/24 ,pg_seq: 2, pg_role: replica }
+
+        # worker group 5
+        10.10.10.61: { pg_group: 4, pg_cluster: pg-citus5 ,pg_vip_address: 10.10.10.69/24 ,pg_seq: 1, pg_role: primary }
+        10.10.10.62: { pg_group: 4, pg_cluster: pg-citus5 ,pg_vip_address: 10.10.10.69/24 ,pg_seq: 2, pg_role: replica }
+
+        # worker group 6
+        10.10.10.71: { pg_group: 5, pg_cluster: pg-citus6 ,pg_vip_address: 10.10.10.79/24 ,pg_seq: 1, pg_role: primary }
+        10.10.10.72: { pg_group: 5, pg_cluster: pg-citus6 ,pg_vip_address: 10.10.10.79/24 ,pg_seq: 2, pg_role: replica }
+
+      vars:
+        pg_mode: citus                            # pgsql cluster mode: citus
+        pg_shard: pg-citus                        # citus shard name: pg-citus
+        pg_primary_db: citus                      # primary database used by citus
+        pg_dbsu_password: DBUser.Postgres         # enable dbsu password access for citus
+        pg_extensions: [ citus, postgis, pgvector, topn, pg_cron, hll ]
+        pg_libs: 'citus, pg_cron, pg_stat_statements'
+        pg_users: [{ name: dbuser_citus ,password: DBUser.Citus ,pgbouncer: true ,roles: [ dbrole_admin ] }]
+        pg_databases: [{ name: citus ,owner: dbuser_citus ,extensions: [ citus, vector, topn, pg_cron, hll ] }]
+        pg_parameters:
+          cron.database_name: citus
+          citus.node_conninfo: 'sslrootcert=/pg/cert/ca.crt sslmode=verify-full'
+        pg_hba_rules:
+          - { user: 'all' ,db: all  ,addr: 127.0.0.1/32  ,auth: ssl ,title: 'all user ssl access from localhost' }
+          - { user: 'all' ,db: all  ,addr: intra         ,auth: ssl ,title: 'all user ssl access from intranet'  }
+        pg_vip_enabled: true
+        pg_vip_interface: eth1
+        pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every day 1am
+
+  vars:
+    #----------------------------------------------#
+    # INFRA : https://pigsty.io/docs/infra/param
+    #----------------------------------------------#
+    version: v4.0.0
+    admin_ip: 10.10.10.10
+    region: default
+    infra_portal:
+      home : { domain: i.pigsty }
+
+    #----------------------------------------------#
+    # NODE : https://pigsty.io/docs/node/param
+    #----------------------------------------------#
+    nodename_overwrite: true
+    node_repo_modules: node,infra,pgsql
+    node_tune: oltp
+
+    #----------------------------------------------#
+    # PGSQL : https://pigsty.io/docs/pgsql/param
+    #----------------------------------------------#
+    pg_version: 18  # PostgreSQL 14-18
+    pg_conf: oltp.yml
+    pg_packages: [ pgsql-main, pgsql-common ]
+
+    #----------------------------------------------#
+    # PASSWORD : https://pigsty.io/docs/setup/security/
+    #----------------------------------------------#
+    grafana_admin_password: pigsty
+    grafana_view_password: DBUser.Viewer
+    pg_admin_password: DBUser.DBA
+    pg_monitor_password: DBUser.Monitor
+    pg_replication_password: DBUser.Replicator
+    patroni_password: Patroni.API
+    haproxy_admin_password: pigsty
+    minio_secret_key: S3User.MinIO
+    etcd_root_password: Etcd.Root
+...

@@ -25,6 +25,8 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c ha/dual          # use the 2-node HA template
 ./configure -c ha/trio          # use the 3-node HA template
 ./configure -c ha/full          # use the 4-node HA template
+./configure -c ha/citus         # use the 13-node HA citus template
+./configure -c ha/simu          # use the 20-node HA prod template
 ```
 
 Pigsty will use the `meta.yml` single node config template if you do not specify a conf.
@@ -43,7 +45,6 @@ These are 1-node config template, which can be used to install pigsty on a singl
 **Templates for exotic DBMS and kernels:**
 
 * [pgsql.yml](pgsql.yml) : Vanilla PostgreSQL kernel with basic features (13~18)
-* [citus.yml](citus.yml) : Distributed HA PostgreSQL with the Citus extension (14~17)
 * [mssql.yml](mssql.yml) : Babelfish kernel with SQL Server wire-compatibility (15)
 * [polar.yml](polar.yml) : PolarDB PG kernel for Aurora / RAC flavor postgres (15)
 * [ivory.yml](ivory.yml) : IvorySQL Kernel for Oracle grammar compatibility (17)
@@ -65,6 +66,7 @@ You can configure pigsty to run on multiple nodes to form a high availability (H
 * [ha/trio.yml](ha/trio.yml) : 3-node standard ha deployment
 * [ha/full.yml](ha/full.yml) : 4-node standard deployment
 * [ha/safe.yml](ha/safe.yml) : 4-node security enhanced setup with delayed replica
+* [ha/citus.yml](ha/citus.yml) : 13-node distributive citus cluster
 * [ha/simu.yml](ha/simu.yml) : 20-node Production simulation
 
 

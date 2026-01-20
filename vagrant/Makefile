@@ -2,7 +2,7 @@
 # File      :   Makefile
 # Desc      :   vagrant shortcuts
 # Ctime     :   2023-07-29
-# Mtime     :   2025-12-26
+# Mtime     :   2026-01-20
 # Path      :   vagrant/Makefile
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -352,6 +352,33 @@ vminio22:
 vminio24:
 	./config minio ubuntu24
 
+#------------------------------#
+# citus, 13-node, seldom used
+#------------------------------#
+citus:   del vcitus   up ssh
+citus8:  del vcitus8  up ssh
+citus9:  del vcitus9  up ssh
+citus11: del vcitus11 up ssh
+citus12: del vcitus12 up ssh
+citus20: del vcitus20 up ssh
+citus22: del vcitus22 up ssh
+citus24: del vcitus24 up ssh
+
+vcitus:
+	./config citus
+vcitus8:
+	./config citus el8
+vcitus9:
+	./config citus el9
+vcitus12:
+	./config citus debian12
+vcitus20:
+	./config citus ubuntu20
+vcitus22:
+	./config citus ubuntu22
+vcitus24:
+	./config citus ubuntu24
+
 ###############################################################
 #                        Inventory                            #
 ###############################################################
@@ -363,5 +390,6 @@ vminio24:
 	full full7 full8 full9 full11 full12 full20 full22 vfull vfull7 vfull8 vfull9 vfull11 vfull12 vfull20 vfull22 vfull24 \
 	simu simu7 simu8 simu9 simu11 simu12 simu20 simu22 vsimu vsimu7 vsimu8 vsimu9 vsimu11 vsimu12 vsimu20 vsimu22 vsimu24 \
 	minio minio7 minio8 minio9 minio11 minio12 minio20 minio22 mini24 vminio vminio7 vminio8 vminio9 vminio12 vminio20 vminio22 vminio24
+	citus citus8 citus9 citus11 citus12 citus20 citus22 citus24 vcitus vcitus8 vcitus9 vcitus11 vcitus12 vcitus20 vcitus22 vcitus24
 
 ###############################################################
