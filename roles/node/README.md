@@ -78,6 +78,7 @@ node (full role)
 │
 ├── node_repo                  # Configure package repos
 ├── node_pkg                   # Install packages
+├── node_uv                    # Setup uv python venv
 │
 ├── node_tune                  # System tuning
 │   ├── node_feature           # CPU/kernel features
@@ -136,17 +137,24 @@ node (full role)
 | `node_repo_modules` | `local` | Repo modules to enable |
 | `node_packages`     | `[]`    | Packages to install    |
 
+### UV Python
+
+| Variable            | Default       | Description                            |
+|---------------------|---------------|----------------------------------------|
+| `node_uv_env`       | `/data/venv`  | uv venv path, empty string to skip     |
+| `node_pip_packages` | `''`          | pip packages to install in venv        |
+
 ### Admin
 
-| Variable                  | Default  | Description          |
-|---------------------------|----------|----------------------|
-| `node_admin_enabled`      | `true`   | Create admin user    |
-| `node_admin_username`     | `dba`    | Admin username       |
-| `node_admin_uid`          | `88`     | Admin user UID/GID   |
-| `node_admin_sudo`         | `nopass` | Sudo privilege mode  |
-| `node_admin_ssh_exchange` | `true`   | Exchange SSH keys    |
-| `node_admin_pk_current`   | `true`   | Add current user key |
-| `node_admin_pk_list`      | `[]`     | Extra SSH public keys|
+| Variable                  | Default  | Description           |
+|---------------------------|----------|-----------------------|
+| `node_admin_enabled`      | `true`   | Create admin user     |
+| `node_admin_username`     | `dba`    | Admin username        |
+| `node_admin_uid`          | `88`     | Admin user UID/GID    |
+| `node_admin_sudo`         | `nopass` | Sudo privilege mode   |
+| `node_admin_ssh_exchange` | `true`   | Exchange SSH keys     |
+| `node_admin_pk_current`   | `true`   | Add current user key  |
+| `node_admin_pk_list`      | `[]`     | Extra SSH public keys |
 
 **Sudo Modes** (`node_admin_sudo`):
 - `nopass`: Full sudo without password (default)
@@ -155,10 +163,10 @@ node (full role)
 
 ### Time
 
-| Variable           | Default          | Description |
-|--------------------|------------------|-------------|
-| `node_timezone`    | `''`             | Timezone (empty to skip) |
-| `node_ntp_servers` | `[]`             | NTP servers |
+| Variable           | Default | Description              |
+|--------------------|---------|--------------------------|
+| `node_timezone`    | `''`    | Timezone (empty to skip) |
+| `node_ntp_servers` | `[]`    | NTP servers              |
 
 ### Tuning
 
@@ -210,12 +218,12 @@ Some features have OS-specific implementations:
 The default configuration prioritizes **convenience for development/testing**.
 For production environments, review and adjust the following:
 
-| Setting | Default | Production Recommendation |
-|---------|---------|---------------------------|
-| `node_admin_sudo` | `nopass` | Use `limit` or `all` for least privilege |
-| `node_selinux_mode` | `permissive` | Consider `enforcing` for critical systems |
+| Setting                     | Default         | Production Recommendation                   |
+|-----------------------------|-----------------|---------------------------------------------|
+| `node_admin_sudo`           | `nopass`        | Use `limit` or `all` for least privilege    |
+| `node_selinux_mode`         | `permissive`    | Consider `enforcing` for critical systems   |
 | `node_firewall_public_port` | includes `5432` | Remove PostgreSQL port from public exposure |
-| `vip_auth_pass` | auto-generated | Set explicit strong password |
+| `vip_auth_pass`             | auto-generated  | Set explicit strong password                |
 
 **Recommended production settings**:
 

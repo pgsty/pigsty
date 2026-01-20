@@ -113,4 +113,37 @@
       with_items:
         - keepalived
         - "{% if os_package|default('rpm') == 'deb' %}keepalived-exporter{% else %}keepalived_exporter{% endif %}"
+
+#--------------------------------------------------------------#
+# UV Python Package Manager                             [node_uv]
+#--------------------------------------------------------------#
+- name: setup uv python package manager
+  tags: node_uv
+  when: node_uv_env is defined and node_uv_env != ''
+  block:
+
+    - name: create uv directories
+      file: path={{ item }} state=directory mode=0755
+      with_items: [/etc/uv, "{{ node_uv_env }}"]
+
+    - name: render uv config for china region
+      when: region is defined and region == 'china'
+      copy:
+        dest: /etc/uv/uv.toml
+        mode: '0644'
+        content: |
+          [[index]]
+          url = "https://mirrors.aliyun.com/pypi/simple/"
+          default = true
+
+    - name: setup uv venv and install packages
+      ignore_errors: true
+      environment: "{{ proxy_env | default({}) }}"
+      shell: |
+        uv venv {{ node_uv_env }};
+        {% if node_pip_packages is defined and node_pip_packages != '' %}
+        uv pip install --python {{ node_uv_env }}/bin/python {{ node_pip_packages }};
+        {% endif %}
+      args: { executable: /bin/bash, creates: "{{ node_uv_env }}/bin/python" }
+
 ...

@@ -79,7 +79,6 @@ infra (full role)
 │   └── env_var                # Environment variables
 │
 ├── infra_pkg                  # Install packages
-│   └── infra_uv               # Install uv (Python)
 │
 ├── infra_cert                 # Issue certificates
 │   ├── infra_cert_issue       # Sign certificates

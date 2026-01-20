@@ -2,7 +2,7 @@
 -- # File      :   cmdb.sql
 -- # Desc      :   Pigsty CMDB baseline
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2026-01-14
+-- # Mtime     :   2026-01-20
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -1375,6 +1375,8 @@ INSERT INTO pigsty.default_var VALUES
 (221, 'node_repo_remove', 'true', 'NODE', 'NODE_PACKAGE', 'bool', 'C/A', 'remove existing repo on node?', NULL),
 (223, 'node_packages', '["openssh-server"]', 'NODE', 'NODE_PACKAGE', 'string[]', 'C', 'packages to be installed current nodes', NULL),
 (224, 'node_default_packages', '[]', 'NODE', 'NODE_PACKAGE', 'string[]', 'G', 'default packages to be installed on all nodes', NULL),
+(225, 'node_uv_env', '"/data/venv"', 'NODE', 'NODE_PACKAGE', 'path', 'C', 'uv venv path, empty to skip', NULL),
+(226, 'node_pip_packages', '""', 'NODE', 'NODE_PACKAGE', 'string', 'C', 'pip packages to be installed in uv venv', NULL),
 
 (230, 'node_selinux_mode', '"permissive"', 'NODE', 'NODE_SEC', 'enum', 'C', 'selinux mode: enforcing,permissive,disabled', NULL),
 (231, 'node_firewall_mode', '"zone"', 'NODE', 'NODE_SEC', 'enum', 'C', 'node firewall mode: off,none,zone', NULL),
