@@ -59,8 +59,6 @@ roles/infra/
 │   ├── vmalert.yml.j2        # VMAlert config
 │   ├── alertmanager.yml.j2   # Alertmanager config
 │   └── ...
-└── vars/
-    └── main.yml              # Internal variables
 ```
 
 
