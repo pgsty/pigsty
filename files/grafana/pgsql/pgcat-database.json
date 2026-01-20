@@ -5139,7 +5139,7 @@
                         "h": 12,
                         "w": 24,
                         "x": 0,
-                        "y": 144
+                        "y": 169
                     },
                     "id": 220,
                     "links": [
@@ -6482,7 +6482,7 @@
                         "h": 16,
                         "w": 24,
                         "x": 0,
-                        "y": 280
+                        "y": 305
                     },
                     "id": 216,
                     "links": [
@@ -7631,7 +7631,7 @@
                         "h": 10,
                         "w": 24,
                         "x": 0,
-                        "y": 297
+                        "y": 322
                     },
                     "id": 189,
                     "options": {
@@ -8086,7 +8086,7 @@
                         "h": 11,
                         "w": 24,
                         "x": 0,
-                        "y": 308
+                        "y": 333
                     },
                     "id": 184,
                     "options": {
@@ -8422,6 +8422,15 @@
                                     {
                                         "id": "custom.align",
                                         "value": "left"
+                                    },
+                                    {
+                                        "id": "links",
+                                        "value": [
+                                            {
+                                                "title": "PGCAT Schema : ${dsn:text} ${__data.fields.Schema}",
+                                                "url": "/d/pgcat-schema?var-dsn=${dsn:text}&var-schema=${__data.fields.Schema}&${__url_time_range}"
+                                            }
+                                        ]
                                     }
                                 ]
                             },
@@ -8433,7 +8442,7 @@
                                 "properties": [
                                     {
                                         "id": "custom.width",
-                                        "value": 98
+                                        "value": 80
                                     }
                                 ]
                             }
@@ -8468,7 +8477,7 @@
                             "group": [],
                             "metricColumn": "none",
                             "rawQuery": true,
-                            "rawSql": "SELECT CURRENT_CATALOG AS datname, nspname || '.'  || relname AS relname, tblid , bs * tblpages AS size,\n       CASE WHEN tblpages - est_tblpages_ff > 0 THEN (tblpages - est_tblpages_ff)/tblpages::FLOAT ELSE 0 END AS ratio\nFROM (\n         SELECT ceil( reltuples / ( (bs-page_hdr)*fillfactor/(tpl_size*100) ) ) + ceil( toasttuples / 4 ) AS est_tblpages_ff,\n                tblpages, fillfactor, bs, tblid, nspname, relname, is_na\n         FROM (\n                  SELECT\n                      ( 4 + tpl_hdr_size + tpl_data_size + (2 * ma)\n                          - CASE WHEN tpl_hdr_size % ma = 0 THEN ma ELSE tpl_hdr_size % ma END\n                          - CASE WHEN ceil(tpl_data_size)::INT % ma = 0 THEN ma ELSE ceil(tpl_data_size)::INT % ma END\n                          ) AS tpl_size, (heappages + toastpages) AS tblpages, heappages,\n                      toastpages, reltuples, toasttuples, bs, page_hdr, tblid, nspname, relname, fillfactor, is_na\n                  FROM (\n                           SELECT\n                               tbl.oid AS tblid, ns.nspname , tbl.relname, tbl.reltuples,\n                               tbl.relpages AS heappages, coalesce(toast.relpages, 0) AS toastpages,\n                               coalesce(toast.reltuples, 0) AS toasttuples,\n                               coalesce(substring(array_to_string(tbl.reloptions, ' ') FROM 'fillfactor=([0-9]+)')::smallint, 100) AS fillfactor,\n                               current_setting('block_size')::numeric AS bs,\n                               CASE WHEN version()~'mingw32' OR version()~'64-bit|x86_64|ppc64|ia64|amd64' THEN 8 ELSE 4 END AS ma,\n                               24 AS page_hdr,\n                               23 + CASE WHEN MAX(coalesce(s.null_frac,0)) > 0 THEN ( 7 + count(s.attname) ) / 8 ELSE 0::int END\n                                   + CASE WHEN bool_or(att.attname = 'oid' and att.attnum < 0) THEN 4 ELSE 0 END AS tpl_hdr_size,\n                               sum( (1-coalesce(s.null_frac, 0)) * coalesce(s.avg_width, 0) ) AS tpl_data_size,\n                               bool_or(att.atttypid = 'pg_catalog.name'::regtype)\n                                   OR sum(CASE WHEN att.attnum > 0 THEN 1 ELSE 0 END) <> count(s.attname) AS is_na\n                           FROM pg_attribute AS att\n                                    JOIN pg_class AS tbl ON att.attrelid = tbl.oid\n                                    JOIN pg_namespace AS ns ON ns.oid = tbl.relnamespace\n                                    LEFT JOIN pg_stats AS s ON s.schemaname=ns.nspname AND s.tablename = tbl.relname AND s.inherited=false AND s.attname=att.attname\n                                    LEFT JOIN pg_class AS toast ON tbl.reltoastrelid = toast.oid\n                           WHERE NOT att.attisdropped AND tbl.relkind = 'r' AND nspname NOT IN ('pg_catalog','information_schema')\n                           GROUP BY tbl.oid, ns.nspname, tbl.relname, tbl.reltuples, tbl.relpages, toast.relpages, toast.reltuples, tbl.reloptions\n                       ) AS s\n              ) AS s2\n     ) AS s3\nWHERE NOT is_na;",
+                            "rawSql": "SELECT *, size * ratio AS waste FROM monitor.pg_table_bloat;",
                             "refId": "A",
                             "select": [
                                 [
@@ -8514,7 +8523,9 @@
                         {
                             "id": "organize",
                             "options": {
-                                "excludeByName": {},
+                                "excludeByName": {
+                                    "datname": true
+                                },
                                 "includeByName": {},
                                 "indexByName": {
                                     "bloat_size": 4,
@@ -8668,7 +8679,7 @@
                         "colorByField": "ratio",
                         "colorField": "ratio",
                         "groupByField": "nspname",
-                        "sizeField": "size",
+                        "sizeField": "waste",
                         "textField": "relname",
                         "tiling": "treemapBinary"
                     },
@@ -8683,7 +8694,7 @@
                             "format": "table",
                             "hide": false,
                             "rawQuery": true,
-                            "rawSql": "SELECT CURRENT_CATALOG AS datname, nspname, relname , tblid , bs * tblpages AS size,\n       CASE WHEN tblpages - est_tblpages_ff > 0 THEN (tblpages - est_tblpages_ff)/tblpages::FLOAT ELSE 0 END AS ratio\nFROM (\n         SELECT ceil( reltuples / ( (bs-page_hdr)*fillfactor/(tpl_size*100) ) ) + ceil( toasttuples / 4 ) AS est_tblpages_ff,\n                tblpages, fillfactor, bs, tblid, nspname, relname, is_na\n         FROM (\n                  SELECT\n                      ( 4 + tpl_hdr_size + tpl_data_size + (2 * ma)\n                          - CASE WHEN tpl_hdr_size % ma = 0 THEN ma ELSE tpl_hdr_size % ma END\n                          - CASE WHEN ceil(tpl_data_size)::INT % ma = 0 THEN ma ELSE ceil(tpl_data_size)::INT % ma END\n                          ) AS tpl_size, (heappages + toastpages) AS tblpages, heappages,\n                      toastpages, reltuples, toasttuples, bs, page_hdr, tblid, nspname, relname, fillfactor, is_na\n                  FROM (\n                           SELECT\n                               tbl.oid AS tblid, ns.nspname , tbl.relname, tbl.reltuples,\n                               tbl.relpages AS heappages, coalesce(toast.relpages, 0) AS toastpages,\n                               coalesce(toast.reltuples, 0) AS toasttuples,\n                               coalesce(substring(array_to_string(tbl.reloptions, ' ') FROM 'fillfactor=([0-9]+)')::smallint, 100) AS fillfactor,\n                               current_setting('block_size')::numeric AS bs,\n                               CASE WHEN version()~'mingw32' OR version()~'64-bit|x86_64|ppc64|ia64|amd64' THEN 8 ELSE 4 END AS ma,\n                               24 AS page_hdr,\n                               23 + CASE WHEN MAX(coalesce(s.null_frac,0)) > 0 THEN ( 7 + count(s.attname) ) / 8 ELSE 0::int END\n                                   + CASE WHEN bool_or(att.attname = 'oid' and att.attnum < 0) THEN 4 ELSE 0 END AS tpl_hdr_size,\n                               sum( (1-coalesce(s.null_frac, 0)) * coalesce(s.avg_width, 0) ) AS tpl_data_size,\n                               bool_or(att.atttypid = 'pg_catalog.name'::regtype)\n                                   OR sum(CASE WHEN att.attnum > 0 THEN 1 ELSE 0 END) <> count(s.attname) AS is_na\n                           FROM pg_attribute AS att\n                                    JOIN pg_class AS tbl ON att.attrelid = tbl.oid\n                                    JOIN pg_namespace AS ns ON ns.oid = tbl.relnamespace\n                                    LEFT JOIN pg_stats AS s ON s.schemaname=ns.nspname AND s.tablename = tbl.relname AND s.inherited=false AND s.attname=att.attname\n                                    LEFT JOIN pg_class AS toast ON tbl.reltoastrelid = toast.oid\n                           WHERE NOT att.attisdropped AND tbl.relkind = 'r' AND nspname NOT IN ('pg_catalog','information_schema')\n                           GROUP BY tbl.oid, ns.nspname, tbl.relname, tbl.reltuples, tbl.relpages, toast.relpages, toast.reltuples, tbl.reloptions\n                       ) AS s\n              ) AS s2\n     ) AS s3\nWHERE NOT is_na;",
+                            "rawSql": "SELECT *, size * ratio AS waste FROM monitor.pg_table_bloat;",
                             "refId": "A",
                             "sql": {
                                 "columns": [
@@ -8960,6 +8971,27 @@
                                         "value": 80
                                     }
                                 ]
+                            },
+                            {
+                                "matcher": {
+                                    "id": "byName",
+                                    "options": "Schema"
+                                },
+                                "properties": [
+                                    {
+                                        "id": "custom.width",
+                                        "value": 100
+                                    },
+                                    {
+                                        "id": "links",
+                                        "value": [
+                                            {
+                                                "title": "PGCAT Schema : ${dsn:text} ${__data.fields.Schema}",
+                                                "url": "/d/pgcat-schema?var-dsn=${dsn:text}&var-schema=${__data.fields.Schema}&${__url_time_range}"
+                                            }
+                                        ]
+                                    }
+                                ]
                             }
                         ]
                     },
@@ -8992,7 +9024,7 @@
                             "group": [],
                             "metricColumn": "none",
                             "rawQuery": true,
-                            "rawSql": "SELECT CURRENT_CATALOG AS datname, nspname || '.' || idxname AS relname, tblid, idxid, relpages::BIGINT * bs AS size,\n       COALESCE((relpages - ( reltuples * (6 + ma - (CASE WHEN index_tuple_hdr % ma = 0 THEN ma ELSE index_tuple_hdr % ma END)\n        + nulldatawidth + ma - (CASE WHEN nulldatawidth % ma = 0 THEN ma ELSE nulldatawidth % ma END))\n        / (bs - pagehdr)::FLOAT  + 1 )), 0) / relpages::FLOAT AS ratio\nFROM (\n         SELECT nspname,idxname,indrelid AS tblid,indexrelid AS idxid,\n                reltuples,relpages,\n                current_setting('block_size')::INTEGER                                                               AS bs,\n                (CASE WHEN version() ~ 'mingw32' OR version() ~ '64-bit|x86_64|ppc64|ia64|amd64' THEN 8 ELSE 4 END)  AS ma,\n                24                                                                                                   AS pagehdr,\n                (CASE WHEN max(COALESCE(pg_stats.null_frac, 0)) = 0 THEN 2 ELSE 6 END)                               AS index_tuple_hdr,\n                sum((1.0 - COALESCE(pg_stats.null_frac, 0.0)) *\n                    COALESCE(pg_stats.avg_width, 1024))::INTEGER                                                     AS nulldatawidth\n         FROM pg_attribute\n                  JOIN (\n             SELECT pg_namespace.nspname,\n                    ic.relname                                                   AS idxname,\n                    ic.reltuples,\n                    ic.relpages,\n                    pg_index.indrelid,\n                    pg_index.indexrelid,\n                    tc.relname                                                   AS tablename,\n                    regexp_split_to_table(pg_index.indkey::TEXT, ' ') :: INTEGER AS attnum,\n                    pg_index.indexrelid                                          AS index_oid\n             FROM pg_index\n                      JOIN pg_class ic ON pg_index.indexrelid = ic.oid\n                      JOIN pg_class tc ON pg_index.indrelid = tc.oid\n                      JOIN pg_namespace ON pg_namespace.oid = ic.relnamespace\n                      JOIN pg_am ON ic.relam = pg_am.oid\n             WHERE pg_am.amname = 'btree' AND ic.relpages > 0 AND nspname NOT IN ('pg_catalog', 'information_schema')\n         ) ind_atts ON pg_attribute.attrelid = ind_atts.indexrelid AND pg_attribute.attnum = ind_atts.attnum\n                  JOIN pg_stats ON pg_stats.schemaname = ind_atts.nspname\n             AND ((pg_stats.tablename = ind_atts.tablename AND pg_stats.attname = pg_get_indexdef(pg_attribute.attrelid, pg_attribute.attnum, TRUE))\n                 OR (pg_stats.tablename = ind_atts.idxname AND pg_stats.attname = pg_attribute.attname))\n         WHERE pg_attribute.attnum > 0\n         GROUP BY nspname,idxname,indrelid,indexrelid,reltuples,relpages\n     ) est;",
+                            "rawSql": "SELECT *, size * ratio AS waste FROM monitor.pg_index_bloat;",
                             "refId": "A",
                             "select": [
                                 [
@@ -9038,7 +9070,9 @@
                         {
                             "id": "organize",
                             "options": {
-                                "excludeByName": {},
+                                "excludeByName": {
+                                    "datname": true
+                                },
                                 "includeByName": {},
                                 "indexByName": {
                                     "bloat_size": 4,
@@ -9193,7 +9227,7 @@
                         "colorByField": "ratio",
                         "colorField": "ratio",
                         "groupByField": "nspname",
-                        "sizeField": "size",
+                        "sizeField": "waste",
                         "textField": "relname",
                         "tiling": "treemapBinary"
                     },
@@ -9209,7 +9243,7 @@
                             "group": [],
                             "metricColumn": "none",
                             "rawQuery": true,
-                            "rawSql": "SELECT CURRENT_CATALOG AS datname, nspname, idxname AS relname, tblid, idxid, relpages::BIGINT * bs AS size,\n       COALESCE((relpages - ( reltuples * (6 + ma - (CASE WHEN index_tuple_hdr % ma = 0 THEN ma ELSE index_tuple_hdr % ma END)\n        + nulldatawidth + ma - (CASE WHEN nulldatawidth % ma = 0 THEN ma ELSE nulldatawidth % ma END))\n        / (bs - pagehdr)::FLOAT  + 1 )), 0) / relpages::FLOAT AS ratio\nFROM (\n         SELECT nspname,idxname,indrelid AS tblid,indexrelid AS idxid,\n                reltuples,relpages,\n                current_setting('block_size')::INTEGER                                                               AS bs,\n                (CASE WHEN version() ~ 'mingw32' OR version() ~ '64-bit|x86_64|ppc64|ia64|amd64' THEN 8 ELSE 4 END)  AS ma,\n                24                                                                                                   AS pagehdr,\n                (CASE WHEN max(COALESCE(pg_stats.null_frac, 0)) = 0 THEN 2 ELSE 6 END)                               AS index_tuple_hdr,\n                sum((1.0 - COALESCE(pg_stats.null_frac, 0.0)) *\n                    COALESCE(pg_stats.avg_width, 1024))::INTEGER                                                     AS nulldatawidth\n         FROM pg_attribute\n                  JOIN (\n             SELECT pg_namespace.nspname,\n                    ic.relname                                                   AS idxname,\n                    ic.reltuples,\n                    ic.relpages,\n                    pg_index.indrelid,\n                    pg_index.indexrelid,\n                    tc.relname                                                   AS tablename,\n                    regexp_split_to_table(pg_index.indkey::TEXT, ' ') :: INTEGER AS attnum,\n                    pg_index.indexrelid                                          AS index_oid\n             FROM pg_index\n                      JOIN pg_class ic ON pg_index.indexrelid = ic.oid\n                      JOIN pg_class tc ON pg_index.indrelid = tc.oid\n                      JOIN pg_namespace ON pg_namespace.oid = ic.relnamespace\n                      JOIN pg_am ON ic.relam = pg_am.oid\n             WHERE pg_am.amname = 'btree' AND ic.relpages > 0 AND nspname NOT IN ('pg_catalog', 'information_schema')\n         ) ind_atts ON pg_attribute.attrelid = ind_atts.indexrelid AND pg_attribute.attnum = ind_atts.attnum\n                  JOIN pg_stats ON pg_stats.schemaname = ind_atts.nspname\n             AND ((pg_stats.tablename = ind_atts.tablename AND pg_stats.attname = pg_get_indexdef(pg_attribute.attrelid, pg_attribute.attnum, TRUE))\n                 OR (pg_stats.tablename = ind_atts.idxname AND pg_stats.attname = pg_attribute.attname))\n         WHERE pg_attribute.attnum > 0\n         GROUP BY nspname,idxname,indrelid,indexrelid,reltuples,relpages\n     ) est;",
+                            "rawSql": "SELECT *, size * ratio AS waste FROM monitor.pg_index_bloat;",
                             "refId": "A",
                             "select": [
                                 [
@@ -9537,7 +9571,7 @@
                         "h": 11,
                         "w": 24,
                         "x": 0,
-                        "y": 346
+                        "y": 371
                     },
                     "id": 194,
                     "options": {
@@ -10241,7 +10275,7 @@
                         "h": 18,
                         "w": 24,
                         "x": 0,
-                        "y": 150
+                        "y": 175
                     },
                     "id": 186,
                     "options": {
@@ -11050,7 +11084,7 @@
                         "h": 14,
                         "w": 15,
                         "x": 0,
-                        "y": 151
+                        "y": 176
                     },
                     "id": 207,
                     "options": {
@@ -11382,7 +11416,7 @@
                         "h": 14,
                         "w": 9,
                         "x": 15,
-                        "y": 151
+                        "y": 176
                     },
                     "id": 208,
                     "options": {
@@ -12066,7 +12100,7 @@
                         "h": 14,
                         "w": 15,
                         "x": 0,
-                        "y": 152
+                        "y": 177
                     },
                     "id": 209,
                     "options": {
@@ -12398,7 +12432,7 @@
                         "h": 14,
                         "w": 9,
                         "x": 15,
-                        "y": 152
+                        "y": 177
                     },
                     "id": 210,
                     "options": {
@@ -13082,7 +13116,7 @@
                         "h": 14,
                         "w": 15,
                         "x": 0,
-                        "y": 167
+                        "y": 192
                     },
                     "id": 211,
                     "options": {
@@ -13414,7 +13448,7 @@
                         "h": 14,
                         "w": 9,
                         "x": 15,
-                        "y": 167
+                        "y": 192
                     },
                     "id": 212,
                     "options": {
@@ -14098,7 +14132,7 @@
                         "h": 14,
                         "w": 15,
                         "x": 0,
-                        "y": 422
+                        "y": 447
                     },
                     "id": 213,
                     "options": {
@@ -14418,7 +14452,7 @@
                         "h": 14,
                         "w": 9,
                         "x": 15,
-                        "y": 422
+                        "y": 447
                     },
                     "id": 214,
                     "options": {
@@ -15102,7 +15136,7 @@
                         "h": 14,
                         "w": 24,
                         "x": 0,
-                        "y": 104
+                        "y": 129
                     },
                     "id": 215,
                     "options": {
@@ -15650,7 +15684,7 @@
                         "h": 6,
                         "w": 24,
                         "x": 0,
-                        "y": 452
+                        "y": 477
                     },
                     "id": 144,
                     "options": {
@@ -15780,7 +15814,7 @@
                         "h": 9,
                         "w": 12,
                         "x": 0,
-                        "y": 458
+                        "y": 483
                     },
                     "id": 147,
                     "options": {
@@ -15872,7 +15906,7 @@
                         "h": 9,
                         "w": 12,
                         "x": 12,
-                        "y": 458
+                        "y": 483
                     },
                     "id": 148,
                     "options": {
