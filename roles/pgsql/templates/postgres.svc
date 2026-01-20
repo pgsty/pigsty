@@ -1,32 +1,42 @@
 [Unit]
-Description=PostgreSQL {{ pg_version }} database server
-Documentation=https://www.postgresql.org/docs/{{ pg_version }}/static/
-After=syslog.target
-After=network.target
+Description=PostgreSQL {{ pg_version|default('18') }} database server
+Documentation=https://www.postgresql.org/docs/{{ pg_version|default('18') }}/static/
+After=syslog.target network-online.target
+Wants=network-online.target
 
 [Service]
-LimitNOFILE=16777216
-LimitNPROC=infinity
-LimitCORE=infinity
 Type=notify
 User={{ pg_dbsu|default('postgres') }}
 Group=postgres
-Environment=PGDATA={{ pg_data | default('/pg/data') }}
-OOMScoreAdjust=-1000
-Environment=PG_OOM_ADJUST_FILE=/proc/self/oom_score_adj
-Environment=PG_OOM_ADJUST_VALUE=0
+WorkingDirectory={{ pg_dbsu_home|default('/var/lib/pgsql') }}
 
-ExecStartPre=/usr/pgsql-{{ pg_version }}/bin/postgresql-{{ pg_version }}-check-db-dir ${PGDATA}
-ExecStart=/usr/pgsql-{{ pg_version }}/bin/postmaster -D ${PGDATA}
-ExecReload=/bin/kill -HUP $MAINPID
-KillMode=mixed
-KillSignal=SIGINT
-TimeoutSec=0
+# Environment
+Environment=PGDATA={{ pg_data|default('/pg/data') }}
 
-TimeoutStopSec=120
+# Resource Limits
 LimitNOFILE=16777216
 LimitNPROC=infinity
 LimitCORE=infinity
+OOMScoreAdjust=-1000
+
+# Lifecycle
+ExecStartPre=/bin/test -d ${PGDATA}
+ExecStart={{ pg_bin_dir|default('/usr/pgsql/bin') }}/postgres -D ${PGDATA}
+ExecReload=/bin/kill -HUP $MAINPID
+KillMode=mixed
+KillSignal=SIGINT
+
+# Timeout
+TimeoutStartSec=infinity
+TimeoutStopSec=120
+
+# Restart Policy
+Restart=on-failure
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=postgres
 
 [Install]
 WantedBy=multi-user.target
