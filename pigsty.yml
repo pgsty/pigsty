@@ -55,12 +55,10 @@ all:
             # define extensions in database : https://pigsty.io/docs/pgsql/ext/create
             extensions: [ postgis, vector ]
 
-        # define HBA rules : https://pigsty.io/docs/pgsql/config/hba
-        pg_hba_rules:
-          - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
-
-        # define backup policies: https://pigsty.io/docs/pgsql/backup
-        pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every day 1am
+        pg_hba_rules:   # https://pigsty.io/docs/pgsql/config/hba
+          - { user: all ,db: all ,addr: intra ,auth: pwd ,title: 'everyone intranet access with password' ,order: 800 }
+        pg_crontab:     # https://pigsty.io/docs/pgsql/admin/crontab
+          - '00 01 * * * /pg/bin/pg-backup full' ]
 
         # define (OPTIONAL) L2 VIP that bind to primary
         #pg_vip_enabled: true
@@ -110,7 +108,7 @@ all:
       hosts: { 10.10.10.10: {} }
       vars:
         docker_enabled: true                # enabled docker with ./docker.yml
-        docker_registry_mirrors: ["https://docker.1panel.live","https://docker.1ms.run","https://docker.xuanyuan.me","https://registry-1.docker.io"]
+        #docker_registry_mirrors: ["https://docker.1panel.live","https://docker.1ms.run","https://docker.xuanyuan.me","https://registry-1.docker.io"]
         app: pgadmin                        # specify the default app name to be installed (in the apps)
         apps:                               # define all applications, appname: definition
           pgadmin:                          # pgadmin app definition (app/pgadmin -> /opt/pgadmin)

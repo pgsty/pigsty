@@ -129,8 +129,6 @@ all:
           - { name: gitea    ,owner: dbuser_gitea    ,revokeconn: true ,comment: gitea meta database }
           - { name: wiki     ,owner: dbuser_wiki     ,revokeconn: true ,comment: wiki meta database }
           - { name: noco     ,owner: dbuser_noco     ,revokeconn: true ,comment: nocodb database }
-        pg_hba_rules:
-          - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
         pg_libs: 'pg_stat_statements, auto_explain' # add timescaledb to shared_preload_libraries
 
     #==========================================================#
@@ -346,6 +344,8 @@ all:
     pg_crontab:  # make a full backup on monday 1am, and an incremental backup during weekdays
       - '00 01  * * 1 /pg/bin/pg-backup'
       - '00 05 * * *  /pg/bin/pg-vaccum'
+    pg_hba_rules:   # https://pigsty.io/docs/pgsql/config/hba
+      - { user: all ,db: all ,addr: intra ,auth: pwd ,title: 'everyone intranet access with password' ,order: 800 }
 
     #==========================================================#
     # Repo

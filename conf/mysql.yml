@@ -39,9 +39,10 @@ all:
         pg_databases:
           - {name: postgres, extensions: [aux_mysql]} # the mysql compatible database
           - {name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty]}
-        pg_hba_rules:
-          - {user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes'}
-        pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
+        pg_hba_rules:   # https://pigsty.io/docs/pgsql/config/hba
+          - { user: all ,db: all ,addr: intra ,auth: pwd ,title: 'everyone intranet access with password' ,order: 800 }
+        pg_crontab:     # https://pigsty.io/docs/pgsql/admin/crontab
+          - '00 01 * * * /pg/bin/pg-backup full' ]
 
         # OpenHalo Ad Hoc Setting
         pg_mode: mysql                    # MySQL Compatible Mode by HaloDB

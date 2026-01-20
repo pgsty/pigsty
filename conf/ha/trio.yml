@@ -3,7 +3,7 @@
 # File      :   trio.yml
 # Desc      :   Pigsty 3-node security enhance template
 # Ctime     :   2020-05-23
-# Mtime     :   2026-01-18
+# Mtime     :   2026-01-20
 # Docs      :   https://pigsty.io/docs/conf/trio
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -52,10 +52,14 @@ all:  # top level object
           - { name: dbuser_view , password: DBUser.Viewer ,pgbouncer: true ,roles: [ dbrole_readonly ] ,comment: read-only viewer for meta database }
         pg_databases:
           - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [ pigsty ] ,extensions: [ { name: vector } ] }
+        pg_hba_rules:   # https://pigsty.io/docs/pgsql/config/hba
+          - { user: all ,db: all ,addr: intra ,auth: pwd ,title: 'everyone intranet access with password' ,order: 800 }
+        pg_crontab:     # https://pigsty.io/docs/pgsql/admin/crontab
+          - '00 01 * * * /pg/bin/pg-backup full' ]
         pg_vip_enabled: true
         pg_vip_address: 10.10.10.2/24
         pg_vip_interface: eth1
-        pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
+
 
   #==============================================================#
   # Global Parameters
@@ -91,7 +95,9 @@ all:  # top level object
     #----------------------------------#
     # MinIO Related Options
     #----------------------------------#
-    node_etc_hosts: [ '${admin_ip} i.pigsty sss.pigsty' ]
+    node_etc_hosts:
+      - '${admin_ip} i.pigsty'        # static dns record that point to repo node
+      - '${admin_ip} sss.pigsty'      # static dns record that point to minio
     pgbackrest_method: minio          # if you want to use minio as backup repo instead of 'local' fs, uncomment this
     pgbackrest_repo:                  # pgbackrest repo: https://pgbackrest.org/configuration.html#section-repository
       local:                          # default pgbackrest repo with local posix fs

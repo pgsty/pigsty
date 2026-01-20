@@ -1290,7 +1290,6 @@ INSERT INTO pigsty.default_var VALUES
 (116, 'infra_portal', '{"home": {"domain": "i.pigsty"}}', 'INFRA', 'INFRA', 'dict', 'G', 'infra services exposed via portal', NULL),
 (117, 'infra_data', '"/data/infra"', 'INFRA', 'INFRA', 'path', 'G', 'default data path for infrastructure data', NULL),
 (118, 'infra_packages', '[]', 'INFRA', 'INFRA', 'string[]', 'G', 'packages to be installed on infra nodes', NULL),
-(119, 'infra_packages_pip', '""', 'INFRA', 'INFRA', 'string', 'G', 'pip installed packages for infra nodes', NULL),
 
 (120, 'repo_enabled', 'true', 'INFRA', 'REPO', 'bool', 'G/I', 'create local yum repo on this infra node?', NULL),
 (121, 'repo_home', '"/www"', 'INFRA', 'REPO', 'path', 'G', 'repo home dir, /www by default', NULL),

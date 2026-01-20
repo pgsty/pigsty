@@ -3,7 +3,7 @@
 # File      :   meta.yml
 # Desc      :   Pigsty default 1-node online install config
 # Ctime     :   2020-05-22
-# Mtime     :   2025-12-28
+# Mtime     :   2026-01-14
 # Docs      :   https://pigsty.io/docs/conf/meta
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -55,12 +55,10 @@ all:
             # define extensions in database : https://pigsty.io/docs/pgsql/ext/create
             extensions: [ postgis, vector ]
 
-        # define HBA rules : https://pigsty.io/docs/pgsql/config/hba
-        pg_hba_rules:
-          - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
-
-        # define backup policies: https://pigsty.io/docs/pgsql/backup
-        pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every day 1am
+        pg_hba_rules:   # https://pigsty.io/docs/pgsql/config/hba
+          - { user: all ,db: all ,addr: intra ,auth: pwd ,title: 'everyone intranet access with password' ,order: 800 }
+        pg_crontab:     # https://pigsty.io/docs/pgsql/admin/crontab
+          - '00 01 * * * /pg/bin/pg-backup full' ]
 
         # define (OPTIONAL) L2 VIP that bind to primary
         #pg_vip_enabled: true

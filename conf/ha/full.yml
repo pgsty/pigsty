@@ -55,13 +55,14 @@ all:
           - { name: dbuser_view ,password: DBUser.Viewer   ,pgbouncer: true ,roles: [ dbrole_readonly ] ,comment: read-only viewer for meta database }
         pg_databases:
           - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [ pigsty ] }
-        pg_hba_rules:
-          - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
+        pg_hba_rules:   # https://pigsty.io/docs/pgsql/config/hba
+          - { user: all ,db: all ,addr: intra ,auth: pwd ,title: 'everyone intranet access with password' ,order: 800 }
+        pg_crontab:     # https://pigsty.io/docs/pgsql/admin/crontab
+          - '00 01 * * * /pg/bin/pg-backup full' ]
         pg_vip_enabled: true
         pg_vip_address: 10.10.10.2/24
         pg_vip_interface: eth1
-        pg_crontab:  # make a full backup 1 am everyday
-          - '00 01 * * * /pg/bin/pg-backup full'
+
 
     # pgsql 3 node ha cluster: pg-test
     pg-test:

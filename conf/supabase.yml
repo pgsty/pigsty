@@ -3,7 +3,7 @@
 # File      :   supabase.yml
 # Desc      :   Pigsty configuration for self-hosting supabase
 # Ctime     :   2023-09-19
-# Mtime     :   2025-12-28
+# Mtime     :   2026-01-20
 # Docs      :   https://pigsty.io/docs/conf/supabase
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -75,7 +75,7 @@ all:
           - { name: supabase_storage_admin     ,password: 'DBUser.Supa' ,pgbouncer: true ,inherit: false  ,roles: [ dbrole_admin, authenticated ,anon ,service_role ] ,createrole: true }
           - { name: supabase_functions_admin   ,password: 'DBUser.Supa' ,pgbouncer: true ,inherit: false  ,roles: [ dbrole_admin ] ,createrole: true }
           - { name: supabase_replication_admin ,password: 'DBUser.Supa' ,replication: true ,roles: [ dbrole_admin ]}
-          - { name: supabase_etl_admin         ,password: 'DBUser.Supa' ,replication: true ,roles: [ pg_read_all_data ]}
+          - { name: supabase_etl_admin         ,password: 'DBUser.Supa' ,replication: true ,roles: [ pg_read_all_data, dbrole_readonly ]}
           - { name: supabase_read_only_user    ,password: 'DBUser.Supa' ,bypassrls: true ,roles:   [ pg_read_all_data, dbrole_readonly ]}
         pg_databases:
           - name: postgres
@@ -106,8 +106,8 @@ all:
         pg_extensions: [ pg18-main ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
         pg_parameters: { cron.database_name: postgres }
         pg_hba_rules: # supabase hba rules, require access from docker network
-          - { user: all ,db: postgres  ,addr: intra         ,auth: pwd ,title: 'allow supabase access from intranet'    }
-          - { user: all ,db: postgres  ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow access from local docker network' }
+          - { user: all ,db: postgres  ,addr: intra         ,auth: pwd ,title: 'allow supabase access from intranet'    ,order: 50 }
+          - { user: all ,db: postgres  ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow access from local docker network' ,order: 50 }
         pg_crontab:
           - '00 01 * * * /pg/bin/pg-backup full'  # make a full backup every 1am
           - '*  *  * * * /pg/bin/supa-kick'       # kick supabase _analytics lag per minute: https://github.com/pgsty/pigsty/issues/581
