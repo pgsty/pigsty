@@ -1,0 +1,21 @@
+[Unit]
+Description=JuiceFS
+After=network-online.target patroni.service postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/juicefs
+ExecStart=/usr/bin/juicefs mount \
+    {{ juice_mount_options }} \
+    --no-syslog \
+    --cache-dir {{ juice_cache }} \
+    --metrics 0.0.0.0:{{ juice_port }} \
+    ${JUICE_PGURL} {{ juice_mount }}
+ExecStop=/usr/bin/juicefs umount {{ juice_mount }}
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=1000000
+
+[Install]
+WantedBy=multi-user.target

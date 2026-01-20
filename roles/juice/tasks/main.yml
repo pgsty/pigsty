@@ -1,0 +1,61 @@
+---
+#--------------------------------------------------------------#
+# Format                                          [juice_format]
+#--------------------------------------------------------------#
+- name: juice format
+  tags: [ juice, juice_format ]
+  when: juice_enabled | bool
+  command: juicefs format --no-update {{ juice_format_options }} "{{ juice_pgurl }}" "{{ juice_name }}"
+  register: _fmt
+  changed_when: "'created' in _fmt.stdout or 'Dumped' in _fmt.stdout"
+  failed_when: _fmt.rc != 0
+
+#--------------------------------------------------------------#
+# Mount                                            [juice_mount]
+#--------------------------------------------------------------#
+- name: juice dir
+  tags: [ juice, juice_mount ]
+  when: juice_enabled | bool
+  file: path={{ item.path }} state=directory owner={{ item.owner | default('root') }} group={{ item.group | default('root') }} mode={{ item.mode | default('0755') }}
+  loop:
+    - { path: "{{ juice_mount }}", owner: "{{ juice_owner }}", group: "{{ juice_group }}", mode: "{{ juice_mode }}" }
+    - { path: "{{ juice_cache }}", owner: "{{ juice_owner }}", group: "{{ juice_group }}", mode: "{{ juice_mode }}" }
+
+#--------------------------------------------------------------#
+# Register                                        [juice_config]
+#--------------------------------------------------------------#
+- name: juice config
+  tags: [ juice, juice_config ]
+  when: juice_enabled | bool
+  template: src={{ item.src }} dest={{ item.dest }} mode={{ item.mode }}
+  loop:
+    - { src: juice.env, dest: /etc/default/juicefs, mode: '0600' }
+    - { src: juice.svc, dest: /etc/systemd/system/juicefs.service, mode: '0644' }
+  notify: restart juicefs
+
+#--------------------------------------------------------------#
+# Register                                        [juice_launch]
+#--------------------------------------------------------------#
+- name: juice launch
+  tags: [ juice, juice_launch ]
+  when: juice_enabled | bool
+  systemd: name=juicefs state=started enabled=yes daemon_reload=yes
+
+#--------------------------------------------------------------#
+# Register                                      [juice_register]
+#--------------------------------------------------------------#
+- name: juice register
+  tags: [ juice, juice_register, add_metrics ]
+  when: juice_enabled | bool
+  delegate_to: '{{ item }}'
+  loop: '{{ groups["infra"] | default([]) }}'
+  ignore_errors: yes
+  copy:
+    dest: /infra/targets/juice/{{ inventory_hostname }}.yml
+    owner: victoria
+    group: infra
+    mode: '0640'
+    content: |
+      - labels: { ip: {{ inventory_hostname }}, ins: "{{ nodename }}" , cls: juice }
+        targets: [ {{ inventory_hostname }}:{{ juice_port|default('9567') }} ]
+...
