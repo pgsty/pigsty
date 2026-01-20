@@ -4,7 +4,7 @@ set -uo pipefail
 # File      :   pgb-user
 # Desc      :   add user to pgbouncer pool
 # Ctime     :   2021-03-29
-# Mtime     :   2026-01-19
+# Mtime     :   2025-01-20
 # Path      :   /pg/bin/pgb-user
 # Deps      :   psql, sed
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -17,9 +17,9 @@ PATH=/usr/pgsql/bin:/usr/local/bin:/usr/local/sbin:/usr/bin:/usr/sbin:/bin:/sbin
 #--------------------------------------------------------------#
 # use AUTO or "" as password will fetch from database
 # use NULL as password will set empty password ""
-# encryption method will be fetched from password_encryption param
-# md5 passwords will be calculated by pg md5 salt algorithm
-# scram-sha-256 pwd cannot be calculated, use plain-text instead
+# enc method will be fetched from password_encryption parameter
+# md5 passwords will be calc by pg md5 salt algorithm
+# scram pwd cannot be calculated, use plain-text instead
 #--------------------------------------------------------------#
 
 
@@ -62,24 +62,26 @@ function pgbouncer_create_user() {
         else
             echo "password fetching failed for ${username} ${password}"
             exit 1
-        fi  # check entry
-        ;;  # end of AUTO
-    *)  # calculate password hash based on password_encryption setting
-        password_encryption=$(psql -AXtwq -U postgres -d postgres -c "SHOW password_encryption;" 2>/dev/null)
-        if [[ ${password_encryption} == "scram-sha-256" ]]; then
+        fi
+        ;;
+    *)
+        pwdenc=$(psql -AXtwq -U postgres -d postgres -c "SHOW password_encryption;" 2>/dev/null)
+        case $pwdenc in
+        md5)
+            if [[ ${password} == md5* ]] && [[ ${#password} == 35 ]]; then # just use the md5password
+                entry="\"${username}\" \"${password}\""
+                echo "md5pwd given: ${entry}"
+            else
+                local md5_mon_pass="md5$(echo -n "${password}${username}" | md5sum | awk '{print $1}')"
+                entry="\"${username}\" \"${md5_mon_pass}\""
+                echo "md5pwd calculated: ${entry}"
+            fi
+            ;;
+        scram-sha-256)
             entry="\"${username}\" \"${password}\""
             echo "SCRAM pwd cannot be calculated, use AUTO to fetch from postgres"
-        elif [[ ${password_encryption} == "md5" ]]; then
-            # check if password is already a valid md5 hash (md5 prefix + 32 hex chars = 35 total)
-            if [[ ${password} == md5* && ${#password} == 35 ]]; then
-                entry="\"${username}\" \"${password}\""
-                echo "md5 hash provided: ${entry}"
-            else
-                local md5_hash="md5$(echo -n "${password}${username}" | md5sum | awk '{print $1}')"
-                entry="\"${username}\" \"${md5_hash}\""
-                echo "md5 hash generated: ${entry}"
-            fi
-        fi
+            ;;
+        esac
         ;;
     esac
 
@@ -87,7 +89,7 @@ function pgbouncer_create_user() {
     if grep -q ${username} ${userlist}; then
         sed -i "/^\"${username}\"[[:blank:]]*.*$/d" ${userlist}
     fi
-    # write the "username" "password" pair to userlist
+    # write the "username" "password" to userlist
     echo "${entry}" >> ${userlist};
     cat ${userlist} | sort -r | uniq > "${userlist}e";
     mv -f "${userlist}e" "${userlist}"
@@ -97,4 +99,4 @@ function pgbouncer_create_user() {
 #--------------------------------------------------------------#
 #                             Main                             #
 #--------------------------------------------------------------#
-pgbouncer_create_user "$@"
+pgbouncer_create_user $@
