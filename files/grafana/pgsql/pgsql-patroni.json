@@ -1,3612 +1,764 @@
 {
-    "annotations": {
-        "list": [
-            {
-                "builtIn": 1,
-                "datasource": {
-                    "type": "datasource",
-                    "uid": "grafana"
-                },
-                "enable": true,
-                "hide": true,
-                "iconColor": "rgba(0, 211, 255, 1)",
-                "name": "Annotations & Alerts",
-                "target": {
-                    "limit": 100,
-                    "matchAny": false,
-                    "tags": [],
-                    "type": "dashboard"
-                },
-                "type": "dashboard"
-            }
+  "annotations":{"list":[{"builtIn":1,"datasource":{"type":"datasource","uid":"grafana"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"}]},
+  "author":"Ruohang Feng (rh@vonng.com)",
+  "description":"PostgreSQL Cluster Dashboard",
+  "editable":true,
+  "fiscalYearStartMonth":0,
+  "graphTooltip":0,
+  "id":null,
+  "license":"https://pigsty.io/docs/about/license/",
+  "links":[
+    { "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Overview"],"targetBlank":false,"title":"Overview","tooltip":"","type":"dashboards","url":"" },{ "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Cluster"] ,"targetBlank":false,"title":"Cluster" ,"tooltip":"","type":"dashboards","url":"" },
+    { "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Instance"],"targetBlank":false,"title":"Instance","tooltip":"","type":"dashboards","url":"" },{ "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Database"],"targetBlank":false,"title":"Database","tooltip":"","type":"dashboards","url":"" }
+  ],
+  "panels":[
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":0},"id":182,"panels":[],"title":"Overview","type":"row"},
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"",
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"links":[{"title":"Node Cluster : ${node_cls}","url":"/d/node-cluster?var-cls=${node_cls}&${__url_time_range}"}],"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0}]}},"overrides":[]},
+      "gridPos":{"h":3,"w":7,"x":0,"y":1},
+      "id":145,
+      "options":{"colorMode":"background","graphMode":"none","justifyMode":"center","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"name","wideLayout":true},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"1","format":"table","instant":true,"interval":"","legendFormat":"","queryType":"measurements","refId":"A"}],
+      "transformations":[{"id":"organize","options":{"excludeByName":{"Time":true},"indexByName":{},"renameByName":{"Time":"","Value":"${cls}"}}}],
+      "type":"stat"
+    },
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"Patroni Member metrics of this cluster ${cls}",
+      "fieldConfig":{
+        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"footer":{"reducers":[]},"inspect":false},"mappings":[{"options":{"match":"null+nan","result":{"color":"transparent","index":1}},"type":"special"}],"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]}},
+        "overrides":[
+          {"matcher":{"id":"byName","options":"Instance"},"properties":[{"id":"links","value":[{"title":"PGSQL Instance: ${__data.fields.Instance}","url":"/d/pgsql-instance?var-ins=${__data.fields.Instance}&${__url_time_range}"}]},{"id":"custom.minWidth","value":120}]},
+          {"matcher":{"id":"byName","options":"Cluster"},"properties":[{"id":"links","value":[{"title":"PGSQL Cluster: ${__data.fields.Cluster}","url":"/d/pgsql-cluster?var-cls=${__data.fields.Cluster}&${__url_time_range}"}]},{"id":"custom.minWidth","value":120}]},
+          {"matcher":{"id":"byName","options":"Shard"},"properties":[{"id":"links","value":[{"title":"PGSQL Shard : ${__data.fields.Shard}","url":"/d/pgsql-shard?var-shard=${__data.fields.Shard}&${__url_time_range}"}]},{"id":"custom.width","value":100}]},
+          {
+            "matcher":{"id":"byName","options":"Status"},
+            "properties":[
+              { "id":"custom.width"      ,"value":80                                                                                                                                                                                                                                                                                                         },
+              { "id":"mappings"          ,"value":[{"options":{"0":{"color":"#346f36cc","index":0,"text":"Replica"},"1":{"color":"#3e668f","index":1,"text":"Primary"},"2":{"color":"#f79f64","index":2,"text":"Standby Leader"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"#808080","index":3,"text":"Unknown"}},"type":"special"}] },
+              { "id":"custom.cellOptions","value":{"mode":"gradient","type":"color-background"}                                                                                                                                                                                                                                                              }
+            ]
+          },
+          {"matcher":{"id":"byName","options":"Version"},"properties":[{"id":"custom.width","value":80}]},{"matcher":{"id":"byName","options":"PG Ver"},"properties":[{"id":"custom.width","value":80}]},
+          {
+            "matcher":{"id":"byName","options":"Paused"},
+            "properties":[{"id":"custom.width","value":80},{"id":"mappings","value":[{"options":{"0":{"color":"#346f36cc","index":0,"text":"OK"},"1":{"color":"#f79f64","index":1,"text":"Paused"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"transparent","index":2}},"type":"special"}]},{"id":"custom.cellOptions","value":{"mode":"gradient","type":"color-background"}}]
+          },{
+            "matcher":{"id":"byName","options":"Lock"},
+            "properties":[{"id":"custom.width","value":80},{"id":"custom.cellOptions","value":{"mode":"gradient","type":"color-background"}},{"id":"mappings","value":[{"options":{"0":{"color":"#346f36cc","index":0,"text":"Unlocked"},"1":{"color":"#b783af","index":1,"text":"Locked"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"transparent","index":2}},"type":"special"}]}]
+          },{
+            "matcher":{"id":"byName","options":"Restart"},
+            "properties":[{"id":"custom.width","value":80},{"id":"custom.cellOptions","value":{"mode":"gradient","type":"color-background"}},{"id":"mappings","value":[{"options":{"0":{"color":"#346f36cc","index":0,"text":"No Need"},"1":{"color":"#f79f64","index":1,"text":"Pending"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"transparent","index":2}},"type":"special"}]}]
+          },{
+            "matcher":{"id":"byName","options":"Failsafe"},
+            "properties":[{"id":"custom.width","value":80},{"id":"custom.cellOptions","value":{"mode":"gradient","type":"color-background"}},{"id":"mappings","value":[{"options":{"0":{"color":"#346f36cc","index":0,"text":"Inactive"},"1":{"color":"#cc4637d9","index":1,"text":"Active"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"transparent","index":2}},"type":"special"}]}]
+          },{
+            "matcher":{"id":"byName","options":"WAL"},
+            "properties":[{"id":"custom.width","value":80},{"id":"custom.cellOptions","value":{"mode":"gradient","type":"color-background"}},{"id":"mappings","value":[{"options":{"0":{"color":"#346f36cc","index":0,"text":"Proceed"},"1":{"color":"#f79f64","index":1,"text":"Paused"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"transparent","index":2}},"type":"special"}]}]
+          },{
+            "matcher":{"id":"byName","options":"Postgres"},
+            "properties":[{"id":"custom.width","value":80},{"id":"custom.cellOptions","value":{"mode":"gradient","type":"color-background"}},{"id":"mappings","value":[{"options":{"0":{"color":"#cc4637d9","index":0,"text":"Down"},"1":{"color":"#346f36cc","index":1,"text":"Alive"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"transparent","index":2}},"type":"special"}]}]
+          },
+          {"matcher":{"id":"byName","options":"PG Uptime "},"properties":[{"id":"custom.width","value":100},{"id":"unit","value":"s"},{"id":"custom.cellOptions","value":{"mode":"gradient","type":"color-background"}},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#cc4637d9","value":0},{"color":"#f79f64","value":300},{"color":"#fcdb72","value":3600},{"color":"#346f36cc","value":86400}]}}]},
+          {
+            "matcher":{"id":"byName","options":"DCS Seen"},
+            "properties":[{"id":"custom.width","value":100},{"id":"unit","value":"s"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"#f79f64","value":20},{"color":"#cc4637d9","value":30},{"color":"#b783af","value":60},{"color":"text","value":300}]}},{"id":"custom.cellOptions","value":{"mode":"gradient","type":"color-background"}}]
+          },
+          {"matcher":{"id":"byName","options":"Up"},"properties":[{"id":"custom.width","value":90},{"id":"mappings","value":[{"options":{"0":{"color":"#cc4637d9","index":0,"text":"Dead"},"1":{"color":"#346f36cc","index":1,"text":"Alive"}},"type":"value"}]},{"id":"custom.cellOptions","value":{"type":"color-background"}}]},
+          {"matcher":{"id":"byName","options":"IP"},"properties":[{"id":"links","value":[{"title":"Node Instance : ${__data.fields.IP}","url":"/d/node-instance?var-id=${__data.fields.IP}&${__url_time_range}"}]},{"id":"custom.minWidth","value":110}]}
         ]
+      },
+      "gridPos":{"h":7,"w":17,"x":7,"y":1},
+      "id":152,
+      "options":{"cellHeight":"sm","showHeader":true,"sortBy":[]},
+      "pluginVersion":"12.3.0",
+      "targets":[
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins) (patroni_primary{cls=\"$cls\"}) + \nmax by (ins) (patroni_standby_leader{cls=\"$cls\"})","format":"table",             "instant":true,"legendFormat":"__auto","range":false,"refId":"A" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (cls,ins,scope) (patroni_version{cls=\"$cls\"})"                                              ,"format":"table","hide":false,"instant":true,"legendFormat":"__auto","range":false,"refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins) (patroni_postgres_server_version{cls=\"$cls\"})"                                        ,"format":"table","hide":false,"instant":true,"legendFormat":"__auto","range":false,"refId":"C" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins) (patroni_is_paused{cls=\"$cls\"})"                                                      ,"format":"table","hide":false,"instant":true,"legendFormat":"__auto","range":false,"refId":"D" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins) (patroni_cluster_unlocked{cls=\"$cls\"})"                                               ,"format":"table","hide":false,"instant":true,"legendFormat":"__auto","range":false,"refId":"E" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins) (patroni_pending_restart{cls=\"$cls\"})"                                                ,"format":"table","hide":false,"instant":true,"legendFormat":"__auto","range":false,"refId":"F" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins) (patroni_failsafe_mode_is_active{cls=\"$cls\"})"                                        ,"format":"table","hide":false,"instant":true,"legendFormat":"__auto","range":false,"refId":"G" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins) (patroni_xlog_paused{cls=\"$cls\"})"                                                    ,"format":"table","hide":false,"instant":true,"legendFormat":"__auto","range":false,"refId":"H" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins) (patroni_postgres_running{cls=\"$cls\"})"                                               ,"format":"table","hide":false,"instant":true,"legendFormat":"__auto","range":false,"refId":"I" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins) (time() - patroni_dcs_last_seen{cls=\"$cls\"})"                                         ,"format":"table","hide":false,"instant":true,"legendFormat":"__auto","range":false,"refId":"J" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins) (time() - patroni_postmaster_start_time{cls=\"$cls\"})"                                 ,"format":"table","hide":false,"instant":true,"legendFormat":"__auto","range":false,"refId":"K" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins,ip) (patroni_up{cls=\"$cls\"})"                                                          ,"format":"table","hide":false,"instant":true,"legendFormat":"__auto","range":false,"refId":"L" }
+      ],
+      "title":"Patroni Members",
+      "transformations":[
+        {"id":"joinByField","options":{"byField":"ins","mode":"outer"}},
+        {
+          "id":"organize",
+          "options":{
+            "excludeByName":{"Time":true,"Time 1":true,"Time 10":true,"Time 11":true,"Time 12":true,"Time 2":true,"Time 3":true,"Time 4":true,"Time 5":true,"Time 6":true,"Time 7":true,"Time 8":true,"Time 9":true,"Value #E":false,"__name__ 1":false,"cls":true,"scope":false},
+            "indexByName":{"Time 1":16,"Time 10":25,"Time 11":26,"Time 12":27,"Time 2":17,"Time 3":18,"Time 4":19,"Time 5":20,"Time 6":21,"Time 7":22,"Time 8":23,"Time 9":24,"Value #A":1,"Value #B":14,"Value #C":15,"Value #D":7,"Value #E":8,"Value #F":9,"Value #G":10,"Value #H":11,"Value #I":12,"Value #J":6,"Value #K":13,"Value #L":0,"cls":4,"ins":2,"ip":3,"scope":5},
+            "renameByName":{"Value #A":"Status","Value #B":"Version","Value #C":"PG Ver","Value #D":"Paused","Value #E":"Lock","Value #F":"Restart","Value #G":"Failsafe","Value #H":"WAL","Value #I":"Postgres","Value #J":"DCS Seen","Value #K":"PG Uptime ","Value #L":"Up","cls":"Cluster","ins":"Instance","ip":"IP","scope":"Shard"}
+          }
+        }
+      ],
+      "type":"table"
     },
-    "author": "Ruohang Feng (rh@vonng.com)",
-    "description": "PostgreSQL Cluster Dashboard",
-    "editable": true,
-    "fiscalYearStartMonth": 0,
-    "graphTooltip": 0,
-    "id": null,
-    "license": "https://pigsty.io/docs/about/license/",
-    "links": [
-        {
-            "asDropdown": true,
-            "icon": "external link",
-            "includeVars": true,
-            "keepTime": true,
-            "tags": [
-                "Pigsty",
-                "PGSQL",
-                "Overview"
-            ],
-            "targetBlank": false,
-            "title": "Overview",
-            "tooltip": "",
-            "type": "dashboards",
-            "url": ""
-        },
-        {
-            "asDropdown": true,
-            "icon": "external link",
-            "includeVars": true,
-            "keepTime": true,
-            "tags": [
-                "Pigsty",
-                "PGSQL",
-                "Cluster"
-            ],
-            "targetBlank": false,
-            "title": "Cluster",
-            "tooltip": "",
-            "type": "dashboards",
-            "url": ""
-        },
-        {
-            "asDropdown": true,
-            "icon": "external link",
-            "includeVars": true,
-            "keepTime": true,
-            "tags": [
-                "Pigsty",
-                "PGSQL",
-                "Instance"
-            ],
-            "targetBlank": false,
-            "title": "Instance",
-            "tooltip": "",
-            "type": "dashboards",
-            "url": ""
-        },
-        {
-            "asDropdown": true,
-            "icon": "external link",
-            "includeVars": true,
-            "keepTime": true,
-            "tags": [
-                "Pigsty",
-                "PGSQL",
-                "Database"
-            ],
-            "targetBlank": false,
-            "title": "Database",
-            "tooltip": "",
-            "type": "dashboards",
-            "url": ""
-        }
-    ],
-    "panels": [
-        {
-            "collapsed": false,
-            "gridPos": {
-                "h": 1,
-                "w": 24,
-                "x": 0,
-                "y": 0
-            },
-            "id": 182,
-            "panels": [],
-            "title": "Overview",
-            "type": "row"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "thresholds"
-                    },
-                    "links": [
-                        {
-                            "title": "Node Cluster : ${node_cls}",
-                            "url": "/d/node-cluster?var-cls=${node_cls}&${__url_time_range}"
-                        }
-                    ],
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#3e668f",
-                                "value": 0
-                            }
-                        ]
-                    }
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 3,
-                "w": 7,
-                "x": 0,
-                "y": 1
-            },
-            "id": 145,
-            "options": {
-                "colorMode": "background",
-                "graphMode": "none",
-                "justifyMode": "center",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                    "calcs": [
-                        "lastNotNull"
-                    ],
-                    "fields": "",
-                    "values": false
-                },
-                "showPercentChange": false,
-                "text": {},
-                "textMode": "name",
-                "wideLayout": true
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "1",
-                    "format": "table",
-                    "instant": true,
-                    "interval": "",
-                    "legendFormat": "",
-                    "queryType": "measurements",
-                    "refId": "A"
-                }
-            ],
-            "transformations": [
-                {
-                    "id": "organize",
-                    "options": {
-                        "excludeByName": {
-                            "Time": true
-                        },
-                        "indexByName": {},
-                        "renameByName": {
-                            "Time": "",
-                            "Value": "${cls}"
-                        }
-                    }
-                }
-            ],
-            "type": "stat"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "Patroni Member metrics of this cluster ${cls}",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "thresholds"
-                    },
-                    "custom": {
-                        "align": "center",
-                        "cellOptions": {
-                            "type": "auto"
-                        },
-                        "footer": {
-                            "reducers": []
-                        },
-                        "inspect": false
-                    },
-                    "mappings": [
-                        {
-                            "options": {
-                                "match": "null+nan",
-                                "result": {
-                                    "color": "transparent",
-                                    "index": 1
-                                }
-                            },
-                            "type": "special"
-                        }
-                    ],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#346f36cc",
-                                "value": 0
-                            }
-                        ]
-                    }
-                },
-                "overrides": [
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Instance"
-                        },
-                        "properties": [
-                            {
-                                "id": "links",
-                                "value": [
-                                    {
-                                        "title": "PGSQL Instance: ${__data.fields.Instance}",
-                                        "url": "/d/pgsql-instance?var-ins=${__data.fields.Instance}&${__url_time_range}"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "custom.minWidth",
-                                "value": 120
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Cluster"
-                        },
-                        "properties": [
-                            {
-                                "id": "links",
-                                "value": [
-                                    {
-                                        "title": "PGSQL Cluster: ${__data.fields.Cluster}",
-                                        "url": "/d/pgsql-cluster?var-cls=${__data.fields.Cluster}&${__url_time_range}"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "custom.minWidth",
-                                "value": 120
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Shard"
-                        },
-                        "properties": [
-                            {
-                                "id": "links",
-                                "value": [
-                                    {
-                                        "title": "PGSQL Shard : ${__data.fields.Shard}",
-                                        "url": "/d/pgsql-shard?var-shard=${__data.fields.Shard}&${__url_time_range}"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "custom.width",
-                                "value": 100
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Status"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#346f36cc",
-                                                "index": 0,
-                                                "text": "Replica"
-                                            },
-                                            "1": {
-                                                "color": "#3e668f",
-                                                "index": 1,
-                                                "text": "Primary"
-                                            },
-                                            "2": {
-                                                "color": "#f79f64",
-                                                "index": 2,
-                                                "text": "Standby Leader"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "#808080",
-                                                "index": 3,
-                                                "text": "Unknown"
-                                            }
-                                        },
-                                        "type": "special"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "mode": "gradient",
-                                    "type": "color-background"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Version"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "PG Ver"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Paused"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#346f36cc",
-                                                "index": 0,
-                                                "text": "OK"
-                                            },
-                                            "1": {
-                                                "color": "#f79f64",
-                                                "index": 1,
-                                                "text": "Paused"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "transparent",
-                                                "index": 2
-                                            }
-                                        },
-                                        "type": "special"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "mode": "gradient",
-                                    "type": "color-background"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Lock"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "mode": "gradient",
-                                    "type": "color-background"
-                                }
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#346f36cc",
-                                                "index": 0,
-                                                "text": "Unlocked"
-                                            },
-                                            "1": {
-                                                "color": "#b783af",
-                                                "index": 1,
-                                                "text": "Locked"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "transparent",
-                                                "index": 2
-                                            }
-                                        },
-                                        "type": "special"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Restart"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "mode": "gradient",
-                                    "type": "color-background"
-                                }
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#346f36cc",
-                                                "index": 0,
-                                                "text": "No Need"
-                                            },
-                                            "1": {
-                                                "color": "#f79f64",
-                                                "index": 1,
-                                                "text": "Pending"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "transparent",
-                                                "index": 2
-                                            }
-                                        },
-                                        "type": "special"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Failsafe"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "mode": "gradient",
-                                    "type": "color-background"
-                                }
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#346f36cc",
-                                                "index": 0,
-                                                "text": "Inactive"
-                                            },
-                                            "1": {
-                                                "color": "#cc4637d9",
-                                                "index": 1,
-                                                "text": "Active"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "transparent",
-                                                "index": 2
-                                            }
-                                        },
-                                        "type": "special"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "WAL"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "mode": "gradient",
-                                    "type": "color-background"
-                                }
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#346f36cc",
-                                                "index": 0,
-                                                "text": "Proceed"
-                                            },
-                                            "1": {
-                                                "color": "#f79f64",
-                                                "index": 1,
-                                                "text": "Paused"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "transparent",
-                                                "index": 2
-                                            }
-                                        },
-                                        "type": "special"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Postgres"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "mode": "gradient",
-                                    "type": "color-background"
-                                }
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#cc4637d9",
-                                                "index": 0,
-                                                "text": "Down"
-                                            },
-                                            "1": {
-                                                "color": "#346f36cc",
-                                                "index": 1,
-                                                "text": "Alive"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "transparent",
-                                                "index": 2
-                                            }
-                                        },
-                                        "type": "special"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "PG Uptime "
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 100
-                            },
-                            {
-                                "id": "unit",
-                                "value": "s"
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "mode": "gradient",
-                                    "type": "color-background"
-                                }
-                            },
-                            {
-                                "id": "thresholds",
-                                "value": {
-                                    "mode": "absolute",
-                                    "steps": [
-                                        {
-                                            "color": "#cc4637d9",
-                                            "value": 0
-                                        },
-                                        {
-                                            "color": "#f79f64",
-                                            "value": 300
-                                        },
-                                        {
-                                            "color": "#fcdb72",
-                                            "value": 3600
-                                        },
-                                        {
-                                            "color": "#346f36cc",
-                                            "value": 86400
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "DCS Seen"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 100
-                            },
-                            {
-                                "id": "unit",
-                                "value": "s"
-                            },
-                            {
-                                "id": "thresholds",
-                                "value": {
-                                    "mode": "absolute",
-                                    "steps": [
-                                        {
-                                            "color": "#346f36cc",
-                                            "value": 0
-                                        },
-                                        {
-                                            "color": "#f79f64",
-                                            "value": 20
-                                        },
-                                        {
-                                            "color": "#cc4637d9",
-                                            "value": 30
-                                        },
-                                        {
-                                            "color": "#b783af",
-                                            "value": 60
-                                        },
-                                        {
-                                            "color": "text",
-                                            "value": 300
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "mode": "gradient",
-                                    "type": "color-background"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Up"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 90
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#cc4637d9",
-                                                "index": 0,
-                                                "text": "Dead"
-                                            },
-                                            "1": {
-                                                "color": "#346f36cc",
-                                                "index": 1,
-                                                "text": "Alive"
-                                            }
-                                        },
-                                        "type": "value"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "type": "color-background"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "IP"
-                        },
-                        "properties": [
-                            {
-                                "id": "links",
-                                "value": [
-                                    {
-                                        "title": "Node Instance : ${__data.fields.IP}",
-                                        "url": "/d/node-instance?var-id=${__data.fields.IP}&${__url_time_range}"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "custom.minWidth",
-                                "value": 110
-                            }
-                        ]
-                    }
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "fieldConfig":{
+        "defaults":{"color":{"mode":"thresholds"},"links":[{"title":"ETCD Overview","url":"/d/etcd-overview?${__url_time_range}"}],"mappings":[],"noValue":"N/A","thresholds":{"mode":"absolute","steps":[{"color":"red","value":0}]},"unit":"none"},
+        "overrides":[
+          {
+            "matcher":{"id":"byName","options":"ETCD Status"},
+            "properties":[
+              {
+                "id":"mappings",
+                "value":[
+                  { "options":{"0":{"color":"#b783af","index":0,"text":"All Dead"},"1":{"color":"#346f36cc","index":1,"text":"Healthy"}},"type":"value"   },{ "options":{"match":"null+nan","result":{"color":"#b783af","index":2,"text":"Unknown"}}                              ,"type":"special" },
+                  { "options":{"from":0.49999,"result":{"color":"#cc4637d9","index":3,"text":"1 / 2"},"to":0.50001}                     ,"type":"range"   },{ "options":{"from":0.66666,"result":{"color":"#f79f64","index":4,"text":"2 / 3"},"to":0.66667}                       ,"type":"range"   },
+                  { "options":{"from":0.33333,"result":{"color":"#b783af","index":5,"text":"1 / 3"},"to":0.33334}                       ,"type":"range"   }
                 ]
-            },
-            "gridPos": {
-                "h": 7,
-                "w": 17,
-                "x": 7,
-                "y": 1
-            },
-            "id": 152,
-            "options": {
-                "cellHeight": "sm",
-                "showHeader": true,
-                "sortBy": []
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (ins) (patroni_primary{cls=\"$cls\"}) + \nmax by (ins) (patroni_standby_leader{cls=\"$cls\"})",
-                    "format": "table",
-                    "instant": true,
-                    "legendFormat": "__auto",
-                    "range": false,
-                    "refId": "A"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (cls,ins,scope) (patroni_version{cls=\"$cls\"})",
-                    "format": "table",
-                    "hide": false,
-                    "instant": true,
-                    "legendFormat": "__auto",
-                    "range": false,
-                    "refId": "B"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (ins) (patroni_postgres_server_version{cls=\"$cls\"})",
-                    "format": "table",
-                    "hide": false,
-                    "instant": true,
-                    "legendFormat": "__auto",
-                    "range": false,
-                    "refId": "C"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (ins) (patroni_is_paused{cls=\"$cls\"})",
-                    "format": "table",
-                    "hide": false,
-                    "instant": true,
-                    "legendFormat": "__auto",
-                    "range": false,
-                    "refId": "D"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (ins) (patroni_cluster_unlocked{cls=\"$cls\"})",
-                    "format": "table",
-                    "hide": false,
-                    "instant": true,
-                    "legendFormat": "__auto",
-                    "range": false,
-                    "refId": "E"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (ins) (patroni_pending_restart{cls=\"$cls\"})",
-                    "format": "table",
-                    "hide": false,
-                    "instant": true,
-                    "legendFormat": "__auto",
-                    "range": false,
-                    "refId": "F"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (ins) (patroni_failsafe_mode_is_active{cls=\"$cls\"})",
-                    "format": "table",
-                    "hide": false,
-                    "instant": true,
-                    "legendFormat": "__auto",
-                    "range": false,
-                    "refId": "G"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (ins) (patroni_xlog_paused{cls=\"$cls\"})",
-                    "format": "table",
-                    "hide": false,
-                    "instant": true,
-                    "legendFormat": "__auto",
-                    "range": false,
-                    "refId": "H"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (ins) (patroni_postgres_running{cls=\"$cls\"})",
-                    "format": "table",
-                    "hide": false,
-                    "instant": true,
-                    "legendFormat": "__auto",
-                    "range": false,
-                    "refId": "I"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (ins) (time() - patroni_dcs_last_seen{cls=\"$cls\"})",
-                    "format": "table",
-                    "hide": false,
-                    "instant": true,
-                    "legendFormat": "__auto",
-                    "range": false,
-                    "refId": "J"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (ins) (time() - patroni_postmaster_start_time{cls=\"$cls\"})",
-                    "format": "table",
-                    "hide": false,
-                    "instant": true,
-                    "legendFormat": "__auto",
-                    "range": false,
-                    "refId": "K"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (ins,ip) (patroni_up{cls=\"$cls\"})",
-                    "format": "table",
-                    "hide": false,
-                    "instant": true,
-                    "legendFormat": "__auto",
-                    "range": false,
-                    "refId": "L"
-                }
-            ],
-            "title": "Patroni Members",
-            "transformations": [
-                {
-                    "id": "joinByField",
-                    "options": {
-                        "byField": "ins",
-                        "mode": "outer"
-                    }
-                },
-                {
-                    "id": "organize",
-                    "options": {
-                        "excludeByName": {
-                            "Time": true,
-                            "Time 1": true,
-                            "Time 10": true,
-                            "Time 11": true,
-                            "Time 12": true,
-                            "Time 2": true,
-                            "Time 3": true,
-                            "Time 4": true,
-                            "Time 5": true,
-                            "Time 6": true,
-                            "Time 7": true,
-                            "Time 8": true,
-                            "Time 9": true,
-                            "Value #E": false,
-                            "__name__ 1": false,
-                            "cls": true,
-                            "scope": false
-                        },
-                        "indexByName": {
-                            "Time 1": 16,
-                            "Time 10": 25,
-                            "Time 11": 26,
-                            "Time 12": 27,
-                            "Time 2": 17,
-                            "Time 3": 18,
-                            "Time 4": 19,
-                            "Time 5": 20,
-                            "Time 6": 21,
-                            "Time 7": 22,
-                            "Time 8": 23,
-                            "Time 9": 24,
-                            "Value #A": 1,
-                            "Value #B": 14,
-                            "Value #C": 15,
-                            "Value #D": 7,
-                            "Value #E": 8,
-                            "Value #F": 9,
-                            "Value #G": 10,
-                            "Value #H": 11,
-                            "Value #I": 12,
-                            "Value #J": 6,
-                            "Value #K": 13,
-                            "Value #L": 0,
-                            "cls": 4,
-                            "ins": 2,
-                            "ip": 3,
-                            "scope": 5
-                        },
-                        "renameByName": {
-                            "Value #A": "Status",
-                            "Value #B": "Version",
-                            "Value #C": "PG Ver",
-                            "Value #D": "Paused",
-                            "Value #E": "Lock",
-                            "Value #F": "Restart",
-                            "Value #G": "Failsafe",
-                            "Value #H": "WAL",
-                            "Value #I": "Postgres",
-                            "Value #J": "DCS Seen",
-                            "Value #K": "PG Uptime ",
-                            "Value #L": "Up",
-                            "cls": "Cluster",
-                            "ins": "Instance",
-                            "ip": "IP",
-                            "scope": "Shard"
-                        }
-                    }
-                }
-            ],
-            "type": "table"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "thresholds"
-                    },
-                    "links": [
-                        {
-                            "title": "ETCD Overview",
-                            "url": "/d/etcd-overview?${__url_time_range}"
-                        }
-                    ],
-                    "mappings": [],
-                    "noValue": "N/A",
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "red",
-                                "value": 0
-                            }
-                        ]
-                    },
-                    "unit": "none"
-                },
-                "overrides": [
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "ETCD Status"
-                        },
-                        "properties": [
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#b783af",
-                                                "index": 0,
-                                                "text": "All Dead"
-                                            },
-                                            "1": {
-                                                "color": "#346f36cc",
-                                                "index": 1,
-                                                "text": "Healthy"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "#b783af",
-                                                "index": 2,
-                                                "text": "Unknown"
-                                            }
-                                        },
-                                        "type": "special"
-                                    },
-                                    {
-                                        "options": {
-                                            "from": 0.49999,
-                                            "result": {
-                                                "color": "#cc4637d9",
-                                                "index": 3,
-                                                "text": "1 / 2"
-                                            },
-                                            "to": 0.50001
-                                        },
-                                        "type": "range"
-                                    },
-                                    {
-                                        "options": {
-                                            "from": 0.66666,
-                                            "result": {
-                                                "color": "#f79f64",
-                                                "index": 4,
-                                                "text": "2 / 3"
-                                            },
-                                            "to": 0.66667
-                                        },
-                                        "type": "range"
-                                    },
-                                    {
-                                        "options": {
-                                            "from": 0.33333,
-                                            "result": {
-                                                "color": "#b783af",
-                                                "index": 5,
-                                                "text": "1 / 3"
-                                            },
-                                            "to": 0.33334
-                                        },
-                                        "type": "range"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "thresholds",
-                                "value": {
-                                    "mode": "absolute",
-                                    "steps": [
-                                        {
-                                            "color": "text",
-                                            "value": 0
-                                        },
-                                        {
-                                            "color": "#cc4637d9",
-                                            "value": 0.5
-                                        },
-                                        {
-                                            "color": "#f79f64",
-                                            "value": 0.66
-                                        },
-                                        {
-                                            "color": "#346f36cc",
-                                            "value": 1
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "id": "unit",
-                                "value": "percentunit"
-                            },
-                            {
-                                "id": "decimals",
-                                "value": 0
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Failsafe Mode"
-                        },
-                        "properties": [
-                            {
-                                "id": "thresholds",
-                                "value": {
-                                    "mode": "absolute",
-                                    "steps": [
-                                        {
-                                            "color": "#346f36cc",
-                                            "value": 0
-                                        },
-                                        {
-                                            "color": "#cc4637d9",
-                                            "value": 1
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "index": 0,
-                                                "text": "Healthy"
-                                            },
-                                            "1": {
-                                                "color": "#cc4637d9",
-                                                "index": 1,
-                                                "text": "Active"
-                                            }
-                                        },
-                                        "type": "value"
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            },
-            "gridPos": {
-                "h": 4,
-                "w": 7,
-                "x": 0,
-                "y": 4
-            },
-            "id": 184,
-            "maxDataPoints": 100,
-            "options": {
-                "colorMode": "background",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                    "calcs": [
-                        "last"
-                    ],
-                    "fields": "",
-                    "values": false
-                },
-                "showPercentChange": false,
-                "text": {},
-                "textMode": "auto",
-                "wideLayout": true
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "sum(up{job=\"etcd\", cls=\"etcd\"}) by (cls) /\n count(up{job=\"etcd\", cls=\"etcd\"}) by (cls)\nor on() vector(0)",
-                    "format": "time_series",
-                    "instant": true,
-                    "intervalFactor": 2,
-                    "legendFormat": "ETCD Status",
-                    "range": false,
-                    "refId": "A",
-                    "step": 600
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max(patroni_failsafe_mode_is_active{cls=\"$cls\"})",
-                    "format": "time_series",
-                    "hide": false,
-                    "instant": true,
-                    "intervalFactor": 2,
-                    "legendFormat": "Failsafe Mode",
-                    "range": false,
-                    "refId": "B",
-                    "step": 600
-                }
-            ],
-            "type": "stat"
-        },
-        {
-            "collapsed": false,
-            "gridPos": {
-                "h": 1,
-                "w": 24,
-                "x": 0,
-                "y": 8
-            },
-            "id": 192,
-            "panels": [],
-            "title": "Metrics",
-            "type": "row"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "`patroni_up` of this cluster ${cls}. 1 means this patroni agent is alive, 0 means dead",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "barAlignment": 0,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "line",
-                        "fillOpacity": 5,
-                        "gradientMode": "none",
-                        "hideFrom": {
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "stepBefore",
-                        "lineWidth": 2,
-                        "pointSize": 5,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "auto",
-                        "showValues": false,
-                        "spanNulls": false,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "none"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "area"
-                        }
-                    },
-                    "decimals": 0,
-                    "mappings": [
-                        {
-                            "options": {
-                                "0": {
-                                    "index": 0,
-                                    "text": "Dead"
-                                },
-                                "1": {
-                                    "index": 1,
-                                    "text": "Alive"
-                                }
-                            },
-                            "type": "value"
-                        }
-                    ],
-                    "max": 1.2,
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "red",
-                                "value": 0
-                            },
-                            {
-                                "color": "green",
-                                "value": 0.5
-                            }
-                        ]
-                    }
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 6,
-                "w": 12,
-                "x": 0,
-                "y": 9
-            },
-            "id": 203,
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "max"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "multi",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "expr": "patroni_up{cls=\"$cls\"}",
-                    "instant": false,
-                    "legendFormat": "{{ ins }}",
-                    "range": true,
-                    "refId": "A"
-                }
-            ],
-            "title": "Failsafe Activated",
-            "type": "timeseries"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "`patroni_primary` of this cluster ${cls}. 1 means this member is leader of the cluster.\n\n2 `sleader` means this is a standby leader",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "axisSoftMax": 1.2,
-                        "barAlignment": 0,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "line",
-                        "fillOpacity": 30,
-                        "gradientMode": "none",
-                        "hideFrom": {
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "stepBefore",
-                        "lineWidth": 2,
-                        "pointSize": 5,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "auto",
-                        "showValues": false,
-                        "spanNulls": false,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "none"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "area"
-                        }
-                    },
-                    "decimals": 0,
-                    "mappings": [
-                        {
-                            "options": {
-                                "0": {
-                                    "index": 0,
-                                    "text": "Replica"
-                                },
-                                "1": {
-                                    "index": 1,
-                                    "text": "Primary"
-                                },
-                                "2": {
-                                    "index": 2,
-                                    "text": "SLeader"
-                                }
-                            },
-                            "type": "value"
-                        }
-                    ],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "green",
-                                "value": 0
-                            },
-                            {
-                                "color": "orange",
-                                "value": 0.9
-                            },
-                            {
-                                "color": "blue",
-                                "value": 1.9
-                            }
-                        ]
-                    }
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 6,
-                "w": 12,
-                "x": 12,
-                "y": 9
-            },
-            "id": 201,
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "max"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "multi",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "expr": "patroni_primary{cls=\"$cls\"}\n+ patroni_standby_leader{cls=\"$cls\"}",
-                    "instant": false,
-                    "legendFormat": "{{ ins }}",
-                    "range": true,
-                    "refId": "A"
-                }
-            ],
-            "title": "Leadership",
-            "type": "timeseries"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "`patroni_cluster_unlocked` of this cluster ${cls}. 1 means this cluster is locked from this member's perspective",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "barAlignment": 0,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "line",
-                        "fillOpacity": 5,
-                        "gradientMode": "none",
-                        "hideFrom": {
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "stepBefore",
-                        "lineWidth": 2,
-                        "pointSize": 5,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "auto",
-                        "showValues": false,
-                        "spanNulls": false,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "none"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "area"
-                        }
-                    },
-                    "decimals": 0,
-                    "mappings": [
-                        {
-                            "options": {
-                                "0": {
-                                    "index": 0,
-                                    "text": "Unlocked"
-                                },
-                                "1": {
-                                    "index": 1,
-                                    "text": "Locked"
-                                }
-                            },
-                            "type": "value"
-                        }
-                    ],
-                    "max": 1.2,
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "green",
-                                "value": 0
-                            },
-                            {
-                                "color": "purple",
-                                "value": 0.9
-                            }
-                        ]
-                    }
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 6,
-                "w": 12,
-                "x": 0,
-                "y": 15
-            },
-            "id": 199,
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "max"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "multi",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "expr": "patroni_cluster_unlocked{cls=\"$cls\"}",
-                    "instant": false,
-                    "legendFormat": "{{ ins }}",
-                    "range": true,
-                    "refId": "A"
-                }
-            ],
-            "title": "Cluster Locked",
-            "type": "timeseries"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "`patroni_failsafe_mode_is_active` of this cluster ${cls}. 1 means this cluster's failsafe mode is activated",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "barAlignment": 0,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "line",
-                        "fillOpacity": 5,
-                        "gradientMode": "none",
-                        "hideFrom": {
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "stepBefore",
-                        "lineWidth": 2,
-                        "pointSize": 5,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "auto",
-                        "showValues": false,
-                        "spanNulls": false,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "none"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "area"
-                        }
-                    },
-                    "decimals": 0,
-                    "mappings": [
-                        {
-                            "options": {
-                                "0": {
-                                    "index": 0,
-                                    "text": "Normal"
-                                },
-                                "1": {
-                                    "index": 1,
-                                    "text": "Activated"
-                                }
-                            },
-                            "type": "value"
-                        }
-                    ],
-                    "max": 1.2,
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "green",
-                                "value": 0
-                            },
-                            {
-                                "color": "red",
-                                "value": 0.9
-                            }
-                        ]
-                    }
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 6,
-                "w": 12,
-                "x": 12,
-                "y": 15
-            },
-            "id": 200,
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "max"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "multi",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "expr": "patroni_failsafe_mode_is_active{cls=\"$cls\"}",
-                    "instant": false,
-                    "legendFormat": "{{ ins }}",
-                    "range": true,
-                    "refId": "A"
-                }
-            ],
-            "title": "Failsafe Activated",
-            "type": "timeseries"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "`patroni_pending_restart` of this cluster ${cls}. 1 means this member needs to be restarted to make config change effect.",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "barAlignment": 0,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "line",
-                        "fillOpacity": 5,
-                        "gradientMode": "none",
-                        "hideFrom": {
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "stepBefore",
-                        "lineWidth": 2,
-                        "pointSize": 5,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "auto",
-                        "showValues": false,
-                        "spanNulls": false,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "none"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "area"
-                        }
-                    },
-                    "decimals": 0,
-                    "mappings": [
-                        {
-                            "options": {
-                                "0": {
-                                    "index": 0,
-                                    "text": "No"
-                                },
-                                "1": {
-                                    "index": 1,
-                                    "text": "Pending"
-                                }
-                            },
-                            "type": "value"
-                        }
-                    ],
-                    "max": 1.2,
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "green",
-                                "value": 0
-                            },
-                            {
-                                "color": "orange",
-                                "value": 0.9
-                            }
-                        ]
-                    }
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 6,
-                "w": 12,
-                "x": 0,
-                "y": 21
-            },
-            "id": 198,
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "max"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "multi",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "expr": "patroni_pending_restart{cls=\"$cls\"}",
-                    "instant": false,
-                    "legendFormat": "{{ ins }}",
-                    "range": true,
-                    "refId": "A"
-                }
-            ],
-            "title": "Pending Restart",
-            "type": "timeseries"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "`patroni_xlog_paused` of this cluster ${cls} members. 1 means PostgresQL WAL is paused.",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "barAlignment": 0,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "line",
-                        "fillOpacity": 5,
-                        "gradientMode": "none",
-                        "hideFrom": {
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "stepBefore",
-                        "lineWidth": 2,
-                        "pointSize": 5,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "auto",
-                        "showValues": false,
-                        "spanNulls": false,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "none"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "area"
-                        }
-                    },
-                    "decimals": 0,
-                    "mappings": [
-                        {
-                            "options": {
-                                "0": {
-                                    "index": 0,
-                                    "text": "No"
-                                },
-                                "1": {
-                                    "index": 1,
-                                    "text": "Paused"
-                                }
-                            },
-                            "type": "value"
-                        }
-                    ],
-                    "max": 1.2,
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "green",
-                                "value": 0
-                            },
-                            {
-                                "color": "orange",
-                                "value": 0.9
-                            }
-                        ]
-                    }
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 6,
-                "w": 12,
-                "x": 12,
-                "y": 21
-            },
-            "id": 197,
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "max"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "multi",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "expr": "patroni_xlog_paused{cls=\"$cls\"}",
-                    "instant": false,
-                    "legendFormat": "{{ ins }}",
-                    "range": true,
-                    "refId": "A"
-                }
-            ],
-            "title": "WAL Paused",
-            "type": "timeseries"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "Time since patroni last successful connect to DCS:etcd service",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "barAlignment": 0,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "line",
-                        "fillOpacity": 1,
-                        "gradientMode": "none",
-                        "hideFrom": {
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "stepBefore",
-                        "lineWidth": 1,
-                        "pointSize": 4,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "auto",
-                        "showValues": false,
-                        "spanNulls": false,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "none"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "dashed+area"
-                        }
-                    },
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "green",
-                                "value": 0
-                            },
-                            {
-                                "color": "orange",
-                                "value": 20
-                            },
-                            {
-                                "color": "red",
-                                "value": 30
-                            },
-                            {
-                                "color": "purple",
-                                "value": 60
-                            },
-                            {
-                                "color": "text",
-                                "value": 300
-                            }
-                        ]
-                    },
-                    "unit": "s"
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 6,
-                "w": 12,
-                "x": 0,
-                "y": 27
-            },
-            "id": 190,
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "max"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "single",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "expr": "time() - patroni_dcs_last_seen{cls=\"$cls\"}",
-                    "instant": false,
-                    "legendFormat": "{{ ins }}",
-                    "range": true,
-                    "refId": "A"
-                }
-            ],
-            "title": "Patroni DCS Last Seen",
-            "type": "timeseries"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "now - `patroni_postmaster_start_time`.\n\nIndicate postgres restart event",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "barAlignment": 0,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "line",
-                        "fillOpacity": 1,
-                        "gradientMode": "none",
-                        "hideFrom": {
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "stepBefore",
-                        "lineWidth": 1,
-                        "pointSize": 4,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "auto",
-                        "showValues": false,
-                        "spanNulls": false,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "none"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "dashed+area"
-                        }
-                    },
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "red",
-                                "value": 0
-                            },
-                            {
-                                "color": "orange",
-                                "value": 300
-                            },
-                            {
-                                "color": "yellow",
-                                "value": 3600
-                            },
-                            {
-                                "color": "green",
-                                "value": 86400
-                            }
-                        ]
-                    },
-                    "unit": "s"
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 6,
-                "w": 12,
-                "x": 12,
-                "y": 27
-            },
-            "id": 204,
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "max"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "single",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "expr": "time() - patroni_postmaster_start_time{cls=\"$cls\"}",
-                    "instant": false,
-                    "legendFormat": "{{ ins }}",
-                    "range": true,
-                    "refId": "A"
-                }
-            ],
-            "title": "Postmaster Uptime",
-            "type": "timeseries"
-        },
-        {
-            "collapsed": false,
-            "gridPos": {
-                "h": 1,
-                "w": 24,
-                "x": 0,
-                "y": 33
-            },
-            "id": 193,
-            "panels": [],
-            "title": "Health Check",
-            "type": "row"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "Service map tells whether a server can be used as a specific service/role/svc.\ne.g Offline marks this server can be used as offline server",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "thresholds"
-                    },
-                    "custom": {
-                        "align": "center",
-                        "cellOptions": {
-                            "type": "color-background"
-                        },
-                        "footer": {
-                            "reducers": []
-                        },
-                        "inspect": false,
-                        "minWidth": 60
-                    },
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#e3e3e3e0",
-                                "value": 0
-                            },
-                            {
-                                "color": "#e3e3e3e0",
-                                "value": 0
-                            },
-                            {
-                                "color": "#e02f44bf",
-                                "value": 1
-                            }
-                        ]
-                    }
-                },
-                "overrides": [
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Server"
-                        },
-                        "properties": [
-                            {
-                                "id": "unit",
-                                "value": "string"
-                            },
-                            {
-                                "id": "links",
-                                "value": [
-                                    {
-                                        "title": "PGSQL Instance for ${__data.fields.Server}",
-                                        "url": "/d/pgsql-instance?var-ins=${__data.fields.Server}&${__url_time_range}"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "custom.minWidth",
-                                "value": 100
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "type": "auto"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byRegexp",
-                            "options": "/primary/"
-                        },
-                        "properties": [
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#cc4637d9",
-                                                "index": 1,
-                                                "text": "\u26a0\ufe0f"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "gray",
-                                                "index": 0,
-                                                "text": "\ud83d\udeab"
-                                            }
-                                        },
-                                        "type": "special"
-                                    },
-                                    {
-                                        "options": {
-                                            "from": 1,
-                                            "result": {
-                                                "color": "#3e668f",
-                                                "index": 2,
-                                                "text": "\u2705"
-                                            },
-                                            "to": 9999999
-                                        },
-                                        "type": "range"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byRegexp",
-                            "options": "/offline/"
-                        },
-                        "properties": [
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#cc4637d9",
-                                                "index": 1,
-                                                "text": "\u26a0\ufe0f"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "gray",
-                                                "index": 0,
-                                                "text": "\ud83d\udeab"
-                                            }
-                                        },
-                                        "type": "special"
-                                    },
-                                    {
-                                        "options": {
-                                            "from": 1,
-                                            "result": {
-                                                "color": "#fcdb72",
-                                                "index": 2,
-                                                "text": "\u2705"
-                                            },
-                                            "to": 9999999
-                                        },
-                                        "type": "range"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byRegexp",
-                            "options": "/default/"
-                        },
-                        "properties": [
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#cc4637d9",
-                                                "index": 1,
-                                                "text": "\u26a0\ufe0f"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "gray",
-                                                "index": 0,
-                                                "text": "\ud83d\udeab"
-                                            }
-                                        },
-                                        "type": "special"
-                                    },
-                                    {
-                                        "options": {
-                                            "from": 1,
-                                            "result": {
-                                                "color": "#f79f64",
-                                                "index": 2,
-                                                "text": "\u2705"
-                                            },
-                                            "to": 9999999
-                                        },
-                                        "type": "range"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byRegexp",
-                            "options": "/replica/"
-                        },
-                        "properties": [
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#cc4637d9",
-                                                "index": 1,
-                                                "text": "\u26a0\ufe0f"
-                                            },
-                                            "1": {
-                                                "color": "#346f36cc",
-                                                "index": 2,
-                                                "text": "\u2705"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "#808080",
-                                                "index": 0,
-                                                "text": "\ud83d\udeab"
-                                            }
-                                        },
-                                        "type": "special"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byRegexp",
-                            "options": "/standby/"
-                        },
-                        "properties": [
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#cc4637d9",
-                                                "index": 1,
-                                                "text": "\u26a0\ufe0f"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "#808080",
-                                                "index": 0,
-                                                "text": "\ud83d\udeab"
-                                            }
-                                        },
-                                        "type": "special"
-                                    },
-                                    {
-                                        "options": {
-                                            "from": 1,
-                                            "result": {
-                                                "color": "#b783af",
-                                                "index": 2,
-                                                "text": "\u2705"
-                                            },
-                                            "to": 9999999
-                                        },
-                                        "type": "range"
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            },
-            "gridPos": {
-                "h": 7,
-                "w": 24,
-                "x": 0,
-                "y": 34
-            },
-            "id": 162,
-            "links": [
-                {
-                    "title": "PGSQL Service : ${cls}-primary",
-                    "url": "/d/pgsql-service?var-svc=${cls}-primary&${__url_time_range}"
-                }
-            ],
-            "options": {
-                "cellHeight": "sm",
-                "showHeader": true,
-                "sortBy": [
-                    {
-                        "desc": false,
-                        "displayName": "Server"
-                    }
-                ]
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (proxy,server) (\n    haproxy_server_status{proxy=~\"$cls.*\", state=\"UP\"}\n)",
-                    "format": "time_series",
-                    "instant": true,
-                    "interval": "",
-                    "legendFormat": "",
-                    "refId": "A"
-                }
-            ],
-            "title": "Service",
-            "transformations": [
-                {
-                    "id": "labelsToFields",
-                    "options": {
-                        "valueLabel": "proxy"
-                    }
-                },
-                {
-                    "id": "merge",
-                    "options": {}
-                },
-                {
-                    "id": "organize",
-                    "options": {
-                        "excludeByName": {
-                            "Time": true,
-                            "cls": true,
-                            "ins": true,
-                            "instance": true,
-                            "ip": true,
-                            "job": true
-                        },
-                        "indexByName": {
-                            "Time": 1,
-                            "cls": 6,
-                            "job": 7,
-                            "pg-moderation-tt-default": 2,
-                            "pg-moderation-tt-offline": 3,
-                            "pg-moderation-tt-primary": 4,
-                            "pg-moderation-tt-replica": 5,
-                            "server": 0
-                        },
-                        "renameByName": {
-                            "proxy": "",
-                            "server": "Server"
-                        }
-                    }
-                },
-                {
-                    "id": "renameByRegex",
-                    "options": {
-                        "regex": "(.*)-(.*)",
-                        "renamePattern": "$2"
-                    }
-                }
-            ],
-            "type": "table"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "Session are created between proxies(haproxy) and servers(postgres).",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "barAlignment": -1,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "line",
-                        "fillOpacity": 2,
-                        "gradientMode": "hue",
-                        "hideFrom": {
-                            "graph": false,
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "stepBefore",
-                        "lineWidth": 1,
-                        "pointSize": 4,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "never",
-                        "showValues": false,
-                        "spanNulls": true,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "none"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "off"
-                        }
-                    },
-                    "links": [
-                        {
-                            "title": "PGSQL Service : ${__field.labels.proxy}",
-                            "url": "/d/pgsql-service?var-svc=${__field.labels.proxy}&${__url_time_range}"
-                        },
-                        {
-                            "title": "PGSQL Instance for ${__field.labels.server}",
-                            "url": "/d/pgsql-instance?var-ins=${__field.labels.server}&${__url_time_range}"
-                        }
-                    ],
-                    "mappings": [
-                        {
-                            "options": {
-                                "0": {
-                                    "index": 0,
-                                    "text": "\u25cb"
-                                }
-                            },
-                            "type": "value"
-                        },
-                        {
-                            "options": {
-                                "from": 1,
-                                "result": {
-                                    "index": 1,
-                                    "text": "\u25c9"
-                                },
-                                "to": 99999999
-                            },
-                            "type": "range"
-                        }
-                    ],
-                    "min": 0,
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#346f36cc",
-                                "value": 0
-                            }
-                        ]
-                    },
-                    "unit": "none"
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 9,
-                "w": 24,
-                "x": 0,
-                "y": 41
-            },
-            "id": 205,
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "last"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true,
-                    "sortBy": "Last",
-                    "sortDesc": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "multi",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "max by (proxy,server) (\n    haproxy_server_status{proxy=~\"$cls.*\", state=\"UP\"}\n)",
-                    "interval": "",
-                    "legendFormat": "{{ proxy }} \u2794 {{ server }}",
-                    "range": true,
-                    "refId": "A"
-                }
-            ],
-            "title": "Active Session",
-            "type": "timeseries"
-        },
-        {
-            "collapsed": false,
-            "gridPos": {
-                "h": 1,
-                "w": 24,
-                "x": 0,
-                "y": 50
-            },
-            "id": 185,
-            "panels": [],
-            "title": "ETCD",
-            "type": "row"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "thresholds"
-                    },
-                    "links": [
-                        {
-                            "title": "ETCD Overview",
-                            "url": "/d/etcd-overview?${__url_time_range}"
-                        }
-                    ],
-                    "mappings": [],
-                    "noValue": "N/A",
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "red",
-                                "value": 0
-                            }
-                        ]
-                    },
-                    "unit": "none"
-                },
-                "overrides": [
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "ETCD Health"
-                        },
-                        "properties": [
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "color": "#b783af",
-                                                "index": 0,
-                                                "text": "All Dead"
-                                            },
-                                            "1": {
-                                                "color": "#346f36cc",
-                                                "index": 1,
-                                                "text": "Healthy"
-                                            }
-                                        },
-                                        "type": "value"
-                                    },
-                                    {
-                                        "options": {
-                                            "match": "null+nan",
-                                            "result": {
-                                                "color": "#b783af",
-                                                "index": 2,
-                                                "text": "Unknown"
-                                            }
-                                        },
-                                        "type": "special"
-                                    },
-                                    {
-                                        "options": {
-                                            "from": 0.49999,
-                                            "result": {
-                                                "color": "#cc4637d9",
-                                                "index": 3,
-                                                "text": "1 / 2"
-                                            },
-                                            "to": 0.50001
-                                        },
-                                        "type": "range"
-                                    },
-                                    {
-                                        "options": {
-                                            "from": 0.66666,
-                                            "result": {
-                                                "color": "#f79f64",
-                                                "index": 4,
-                                                "text": "2 / 3"
-                                            },
-                                            "to": 0.66667
-                                        },
-                                        "type": "range"
-                                    },
-                                    {
-                                        "options": {
-                                            "from": 0.33333,
-                                            "result": {
-                                                "color": "#b783af",
-                                                "index": 5,
-                                                "text": "1 / 3"
-                                            },
-                                            "to": 0.33334
-                                        },
-                                        "type": "range"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "thresholds",
-                                "value": {
-                                    "mode": "absolute",
-                                    "steps": [
-                                        {
-                                            "color": "#b783af",
-                                            "value": 0
-                                        },
-                                        {
-                                            "color": "#cc4637d9",
-                                            "value": 0.5
-                                        },
-                                        {
-                                            "color": "#f79f64",
-                                            "value": 0.66
-                                        },
-                                        {
-                                            "color": "#346f36cc",
-                                            "value": 1
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "id": "unit",
-                                "value": "percentunit"
-                            },
-                            {
-                                "id": "decimals",
-                                "value": 0
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Failsafe Active"
-                        },
-                        "properties": [
-                            {
-                                "id": "thresholds",
-                                "value": {
-                                    "mode": "absolute",
-                                    "steps": [
-                                        {
-                                            "color": "#346f36cc",
-                                            "value": 0
-                                        },
-                                        {
-                                            "color": "#cc4637d9",
-                                            "value": 1
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "0": {
-                                                "index": 0,
-                                                "text": "Healthy"
-                                            }
-                                        },
-                                        "type": "value"
-                                    }
-                                ]
-                            }
-                        ]
-                    }
-                ]
-            },
-            "gridPos": {
-                "h": 7,
-                "w": 4,
-                "x": 0,
-                "y": 51
-            },
-            "id": 191,
-            "maxDataPoints": 100,
-            "options": {
-                "colorMode": "background",
-                "graphMode": "none",
-                "justifyMode": "auto",
-                "orientation": "horizontal",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                    "calcs": [
-                        "last"
-                    ],
-                    "fields": "",
-                    "values": false
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "sum(up{job=\"etcd\", cls=\"etcd\"}) by (cls) /\n count(up{job=\"etcd\", cls=\"etcd\"}) by (cls)\nor on() vector(0)",
-                    "format": "time_series",
-                    "instant": true,
-                    "intervalFactor": 2,
-                    "legendFormat": "ETCD Health",
-                    "range": false,
-                    "refId": "A",
-                    "step": 600
-                }
-            ],
-            "type": "stat"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "etcd is the DCS used by patroni",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "thresholds"
-                    },
-                    "custom": {
-                        "axisPlacement": "auto",
-                        "fillOpacity": 70,
-                        "hideFrom": {
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineWidth": 0,
-                        "spanNulls": false
-                    },
-                    "decimals": 0,
-                    "mappings": [],
-                    "min": -1,
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#cc4637d9",
-                                "value": 0
-                            },
-                            {
-                                "color": "#346f36cc",
-                                "value": 1
-                            }
-                        ]
-                    }
-                },
-                "overrides": [
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "ETCD Cluster Healthy"
-                        },
-                        "properties": [
-                            {
-                                "id": "thresholds",
-                                "value": {
-                                    "mode": "absolute",
-                                    "steps": [
-                                        {
-                                            "color": "#cc4637d9",
-                                            "value": 0
-                                        },
-                                        {
-                                            "color": "#3e668f",
-                                            "value": 1
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                ]
-            },
-            "gridPos": {
-                "h": 7,
-                "w": 13,
-                "x": 4,
-                "y": 51
-            },
-            "id": 186,
-            "links": [
-                {
-                    "title": "ETCD Overview",
-                    "url": "/d/etcd-overview?${__url_time_range}"
-                }
-            ],
-            "options": {
-                "alignValue": "left",
-                "legend": {
-                    "displayMode": "list",
-                    "placement": "bottom",
-                    "showLegend": false
-                },
-                "mergeValues": true,
-                "rowHeight": 0.96,
-                "showValue": "never",
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "single",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "expr": "min(etcd_server_has_leader{job=\"etcd\", cls=\"etcd\"}) or on() vector(0)",
-                    "hide": false,
-                    "legendFormat": "ETCD Cluster Healthy",
-                    "range": true,
-                    "refId": "D"
-                },
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "expr": "up{job=\"etcd\", cls=\"etcd\"}",
-                    "legendFormat": "{{ ins }} @ {{ ip }}",
-                    "range": true,
-                    "refId": "A"
-                }
-            ],
-            "title": "ETCD Aliveness",
-            "type": "state-timeline"
-        },
-        {
-            "datasource": {
-                "type": "prometheus",
-                "uid": "ds-prometheus"
-            },
-            "description": "How long since patroni the HA agent successfully connect to DCS:etcd.\n\nvalue larger than 20s needs extra attention",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "thresholds"
-                    },
-                    "decimals": 1,
-                    "links": [
-                        {
-                            "title": "PGSQL Instance : ${__field.labels.ins}",
-                            "url": "/d/pgsql-instance?var-ins=${__field.labels.ins}&${__url_time_range}"
-                        }
-                    ],
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#346f36cc",
-                                "value": 0
-                            }
-                        ]
-                    }
-                },
-                "overrides": [
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Value"
-                        },
-                        "properties": [
-                            {
-                                "id": "unit",
-                                "value": "s"
-                            },
-                            {
-                                "id": "thresholds",
-                                "value": {
-                                    "mode": "absolute",
-                                    "steps": [
-                                        {
-                                            "color": "#346f36cc",
-                                            "value": 0
-                                        },
-                                        {
-                                            "color": "#346f36cc",
-                                            "value": 1
-                                        },
-                                        {
-                                            "color": "#f79f64",
-                                            "value": 20
-                                        },
-                                        {
-                                            "color": "red",
-                                            "value": 30
-                                        },
-                                        {
-                                            "color": "#b783af",
-                                            "value": 60
-                                        },
-                                        {
-                                            "color": "text",
-                                            "value": 300
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                ]
-            },
-            "gridPos": {
-                "h": 7,
-                "w": 7,
-                "x": 17,
-                "y": 51
-            },
-            "id": 188,
-            "options": {
-                "colorMode": "background",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "horizontal",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                    "calcs": [
-                        "lastNotNull"
-                    ],
-                    "fields": "",
-                    "values": false
-                },
-                "showPercentChange": false,
-                "textMode": "auto",
-                "wideLayout": true
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "prometheus",
-                        "uid": "ds-prometheus"
-                    },
-                    "editorMode": "code",
-                    "exemplar": false,
-                    "expr": "time() - patroni_dcs_last_seen{cls=\"$cls\"}",
-                    "format": "time_series",
-                    "hide": false,
-                    "instant": true,
-                    "legendFormat": "{{ ins }}",
-                    "range": false,
-                    "refId": "J"
-                }
-            ],
-            "title": "DCS Last Seen",
-            "type": "stat"
-        },
-        {
-            "collapsed": false,
-            "gridPos": {
-                "h": 1,
-                "w": 24,
-                "x": 0,
-                "y": 58
-            },
-            "id": 206,
-            "panels": [],
-            "title": "Patroni : ${cls}",
-            "type": "row"
-        },
-        {
-            "datasource": {
-                "type": "victoriametrics-logs-datasource",
-                "uid": "ds-vlogs"
-            },
-            "description": "patroni logs rate of cluster ",
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "fixedColor": "#346f36cc",
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "barAlignment": 0,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "bars",
-                        "fillOpacity": 100,
-                        "gradientMode": "none",
-                        "hideFrom": {
-                            "graph": false,
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "linear",
-                        "lineWidth": 1,
-                        "pointSize": 5,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "never",
-                        "showValues": false,
-                        "spanNulls": true,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "normal"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "off"
-                        }
-                    },
-                    "decimals": 0,
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#346f36cc",
-                                "value": 0
-                            }
-                        ]
-                    },
-                    "unit": "none"
-                },
-                "overrides": []
-            },
-            "gridPos": {
-                "h": 5,
-                "w": 24,
-                "x": 0,
-                "y": 59
-            },
-            "id": 207,
-            "interval": "1s",
-            "links": [
-                {
-                    "title": "Patroni Logs for ${primary}",
-                    "url": "/d/logs-instance?var-ins=$primary&var-src=patroni&${__url_time_range}"
-                }
-            ],
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "sum"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "single",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "victoriametrics-logs-datasource",
-                        "uid": "ds-vlogs"
-                    },
-                    "editorMode": "code",
-                    "expr": "job:syslog ip:in(${members:doublequote}) app:patroni | stats by (ins) count() as count",
-                    "legendFormat": "{{ ins }}",
-                    "queryType": "statsRange",
-                    "refId": "A"
-                }
-            ],
-            "title": "Patroni Logs",
-            "type": "timeseries"
-        },
-        {
-            "datasource": {
-                "type": "victoriametrics-logs-datasource",
-                "uid": "ds-vlogs"
-            },
-            "description": "",
-            "gridPos": {
-                "h": 12,
-                "w": 24,
-                "x": 0,
-                "y": 64
-            },
-            "id": 208,
-            "options": {
-                "dedupStrategy": "none",
-                "enableInfiniteScrolling": true,
-                "enableLogDetails": true,
-                "fontSize": "small",
-                "prettifyLogMessage": false,
-                "showCommonLabels": false,
-                "showControls": true,
-                "showLabels": true,
-                "showTime": true,
-                "sortOrder": "Descending",
-                "syntaxHighlighting": false,
-                "wrapLogMessage": false
-            },
-            "pluginVersion": "12.3.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "victoriametrics-logs-datasource",
-                        "uid": "ds-vlogs"
-                    },
-                    "editorMode": "code",
-                    "expr": "job:syslog ip:in(${members:doublequote}) app:patroni | fields level, ins, ip, _msg",
-                    "instant": false,
-                    "queryType": "range",
-                    "range": true,
-                    "refId": "A"
-                }
-            ],
-            "type": "logs"
-        }
-    ],
-    "preload": false,
-    "refresh": "",
-    "schemaVersion": 42,
-    "tags": [
-        "Pigsty",
-        "PGSQL",
-        "Cluster"
-    ],
-    "templating": {
-        "list": [
-            {
-                "current": {},
-                "datasource": {
-                    "type": "prometheus",
-                    "uid": "ds-prometheus"
-                },
-                "definition": "label_values(pg_up, cls)",
-                "description": "Cluster identifier for this postgres instance, cls should be unique among entire environment. such as pg-meta, pg-test",
-                "includeAll": false,
-                "label": "Cluster",
-                "name": "cls",
-                "options": [],
-                "query": {
-                    "query": "label_values(pg_up, cls)",
-                    "refId": "StandardVariableQuery"
-                },
-                "refresh": 2,
-                "regex": "",
-                "sort": 1,
-                "type": "query"
-            },
-            {
-                "current": {},
-                "datasource": {
-                    "type": "prometheus",
-                    "uid": "ds-prometheus"
-                },
-                "definition": "label_values(pg:cls:leader{cls=\"$cls\"}, ins)",
-                "description": "Unique instance identifier (e.g pg-meta-1)",
-                "hide": 2,
-                "includeAll": false,
-                "label": "Primary",
-                "name": "primary",
-                "options": [],
-                "query": {
-                    "query": "label_values(pg:cls:leader{cls=\"$cls\"}, ins)",
-                    "refId": "StandardVariableQuery"
-                },
-                "refresh": 2,
-                "regex": "",
-                "sort": 1,
-                "type": "query"
-            },
-            {
-                "current": {},
-                "datasource": {
-                    "type": "prometheus",
-                    "uid": "ds-prometheus"
-                },
-                "definition": "label_values(pg_up{cls=\"$cls\"}, ip)",
-                "description": "Unique instance identifier (e.g pg-meta-1)",
-                "hide": 2,
-                "includeAll": true,
-                "label": "Primary",
-                "multi": true,
-                "name": "members",
-                "options": [],
-                "query": {
-                    "query": "label_values(pg_up{cls=\"$cls\"}, ip)",
-                    "refId": "StandardVariableQuery"
-                },
-                "refresh": 2,
-                "regex": "",
-                "sort": 1,
-                "type": "query"
-            },
-            {
-                "current": {},
-                "datasource": {
-                    "type": "prometheus",
-                    "uid": "ds-prometheus"
-                },
-                "definition": "label_values(node_load1{ip=~\"$members\"},cls)",
-                "description": "Node Cluster Identifier",
-                "hide": 2,
-                "includeAll": false,
-                "label": "Node Cluster",
-                "name": "node_cls",
-                "options": [],
-                "query": {
-                    "query": "label_values(node_load1{ip=~\"$members\"},cls)",
-                    "refId": "PrometheusVariableQueryEditor-VariableQuery"
-                },
-                "refresh": 2,
-                "regex": "",
-                "sort": 1,
-                "type": "query"
-            }
+              },
+              {"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"text","value":0},{"color":"#cc4637d9","value":0.5},{"color":"#f79f64","value":0.66},{"color":"#346f36cc","value":1}]}},{"id":"unit","value":"percentunit"},{"id":"decimals","value":0}
+            ]
+          },
+          {"matcher":{"id":"byName","options":"Failsafe Mode"},"properties":[{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"#cc4637d9","value":1}]}},{"id":"mappings","value":[{"options":{"0":{"index":0,"text":"Healthy"},"1":{"color":"#cc4637d9","index":1,"text":"Active"}},"type":"value"}]}]}
         ]
+      },
+      "gridPos":{"h":4,"w":7,"x":0,"y":4},
+      "id":184,
+      "maxDataPoints":100,
+      "options":{"colorMode":"background","graphMode":"none","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["last"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
+      "pluginVersion":"12.3.0",
+      "targets":[
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(up{job=\"etcd\", cls=\"etcd\"}) by (cls) /\n count(up{job=\"etcd\", cls=\"etcd\"}) by (cls)\nor on() vector(0)","format":"time_series",             "instant":true,"intervalFactor":2,"legendFormat":"ETCD Status"  ,"range":false,"refId":"A","step":600 },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max(patroni_failsafe_mode_is_active{cls=\"$cls\"})"                                                                ,"format":"time_series","hide":false,"instant":true,"intervalFactor":2,"legendFormat":"Failsafe Mode","range":false,"refId":"B","step":600 }
+      ],
+      "type":"stat"
     },
-    "time": {
-        "from": "now-1h",
-        "to": "now"
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":8},"id":192,"panels":[],"title":"Metrics","type":"row"},
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"`patroni_up` of this cluster ${cls}. 1 means this patroni agent is alive, 0 means dead",
+      "fieldConfig":{
+        "defaults":{
+          "color":{"mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "barAlignment":0,
+            "barWidthFactor":0.6,
+            "drawStyle":"line",
+            "fillOpacity":5,
+            "gradientMode":"none",
+            "hideFrom":{"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"stepBefore",
+            "lineWidth":2,
+            "pointSize":5,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"auto",
+            "showValues":false,
+            "spanNulls":false,
+            "stacking":{"group":"A","mode":"none"},
+            "thresholdsStyle":{"mode":"area"}
+          },
+          "decimals":0,
+          "mappings":[{"options":{"0":{"index":0,"text":"Dead"},"1":{"index":1,"text":"Alive"}},"type":"value"}],
+          "max":1.2,
+          "thresholds":{"mode":"absolute","steps":[{"color":"red","value":0},{"color":"green","value":0.5}]}
+        },
+        "overrides":[]
+      },
+      "gridPos":{"h":6,"w":12,"x":0,"y":9},
+      "id":203,
+      "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"patroni_up{cls=\"$cls\"}","instant":false,"legendFormat":"{{ ins }}","range":true,"refId":"A"}],
+      "title":"Failsafe Activated",
+      "type":"timeseries"
     },
-    "timepicker": {},
-    "timezone": "browser",
-    "title": "PGSQL Patroni",
-    "uid": "pgsql-patroni",
-    "version": 1,
-    "weekStart": ""
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"`patroni_primary` of this cluster ${cls}. 1 means this member is leader of the cluster.\n\n2 `sleader` means this is a standby leader",
+      "fieldConfig":{
+        "defaults":{
+          "color":{"mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "axisSoftMax":1.2,
+            "barAlignment":0,
+            "barWidthFactor":0.6,
+            "drawStyle":"line",
+            "fillOpacity":30,
+            "gradientMode":"none",
+            "hideFrom":{"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"stepBefore",
+            "lineWidth":2,
+            "pointSize":5,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"auto",
+            "showValues":false,
+            "spanNulls":false,
+            "stacking":{"group":"A","mode":"none"},
+            "thresholdsStyle":{"mode":"area"}
+          },
+          "decimals":0,
+          "mappings":[{"options":{"0":{"index":0,"text":"Replica"},"1":{"index":1,"text":"Primary"},"2":{"index":2,"text":"SLeader"}},"type":"value"}],
+          "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"orange","value":0.9},{"color":"blue","value":1.9}]}
+        },
+        "overrides":[]
+      },
+      "gridPos":{"h":6,"w":12,"x":12,"y":9},
+      "id":201,
+      "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"patroni_primary{cls=\"$cls\"}\n+ patroni_standby_leader{cls=\"$cls\"}","instant":false,"legendFormat":"{{ ins }}","range":true,"refId":"A"}],
+      "title":"Leadership",
+      "type":"timeseries"
+    },
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"`patroni_cluster_unlocked` of this cluster ${cls}. 1 means this cluster is locked from this member's perspective",
+      "fieldConfig":{
+        "defaults":{
+          "color":{"mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "barAlignment":0,
+            "barWidthFactor":0.6,
+            "drawStyle":"line",
+            "fillOpacity":5,
+            "gradientMode":"none",
+            "hideFrom":{"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"stepBefore",
+            "lineWidth":2,
+            "pointSize":5,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"auto",
+            "showValues":false,
+            "spanNulls":false,
+            "stacking":{"group":"A","mode":"none"},
+            "thresholdsStyle":{"mode":"area"}
+          },
+          "decimals":0,
+          "mappings":[{"options":{"0":{"index":0,"text":"Unlocked"},"1":{"index":1,"text":"Locked"}},"type":"value"}],
+          "max":1.2,
+          "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"purple","value":0.9}]}
+        },
+        "overrides":[]
+      },
+      "gridPos":{"h":6,"w":12,"x":0,"y":15},
+      "id":199,
+      "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"patroni_cluster_unlocked{cls=\"$cls\"}","instant":false,"legendFormat":"{{ ins }}","range":true,"refId":"A"}],
+      "title":"Cluster Locked",
+      "type":"timeseries"
+    },
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"`patroni_failsafe_mode_is_active` of this cluster ${cls}. 1 means this cluster's failsafe mode is activated",
+      "fieldConfig":{
+        "defaults":{
+          "color":{"mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "barAlignment":0,
+            "barWidthFactor":0.6,
+            "drawStyle":"line",
+            "fillOpacity":5,
+            "gradientMode":"none",
+            "hideFrom":{"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"stepBefore",
+            "lineWidth":2,
+            "pointSize":5,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"auto",
+            "showValues":false,
+            "spanNulls":false,
+            "stacking":{"group":"A","mode":"none"},
+            "thresholdsStyle":{"mode":"area"}
+          },
+          "decimals":0,
+          "mappings":[{"options":{"0":{"index":0,"text":"Normal"},"1":{"index":1,"text":"Activated"}},"type":"value"}],
+          "max":1.2,
+          "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":0.9}]}
+        },
+        "overrides":[]
+      },
+      "gridPos":{"h":6,"w":12,"x":12,"y":15},
+      "id":200,
+      "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"patroni_failsafe_mode_is_active{cls=\"$cls\"}","instant":false,"legendFormat":"{{ ins }}","range":true,"refId":"A"}],
+      "title":"Failsafe Activated",
+      "type":"timeseries"
+    },
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"`patroni_pending_restart` of this cluster ${cls}. 1 means this member needs to be restarted to make config change effect.",
+      "fieldConfig":{
+        "defaults":{
+          "color":{"mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "barAlignment":0,
+            "barWidthFactor":0.6,
+            "drawStyle":"line",
+            "fillOpacity":5,
+            "gradientMode":"none",
+            "hideFrom":{"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"stepBefore",
+            "lineWidth":2,
+            "pointSize":5,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"auto",
+            "showValues":false,
+            "spanNulls":false,
+            "stacking":{"group":"A","mode":"none"},
+            "thresholdsStyle":{"mode":"area"}
+          },
+          "decimals":0,
+          "mappings":[{"options":{"0":{"index":0,"text":"No"},"1":{"index":1,"text":"Pending"}},"type":"value"}],
+          "max":1.2,
+          "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"orange","value":0.9}]}
+        },
+        "overrides":[]
+      },
+      "gridPos":{"h":6,"w":12,"x":0,"y":21},
+      "id":198,
+      "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"patroni_pending_restart{cls=\"$cls\"}","instant":false,"legendFormat":"{{ ins }}","range":true,"refId":"A"}],
+      "title":"Pending Restart",
+      "type":"timeseries"
+    },
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"`patroni_xlog_paused` of this cluster ${cls} members. 1 means PostgresQL WAL is paused.",
+      "fieldConfig":{
+        "defaults":{
+          "color":{"mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "barAlignment":0,
+            "barWidthFactor":0.6,
+            "drawStyle":"line",
+            "fillOpacity":5,
+            "gradientMode":"none",
+            "hideFrom":{"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"stepBefore",
+            "lineWidth":2,
+            "pointSize":5,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"auto",
+            "showValues":false,
+            "spanNulls":false,
+            "stacking":{"group":"A","mode":"none"},
+            "thresholdsStyle":{"mode":"area"}
+          },
+          "decimals":0,
+          "mappings":[{"options":{"0":{"index":0,"text":"No"},"1":{"index":1,"text":"Paused"}},"type":"value"}],
+          "max":1.2,
+          "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"orange","value":0.9}]}
+        },
+        "overrides":[]
+      },
+      "gridPos":{"h":6,"w":12,"x":12,"y":21},
+      "id":197,
+      "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"patroni_xlog_paused{cls=\"$cls\"}","instant":false,"legendFormat":"{{ ins }}","range":true,"refId":"A"}],
+      "title":"WAL Paused",
+      "type":"timeseries"
+    },
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"Time since patroni last successful connect to DCS:etcd service",
+      "fieldConfig":{
+        "defaults":{
+          "color":{"mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "barAlignment":0,
+            "barWidthFactor":0.6,
+            "drawStyle":"line",
+            "fillOpacity":1,
+            "gradientMode":"none",
+            "hideFrom":{"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"stepBefore",
+            "lineWidth":1,
+            "pointSize":4,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"auto",
+            "showValues":false,
+            "spanNulls":false,
+            "stacking":{"group":"A","mode":"none"},
+            "thresholdsStyle":{"mode":"dashed+area"}
+          },
+          "mappings":[],
+          "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"orange","value":20},{"color":"red","value":30},{"color":"purple","value":60},{"color":"text","value":300}]},
+          "unit":"s"
+        },
+        "overrides":[]
+      },
+      "gridPos":{"h":6,"w":12,"x":0,"y":27},
+      "id":190,
+      "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"time() - patroni_dcs_last_seen{cls=\"$cls\"}","instant":false,"legendFormat":"{{ ins }}","range":true,"refId":"A"}],
+      "title":"Patroni DCS Last Seen",
+      "type":"timeseries"
+    },
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"now - `patroni_postmaster_start_time`.\n\nIndicate postgres restart event",
+      "fieldConfig":{
+        "defaults":{
+          "color":{"mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "barAlignment":0,
+            "barWidthFactor":0.6,
+            "drawStyle":"line",
+            "fillOpacity":1,
+            "gradientMode":"none",
+            "hideFrom":{"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"stepBefore",
+            "lineWidth":1,
+            "pointSize":4,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"auto",
+            "showValues":false,
+            "spanNulls":false,
+            "stacking":{"group":"A","mode":"none"},
+            "thresholdsStyle":{"mode":"dashed+area"}
+          },
+          "mappings":[],
+          "thresholds":{"mode":"absolute","steps":[{"color":"red","value":0},{"color":"orange","value":300},{"color":"yellow","value":3600},{"color":"green","value":86400}]},
+          "unit":"s"
+        },
+        "overrides":[]
+      },
+      "gridPos":{"h":6,"w":12,"x":12,"y":27},
+      "id":204,
+      "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"time() - patroni_postmaster_start_time{cls=\"$cls\"}","instant":false,"legendFormat":"{{ ins }}","range":true,"refId":"A"}],
+      "title":"Postmaster Uptime",
+      "type":"timeseries"
+    },
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":33},"id":193,"panels":[],"title":"Health Check","type":"row"},
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"Service map tells whether a server can be used as a specific service/role/svc.\ne.g Offline marks this server can be used as offline server",
+      "fieldConfig":{
+        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"color-background"},"footer":{"reducers":[]},"inspect":false,"minWidth":60},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#e3e3e3e0","value":0},{"color":"#e3e3e3e0","value":0},{"color":"#e02f44bf","value":1}]}},
+        "overrides":[
+          { "matcher":{"id":"byName","options":"Server"}     ,"properties":[{"id":"unit","value":"string"},{"id":"links","value":[{"title":"PGSQL Instance for ${__data.fields.Server}","url":"/d/pgsql-instance?var-ins=${__data.fields.Server}&${__url_time_range}"}]},{"id":"custom.minWidth","value":100},{"id":"custom.cellOptions","value":{"type":"auto"}}]                                                       },
+          { "matcher":{"id":"byRegexp","options":"/primary/"},"properties":[{"id":"mappings","value":[{"options":{"0":{"color":"#cc4637d9","index":1,"text":"\u26a0\ufe0f"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"gray","index":0,"text":"\ud83d\udeab"}},"type":"special"},{"options":{"from":1,"result":{"color":"#3e668f","index":2,"text":"\u2705"},"to":9999999},"type":"range"}]}]    },
+          { "matcher":{"id":"byRegexp","options":"/offline/"},"properties":[{"id":"mappings","value":[{"options":{"0":{"color":"#cc4637d9","index":1,"text":"\u26a0\ufe0f"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"gray","index":0,"text":"\ud83d\udeab"}},"type":"special"},{"options":{"from":1,"result":{"color":"#fcdb72","index":2,"text":"\u2705"},"to":9999999},"type":"range"}]}]    },
+          { "matcher":{"id":"byRegexp","options":"/default/"},"properties":[{"id":"mappings","value":[{"options":{"0":{"color":"#cc4637d9","index":1,"text":"\u26a0\ufe0f"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"gray","index":0,"text":"\ud83d\udeab"}},"type":"special"},{"options":{"from":1,"result":{"color":"#f79f64","index":2,"text":"\u2705"},"to":9999999},"type":"range"}]}]    },
+          { "matcher":{"id":"byRegexp","options":"/replica/"},"properties":[{"id":"mappings","value":[{"options":{"0":{"color":"#cc4637d9","index":1,"text":"\u26a0\ufe0f"},"1":{"color":"#346f36cc","index":2,"text":"\u2705"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"#808080","index":0,"text":"\ud83d\udeab"}},"type":"special"}]}]                                                       },
+          { "matcher":{"id":"byRegexp","options":"/standby/"},"properties":[{"id":"mappings","value":[{"options":{"0":{"color":"#cc4637d9","index":1,"text":"\u26a0\ufe0f"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"#808080","index":0,"text":"\ud83d\udeab"}},"type":"special"},{"options":{"from":1,"result":{"color":"#b783af","index":2,"text":"\u2705"},"to":9999999},"type":"range"}]}] }
+        ]
+      },
+      "gridPos":{"h":7,"w":24,"x":0,"y":34},
+      "id":162,
+      "links":[{"title":"PGSQL Service : ${cls}-primary","url":"/d/pgsql-service?var-svc=${cls}-primary&${__url_time_range}"}],
+      "options":{"cellHeight":"sm","showHeader":true,"sortBy":[{"desc":false,"displayName":"Server"}]},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (proxy,server) (\n    haproxy_server_status{proxy=~\"$cls.*\", state=\"UP\"}\n)","format":"time_series","instant":true,"interval":"","legendFormat":"","refId":"A"}],
+      "title":"Service",
+      "transformations":[
+        { "id":"labelsToFields","options":{"valueLabel":"proxy"}                                                                                                                                                                                                                                                                                           },
+        { "id":"merge"         ,"options":{}                                                                                                                                                                                                                                                                                                               },
+        { "id":"organize"      ,"options":{"excludeByName":{"Time":true,"cls":true,"ins":true,"instance":true,"ip":true,"job":true},"indexByName":{"Time":1,"cls":6,"job":7,"pg-moderation-tt-default":2,"pg-moderation-tt-offline":3,"pg-moderation-tt-primary":4,"pg-moderation-tt-replica":5,"server":0},"renameByName":{"proxy":"","server":"Server"}} },
+        { "id":"renameByRegex" ,"options":{"regex":"(.*)-(.*)","renamePattern":"$2"}                                                                                                                                                                                                                                                                       }
+      ],
+      "type":"table"
+    },
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"Session are created between proxies(haproxy) and servers(postgres).",
+      "fieldConfig":{
+        "defaults":{
+          "color":{"mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "barAlignment":-1,
+            "barWidthFactor":0.6,
+            "drawStyle":"line",
+            "fillOpacity":2,
+            "gradientMode":"hue",
+            "hideFrom":{"graph":false,"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"stepBefore",
+            "lineWidth":1,
+            "pointSize":4,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"never",
+            "showValues":false,
+            "spanNulls":true,
+            "stacking":{"group":"A","mode":"none"},
+            "thresholdsStyle":{"mode":"off"}
+          },
+          "links":[{"title":"PGSQL Service : ${__field.labels.proxy}","url":"/d/pgsql-service?var-svc=${__field.labels.proxy}&${__url_time_range}"},{"title":"PGSQL Instance for ${__field.labels.server}","url":"/d/pgsql-instance?var-ins=${__field.labels.server}&${__url_time_range}"}],
+          "mappings":[{"options":{"0":{"index":0,"text":"\u25cb"}},"type":"value"},{"options":{"from":1,"result":{"index":1,"text":"\u25c9"},"to":99999999},"type":"range"}],
+          "min":0,
+          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
+          "unit":"none"
+        },
+        "overrides":[]
+      },
+      "gridPos":{"h":9,"w":24,"x":0,"y":41},
+      "id":205,
+      "options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true,"sortBy":"Last","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (proxy,server) (\n    haproxy_server_status{proxy=~\"$cls.*\", state=\"UP\"}\n)","interval":"","legendFormat":"{{ proxy }} \u2794 {{ server }}","range":true,"refId":"A"}],
+      "title":"Active Session",
+      "type":"timeseries"
+    },
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":50},"id":185,"panels":[],"title":"ETCD","type":"row"},
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "fieldConfig":{
+        "defaults":{"color":{"mode":"thresholds"},"links":[{"title":"ETCD Overview","url":"/d/etcd-overview?${__url_time_range}"}],"mappings":[],"noValue":"N/A","thresholds":{"mode":"absolute","steps":[{"color":"red","value":0}]},"unit":"none"},
+        "overrides":[
+          {
+            "matcher":{"id":"byName","options":"ETCD Health"},
+            "properties":[
+              {
+                "id":"mappings",
+                "value":[
+                  { "options":{"0":{"color":"#b783af","index":0,"text":"All Dead"},"1":{"color":"#346f36cc","index":1,"text":"Healthy"}},"type":"value"   },{ "options":{"match":"null+nan","result":{"color":"#b783af","index":2,"text":"Unknown"}}                              ,"type":"special" },
+                  { "options":{"from":0.49999,"result":{"color":"#cc4637d9","index":3,"text":"1 / 2"},"to":0.50001}                     ,"type":"range"   },{ "options":{"from":0.66666,"result":{"color":"#f79f64","index":4,"text":"2 / 3"},"to":0.66667}                       ,"type":"range"   },
+                  { "options":{"from":0.33333,"result":{"color":"#b783af","index":5,"text":"1 / 3"},"to":0.33334}                       ,"type":"range"   }
+                ]
+              },
+              {"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#b783af","value":0},{"color":"#cc4637d9","value":0.5},{"color":"#f79f64","value":0.66},{"color":"#346f36cc","value":1}]}},{"id":"unit","value":"percentunit"},{"id":"decimals","value":0}
+            ]
+          },
+          {"matcher":{"id":"byName","options":"Failsafe Active"},"properties":[{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"#cc4637d9","value":1}]}},{"id":"mappings","value":[{"options":{"0":{"index":0,"text":"Healthy"}},"type":"value"}]}]}
+        ]
+      },
+      "gridPos":{"h":7,"w":4,"x":0,"y":51},
+      "id":191,
+      "maxDataPoints":100,
+      "options":{"colorMode":"background","graphMode":"none","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["last"],"fields":"","values":false},"showPercentChange":false,"textMode":"auto","wideLayout":true},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(up{job=\"etcd\", cls=\"etcd\"}) by (cls) /\n count(up{job=\"etcd\", cls=\"etcd\"}) by (cls)\nor on() vector(0)","format":"time_series","instant":true,"intervalFactor":2,"legendFormat":"ETCD Health","range":false,"refId":"A","step":600}],
+      "type":"stat"
+    },
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"etcd is the DCS used by patroni",
+      "fieldConfig":{
+        "defaults":{"color":{"mode":"thresholds"},"custom":{"axisPlacement":"auto","fillOpacity":70,"hideFrom":{"legend":false,"tooltip":false,"viz":false},"insertNulls":false,"lineWidth":0,"spanNulls":false},"decimals":0,"mappings":[],"min":-1,"thresholds":{"mode":"absolute","steps":[{"color":"#cc4637d9","value":0},{"color":"#346f36cc","value":1}]}},
+        "overrides":[{"matcher":{"id":"byName","options":"ETCD Cluster Healthy"},"properties":[{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#cc4637d9","value":0},{"color":"#3e668f","value":1}]}}]}]
+      },
+      "gridPos":{"h":7,"w":13,"x":4,"y":51},
+      "id":186,
+      "links":[{"title":"ETCD Overview","url":"/d/etcd-overview?${__url_time_range}"}],
+      "options":{"alignValue":"left","legend":{"displayMode":"list","placement":"bottom","showLegend":false},"mergeValues":true,"rowHeight":0.96,"showValue":"never","tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"12.3.0",
+      "targets":[
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"min(etcd_server_has_leader{job=\"etcd\", cls=\"etcd\"}) or on() vector(0)","hide":false,"legendFormat":"ETCD Cluster Healthy","range":true,"refId":"D" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"up{job=\"etcd\", cls=\"etcd\"}"                                           ,             "legendFormat":"{{ ins }} @ {{ ip }}","range":true,"refId":"A" }
+      ],
+      "title":"ETCD Aliveness",
+      "type":"state-timeline"
+    },
+    {
+      "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+      "description":"How long since patroni the HA agent successfully connect to DCS:etcd.\n\nvalue larger than 20s needs extra attention",
+      "fieldConfig":{
+        "defaults":{"color":{"mode":"thresholds"},"decimals":1,"links":[{"title":"PGSQL Instance : ${__field.labels.ins}","url":"/d/pgsql-instance?var-ins=${__field.labels.ins}&${__url_time_range}"}],"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]}},
+        "overrides":[{"matcher":{"id":"byName","options":"Value"},"properties":[{"id":"unit","value":"s"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"#346f36cc","value":1},{"color":"#f79f64","value":20},{"color":"red","value":30},{"color":"#b783af","value":60},{"color":"text","value":300}]}}]}]
+      },
+      "gridPos":{"h":7,"w":7,"x":17,"y":51},
+      "id":188,
+      "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"textMode":"auto","wideLayout":true},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"time() - patroni_dcs_last_seen{cls=\"$cls\"}","format":"time_series","hide":false,"instant":true,"legendFormat":"{{ ins }}","range":false,"refId":"J"}],
+      "title":"DCS Last Seen",
+      "type":"stat"
+    },
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":58},"id":206,"panels":[],"title":"Patroni : ${cls}","type":"row"},
+    {
+      "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},
+      "description":"patroni logs rate of cluster ",
+      "fieldConfig":{
+        "defaults":{
+          "color":{"fixedColor":"#346f36cc","mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "barAlignment":0,
+            "barWidthFactor":0.6,
+            "drawStyle":"bars",
+            "fillOpacity":100,
+            "gradientMode":"none",
+            "hideFrom":{"graph":false,"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"linear",
+            "lineWidth":1,
+            "pointSize":5,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"never",
+            "showValues":false,
+            "spanNulls":true,
+            "stacking":{"group":"A","mode":"normal"},
+            "thresholdsStyle":{"mode":"off"}
+          },
+          "decimals":0,
+          "mappings":[],
+          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
+          "unit":"none"
+        },
+        "overrides":[]
+      },
+      "gridPos":{"h":5,"w":24,"x":0,"y":59},
+      "id":207,
+      "interval":"1s",
+      "links":[{"title":"Patroni Logs for ${primary}","url":"/d/logs-instance?var-ins=$primary&var-src=patroni&${__url_time_range}"}],
+      "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"job:syslog ip:in(${members:doublequote}) app:patroni | stats by (ins) count() as count","legendFormat":"{{ ins }}","queryType":"statsRange","refId":"A"}],
+      "title":"Patroni Logs",
+      "type":"timeseries"
+    },
+    {
+      "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},
+      "description":"",
+      "gridPos":{"h":12,"w":24,"x":0,"y":64},
+      "id":208,
+      "options":{"dedupStrategy":"none","enableInfiniteScrolling":true,"enableLogDetails":true,"fontSize":"small","prettifyLogMessage":false,"showCommonLabels":false,"showControls":true,"showLabels":true,"showTime":true,"sortOrder":"Descending","syntaxHighlighting":false,"wrapLogMessage":false},
+      "pluginVersion":"12.3.0",
+      "targets":[{"datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"job:syslog ip:in(${members:doublequote}) app:patroni | fields level, ins, ip, _msg","instant":false,"queryType":"range","range":true,"refId":"A"}],
+      "type":"logs"
+    }
+  ],
+  "preload":false,
+  "refresh":"",
+  "schemaVersion":42,
+  "tags":["Pigsty","PGSQL","Cluster"],
+  "templating":{
+    "list":[
+      {
+        "current":{},
+        "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+        "definition":"label_values(pg_up, cls)",
+        "description":"Cluster identifier for this postgres instance, cls should be unique among entire environment. such as pg-meta, pg-test",
+        "includeAll":false,
+        "label":"Cluster",
+        "name":"cls",
+        "options":[],
+        "query":{"query":"label_values(pg_up, cls)","refId":"StandardVariableQuery"},
+        "refresh":2,
+        "regex":"",
+        "sort":1,
+        "type":"query"
+      },{
+        "current":{},
+        "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+        "definition":"label_values(pg:cls:leader{cls=\"$cls\"}, ins)",
+        "description":"Unique instance identifier (e.g pg-meta-1)",
+        "hide":2,
+        "includeAll":false,
+        "label":"Primary",
+        "name":"primary",
+        "options":[],
+        "query":{"query":"label_values(pg:cls:leader{cls=\"$cls\"}, ins)","refId":"StandardVariableQuery"},
+        "refresh":2,
+        "regex":"",
+        "sort":1,
+        "type":"query"
+      },{
+        "current":{},
+        "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+        "definition":"label_values(pg_up{cls=\"$cls\"}, ip)",
+        "description":"Unique instance identifier (e.g pg-meta-1)",
+        "hide":2,
+        "includeAll":true,
+        "label":"Primary",
+        "multi":true,
+        "name":"members",
+        "options":[],
+        "query":{"query":"label_values(pg_up{cls=\"$cls\"}, ip)","refId":"StandardVariableQuery"},
+        "refresh":2,
+        "regex":"",
+        "sort":1,
+        "type":"query"
+      },{
+        "current":{},
+        "datasource":{"type":"prometheus","uid":"ds-prometheus"},
+        "definition":"label_values(node_load1{ip=~\"$members\"},cls)",
+        "description":"Node Cluster Identifier",
+        "hide":2,
+        "includeAll":false,
+        "label":"Node Cluster",
+        "name":"node_cls",
+        "options":[],
+        "query":{"query":"label_values(node_load1{ip=~\"$members\"},cls)","refId":"PrometheusVariableQueryEditor-VariableQuery"},
+        "refresh":2,
+        "regex":"",
+        "sort":1,
+        "type":"query"
+      }
+    ]
+  },
+  "time":{"from":"now-1h","to":"now"},
+  "timepicker":{},
+  "timezone":"browser",
+  "title":"PGSQL Patroni",
+  "uid":"pgsql-patroni",
+  "version":1,
+  "weekStart":""
 }

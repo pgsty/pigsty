@@ -1,1447 +1,239 @@
 {
-    "annotations": {
-        "list": [
-            {
-                "builtIn": 1,
-                "datasource": {
-                    "type": "datasource",
-                    "uid": "grafana"
-                },
-                "enable": true,
-                "hide": true,
-                "iconColor": "rgba(0, 211, 255, 1)",
-                "limit": 100,
-                "name": "Annotations & Alerts",
-                "target": {
-                    "limit": 100,
-                    "matchAny": false,
-                    "tags": [],
-                    "type": "dashboard"
-                },
-                "type": "dashboard"
-            },
-            {
-                "datasource": {
-                    "type": "postgres",
-                    "uid": "ds-meta"
-                },
-                "enable": true,
-                "expr": "ALERTS",
-                "hide": false,
-                "iconColor": "red",
-                "name": "Event",
-                "rawQuery": "SELECT extract(epoch from ts) AS time,  msg as text, concat_ws(',', level, code, cmd_tag) AS tags FROM ${log} WHERE sid = '$sid'",
-                "step": "60s",
-                "tagKeys": "severity",
-                "textFormat": "ins",
-                "titleFormat": "alertname",
-                "useValueForTime": false
-            }
+  "annotations":{
+    "list":[
+      {"builtIn":1,"datasource":{"type":"datasource","uid":"grafana"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","limit":100,"name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"},
+      {"datasource":{"type":"postgres","uid":"ds-meta"},"enable":true,"expr":"ALERTS","hide":false,"iconColor":"red","name":"Event","rawQuery":"SELECT extract(epoch from ts) AS time,  msg as text, concat_ws(',', level, code, cmd_tag) AS tags FROM ${log} WHERE sid = '$sid'","step":"60s","tagKeys":"severity","textFormat":"ins","titleFormat":"alertname","useValueForTime":false}
+    ]
+  },
+  "author":"Ruohang Feng (rh@vonng.com)",
+  "description":"PostgreSQL Log Analysis for single session",
+  "editable":true,
+  "fiscalYearStartMonth":0,
+  "graphTooltip":0,
+  "id":null,
+  "license":"https://pigsty.io/docs/about/license/",
+  "links":[
+    { "asDropdown":false,"icon":"bolt"         ,"includeVars":false,"keepTime":false,"tags":[]       ,"targetBlank":false,"title":"Auto Zoom","tooltip":"Adjust Time Range to Session Log Events","type":"link"      ,"url":"/d/pglog-session?var-sid=${sid}&from=${ts_begin}&to=${ts_end}" },
+    { "asDropdown":false,"icon":"info"         ,"includeVars":false,"keepTime":true ,"tags":[]       ,"targetBlank":false,"title":"Overview" ,"tooltip":""                                       ,"type":"link"      ,"url":"/d/pglog-overview"                                             },
+    { "asDropdown":true ,"icon":"external link","includeVars":true ,"keepTime":true ,"tags":["PGLOG"],"targetBlank":false,"title":"PGLOG"    ,"tooltip":""                                       ,"type":"dashboards","url":""                                                              }
+  ],
+  "panels":[
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":0},"id":27,"panels":[],"title":"Overview","type":"row"},
+    {
+      "datasource":{"type":"postgres","uid":"ds-meta"},
+      "fieldConfig":{
+        "defaults":{
+          "color":{"mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "barAlignment":0,
+            "barWidthFactor":0.6,
+            "drawStyle":"bars",
+            "fillOpacity":60,
+            "gradientMode":"none",
+            "hideFrom":{"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"linear",
+            "lineWidth":0,
+            "pointSize":5,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"never",
+            "spanNulls":true,
+            "stacking":{"group":"A","mode":"normal"},
+            "thresholdsStyle":{"mode":"off"}
+          },
+          "mappings":[],
+          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"},{"color":"red","value":80}]},
+          "unit":"none"
+        },
+        "overrides":[{"matcher":{"id":"byName","options":"ERROR"},"properties":[{"id":"color","value":{"fixedColor":"#cc4637d9","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"FATAL"},"properties":[{"id":"color","value":{"fixedColor":"#b783af","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"LOG"},"properties":[{"id":"color","value":{"fixedColor":"#346f36cc","mode":"fixed"}}]}]
+      },
+      "gridPos":{"h":5,"w":18,"x":0,"y":1},
+      "id":25,
+      "interval":"1s",
+      "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"12.0.0",
+      "targets":[{"format":"time_series","group":[],"metricColumn":"none","rawQuery":true,"rawSql":"SELECT $__timeGroup(ts, $__interval) AS \"time\", \n       level AS metric, count(*) AS value \nFROM ${log}\nWHERE $__timeFilter(ts)\nGROUP BY 1, 2\nORDER BY 1, 2;","refId":"A","select":[[{"params":["value"],"type":"column"}]],"timeColumn":"time","where":[{"name":"$__timeFilter","params":[],"type":"macro"}]}],
+      "title":"Log Events (All)",
+      "type":"timeseries"
+    },
+    {
+      "datasource":{"type":"postgres","uid":"ds-meta"},
+      "fieldConfig":{
+        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"inspect":false},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"}]},"unit":"none"},
+        "overrides":[
+          { "matcher":{"id":"byName","options":"Session"},"properties":[{"id":"custom.width"},{"id":"links","value":[{"title":"PGLOG Session for ${__data.fields.Session}","url":"/d/pglog-session?var-sid=${__data.fields.Session}"}]},{"id":"unit","value":"string"},{"id":"custom.cellOptions","value":{"type":"auto"}}]                 },
+          { "matcher":{"id":"byName","options":"Count"}  ,"properties":[{"id":"custom.width","value":80},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"transparent"},{"color":"#3e668f","value":1},{"color":"#f79f64","value":10}]}},{"id":"custom.cellOptions","value":{"mode":"gradient","type":"color-background"}}]  },
+          { "matcher":{"id":"byName","options":"Error"}  ,"properties":[{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"transparent"},{"color":"#f79f64","value":2},{"color":"#cc4637d9","value":4}]}},{"id":"custom.cellOptions","value":{"mode":"gradient","type":"color-background"}},{"id":"custom.width","value":80}] }
         ]
+      },
+      "gridPos":{"h":10,"w":6,"x":18,"y":1},
+      "id":23,
+      "options":{"cellHeight":"sm","footer":{"countRows":false,"fields":"","reducer":["sum"],"show":false},"showHeader":true,"sortBy":[{"desc":true,"displayName":"Error"}]},
+      "pluginVersion":"12.0.0",
+      "targets":[{"format":"table","group":[],"metricColumn":"none","rawQuery":true,"rawSql":"SELECT sid, count(*) AS count, count(*) FILTER ( WHERE code != '00000' ) AS error\nFROM ${log}\nWHERE $__timeFilter(ts)\nGROUP BY sid ORDER BY 1;","refId":"A","select":[[{"params":["value"],"type":"column"}]],"timeColumn":"time","where":[{"name":"$__timeFilter","params":[],"type":"macro"}]}],
+      "title":"",
+      "transformations":[{"id":"organize","options":{"excludeByName":{},"indexByName":{},"renameByName":{"app":"App","count":"Count","error":"Error","sid":"Session"}}}],
+      "type":"table"
     },
-    "author": "Ruohang Feng (rh@vonng.com)",
-    "description": "PostgreSQL Log Analysis for single session",
-    "editable": true,
-    "fiscalYearStartMonth": 0,
-    "graphTooltip": 0,
-    "id": null,
-    "license": "https://pigsty.io/docs/about/license/",
-    "links": [
-        {
-            "asDropdown": false,
-            "icon": "bolt",
-            "includeVars": false,
-            "keepTime": false,
-            "tags": [],
-            "targetBlank": false,
-            "title": "Auto Zoom",
-            "tooltip": "Adjust Time Range to Session Log Events",
-            "type": "link",
-            "url": "/d/pglog-session?var-sid=${sid}&from=${ts_begin}&to=${ts_end}"
+    {
+      "datasource":{"type":"postgres","uid":"ds-meta"},
+      "fieldConfig":{
+        "defaults":{
+          "color":{"mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "barAlignment":0,
+            "barWidthFactor":0.6,
+            "drawStyle":"bars",
+            "fillOpacity":60,
+            "gradientMode":"none",
+            "hideFrom":{"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"linear",
+            "lineWidth":0,
+            "pointSize":5,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"never",
+            "spanNulls":true,
+            "stacking":{"group":"A","mode":"normal"},
+            "thresholdsStyle":{"mode":"off"}
+          },
+          "mappings":[],
+          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"},{"color":"red","value":80}]},
+          "unit":"none"
         },
+        "overrides":[{"matcher":{"id":"byName","options":"ERROR"},"properties":[{"id":"color","value":{"fixedColor":"#cc4637d9","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"FATAL"},"properties":[{"id":"color","value":{"fixedColor":"#b783af","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"LOG"},"properties":[{"id":"color","value":{"fixedColor":"#346f36cc","mode":"fixed"}}]}]
+      },
+      "gridPos":{"h":5,"w":18,"x":0,"y":6},
+      "id":30,
+      "interval":"1s",
+      "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"12.0.0",
+      "targets":[
         {
-            "asDropdown": false,
-            "icon": "info",
-            "includeVars": false,
-            "keepTime": true,
-            "tags": [],
-            "targetBlank": false,
-            "title": "Overview",
-            "tooltip": "",
-            "type": "link",
-            "url": "/d/pglog-overview"
-        },
-        {
-            "asDropdown": true,
-            "icon": "external link",
-            "includeVars": true,
-            "keepTime": true,
-            "tags": [
-                "PGLOG"
-            ],
-            "targetBlank": false,
-            "title": "PGLOG",
-            "tooltip": "",
-            "type": "dashboards",
-            "url": ""
+          "format":"time_series",
+          "group":[],
+          "metricColumn":"none",
+          "rawQuery":true,
+          "rawSql":"SELECT $__timeGroup(ts, $__interval) AS \"time\", \n       level AS metric, count(*) AS value \nFROM ${log}\nWHERE $__timeFilter(ts) AND sid = '$sid'\nGROUP BY 1, 2\nORDER BY 1, 2;",
+          "refId":"A",
+          "select":[[{"params":["value"],"type":"column"}]],
+          "timeColumn":"time",
+          "where":[{"name":"$__timeFilter","params":[],"type":"macro"}]
         }
-    ],
-    "panels": [
-        {
-            "collapsed": false,
-            "gridPos": {
-                "h": 1,
-                "w": 24,
-                "x": 0,
-                "y": 0
-            },
-            "id": 27,
-            "panels": [],
-            "title": "Overview",
-            "type": "row"
-        },
-        {
-            "datasource": {
-                "type": "postgres",
-                "uid": "ds-meta"
-            },
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "barAlignment": 0,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "bars",
-                        "fillOpacity": 60,
-                        "gradientMode": "none",
-                        "hideFrom": {
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "linear",
-                        "lineWidth": 0,
-                        "pointSize": 5,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "never",
-                        "spanNulls": true,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "normal"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "off"
-                        }
-                    },
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#346f36cc"
-                            },
-                            {
-                                "color": "red",
-                                "value": 80
-                            }
-                        ]
-                    },
-                    "unit": "none"
-                },
-                "overrides": [
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "ERROR"
-                        },
-                        "properties": [
-                            {
-                                "id": "color",
-                                "value": {
-                                    "fixedColor": "#cc4637d9",
-                                    "mode": "fixed"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "FATAL"
-                        },
-                        "properties": [
-                            {
-                                "id": "color",
-                                "value": {
-                                    "fixedColor": "#b783af",
-                                    "mode": "fixed"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "LOG"
-                        },
-                        "properties": [
-                            {
-                                "id": "color",
-                                "value": {
-                                    "fixedColor": "#346f36cc",
-                                    "mode": "fixed"
-                                }
-                            }
-                        ]
-                    }
-                ]
-            },
-            "gridPos": {
-                "h": 5,
-                "w": 18,
-                "x": 0,
-                "y": 1
-            },
-            "id": 25,
-            "interval": "1s",
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "sum"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "single",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.0.0",
-            "targets": [
-                {
-                    "format": "time_series",
-                    "group": [],
-                    "metricColumn": "none",
-                    "rawQuery": true,
-                    "rawSql": "SELECT $__timeGroup(ts, $__interval) AS \"time\", \n       level AS metric, count(*) AS value \nFROM ${log}\nWHERE $__timeFilter(ts)\nGROUP BY 1, 2\nORDER BY 1, 2;",
-                    "refId": "A",
-                    "select": [
-                        [
-                            {
-                                "params": [
-                                    "value"
-                                ],
-                                "type": "column"
-                            }
-                        ]
-                    ],
-                    "timeColumn": "time",
-                    "where": [
-                        {
-                            "name": "$__timeFilter",
-                            "params": [],
-                            "type": "macro"
-                        }
-                    ]
-                }
-            ],
-            "title": "Log Events (All)",
-            "type": "timeseries"
-        },
-        {
-            "datasource": {
-                "type": "postgres",
-                "uid": "ds-meta"
-            },
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "thresholds"
-                    },
-                    "custom": {
-                        "align": "center",
-                        "cellOptions": {
-                            "type": "auto"
-                        },
-                        "inspect": false
-                    },
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#346f36cc"
-                            }
-                        ]
-                    },
-                    "unit": "none"
-                },
-                "overrides": [
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Session"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width"
-                            },
-                            {
-                                "id": "links",
-                                "value": [
-                                    {
-                                        "title": "PGLOG Session for ${__data.fields.Session}",
-                                        "url": "/d/pglog-session?var-sid=${__data.fields.Session}"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "unit",
-                                "value": "string"
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "type": "auto"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Count"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            },
-                            {
-                                "id": "thresholds",
-                                "value": {
-                                    "mode": "absolute",
-                                    "steps": [
-                                        {
-                                            "color": "transparent"
-                                        },
-                                        {
-                                            "color": "#3e668f",
-                                            "value": 1
-                                        },
-                                        {
-                                            "color": "#f79f64",
-                                            "value": 10
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "mode": "gradient",
-                                    "type": "color-background"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Error"
-                        },
-                        "properties": [
-                            {
-                                "id": "thresholds",
-                                "value": {
-                                    "mode": "absolute",
-                                    "steps": [
-                                        {
-                                            "color": "transparent"
-                                        },
-                                        {
-                                            "color": "#f79f64",
-                                            "value": 2
-                                        },
-                                        {
-                                            "color": "#cc4637d9",
-                                            "value": 4
-                                        }
-                                    ]
-                                }
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "mode": "gradient",
-                                    "type": "color-background"
-                                }
-                            },
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            }
-                        ]
-                    }
-                ]
-            },
-            "gridPos": {
-                "h": 10,
-                "w": 6,
-                "x": 18,
-                "y": 1
-            },
-            "id": 23,
-            "options": {
-                "cellHeight": "sm",
-                "footer": {
-                    "countRows": false,
-                    "fields": "",
-                    "reducer": [
-                        "sum"
-                    ],
-                    "show": false
-                },
-                "showHeader": true,
-                "sortBy": [
-                    {
-                        "desc": true,
-                        "displayName": "Error"
-                    }
-                ]
-            },
-            "pluginVersion": "12.0.0",
-            "targets": [
-                {
-                    "format": "table",
-                    "group": [],
-                    "metricColumn": "none",
-                    "rawQuery": true,
-                    "rawSql": "SELECT sid, count(*) AS count, count(*) FILTER ( WHERE code != '00000' ) AS error\nFROM ${log}\nWHERE $__timeFilter(ts)\nGROUP BY sid ORDER BY 1;",
-                    "refId": "A",
-                    "select": [
-                        [
-                            {
-                                "params": [
-                                    "value"
-                                ],
-                                "type": "column"
-                            }
-                        ]
-                    ],
-                    "timeColumn": "time",
-                    "where": [
-                        {
-                            "name": "$__timeFilter",
-                            "params": [],
-                            "type": "macro"
-                        }
-                    ]
-                }
-            ],
-            "title": "",
-            "transformations": [
-                {
-                    "id": "organize",
-                    "options": {
-                        "excludeByName": {},
-                        "indexByName": {},
-                        "renameByName": {
-                            "app": "App",
-                            "count": "Count",
-                            "error": "Error",
-                            "sid": "Session"
-                        }
-                    }
-                }
-            ],
-            "type": "table"
-        },
-        {
-            "datasource": {
-                "type": "postgres",
-                "uid": "ds-meta"
-            },
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "palette-classic"
-                    },
-                    "custom": {
-                        "axisBorderShow": false,
-                        "axisCenteredZero": false,
-                        "axisColorMode": "text",
-                        "axisLabel": "",
-                        "axisPlacement": "auto",
-                        "barAlignment": 0,
-                        "barWidthFactor": 0.6,
-                        "drawStyle": "bars",
-                        "fillOpacity": 60,
-                        "gradientMode": "none",
-                        "hideFrom": {
-                            "legend": false,
-                            "tooltip": false,
-                            "viz": false
-                        },
-                        "insertNulls": false,
-                        "lineInterpolation": "linear",
-                        "lineWidth": 0,
-                        "pointSize": 5,
-                        "scaleDistribution": {
-                            "type": "linear"
-                        },
-                        "showPoints": "never",
-                        "spanNulls": true,
-                        "stacking": {
-                            "group": "A",
-                            "mode": "normal"
-                        },
-                        "thresholdsStyle": {
-                            "mode": "off"
-                        }
-                    },
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#346f36cc"
-                            },
-                            {
-                                "color": "red",
-                                "value": 80
-                            }
-                        ]
-                    },
-                    "unit": "none"
-                },
-                "overrides": [
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "ERROR"
-                        },
-                        "properties": [
-                            {
-                                "id": "color",
-                                "value": {
-                                    "fixedColor": "#cc4637d9",
-                                    "mode": "fixed"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "FATAL"
-                        },
-                        "properties": [
-                            {
-                                "id": "color",
-                                "value": {
-                                    "fixedColor": "#b783af",
-                                    "mode": "fixed"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "LOG"
-                        },
-                        "properties": [
-                            {
-                                "id": "color",
-                                "value": {
-                                    "fixedColor": "#346f36cc",
-                                    "mode": "fixed"
-                                }
-                            }
-                        ]
-                    }
-                ]
-            },
-            "gridPos": {
-                "h": 5,
-                "w": 18,
-                "x": 0,
-                "y": 6
-            },
-            "id": 30,
-            "interval": "1s",
-            "options": {
-                "legend": {
-                    "calcs": [
-                        "sum"
-                    ],
-                    "displayMode": "table",
-                    "placement": "right",
-                    "showLegend": true
-                },
-                "tooltip": {
-                    "hideZeros": false,
-                    "mode": "single",
-                    "sort": "none"
-                }
-            },
-            "pluginVersion": "12.0.0",
-            "targets": [
-                {
-                    "format": "time_series",
-                    "group": [],
-                    "metricColumn": "none",
-                    "rawQuery": true,
-                    "rawSql": "SELECT $__timeGroup(ts, $__interval) AS \"time\", \n       level AS metric, count(*) AS value \nFROM ${log}\nWHERE $__timeFilter(ts) AND sid = '$sid'\nGROUP BY 1, 2\nORDER BY 1, 2;",
-                    "refId": "A",
-                    "select": [
-                        [
-                            {
-                                "params": [
-                                    "value"
-                                ],
-                                "type": "column"
-                            }
-                        ]
-                    ],
-                    "timeColumn": "time",
-                    "where": [
-                        {
-                            "name": "$__timeFilter",
-                            "params": [],
-                            "type": "macro"
-                        }
-                    ]
-                }
-            ],
-            "title": "Log Events (Current Session)",
-            "type": "timeseries"
-        },
-        {
-            "datasource": {
-                "type": "postgres",
-                "uid": "ds-meta"
-            },
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "thresholds"
-                    },
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#3e668f"
-                            }
-                        ]
-                    }
-                },
-                "overrides": [
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Level"
-                        },
-                        "properties": [
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "DEBUG": {
-                                                "color": "rgba(128, 128, 128, 0.5)",
-                                                "index": 7
-                                            },
-                                            "ERROR": {
-                                                "color": "red",
-                                                "index": 4
-                                            },
-                                            "FATAL": {
-                                                "color": "#b783af",
-                                                "index": 5
-                                            },
-                                            "INFO": {
-                                                "color": "dark-green",
-                                                "index": 1
-                                            },
-                                            "LOG": {
-                                                "color": "#346f36cc",
-                                                "index": 0
-                                            },
-                                            "NOTICE": {
-                                                "color": "#3e668f",
-                                                "index": 2
-                                            },
-                                            "PANIC": {
-                                                "color": "text",
-                                                "index": 6
-                                            },
-                                            "WARNING": {
-                                                "color": "#f79f64",
-                                                "index": 3
-                                            }
-                                        },
-                                        "type": "value"
-                                    }
-                                ]
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Code"
-                        },
-                        "properties": [
-                            {
-                                "id": "unit",
-                                "value": "string"
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "00000": {
-                                                "color": "#346f36cc",
-                                                "index": 0
-                                            }
-                                        },
-                                        "type": "value"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "thresholds",
-                                "value": {
-                                    "mode": "absolute",
-                                    "steps": [
-                                        {
-                                            "color": "#346f36cc"
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                ]
-            },
-            "gridPos": {
-                "h": 3,
-                "w": 24,
-                "x": 0,
-                "y": 11
-            },
-            "id": 11,
-            "options": {
-                "colorMode": "background",
-                "graphMode": "area",
-                "justifyMode": "auto",
-                "orientation": "auto",
-                "percentChangeColorMode": "standard",
-                "reduceOptions": {
-                    "calcs": [
-                        "lastNotNull"
-                    ],
-                    "fields": "/.*/",
-                    "values": false
-                },
-                "showPercentChange": false,
-                "text": {
-                    "titleSize": 12
-                },
-                "textMode": "auto",
-                "wideLayout": true
-            },
-            "pluginVersion": "12.0.0",
-            "targets": [
-                {
-                    "format": "table",
-                    "group": [],
-                    "metricColumn": "none",
-                    "rawQuery": true,
-                    "rawSql": "SELECT * FROM ${log} WHERE sid = '${sid}' LIMIT 1;",
-                    "refId": "A",
-                    "select": [
-                        [
-                            {
-                                "params": [
-                                    "value"
-                                ],
-                                "type": "column"
-                            }
-                        ]
-                    ],
-                    "timeColumn": "time",
-                    "where": [
-                        {
-                            "name": "$__timeFilter",
-                            "params": [],
-                            "type": "macro"
-                        }
-                    ]
-                }
-            ],
-            "title": "",
-            "transformations": [
-                {
-                    "id": "organize",
-                    "options": {
-                        "excludeByName": {
-                            "appname": false,
-                            "backend": false,
-                            "cmd_tag": true,
-                            "code": true,
-                            "conn": false,
-                            "context": true,
-                            "datname": false,
-                            "detail": true,
-                            "hint": true,
-                            "iq": true,
-                            "iqp": true,
-                            "level": true,
-                            "location": true,
-                            "msg": true,
-                            "pid": false,
-                            "q": true,
-                            "qp": true,
-                            "sid": false,
-                            "sln": true,
-                            "stime": false,
-                            "ts": true,
-                            "txid": true,
-                            "username": false,
-                            "vxid": true
-                        },
-                        "indexByName": {
-                            "appname": 6,
-                            "cmd_tag": 8,
-                            "code": 13,
-                            "conn": 4,
-                            "context": 19,
-                            "datname": 2,
-                            "detail": 15,
-                            "hint": 16,
-                            "iq": 17,
-                            "iqp": 18,
-                            "level": 12,
-                            "location": 22,
-                            "msg": 14,
-                            "pid": 3,
-                            "q": 20,
-                            "qp": 21,
-                            "sid": 5,
-                            "sln": 7,
-                            "stime": 9,
-                            "ts": 0,
-                            "txid": 11,
-                            "username": 1,
-                            "vxid": 10
-                        },
-                        "renameByName": {
-                            "appname": "Appname",
-                            "backend": "Backend",
-                            "cmd_tag": "CMD",
-                            "code": "Code",
-                            "conn": "Conn",
-                            "context": "Ctx",
-                            "datname": "Database",
-                            "detail": "Detail",
-                            "hint": "Hint",
-                            "iq": "IQ",
-                            "iqp": "IQP",
-                            "level": "Level",
-                            "location": "Loc",
-                            "msg": "Message",
-                            "pid": "PID",
-                            "q": "Query",
-                            "qp": "QueryP",
-                            "sid": "Session",
-                            "sln": "Line",
-                            "stime": "Session Start",
-                            "ts": "Time",
-                            "txid": "TXID",
-                            "username": "Username",
-                            "vxid": "VXID"
-                        }
-                    }
-                }
-            ],
-            "type": "stat"
-        },
-        {
-            "datasource": {
-                "type": "postgres",
-                "uid": "ds-meta"
-            },
-            "fieldConfig": {
-                "defaults": {
-                    "color": {
-                        "mode": "thresholds"
-                    },
-                    "custom": {
-                        "align": "center",
-                        "cellOptions": {
-                            "type": "auto"
-                        },
-                        "filterable": false,
-                        "inspect": false
-                    },
-                    "mappings": [],
-                    "thresholds": {
-                        "mode": "absolute",
-                        "steps": [
-                            {
-                                "color": "#346f36cc"
-                            }
-                        ]
-                    }
-                },
-                "overrides": [
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Time"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 160
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Line"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "CMD"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 140
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "type": "json-view"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Session Start"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 200
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "VXID"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 120
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "TXID"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 100
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Level"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 100
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "DEBUG": {
-                                                "color": "rgba(128, 128, 128, 0.5)",
-                                                "index": 7
-                                            },
-                                            "ERROR": {
-                                                "color": "#cc4637d9",
-                                                "index": 4
-                                            },
-                                            "FATAL": {
-                                                "color": "#b783af",
-                                                "index": 5
-                                            },
-                                            "INFO": {
-                                                "color": "#346f36cc",
-                                                "index": 1
-                                            },
-                                            "LOG": {
-                                                "color": "#3e668f",
-                                                "index": 0
-                                            },
-                                            "NOTICE": {
-                                                "color": "#5b9cd5",
-                                                "index": 2
-                                            },
-                                            "PANIC": {
-                                                "color": "text",
-                                                "index": 6
-                                            },
-                                            "WARNING": {
-                                                "color": "#f79f64",
-                                                "index": 3
-                                            }
-                                        },
-                                        "type": "value"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "mode": "basic",
-                                    "type": "color-background"
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Code"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 80
-                            },
-                            {
-                                "id": "unit",
-                                "value": "string"
-                            },
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "type": "color-text"
-                                }
-                            },
-                            {
-                                "id": "mappings",
-                                "value": [
-                                    {
-                                        "options": {
-                                            "00000": {
-                                                "color": "#346f36cc",
-                                                "index": 0
-                                            }
-                                        },
-                                        "type": "value"
-                                    }
-                                ]
-                            },
-                            {
-                                "id": "thresholds",
-                                "value": {
-                                    "mode": "absolute",
-                                    "steps": [
-                                        {
-                                            "color": "#cc4637d9"
-                                        }
-                                    ]
-                                }
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Appname"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 140
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Backend"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 112
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Query"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 60
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Message"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.cellOptions",
-                                "value": {
-                                    "type": "auto"
-                                }
-                            },
-                            {
-                                "id": "custom.align",
-                                "value": "left"
-                            },
-                            {
-                                "id": "custom.inspect",
-                                "value": true
-                            },
-                            {
-                                "id": "custom.minWidth",
-                                "value": 400
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Username"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 120
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Database"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 90
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byRegexp",
-                            "options": "/Hint|IQ|IQP|Ctx|Query|QueryP|Location/"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.width",
-                                "value": 100
-                            },
-                            {
-                                "id": "custom.inspect",
-                                "value": true
-                            }
-                        ]
-                    },
-                    {
-                        "matcher": {
-                            "id": "byName",
-                            "options": "Detail"
-                        },
-                        "properties": [
-                            {
-                                "id": "custom.inspect",
-                                "value": true
-                            },
-                            {
-                                "id": "custom.minWidth",
-                                "value": 200
-                            }
-                        ]
-                    }
-                ]
-            },
-            "gridPos": {
-                "h": 15,
-                "w": 24,
-                "x": 0,
-                "y": 14
-            },
-            "id": 31,
-            "options": {
-                "cellHeight": "sm",
-                "footer": {
-                    "countRows": false,
-                    "fields": "",
-                    "reducer": [
-                        "sum"
-                    ],
-                    "show": false
-                },
-                "showHeader": true,
-                "sortBy": [
-                    {
-                        "desc": false,
-                        "displayName": "Line"
-                    }
-                ]
-            },
-            "pluginVersion": "12.0.0",
-            "targets": [
-                {
-                    "datasource": {
-                        "type": "postgres",
-                        "uid": "ds-meta"
-                    },
-                    "editorMode": "code",
-                    "format": "table",
-                    "group": [],
-                    "metricColumn": "none",
-                    "rawQuery": true,
-                    "rawSql": "SELECT * FROM ${log} WHERE sid = '${sid}'",
-                    "refId": "A",
-                    "select": [
-                        [
-                            {
-                                "params": [
-                                    "value"
-                                ],
-                                "type": "column"
-                            }
-                        ]
-                    ],
-                    "sql": {
-                        "columns": [
-                            {
-                                "parameters": [],
-                                "type": "function"
-                            }
-                        ],
-                        "groupBy": [
-                            {
-                                "property": {
-                                    "type": "string"
-                                },
-                                "type": "groupBy"
-                            }
-                        ],
-                        "limit": 50
-                    },
-                    "timeColumn": "time",
-                    "where": [
-                        {
-                            "name": "$__timeFilter",
-                            "params": [],
-                            "type": "macro"
-                        }
-                    ]
-                }
-            ],
-            "title": "",
-            "transformations": [
-                {
-                    "id": "organize",
-                    "options": {
-                        "excludeByName": {
-                            "conn": true,
-                            "datname": true,
-                            "pid": true,
-                            "sid": true,
-                            "username": true
-                        },
-                        "indexByName": {
-                            "appname": 13,
-                            "cmd_tag": 7,
-                            "code": 12,
-                            "conn": 3,
-                            "context": 19,
-                            "datname": 1,
-                            "detail": 15,
-                            "hint": 16,
-                            "iq": 17,
-                            "iqp": 18,
-                            "level": 11,
-                            "location": 22,
-                            "msg": 14,
-                            "pid": 2,
-                            "q": 20,
-                            "qp": 21,
-                            "sid": 4,
-                            "sln": 5,
-                            "stime": 8,
-                            "ts": 6,
-                            "txid": 10,
-                            "username": 0,
-                            "vxid": 9
-                        },
-                        "renameByName": {
-                            "appname": "Appname",
-                            "backend": "Backend",
-                            "cmd_tag": "CMD",
-                            "code": "Code",
-                            "conn": "Conn",
-                            "context": "Ctx",
-                            "datname": "Database",
-                            "detail": "Detail",
-                            "hint": "Hint",
-                            "iq": "IQ",
-                            "iqp": "IQP",
-                            "level": "Level",
-                            "location": "Location",
-                            "msg": "Message",
-                            "pid": "PID",
-                            "q": "Query",
-                            "qp": "QueryP",
-                            "sid": "Session",
-                            "sln": "Line",
-                            "stime": "Session Start",
-                            "ts": "Time",
-                            "txid": "TXID",
-                            "username": "Username",
-                            "vxid": "VXID"
-                        }
-                    }
-                }
-            ],
-            "type": "table"
-        }
-    ],
-    "preload": false,
-    "refresh": "",
-    "schemaVersion": 41,
-    "tags": [
-        "APP",
-        "PGLOG"
-    ],
-    "templating": {
-        "list": [
-            {
-                "description": "Schema qualified csv log table",
-                "hide": 2,
-                "label": "Log Table",
-                "name": "log",
-                "query": "pglog.sample",
-                "skipUrlSync": true,
-                "type": "constant"
-            },
-            {
-                "current": {},
-                "description": "Session ID from log sample",
-                "label": "Session ID",
-                "name": "sid",
-                "options": [
-                    {
-                        "selected": true,
-                        "text": "60f01952.988",
-                        "value": "60f01952.988"
-                    }
-                ],
-                "query": "6832a99b.8eec",
-                "type": "textbox"
-            },
-            {
-                "current": {},
-                "datasource": {
-                    "type": "postgres",
-                    "uid": "ds-meta"
-                },
-                "definition": "SELECT min(ts) - '5s'::INTERVAL FROM ${log} WHERE sid = '$sid';",
-                "description": "First log timestamp of this session",
-                "hide": 2,
-                "includeAll": false,
-                "label": "Time Begin",
-                "name": "ts_begin",
-                "options": [],
-                "query": "SELECT min(ts) - '5s'::INTERVAL FROM ${log} WHERE sid = '$sid';",
-                "refresh": 1,
-                "regex": "",
-                "type": "query"
-            },
-            {
-                "current": {},
-                "datasource": {
-                    "type": "postgres",
-                    "uid": "ds-meta"
-                },
-                "definition": "SELECT max(ts) + '5s'::INTERVAL FROM ${log} WHERE sid = '$sid';",
-                "description": "Last log timestamp of this session",
-                "hide": 2,
-                "includeAll": false,
-                "label": "Time End",
-                "name": "ts_end",
-                "options": [],
-                "query": "SELECT max(ts) + '5s'::INTERVAL FROM ${log} WHERE sid = '$sid';",
-                "refresh": 1,
-                "regex": "",
-                "type": "query"
-            }
+      ],
+      "title":"Log Events (Current Session)",
+      "type":"timeseries"
+    },
+    {
+      "datasource":{"type":"postgres","uid":"ds-meta"},
+      "fieldConfig":{
+        "defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f"}]}},
+        "overrides":[
+          {
+            "matcher":{"id":"byName","options":"Level"},
+            "properties":[{"id":"mappings","value":[{"options":{"DEBUG":{"color":"rgba(128, 128, 128, 0.5)","index":7},"ERROR":{"color":"red","index":4},"FATAL":{"color":"#b783af","index":5},"INFO":{"color":"dark-green","index":1},"LOG":{"color":"#346f36cc","index":0},"NOTICE":{"color":"#3e668f","index":2},"PANIC":{"color":"text","index":6},"WARNING":{"color":"#f79f64","index":3}},"type":"value"}]}]
+          },
+          {"matcher":{"id":"byName","options":"Code"},"properties":[{"id":"unit","value":"string"},{"id":"mappings","value":[{"options":{"00000":{"color":"#346f36cc","index":0}},"type":"value"}]},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#346f36cc"}]}}]}
         ]
+      },
+      "gridPos":{"h":3,"w":24,"x":0,"y":11},
+      "id":11,
+      "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"/.*/","values":false},"showPercentChange":false,"text":{"titleSize":12},"textMode":"auto","wideLayout":true},
+      "pluginVersion":"12.0.0",
+      "targets":[{"format":"table","group":[],"metricColumn":"none","rawQuery":true,"rawSql":"SELECT * FROM ${log} WHERE sid = '${sid}' LIMIT 1;","refId":"A","select":[[{"params":["value"],"type":"column"}]],"timeColumn":"time","where":[{"name":"$__timeFilter","params":[],"type":"macro"}]}],
+      "title":"",
+      "transformations":[
+        {
+          "id":"organize",
+          "options":{
+            "excludeByName":{ "appname":false    ,"backend":false    ,"cmd_tag":true ,"code":true  ,"conn":false ,"context":true ,"datname":false     ,"detail":true    ,"hint":true  ,"iq":true,"iqp":true ,"level":true   ,"location":true ,"msg":true     ,"pid":false,"q":true   ,"qp":true    ,"sid":false    ,"sln":true  ,"stime":false          ,"ts":true  ,"txid":true  ,"username":false     ,"vxid":true   },
+            "indexByName"  :{ "appname":6        ,                    "cmd_tag":8    ,"code":13    ,"conn":4     ,"context":19   ,"datname":2         ,"detail":15      ,"hint":16    ,"iq":17  ,"iqp":18   ,"level":12     ,"location":22   ,"msg":14       ,"pid":3    ,"q":20     ,"qp":21      ,"sid":5        ,"sln":7     ,"stime":9              ,"ts":0     ,"txid":11    ,"username":1         ,"vxid":10     },
+            "renameByName" :{ "appname":"Appname","backend":"Backend","cmd_tag":"CMD","code":"Code","conn":"Conn","context":"Ctx","datname":"Database","detail":"Detail","hint":"Hint","iq":"IQ","iqp":"IQP","level":"Level","location":"Loc","msg":"Message","pid":"PID","q":"Query","qp":"QueryP","sid":"Session","sln":"Line","stime":"Session Start","ts":"Time","txid":"TXID","username":"Username","vxid":"VXID" }
+          }
+        }
+      ],
+      "type":"stat"
     },
-    "time": {
-        "from": "now-24h",
-        "to": "now"
-    },
-    "timepicker": {},
-    "timezone": "browser",
-    "title": "PGLOG Session",
-    "uid": "pglog-session",
-    "version": 1
+    {
+      "datasource":{"type":"postgres","uid":"ds-meta"},
+      "fieldConfig":{
+        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"filterable":false,"inspect":false},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"}]}},
+        "overrides":[
+          {"matcher":{"id":"byName","options":"Time"},"properties":[{"id":"custom.width","value":160}]},{"matcher":{"id":"byName","options":"Line"},"properties":[{"id":"custom.width","value":80}]},{"matcher":{"id":"byName","options":"CMD"},"properties":[{"id":"custom.width","value":140},{"id":"custom.cellOptions","value":{"type":"json-view"}}]},
+          {"matcher":{"id":"byName","options":"Session Start"},"properties":[{"id":"custom.width","value":200}]},{"matcher":{"id":"byName","options":"VXID"},"properties":[{"id":"custom.width","value":120}]},{"matcher":{"id":"byName","options":"TXID"},"properties":[{"id":"custom.width","value":100}]},
+          {
+            "matcher":{"id":"byName","options":"Level"},
+            "properties":[
+              { "id":"custom.width"      ,"value":100                                                                                                                                                                                                                                                                                                                                                              },
+              { "id":"mappings"          ,"value":[{"options":{"DEBUG":{"color":"rgba(128, 128, 128, 0.5)","index":7},"ERROR":{"color":"#cc4637d9","index":4},"FATAL":{"color":"#b783af","index":5},"INFO":{"color":"#346f36cc","index":1},"LOG":{"color":"#3e668f","index":0},"NOTICE":{"color":"#5b9cd5","index":2},"PANIC":{"color":"text","index":6},"WARNING":{"color":"#f79f64","index":3}},"type":"value"}] },
+              { "id":"custom.cellOptions","value":{"mode":"basic","type":"color-background"}                                                                                                                                                                                                                                                                                                                       }
+            ]
+          },
+          {"matcher":{"id":"byName","options":"Code"},"properties":[{"id":"custom.width","value":80},{"id":"unit","value":"string"},{"id":"custom.cellOptions","value":{"type":"color-text"}},{"id":"mappings","value":[{"options":{"00000":{"color":"#346f36cc","index":0}},"type":"value"}]},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#cc4637d9"}]}}]},
+          {"matcher":{"id":"byName","options":"Appname"},"properties":[{"id":"custom.width","value":140}]},{"matcher":{"id":"byName","options":"Backend"},"properties":[{"id":"custom.width","value":112}]},{"matcher":{"id":"byName","options":"Query"},"properties":[{"id":"custom.width","value":60}]},
+          {"matcher":{"id":"byName","options":"Message"},"properties":[{"id":"custom.cellOptions","value":{"type":"auto"}},{"id":"custom.align","value":"left"},{"id":"custom.inspect","value":true},{"id":"custom.minWidth","value":400}]},{"matcher":{"id":"byName","options":"Username"},"properties":[{"id":"custom.width","value":120}]},
+          {"matcher":{"id":"byName","options":"Database"},"properties":[{"id":"custom.width","value":90}]},{"matcher":{"id":"byRegexp","options":"/Hint|IQ|IQP|Ctx|Query|QueryP|Location/"},"properties":[{"id":"custom.width","value":100},{"id":"custom.inspect","value":true}]},{"matcher":{"id":"byName","options":"Detail"},"properties":[{"id":"custom.inspect","value":true},{"id":"custom.minWidth","value":200}]}
+        ]
+      },
+      "gridPos":{"h":15,"w":24,"x":0,"y":14},
+      "id":31,
+      "options":{"cellHeight":"sm","footer":{"countRows":false,"fields":"","reducer":["sum"],"show":false},"showHeader":true,"sortBy":[{"desc":false,"displayName":"Line"}]},
+      "pluginVersion":"12.0.0",
+      "targets":[
+        {
+          "datasource":{"type":"postgres","uid":"ds-meta"},
+          "editorMode":"code",
+          "format":"table",
+          "group":[],
+          "metricColumn":"none",
+          "rawQuery":true,
+          "rawSql":"SELECT * FROM ${log} WHERE sid = '${sid}'",
+          "refId":"A",
+          "select":[[{"params":["value"],"type":"column"}]],
+          "sql":{"columns":[{"parameters":[],"type":"function"}],"groupBy":[{"property":{"type":"string"},"type":"groupBy"}],"limit":50},
+          "timeColumn":"time",
+          "where":[{"name":"$__timeFilter","params":[],"type":"macro"}]
+        }
+      ],
+      "title":"",
+      "transformations":[
+        {
+          "id":"organize",
+          "options":{
+            "excludeByName":{"conn":true,"datname":true,"pid":true,"sid":true,"username":true},
+            "indexByName":{"appname":13,"cmd_tag":7,"code":12,"conn":3,"context":19,"datname":1,"detail":15,"hint":16,"iq":17,"iqp":18,"level":11,"location":22,"msg":14,"pid":2,"q":20,"qp":21,"sid":4,"sln":5,"stime":8,"ts":6,"txid":10,"username":0,"vxid":9},
+            "renameByName":{"appname":"Appname","backend":"Backend","cmd_tag":"CMD","code":"Code","conn":"Conn","context":"Ctx","datname":"Database","detail":"Detail","hint":"Hint","iq":"IQ","iqp":"IQP","level":"Level","location":"Location","msg":"Message","pid":"PID","q":"Query","qp":"QueryP","sid":"Session","sln":"Line","stime":"Session Start","ts":"Time","txid":"TXID","username":"Username","vxid":"VXID"}
+          }
+        }
+      ],
+      "type":"table"
+    }
+  ],
+  "preload":false,
+  "refresh":"",
+  "schemaVersion":41,
+  "tags":["APP","PGLOG"],
+  "templating":{
+    "list":[
+      {"description":"Schema qualified csv log table","hide":2,"label":"Log Table","name":"log","query":"pglog.sample","skipUrlSync":true,"type":"constant"},{"current":{},"description":"Session ID from log sample","label":"Session ID","name":"sid","options":[{"selected":true,"text":"60f01952.988","value":"60f01952.988"}],"query":"6832a99b.8eec","type":"textbox"},
+      {"current":{},"datasource":{"type":"postgres","uid":"ds-meta"},"definition":"SELECT min(ts) - '5s'::INTERVAL FROM ${log} WHERE sid = '$sid';","description":"First log timestamp of this session","hide":2,"includeAll":false,"label":"Time Begin","name":"ts_begin","options":[],"query":"SELECT min(ts) - '5s'::INTERVAL FROM ${log} WHERE sid = '$sid';","refresh":1,"regex":"","type":"query"},
+      {"current":{},"datasource":{"type":"postgres","uid":"ds-meta"},"definition":"SELECT max(ts) + '5s'::INTERVAL FROM ${log} WHERE sid = '$sid';","description":"Last log timestamp of this session","hide":2,"includeAll":false,"label":"Time End","name":"ts_end","options":[],"query":"SELECT max(ts) + '5s'::INTERVAL FROM ${log} WHERE sid = '$sid';","refresh":1,"regex":"","type":"query"}
+    ]
+  },
+  "time":{"from":"now-24h","to":"now"},
+  "timepicker":{},
+  "timezone":"browser",
+  "title":"PGLOG Session",
+  "uid":"pglog-session",
+  "version":1
 }

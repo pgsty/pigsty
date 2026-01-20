@@ -3,7 +3,7 @@
 # File      :   grafana.py
 # Desc      :   dump/load/init grafana dashboards
 # Ctime     :   2022-11-23
-# Mtime     :   2025-12-11
+# Mtime     :   2026-12-20
 # Path      :   files/grafana/grafana.py
 # License   :   AGPLv3 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -212,6 +212,23 @@ def load_dashboard(path, substitute=False):
     else:
         return json.load(open(path))
 
+# json serializer: use compact_json if available, fallback to standard json
+try:
+    from compact_json import Formatter
+    _formatter = Formatter()
+    _formatter.max_inline_length = 400
+    _formatter.max_inline_complexity = 10
+    _formatter.max_compact_list_complexity = 10
+    _formatter.indent_spaces = 2
+    _formatter.nested_bracket_padding = False
+    _formatter.simple_bracket_padding = False
+    _formatter.colon_padding = False
+    _formatter.comma_padding = False
+    def dump_json(data, file):
+        file.write(_formatter.serialize(data))
+except:
+    def dump_json(data, file):
+        json.dump(data, file, indent=1, separators=(',', ':'), sort_keys=True)
 
 def dump_dashboard_to_file(d, path):
     with open(path, 'w') as dst:
@@ -219,7 +236,8 @@ def dump_dashboard_to_file(d, path):
         raw["version"] = 1
         raw["author"] = "Ruohang Feng (rh@vonng.com)"
         raw["license"] = "https://pigsty.io/docs/about/license/"
-        json.dump(raw, dst, indent=4, sort_keys=True)
+        dump_json(raw, dst)
+        #json.dump(raw, dst, indent=1, separators=(',', ':'), sort_keys=True)
 
 
 def dump_dashboard(d, home):
@@ -229,7 +247,7 @@ def dump_dashboard(d, home):
         dir_uid = '.'
     p = os.path.join(home, dir_uid, db_uid + '.json')
     with open(p, 'w') as dst:
-        json.dump(dashboard_raw(d), dst, indent=4, sort_keys=True)
+        dump_json(dashboard_raw(d), dst)
 
 
 ##########################################
