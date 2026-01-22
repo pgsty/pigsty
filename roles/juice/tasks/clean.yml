@@ -1,0 +1,29 @@
+---
+#--------------------------------------------------------------#
+# JUICE Instance Cleanup Tasks
+#--------------------------------------------------------------#
+# Variables (passed from main.yml):
+#   juice_name       - filesystem name (instance key)
+#   juice_unit       - systemd service name
+#   juice_path       - mountpoint path
+#--------------------------------------------------------------#
+
+- name: stop {{ juice_unit }} service
+  systemd: name={{ juice_unit }} state=stopped enabled=no
+  ignore_errors: yes
+
+- name: umount {{ juice_path }} (fallback)
+  command: umount -l {{ juice_path }}
+  register: _umount
+  failed_when: false
+  changed_when: _umount.rc == 0
+
+- name: remove {{ juice_unit }} config files
+  file: path={{ item }} state=absent
+  loop:
+    - /etc/systemd/system/{{ juice_unit }}.service
+    - /etc/default/{{ juice_unit }}
+
+- name: reload systemd daemon
+  systemd: daemon_reload=yes
+...

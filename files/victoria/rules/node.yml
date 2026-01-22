@@ -2,8 +2,8 @@
 #==============================================================#
 # File      :   node.yml
 # Ctime     :   2020-04-22
-# Mtime     :   2025-12-20
-# Desc      :   Node Record Rules (Node/Haproxy)
+# Mtime     :   2026-01-22
+# Desc      :   Node Record Rules (Node/Haproxy/Docker/JuiceFS)
 # Path      :   /infra/rules/node.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -456,11 +456,11 @@ groups:
 
       # instance level
       - record: node:ins:free_bytes
-        expr: sum without(device,mountpoint,fstype) (node:fs:free_bytes)
+        expr: sum without(device,mountpoint,fstype) (node:fs:free_bytes{fstype!~"fuse.juicefs"})
       - record: node:ins:avail_bytes
-        expr: sum without(device,mountpoint,fstype) (node:fs:avail_bytes)
+        expr: sum without(device,mountpoint,fstype) (node:fs:avail_bytes{fstype!~"fuse.juicefs"})
       - record: node:ins:size_bytes
-        expr: sum without(device,mountpoint,fstype) (node:fs:size_bytes)
+        expr: sum without(device,mountpoint,fstype) (node:fs:size_bytes{fstype!~"fuse.juicefs"})
 
       # cluster level
       - record: node:cls:free_bytes
@@ -535,8 +535,8 @@ groups:
       # overall inode usage (usually max(node:fs:inode_usage) would be a better agg)
       - record: node:ins:inode_usage
         expr: |
-          sum without (fstype, device, mountpoint) (node:fs:inode_used) /
-          sum without (fstype, device, mountpoint) (node:fs:inode_total)
+          sum without (fstype, device, mountpoint) (node:fs:inode_used{fstype!~"fuse.juicefs"}) /
+          sum without (fstype, device, mountpoint) (node:fs:inode_total{fstype!~"fuse.juicefs"})
 
       #--------------------------------#
       #         File Descriptor        #

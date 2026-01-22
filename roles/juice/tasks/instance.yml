@@ -1,0 +1,65 @@
+---
+#--------------------------------------------------------------#
+# JUICE Instance Create Tasks
+#--------------------------------------------------------------#
+# Variables (passed from main.yml):
+#   juice_name       - filesystem name (instance key)
+#   juice_unit       - systemd service name (default: juicefs-<name>)
+#   juice_meta       - metadata backend URL (required)
+#   juice_format     - format options (--storage ...)
+#   juice_path       - mountpoint (required, e.g. /pgfs)
+#   juice_mount_opts - mount options
+#   juice_port       - metrics port
+#   juice_owner      - mountpoint owner
+#   juice_group      - mountpoint group
+#   juice_mode       - mountpoint mode
+#
+# Global variables:
+#   juice_cache      - shared cache directory (default: /data/juice)
+#
+# FHS:
+#   {{ juice_cache }}   - shared cache directory (JuiceFS isolates by UUID)
+#   {{ juice_path }}    - mountpoint
+#--------------------------------------------------------------#
+
+#--------------------------------------------------------------#
+# Format                                            [juice_init]
+#--------------------------------------------------------------#
+- name: init and format juicefs {{ juice_name }}
+  tags: [ juice_instance, juice_init ]
+  throttle: 1
+  command: juicefs format --no-update {{ juice_format }} "{{ juice_meta }}" "{{ juice_name }}"
+  register: _fmt
+  changed_when: "'created' in _fmt.stdout or 'Dumped' in _fmt.stdout"
+  failed_when: _fmt.rc != 0
+  no_log: true
+
+#--------------------------------------------------------------#
+# Mountpoint                                         [juice_dir]
+#--------------------------------------------------------------#
+- name: create juicefs mountpoint {{ juice_path }}
+  tags: [ juice_instance, juice_dir ]
+  file: path={{ juice_path }} state=directory owner={{ juice_owner }} group={{ juice_group }} mode={{ juice_mode }}
+
+#--------------------------------------------------------------#
+# Config                                          [juice_config]
+#--------------------------------------------------------------#
+- name: config {{ juice_unit }} environment file
+  tags: [ juice_instance, juice_config ]
+  template: src=juice.env dest=/etc/default/{{ juice_unit }} mode='0600'
+
+- name: config {{ juice_unit }} systemd service
+  tags: [ juice_instance, juice_config ]
+  template: src=juice.svc dest=/etc/systemd/system/{{ juice_unit }}.service mode='0644'
+
+#--------------------------------------------------------------#
+# Launch                                          [juice_launch]
+#--------------------------------------------------------------#
+- name: launch {{ juice_unit }} service
+  tags: [ juice_instance, juice_launch ]
+  systemd: name={{ juice_unit }} state=started enabled=yes daemon_reload=yes
+
+- name: wait for {{ juice_unit }} online
+  tags: [ juice_instance, juice_launch ]
+  wait_for: host=127.0.0.1 port={{ juice_port }} state=started timeout=60
+...

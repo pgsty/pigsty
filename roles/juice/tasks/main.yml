@@ -1,52 +1,94 @@
 ---
 #--------------------------------------------------------------#
-# Format                                          [juice_format]
+# JUICE - JuiceFS Multi-Instance Deployment
 #--------------------------------------------------------------#
-- name: juice format
-  tags: [ juice, juice_format ]
-  when: juice_enabled | bool
-  command: juicefs format --no-update {{ juice_format_options }} "{{ juice_pgurl }}" "{{ juice_name }}"
-  register: _fmt
-  changed_when: "'created' in _fmt.stdout or 'Dumped' in _fmt.stdout"
-  failed_when: _fmt.rc != 0
+# CLI: -e fsname=xxx to process single instance
+#--------------------------------------------------------------#
 
 #--------------------------------------------------------------#
-# Mount                                            [juice_mount]
+# Validate                                            [juice_id]
 #--------------------------------------------------------------#
-- name: juice dir
-  tags: [ juice, juice_mount ]
-  when: juice_enabled | bool
-  file: path={{ item.path }} state=directory owner={{ item.owner | default('root') }} group={{ item.group | default('root') }} mode={{ item.mode | default('0755') }}
-  loop:
-    - { path: "{{ juice_mount }}", owner: "{{ juice_owner }}", group: "{{ juice_group }}", mode: "{{ juice_mode }}" }
-    - { path: "{{ juice_cache }}", owner: "{{ juice_owner }}", group: "{{ juice_group }}", mode: "{{ juice_mode }}" }
+- name: check juice instances defined
+  tags: [ always, juice_id ]
+  assert:
+    that: juice_instances is defined and juice_instances | type_debug == "dict"
+    fail_msg: "juice_instances must be defined as a dictionary"
+
+- name: check juice instance port conflicts
+  tags: [ always, juice_id ]
+  assert:
+    that: _juice_ports | unique | length == _juice_ports | length
+    fail_msg: "juice_instances have port conflicts: {{ _juice_ports }}"
+  vars:
+    _ports_raw: "[{% for v in juice_instances.values() %}{{ v.port | default(9567) }}{% if not loop.last %},{% endif %}{% endfor %}]"
+    _juice_ports: "{{ _ports_raw | from_yaml }}"
+
 
 #--------------------------------------------------------------#
-# Register                                        [juice_config]
+# Install                                        [juice_install]
 #--------------------------------------------------------------#
-- name: juice config
-  tags: [ juice, juice_config ]
-  when: juice_enabled | bool
-  template: src={{ item.src }} dest={{ item.dest }} mode={{ item.mode }}
-  loop:
-    - { src: juice.env, dest: /etc/default/juicefs, mode: '0600' }
-    - { src: juice.svc, dest: /etc/systemd/system/juicefs.service, mode: '0644' }
-  notify: restart juicefs
+- name: makesure juicefs installed
+  tags: [ juice, juice_install ]
+  environment: "{{ proxy_env | default({}) }}"
+  package: name=juicefs state=present
+
 
 #--------------------------------------------------------------#
-# Register                                        [juice_launch]
+# Cache                                            [juice_cache]
 #--------------------------------------------------------------#
-- name: juice launch
-  tags: [ juice, juice_launch ]
-  when: juice_enabled | bool
-  systemd: name=juicefs state=started enabled=yes daemon_reload=yes
+- name: create juice cache directory
+  tags: [ juice, juice_cache ]
+  file: path={{ juice_cache }} state=directory owner=root group=root mode='0755'
+
+
+#--------------------------------------------------------------#
+# Instance: Clean                                 [juice_clean]
+#--------------------------------------------------------------#
+- name: clean juice instance
+  include_tasks: clean.yml
+  tags: [ juice_clean ]
+  loop: "{{ juice_instances | dict2items }}"
+  loop_control:
+    loop_var: fs
+  when:
+    - (fsname is not defined or fsname == fs.key)
+    - (fs.value.state | default('create')) == 'absent'
+  vars:
+    juice_name: "{{ fs.key }}"
+    juice_path: "{{ fs.value.path }}"
+    juice_unit: "{{ fs.value.unit | default('juicefs-' + fs.key) }}"
+
+
+#--------------------------------------------------------------#
+# Instance: Create                              [juice_instance]
+#--------------------------------------------------------------#
+- name: create juice instance
+  include_tasks: instance.yml
+  tags: [ juice, juice_instance, juice_init, juice_dir, juice_config, juice_launch ]
+  loop: "{{ juice_instances | dict2items }}"
+  loop_control:
+    loop_var: fs
+  when:
+    - (fsname is not defined or fsname == fs.key)
+    - (fs.value.state | default('create')) == 'create'
+  vars:
+    juice_name: "{{ fs.key }}"
+    juice_path: "{{ fs.value.path }}"
+    juice_meta: "{{ fs.value.meta }}"
+    juice_format: "{{ fs.value.data | default('') }}"
+    juice_unit: "{{ fs.value.unit | default('juicefs-' + fs.key) }}"
+    juice_mount_opts: "{{ fs.value.mount | default('') }}"
+    juice_port: "{{ fs.value.port | default(9567) }}"
+    juice_owner: "{{ fs.value.owner | default('root') }}"
+    juice_group: "{{ fs.value.group | default('root') }}"
+    juice_mode: "{{ fs.value.mode | default('0755') }}"
+
 
 #--------------------------------------------------------------#
 # Register                                      [juice_register]
 #--------------------------------------------------------------#
-- name: juice register
-  tags: [ juice, juice_register, add_metrics ]
-  when: juice_enabled | bool
+- name: register juice to victoria
+  tags: [ juice, juice_register, register, add_metrics ]
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"] | default([]) }}'
   ignore_errors: yes
@@ -56,6 +98,11 @@
     group: infra
     mode: '0640'
     content: |
-      - labels: { ip: {{ inventory_hostname }}, ins: "{{ nodename }}" , cls: juice }
-        targets: [ {{ inventory_hostname }}:{{ juice_port|default('9567') }} ]
+      # juicefs on {{ inventory_hostname }}
+      {% for name, conf in juice_instances.items() %}
+      {% if conf.state | default('create') == 'create' %}
+      - labels: { ip: {{ inventory_hostname }}, ins: "{{ nodename }}-{{ name }}", cls: "{{ name }}" }
+        targets: [ {{ inventory_hostname }}:{{ conf.port | default(9567) }} ]
+      {% endif %}
+      {% endfor %}
 ...

@@ -12,7 +12,6 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 
 # use different kernels
 ./configure -c pgsql            # Vanilla PostgreSQL kernel with basic features (13~18)
-./configure -c citus            # Distributed HA PostgreSQL with the Citus extension (14~17)
 ./configure -c mssql            # Babelfish kernel with SQL Server wire-compatibility (15)
 ./configure -c polar            # PolarDB PG kernel for Aurora / RAC flavor postgres (15)
 ./configure -c ivory            # IvorySQL Kernel for Oracle grammar compatibility (18)
@@ -27,6 +26,9 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c ha/full          # use the 4-node HA template
 ./configure -c ha/citus         # use the 13-node HA citus template
 ./configure -c ha/simu          # use the 20-node HA prod template
+
+# special configuration
+./configure -c code             # 1-node vibe coding devbox
 ```
 
 Pigsty will use the `meta.yml` single node config template if you do not specify a conf.
@@ -41,6 +43,9 @@ These are 1-node config template, which can be used to install pigsty on a singl
 * [meta.yml](meta.yml) : **DEFAULT**,  1-node PostgreSQL online installation
 * [rich.yml](rich.yml) : feature-rich config with local repo, minio, and more examples
 * [slim.yml](slim.yml) : install postgres directly without monitoring and infra
+* [fat.yml](fat.yml) : extreme feature-rich config with all extensions installed!
+* [infra.yml](infra.yml) : only install the infra components without postgres
+* [code.yml](code.yml) : 1-node vibe coding devbox with pgsql and various tools
 
 **Templates for exotic DBMS and kernels:**
 

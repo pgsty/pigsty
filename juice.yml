@@ -2,19 +2,66 @@
 ---
 #==============================================================#
 # File      :   juice.yml
-# Desc      :   Deploy JuiceFS with PostgreSQL backend
+# Desc      :   Deploy JuiceFS distributed filesystem
 # Ctime     :   2025-01-20
-# Mtime     :   2025-01-20
+# Mtime     :   2025-01-22
+# Path      :   juice.yml
 # Docs      :   https://pigsty.io/docs/juice/
-# Author    :   Ruohang Feng (rh@vonng.com)
 # License   :   Apache-2.0
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 - name: JUICE
   hosts: all
   become: yes
   gather_facts: no
   roles:
-    - { role: node_id ,tags: id }  # get node identity (always)
-    - { role: juice   ,tags: juice, when: juice_pgurl is defined }
+    - { role: node_id, tags: id }
+    - { role: juice,   tags: juice }
 
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+# https://juicefs.com/docs/community/command_reference
+#
+# juice_cache: /data/juice                # shared cache directory
+# juice_instances:                        # dict of juicefs filesystems
+#   <name>:                               # fs name (key)
+#     path  : /pgfs                       # [REQUIRED] mountpoint
+#     meta  : postgres://u:p@h:5432/db    # [REQUIRED] metadata URL
+#     data  : --storage postgres ...      # format options
+#     unit  : juicefs-<name>              # service name
+#     mount : ''                          # mount options
+#     port  : 9567                        # metrics port (UNIQUE per instance!)
+#     owner : root                        # mountpoint owner
+#     group : root                        # mountpoint group
+#     mode  : '0755'                      # mountpoint mode
+#     state : create                      # create | absent
+#--------------------------------------------------------------#
+# Deploy
+#--------------------------------------------------------------#
+#   ./juice.yml -l <host>                 # all fs on host
+#   ./juice.yml -l <host> -e fsname=xxx   # single fs
+#--------------------------------------------------------------#
+# Reconfigure (only restarts on actual changes)
+#--------------------------------------------------------------#
+#   ./juice.yml -l <host> -t juice_config
+#--------------------------------------------------------------#
+# Remove (set state: absent in config first)
+#--------------------------------------------------------------#
+#   ./juice.yml -l <host> -t juice_clean
+#   ./juice.yml -l <host> -e fsname=xxx -t juice_clean
+#--------------------------------------------------------------#
+# Tags
+#--------------------------------------------------------------#
+#   juice_id       : validate config and check port conflicts
+#   juice_install  : install juicefs package
+#   juice_cache    : create cache directory
+#   juice_instance : create instances (state=create)
+#     juice_init   : format filesystem
+#     juice_dir    : create mountpoint
+#     juice_config : render service files (triggers restart)
+#     juice_launch : start service
+#   juice_clean    : remove instances (state=absent)
+#   juice_register : register to prometheus
+#--------------------------------------------------------------#
 ...
