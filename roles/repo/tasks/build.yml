@@ -102,7 +102,7 @@
 - name: download repo url packages
   tags:  [repo_url_pkg, repo_new ]
   ignore_errors: true
-  environment: "{{ proxy_env }}"
+  environment: "{{ proxy_env | default({}) }}"
   get_url: dest={{ file_dest }} url={{ package_url | replace('${releasever}', os_version|string) | replace('${arch}', os_arch|string ) | replace('${distro_codename}', os_codename) }}
   vars:
     package_url: "{% if item is string %}{% if region == 'china' %}{{ item | replace('pigsty.io', 'pigsty.cc') }}{% else %}{{ item }}{% endif %}{% elif item is mapping and 'url' in item %}{% if region == 'china' %}{{ item.url | replace('pigsty.io', 'pigsty.cc') }}{% else %}{{ item.url }}{% endif %}{% endif %}"
@@ -166,7 +166,7 @@
           {% endfor %}
 
     - name: download repo packages
-      environment: "{{ proxy_env }}"
+      environment: "{{ proxy_env | default({}) }}"
       shell:
         chdir: "{{ repo_home }}/{{ repo_name }}"
         cmd: |
