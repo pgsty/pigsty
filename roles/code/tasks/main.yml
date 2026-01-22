@@ -42,20 +42,4 @@
       systemd: name=code-server state=restarted enabled=yes daemon_reload=yes
     - name: wait for code-server
       wait_for: host=127.0.0.1 port={{ code_port }} state=started timeout=30
-
-
-#--------------------------------------------------------------#
-# Install code-server extensions              [code_extensions]
-#--------------------------------------------------------------#
-- name: install code-server extensions
-  tags: code_extensions
-  when: code_extensions is defined and code_extensions | length > 0
-  ignore_errors: true
-  become_user: "{{ node_user }}"
-  environment:
-    XDG_CONFIG_HOME: "{{ code_data }}"
-  command: /usr/bin/code-server --install-extension {{ item }}
-  args:
-    creates: "{{ code_data }}/extensions/{{ item | regex_replace('\\.', '.') }}*"
-  loop: "{{ code_extensions }}"
 ...

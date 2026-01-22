@@ -33,17 +33,17 @@ code_port: 8443                   # code-server listen port
 code_home: /fs/code               # code-server working directory (open folder)
 code_data: /data/code             # code-server user data directory
 code_password: 'Code.Server'      # code-server password
-code_extensions: []               # extensions to be installed
+code_gallery: 'openvsx'           # extension gallery: openvsx (default) or microsoft
 ```
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `code_enabled` | `false` | Enable code-server on this node |
-| `code_port` | `8443` | Listen port (localhost only) |
-| `code_home` | `/fs/code` | Working directory opened in VS Code |
-| `code_data` | `/data/code` | User data directory (extensions, settings) |
-| `code_password` | `Code.Server` | Login password |
-| `code_extensions` | `[]` | List of extensions to install |
+| Variable        | Default       | Description                                      |
+|-----------------|---------------|--------------------------------------------------|
+| `code_enabled`  | `false`       | Enable code-server on this node                  |
+| `code_port`     | `8443`        | Listen port (localhost only)                     |
+| `code_home`     | `/fs/code`    | Working directory opened in VS Code              |
+| `code_data`     | `/data/code`  | User data directory (extensions, settings)       |
+| `code_password` | `Code.Server` | Login password                                   |
+| `code_gallery`  | `openvsx`     | Extension marketplace: `openvsx` or `microsoft`  |
 
 
 ## Directory Structure
@@ -81,41 +81,25 @@ code_enabled: true
 
 Login with the password configured in `code_password`.
 
-### Install Extensions
-
-```yaml
-code_extensions:
-  - ms-python.python
-  - redhat.vscode-yaml
-  - golang.go
-```
-
-Or install manually after deployment:
-
-```bash
-./code.yml -l <host> -t code_extensions -e '{"code_extensions":["ms-python.python"]}'
-```
-
 
 ## Tasks
 
-| Tag | Description |
-|-----|-------------|
-| `code` | Full code-server deployment |
-| `code_install` | Install code-server package |
-| `code_dir` | Create directories |
-| `code_config` | Render configuration files |
-| `code_launch` | Start systemd service |
-| `code_extensions` | Install VS Code extensions |
+| Tag            | Description                      |
+|----------------|----------------------------------|
+| `code`         | Full code-server deployment      |
+| `code_install` | Install code-server package      |
+| `code_dir`     | Create directories               |
+| `code_config`  | Render configuration files       |
+| `code_launch`  | Start systemd service            |
 
 
 ## Files
 
-| Template | Destination | Description |
-|----------|-------------|-------------|
-| `code.yml` | `{{ code_data }}/code-server/config.yaml` | code-server config |
-| `code.svc` | `/etc/systemd/system/code-server.service` | systemd unit |
-| `code.env` | `/etc/default/code` | environment variables |
+| Template   | Destination                               | Description           |
+|------------|-------------------------------------------|-----------------------|
+| `code.yml` | `{{ code_data }}/code-server/config.yaml` | code-server config    |
+| `code.svc` | `/etc/systemd/system/code-server.service` | systemd unit          |
+| `code.env` | `/etc/default/code`                       | environment variables |
 
 
 ## Nginx Integration
@@ -146,12 +130,19 @@ infra_portal:
 ```
 
 
-## China Region
+## Extension Gallery
 
-In China region (`region: china`), the extension marketplace is automatically configured to use Tsinghua mirror:
+code-server uses [Open VSX](https://open-vsx.org/) as the default extension marketplace.
 
-```bash
-EXTENSIONS_GALLERY={"serviceUrl":"https://open-vsx.tuna.tsinghua.edu.cn/vscode/gallery","itemUrl":"https://open-vsx.tuna.tsinghua.edu.cn/vscode/item"}
+| `code_gallery` | Marketplace                                                  |
+|----------------|--------------------------------------------------------------|
+| `openvsx`      | Open VSX Registry (default)                                  |
+| `microsoft`    | Microsoft Visual Studio Marketplace                          |
+
+When `region: china` is set, the Tsinghua Open VSX mirror is used automatically:
+
+```
+https://open-vsx.tuna.tsinghua.edu.cn/vscode/gallery
 ```
 
 
@@ -163,8 +154,5 @@ all:
     code_enabled: true
     code_home: /home/dba/pigsty
     code_password: 'MySecurePassword'
-    code_extensions:
-      - ms-python.python
-      - redhat.vscode-yaml
-      - hashicorp.terraform
+    code_gallery: microsoft          # use Microsoft marketplace
 ```
