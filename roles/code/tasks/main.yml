@@ -1,0 +1,61 @@
+---
+#--------------------------------------------------------------#
+# Install code-server                             [code_install]
+#--------------------------------------------------------------#
+- name: install code-server
+  tags: code_install
+  environment: "{{ proxy_env | default({}) }}"
+  package: name=code-server state=present
+
+
+#--------------------------------------------------------------#
+# Create code directories                             [code_dir]
+#--------------------------------------------------------------#
+- name: create code directories
+  tags: code_dir
+  file: path={{ item }} state=directory owner={{ node_user }} group={{ node_user }} mode='0755'
+  loop:
+    - "{{ code_home }}"
+    - "{{ code_data }}"
+    - "{{ code_data }}/code-server"
+
+
+#--------------------------------------------------------------#
+# Config code-server                               [code_config]
+#--------------------------------------------------------------#
+- name: render code-server config
+  tags: code_config
+  template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  loop:
+    - { src: code.yml , dest: "{{ code_data }}/code-server/config.yaml" , owner: "{{ node_user }}" , group: "{{ node_user }}" , mode: '0600' }
+    - { src: code.svc , dest: /etc/systemd/system/code-server.service , owner: root , group: root , mode: '0644' }
+    - { src: code.env , dest: /etc/default/code , owner: root , group: root , mode: '0644' }
+
+
+#--------------------------------------------------------------#
+# Launch code-server                               [code_launch]
+#--------------------------------------------------------------#
+- name: launch code-server
+  tags: code_launch
+  block:
+    - name: start code-server service
+      systemd: name=code-server state=restarted enabled=yes daemon_reload=yes
+    - name: wait for code-server
+      wait_for: host=127.0.0.1 port={{ code_port }} state=started timeout=30
+
+
+#--------------------------------------------------------------#
+# Install code-server extensions              [code_extensions]
+#--------------------------------------------------------------#
+- name: install code-server extensions
+  tags: code_extensions
+  when: code_extensions is defined and code_extensions | length > 0
+  ignore_errors: true
+  become_user: "{{ node_user }}"
+  environment:
+    XDG_CONFIG_HOME: "{{ code_data }}"
+  command: /usr/bin/code-server --install-extension {{ item }}
+  args:
+    creates: "{{ code_data }}/extensions/{{ item | regex_replace('\\.', '.') }}*"
+  loop: "{{ code_extensions }}"
+...

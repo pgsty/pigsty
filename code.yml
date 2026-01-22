@@ -1,0 +1,51 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   code.yml
+# Desc      :   deploy code-server on nodes
+# Ctime     :   2025-01-22
+# Mtime     :   2025-01-22
+# Path      :   code.yml
+# Docs      :   https://pigsty.io/docs/code
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: CODE SERVER
+  hosts: all
+  gather_facts: no
+  become: true
+  vars:
+    #code_enabled: false         # enable code-server on this node?
+    #code_port: 8443             # code-server listen port
+    #code_home: /fs              # code-server working directory (open folder)
+    #code_data: /data/code       # code-server user data directory
+    #code_password: Code.Server  # code-server login password
+    #code_extensions: []         # extensions to install (e.g., ms-python.python)
+  roles:
+    - { role: node_id , tags: id   }
+    - { role: code    , tags: code , when: code_enabled is defined and code_enabled|bool }
+
+
+#---------------------------------------------------------------
+# Usage
+#---------------------------------------------------------------
+# Set parameter `code_enabled: true` on target nodes, then:
+#
+#   ./code.yml -l <host>
+#
+# Access code-server at: https://i.pigsty/code/
+#
+# one-liner to enable code-server on infra node:
+#   ./code.yml -l infra -e code_enabled=true
+#
+#---------------------------------------------------------------
+# Tasks
+#---------------------------------------------------------------
+# code                : setup code-server on node
+#   - code_install    : install code-server package
+#   - code_dir        : create code home and data directory
+#   - code_config     : render code-server config and systemd unit
+#   - code_launch     : launch code-server systemd service
+#   - code_extensions : install vscode extensions
+#---------------------------------------------------------------
+...
