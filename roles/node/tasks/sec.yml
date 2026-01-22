@@ -31,10 +31,10 @@
     PUBLIC="{{ fw_public }}"
     if command -v firewall-cmd &>/dev/null; then
         [[ "$MODE" == "off" ]] && { systemctl disable --now firewalld &>/dev/null; exit 0; }
-        systemctl is-active firewalld &>/dev/null || exit 0
-        for cidr in $INTRANET; do firewall-cmd --permanent --zone=trusted --add-source=$cidr &>/dev/null; done
-        for port in $PUBLIC;   do firewall-cmd --permanent --zone=public  --add-port=${port}/tcp &>/dev/null; done
-        firewall-cmd --reload &>/dev/null
+        systemctl is-active firewalld &>/dev/null || systemctl enable --now firewalld &>/dev/null
+        for cidr in $INTRANET; do firewall-cmd --zone=trusted --add-source=$cidr &>/dev/null; done
+        for port in $PUBLIC;   do firewall-cmd --zone=public  --add-port=${port}/tcp &>/dev/null; done
+        firewall-cmd --runtime-to-permanent &>/dev/null
     elif command -v ufw &>/dev/null; then
         [[ "$MODE" == "off" ]] && { ufw disable &>/dev/null; exit 0; }
         for cidr in $INTRANET; do ufw allow from $cidr &>/dev/null; done

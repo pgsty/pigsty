@@ -127,7 +127,7 @@ node (full role)
 | Variable             | Default | Description                                     |
 |----------------------|---------|-------------------------------------------------|
 | `node_selinux_mode`  | `enum`  | set selinux mode: enforcing,permissive,disabled |
-| `node_firewall_mode` | `enum`  | firewall mode: off, none, zone, zone by default |
+| `node_firewall_mode` | `enum`  | firewall mode: none (skip), off (disable), zone (enable & config) |
 
 
 ### Packages
