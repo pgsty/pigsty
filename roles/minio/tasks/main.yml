@@ -34,7 +34,7 @@
     # - minio_cluster_members: sorted list of node IPs (e.g., [10.10.10.10, 10.10.10.11, ...])
     # - minio_seq_min/max: minimum and maximum sequence numbers in cluster
     # - minio_seq_range: MinIO's ellipsis notation for node range, e.g., "{1...4}"
-    #   Used to generate distributed volume URLs like: https://minio-{1...4}.pigsty:9000/data/minio
+    #   Used to generate distributed volume URLs like: http(s)://minio-{1...4}.pigsty:9000/data/minio
     # - minio_member: comma-separated "IP hostname" pairs for DNS registration
     #   e.g., "10.10.10.10 minio-1.pigsty,10.10.10.11 minio-2.pigsty,..."
     - name: building minio params
@@ -54,18 +54,18 @@
     #   Output: "/data/minio" or "/data{1...4}/minio" (just the data path)
     #
     # Multi-node distributed mode (minio_cluster_size > 1):
-    #   Output: "https://minio-{1...4}.pigsty:9000/data{1...4}/minio"
-    #   Format: <protocol>://<node_pattern>:<port><data_path>
+    #   Output: "<protocol>://minio-{1...4}.pigsty:9000/data{1...4}/minio"
+    #   Protocol is determined by minio_https: https if true, http if false
     #   MinIO server expands {x...y} notation to enumerate all nodes and drives
     #
-    # Example for 4-node cluster with 4 drives each:
+    # Example for 4-node cluster with 4 drives each (minio_https: true):
     #   Input:  minio_data="/data{1...4}/minio", minio_seq_range="{1...4}"
     #   Output: "https://minio-{1...4}.pigsty:9000/data{1...4}/minio"
     #   Expands to 16 endpoints (4 nodes × 4 drives)
     - name: calculate or use minio volumes
       connection: local
       set_fact:
-        minio_volumes: "{% if minio_volumes is defined and minio_volumes != ''%}{{ minio_volumes }}{% else %}{% if minio_cluster_size|int > 1 %}https://{{ minio_node|replace('${minio_cluster}', minio_cluster)|replace('${minio_seq}',minio_seq_range) }}:{{ minio_port|default(9000) }}{% endif %}{{ minio_data }}{% endif %}"
+        minio_volumes: "{% if minio_volumes is defined and minio_volumes != ''%}{{ minio_volumes }}{% else %}{% if minio_cluster_size|int > 1 %}{% if minio_https|bool %}https{% else %}http{% endif %}://{{ minio_node|replace('${minio_cluster}', minio_cluster)|replace('${minio_seq}',minio_seq_range) }}:{{ minio_port|default(9000) }}{% endif %}{{ minio_data }}{% endif %}"
 
     - name: print minio identity
       debug:

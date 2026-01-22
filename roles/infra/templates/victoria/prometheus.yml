@@ -1,7 +1,7 @@
 ---
 #==============================================================#
 # File      :   prometheus.yml
-# Ctime     :   2025-12-11
+# Ctime     :   2026-01-22
 # Desc      :   VictoriaMetrics Configuration File
 # Path      :   /infra/prometheus.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -103,11 +103,14 @@ scrape_configs:
     metrics_path: /minio/v2/metrics/cluster
     file_sd_configs:
       - files: [ /infra/targets/minio/*.yml ]
-    scheme: https
+    scheme: {% if minio_https|default(true)|bool %}https{% else %}http{% endif %}
+
+{% if minio_https|default(true)|bool %}
     tls_config:
       ca_file:   /etc/pki/ca.crt
       cert_file: /etc/pki/infra.crt
       key_file:  /etc/pki/infra.key
+{% endif %}
 
   #--------------------------------------------------------------#
   # job: pgsql
