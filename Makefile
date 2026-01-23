@@ -168,6 +168,9 @@ repo-clean:
 node-repo:
 	./node.yml -t node_repo
 
+node-upstream:
+	./node.yml -t node_repo -e node_repo_modules=node,pgsql,infra,local
+
 redeploy: repo-clean
 	./deploy.yml
 
@@ -679,7 +682,7 @@ ext:
 .PHONY: default tip link doc all boot conf configure bootstrap config deploy \
         src pkg \
         c v validate \
-        infra pgsql repo repo-upstream repo-build repo-add node-repo repo-clean pgsql-add pgsql-rm pgsql-ext \
+        infra pgsql repo repo-upstream repo-build repo-add node-repo node-upstream repo-clean pgsql-add pgsql-rm pgsql-ext \
         grafana nginx cert docker app \
         deps dns start ssh tssh \
         up dw del new clean up-test dw-test del-test new-test clean \
