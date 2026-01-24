@@ -1,0 +1,74 @@
+---
+#--------------------------------------------------------------#
+# CODE - VS Code Server Installation & Configuration
+#--------------------------------------------------------------#
+
+#--------------------------------------------------------------#
+# code_install - install code-server package
+#--------------------------------------------------------------#
+- name: install code-server package
+  tags: code_install
+  package: name=code-server state=present
+  environment: "{{ proxy_env | default({}) }}"
+
+#--------------------------------------------------------------#
+# code_dir - create code-server data directories
+#--------------------------------------------------------------#
+- name: create code-server data directories
+  tags: code_dir
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ node_user | default('root') }}"
+    group: "{{ node_user | default('root') }}"
+    mode: '0755'
+  loop:
+    - "{{ code_data }}"
+    - "{{ code_data }}/code-server"
+
+#--------------------------------------------------------------#
+# code_config - render code-server config files
+#--------------------------------------------------------------#
+- name: render code-server config.yaml
+  tags: code_config
+  template:
+    src: code.yml
+    dest: "{{ code_data }}/code-server/config.yaml"
+    owner: "{{ node_user | default('root') }}"
+    group: "{{ node_user | default('root') }}"
+    mode: '0600'
+
+- name: render code-server systemd service
+  tags: code_config
+  template:
+    src: code.svc
+    dest: /etc/systemd/system/code-server.service
+    mode: '0644'
+
+- name: render code-server environment file
+  tags: code_config
+  template:
+    src: code.env
+    dest: /etc/default/code
+    mode: '0644'
+
+#--------------------------------------------------------------#
+# code_launch - start code-server service
+#--------------------------------------------------------------#
+- name: start code-server service
+  tags: code_launch
+  systemd:
+    name: code-server
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+
+- name: wait for code-server to be ready
+  tags: code_launch
+  wait_for:
+    host: 127.0.0.1
+    port: "{{ code_port }}"
+    state: started
+    timeout: 30
+
+...

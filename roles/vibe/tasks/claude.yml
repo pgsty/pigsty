@@ -1,0 +1,63 @@
+---
+#--------------------------------------------------------------#
+# CLAUDE - Claude Code CLI Installation & Configuration
+#--------------------------------------------------------------#
+
+#--------------------------------------------------------------#
+# claude_install - install claude package
+#--------------------------------------------------------------#
+- name: install claude package
+  tags: claude_install
+  package: name=claude state=present
+  environment: "{{ proxy_env | default({}) }}"
+
+#--------------------------------------------------------------#
+# claude_config - create claude configuration directory
+#--------------------------------------------------------------#
+- name: create claude config directory
+  tags: claude_config
+  become: false
+  file: { path: "~/.claude", state: directory, mode: '0700' }
+
+#--------------------------------------------------------------#
+# claude_config - render claude.json (skip onboarding & warnings)
+#--------------------------------------------------------------#
+- name: render claude.json (skip onboarding & warnings)
+  tags: claude_config
+  become: false
+  copy:
+    dest: "~/.claude.json"
+    mode: '0600'
+    force: true
+    content: |
+      {
+        "hasCompletedOnboarding": true,
+        "hasCompletedProjectOnboarding": true,
+        "hasTrustDialogAccepted": true,
+        "hasTrustDialogHooksAccepted": true,
+        "bypassPermissionsModeAccepted": true,
+        "shiftEnterKeyBindingInstalled": true
+      }
+
+#--------------------------------------------------------------#
+# claude_config - render claude settings.json with otel config
+#--------------------------------------------------------------#
+- name: render claude settings.json
+  tags: claude_config
+  become: false
+  vars:
+    claude_env_default:
+      CLAUDE_CODE_ENABLE_TELEMETRY: 1
+      OTEL_LOG_USER_PROMPTS: 1
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://127.0.0.1:{{ vmagent_port | default(8428) }}/opentelemetry/v1/metrics"
+      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: "http://127.0.0.1:{{ vlogs_port | default(9428) }}/insert/opentelemetry/v1/logs"
+      OTEL_RESOURCE_ATTRIBUTES: "ip={{ inventory_hostname }},job=claude"
+  copy:
+    dest: "~/.claude/settings.json"
+    mode: '0600'
+    content: "{{ {'env': claude_env_default | combine(claude_env | default({}))} | to_nice_json }}\n"
+
+...

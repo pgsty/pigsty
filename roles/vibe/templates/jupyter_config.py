@@ -5,7 +5,7 @@ c = get_config()
 c.ServerApp.ip = '0.0.0.0'
 c.ServerApp.port = {{ jupyter_port }}
 c.ServerApp.open_browser = False
-c.ServerApp.root_dir = '{{ jupyter_home }}'
+c.ServerApp.root_dir = '{{ vibe_data }}'
 c.ServerApp.base_url = '/jupyter/'
 c.ServerApp.allow_root = True
 

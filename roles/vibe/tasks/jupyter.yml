@@ -1,0 +1,76 @@
+---
+#--------------------------------------------------------------#
+# JUPYTER - JupyterLab Installation & Configuration
+#--------------------------------------------------------------#
+
+#--------------------------------------------------------------#
+# jupyter_install - install jupyter if not exists
+#--------------------------------------------------------------#
+- name: install jupyter with uv if not exists
+  tags: jupyter_install
+  shell: |
+    [ -x "{{ jupyter_venv }}/bin/jupyter" ] && exit 0
+    uv pip install --python {{ jupyter_venv }}/bin/python jupyterlab ipykernel
+  args:
+    executable: /bin/bash
+  register: jupyter_install_result
+  changed_when: jupyter_install_result.rc == 0 and jupyter_install_result.stdout != ''
+
+#--------------------------------------------------------------#
+# jupyter_dir - create jupyter data directory
+#--------------------------------------------------------------#
+- name: create jupyter data directory
+  tags: jupyter_dir
+  file:
+    path: "{{ jupyter_data }}"
+    state: directory
+    owner: "{{ node_user | default('root') }}"
+    group: "{{ node_user | default('root') }}"
+    mode: '0755'
+
+#--------------------------------------------------------------#
+# jupyter_config - render jupyter config files
+#--------------------------------------------------------------#
+- name: render jupyter config file
+  tags: jupyter_config
+  template:
+    src: jupyter_config.py
+    dest: "{{ jupyter_data }}/jupyter_config.py"
+    owner: "{{ node_user | default('root') }}"
+    group: "{{ node_user | default('root') }}"
+    mode: '0600'
+
+- name: render jupyter systemd service
+  tags: jupyter_config
+  template:
+    src: jupyter.svc
+    dest: /etc/systemd/system/jupyter.service
+    mode: '0644'
+
+- name: render jupyter environment file
+  tags: jupyter_config
+  template:
+    src: jupyter.env
+    dest: /etc/default/jupyter
+    mode: '0644'
+
+#--------------------------------------------------------------#
+# jupyter_launch - start jupyter service
+#--------------------------------------------------------------#
+- name: start jupyter service
+  tags: jupyter_launch
+  systemd:
+    name: jupyter
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: wait for jupyter to be ready
+  tags: jupyter_launch
+  wait_for:
+    host: 127.0.0.1
+    port: "{{ jupyter_port }}"
+    state: started
+    timeout: 30
+
+...

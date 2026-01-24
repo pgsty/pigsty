@@ -28,7 +28,7 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c ha/simu          # use the 20-node HA prod template
 
 # special configuration
-./configure -c code             # 1-node vibe coding devbox
+./configure -c vibe             # 1-node vibe coding devbox
 ```
 
 Pigsty will use the `meta.yml` single node config template if you do not specify a conf.
@@ -45,7 +45,7 @@ These are 1-node config template, which can be used to install pigsty on a singl
 * [slim.yml](slim.yml) : install postgres directly without monitoring and infra
 * [fat.yml](fat.yml) : extreme feature-rich config with all extensions installed!
 * [infra.yml](infra.yml) : only install the infra components without postgres
-* [code.yml](code.yml) : 1-node vibe coding devbox with pgsql and various tools
+* [vibe.yml](vibe.yml) : 1-node vibe coding devbox with pgsql and various tools
 
 **Templates for exotic DBMS and kernels:**
 

@@ -1,0 +1,75 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   vibe.yml
+# Desc      :   Deploy development tools (claude, code, jupyter)
+# Ctime     :   2025-01-24
+# Mtime     :   2025-01-24
+# Path      :   vibe.yml
+# Docs      :   https://pigsty.io/docs/vibe
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: VIBE
+  hosts: all
+  gather_facts: no
+  become: true
+  vars:
+    #vibe_data: /fs                   # vibe workspace directory
+    #claude_enabled: true            # enable claude code cli
+    #claude_env: {}                  # extra env vars for claude
+    #code_enabled: true              # enable code-server
+    #code_port: 8443                 # code-server listen port
+    #code_data: /data/code           # code-server data directory
+    #code_password: Code.Server      # code-server password
+    #code_gallery: openvsx           # extension gallery: openvsx|microsoft
+    #jupyter_enabled: true           # enable jupyter lab
+    #jupyter_port: 8888              # jupyter lab listen port
+    #jupyter_data: /data/jupyter     # jupyter lab data directory
+    #jupyter_password: Jupyter.Lab   # jupyter lab access token
+    #jupyter_venv: /data/venv        # python venv path with jupyter
+  roles:
+    - { role: node_id, tags: id   }
+    - { role: vibe,    tags: vibe }
+
+
+#---------------------------------------------------------------
+# Usage
+#---------------------------------------------------------------
+# ./vibe.yml -l <host>                          # full install
+# ./vibe.yml -l <host> -t claude                # claude only
+# ./vibe.yml -l <host> -t code                  # code only
+# ./vibe.yml -l <host> -t jupyter               # jupyter only
+#
+# Disable components:
+#   ./vibe.yml -l <host> -e claude_enabled=false
+#   ./vibe.yml -l <host> -e code_enabled=false
+#   ./vibe.yml -l <host> -e jupyter_enabled=false
+#
+# Configure Claude API key:
+#   ./vibe.yml -l <host> -e claude_env.ANTHROPIC_API_KEY=sk-ant-xxx
+#
+# Access services:
+#   Code Server: https://<host>/code/
+#   JupyterLab:  https://<host>/jupyter/
+#
+#---------------------------------------------------------------
+# Tasks
+#---------------------------------------------------------------
+# vibe                 : deploy vibe development tools
+#   - vibe_dir         : create workspace and render context files
+#   - claude           : configure claude code cli
+#     - claude_install : install claude-code package
+#     - claude_config  : render ~/.claude config files
+#   - code             : deploy code-server
+#     - code_install   : install code-server package
+#     - code_dir       : create code data directories
+#     - code_config    : render config and systemd unit
+#     - code_launch    : start code-server service
+#   - jupyter          : deploy jupyter lab
+#     - jupyter_install: install jupyter with uv
+#     - jupyter_dir    : create jupyter directories
+#     - jupyter_config : render config and systemd unit
+#     - jupyter_launch : start jupyter service
+#---------------------------------------------------------------
+...
