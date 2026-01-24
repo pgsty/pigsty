@@ -195,6 +195,55 @@
       "title":"Active Time",
       "type":"stat"
     },
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":9},"id":60,"panels":[],"title":"Session : $session","type":"row"},
+    {
+      "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},
+      "fieldConfig":{
+        "defaults":{
+          "color":{"mode":"palette-classic"},
+          "custom":{
+            "axisBorderShow":false,
+            "axisCenteredZero":false,
+            "axisColorMode":"text",
+            "axisLabel":"",
+            "axisPlacement":"auto",
+            "barAlignment":0,
+            "barWidthFactor":0.6,
+            "drawStyle":"bars",
+            "fillOpacity":80,
+            "gradientMode":"none",
+            "hideFrom":{"legend":false,"tooltip":false,"viz":false},
+            "insertNulls":false,
+            "lineInterpolation":"linear",
+            "lineWidth":1,
+            "pointSize":5,
+            "scaleDistribution":{"type":"linear"},
+            "showPoints":"never",
+            "showValues":false,
+            "spanNulls":false,
+            "stacking":{"group":"A","mode":"normal"},
+            "thresholdsStyle":{"mode":"off"}
+          },
+          "decimals":0,
+          "mappings":[],
+          "thresholds":{"mode":"absolute","steps":[{"color":"#5B8C7A","value":0}]},
+          "unit":"short"
+        },
+        "overrides":[]
+      },
+      "gridPos":{"h":5,"w":24,"x":0,"y":10},
+      "id":61,
+      "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":true,"mode":"multi","sort":"desc"}},
+      "pluginVersion":"12.3.1",
+      "targets":[
+        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"_msg:claude_code.user_prompt session.id:\"$session\" | stats count() as requests"  ,             "legendFormat":"User Prompt"  ,"queryType":"statsRange","refId":"A" },
+        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"_msg:claude_code.api_request session.id:\"$session\" | stats count() as requests"  ,"hide":false,"legendFormat":"API Request"  ,"queryType":"statsRange","refId":"B" },
+        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"_msg:claude_code.tool_decision session.id:\"$session\" | stats count() as requests","hide":false,"legendFormat":"Tool Decision","queryType":"statsRange","refId":"C" },
+        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"_msg:claude_code.tool_result session.id:\"$session\" | stats count() as requests"  ,"hide":false,"legendFormat":"Tool Result"  ,"queryType":"statsRange","refId":"D" }
+      ],
+      "title":"Events",
+      "type":"timeseries"
+    },
     {
       "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},
       "description":"User Prompt \u27a1\ufe0f API Request \u27a1\ufe0f Tool Decision \u27a1\ufe0f Tool\n\nDocs: https://code.claude.com/docs/en/monitoring-usage\n\n\n\nUser Prompt: input prompt content and its length\n\nAPI Requests: Model, token consumption and cost\n\nTool Decision: accept / reject by (Source)\n\nTool: Parameters, result size, error, and use_id",
@@ -294,11 +343,11 @@
           {"matcher":{"id":"byRegexp","options":"/Token|T\\$.*/"},"properties":[{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#346f36cc","value":100},{"color":"#f79f64","value":1000},{"color":"#cc4637d9","value":10000}]}},{"id":"unit","value":"none"},{"id":"custom.cellOptions","value":{"type":"color-text"}}]}
         ]
       },
-      "gridPos":{"h":21,"w":24,"x":0,"y":9},
+      "gridPos":{"h":21,"w":24,"x":0,"y":15},
       "id":57,
       "options":{"cellHeight":"sm","showHeader":true,"sortBy":[]},
       "pluginVersion":"12.3.1",
-      "targets":[{"datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"job:claude","queryType":"instant","refId":"A"}],
+      "targets":[{"datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"job:claude session.id:\"$session\"","queryType":"instant","refId":"A"}],
       "title":"Claude Code Events (Session: $session)",
       "transformations":[
         {"id":"extractFields","options":{"format":"auto","jsonPaths":[],"keepTime":false,"replace":false,"source":"labels"}},
@@ -414,7 +463,7 @@
       ],
       "type":"table"
     },
-    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":30},"id":55,"panels":[],"title":"Prompts","type":"row"},
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":36},"id":55,"panels":[],"title":"Overall Prompts","type":"row"},
     {
       "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},
       "fieldConfig":{
@@ -450,7 +499,7 @@
         },
         "overrides":[]
       },
-      "gridPos":{"h":4,"w":24,"x":0,"y":31},
+      "gridPos":{"h":4,"w":24,"x":0,"y":37},
       "id":59,
       "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":true,"mode":"multi","sort":"desc"}},
       "pluginVersion":"12.3.1",
@@ -558,7 +607,7 @@
           {"matcher":{"id":"byName","options":"Seq"},"properties":[{"id":"custom.width","value":50}]}
         ]
       },
-      "gridPos":{"h":8,"w":24,"x":0,"y":35},
+      "gridPos":{"h":7,"w":24,"x":0,"y":41},
       "id":58,
       "options":{"cellHeight":"sm","showHeader":true,"sortBy":[{"desc":true,"displayName":"Time"}]},
       "pluginVersion":"12.3.1",
@@ -642,7 +691,7 @@
     },
     {
       "collapsed":true,
-      "gridPos":{"h":1,"w":24,"x":0,"y":43},
+      "gridPos":{"h":1,"w":24,"x":0,"y":48},
       "id":11,
       "panels":[
         {
@@ -679,7 +728,7 @@
             },
             "overrides":[]
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":80},
+          "gridPos":{"h":8,"w":12,"x":0,"y":49},
           "id":12,
           "options":{"legend":{"calcs":["sum","mean"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":true,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.1",
@@ -723,7 +772,7 @@
               { "matcher":{"id":"byName","options":"cacheRead"}    ,"properties":[{"id":"color","value":{"fixedColor":"#4A7B96","mode":"fixed"}}] },{ "matcher":{"id":"byName","options":"cacheCreation"},"properties":[{"id":"color","value":{"fixedColor":"#8B6B7A","mode":"fixed"}}] }
             ]
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":80},
+          "gridPos":{"h":8,"w":12,"x":12,"y":49},
           "id":13,
           "options":{"legend":{"calcs":["sum","mean"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":true,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.1",
@@ -764,7 +813,7 @@
             },
             "overrides":[]
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":88},
+          "gridPos":{"h":8,"w":12,"x":0,"y":57},
           "id":14,
           "options":{"legend":{"calcs":["sum","mean"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":true,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.1",
@@ -805,7 +854,7 @@
             },
             "overrides":[]
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":88},
+          "gridPos":{"h":8,"w":12,"x":12,"y":57},
           "id":15,
           "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.1",
@@ -819,7 +868,7 @@
     },
     {
       "collapsed":true,
-      "gridPos":{"h":1,"w":24,"x":0,"y":44},
+      "gridPos":{"h":1,"w":24,"x":0,"y":49},
       "id":20,
       "panels":[
         {
@@ -856,7 +905,7 @@
             },
             "overrides":[]
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":45},
+          "gridPos":{"h":8,"w":12,"x":0,"y":241},
           "id":21,
           "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":true,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.1",
@@ -898,7 +947,7 @@
             },
             "overrides":[]
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":45},
+          "gridPos":{"h":8,"w":12,"x":12,"y":241},
           "id":22,
           "options":{"legend":{"calcs":["mean","max"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.1",
@@ -942,7 +991,7 @@
               { "matcher":{"id":"byName","options":"cache_read"}    ,"properties":[{"id":"color","value":{"fixedColor":"#4A7B96","mode":"fixed"}}] },{ "matcher":{"id":"byName","options":"cache_creation"},"properties":[{"id":"color","value":{"fixedColor":"#8B6B7A","mode":"fixed"}}] }
             ]
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":69},
+          "gridPos":{"h":8,"w":12,"x":0,"y":265},
           "id":23,
           "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":true,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.1",
@@ -988,7 +1037,7 @@
             },
             "overrides":[]
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":69},
+          "gridPos":{"h":8,"w":12,"x":12,"y":265},
           "id":24,
           "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":true,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.1",
@@ -1002,7 +1051,7 @@
     },
     {
       "collapsed":true,
-      "gridPos":{"h":1,"w":24,"x":0,"y":45},
+      "gridPos":{"h":1,"w":24,"x":0,"y":50},
       "id":30,
       "panels":[
         {
@@ -1044,7 +1093,7 @@
               { "matcher":{"id":"byName","options":"Task"} ,"properties":[{"id":"color","value":{"fixedColor":"#C9A257","mode":"fixed"}}] }
             ]
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":46},
+          "gridPos":{"h":8,"w":12,"x":0,"y":242},
           "id":31,
           "options":{"legend":{"calcs":["sum","mean"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":true,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.1",
@@ -1089,7 +1138,7 @@
               { "matcher":{"id":"byName","options":"Edit"} ,"properties":[{"id":"color","value":{"fixedColor":"#BF6C50","mode":"fixed"}}] }
             ]
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":46},
+          "gridPos":{"h":8,"w":12,"x":12,"y":242},
           "id":32,
           "options":{"legend":{"calcs":["mean","max"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.1",
@@ -1130,7 +1179,7 @@
             },
             "overrides":[{"matcher":{"id":"byName","options":"accept"},"properties":[{"id":"color","value":{"fixedColor":"#5B8C7A","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"reject"},"properties":[{"id":"color","value":{"fixedColor":"#C45B47","mode":"fixed"}}]}]
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":54},
+          "gridPos":{"h":8,"w":12,"x":0,"y":250},
           "id":33,
           "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":true,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.1",
@@ -1171,7 +1220,7 @@
             },
             "overrides":[{"matcher":{"id":"byName","options":"true"},"properties":[{"id":"color","value":{"fixedColor":"#5B8C7A","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"false"},"properties":[{"id":"color","value":{"fixedColor":"#C45B47","mode":"fixed"}}]}]
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":54},
+          "gridPos":{"h":8,"w":12,"x":12,"y":250},
           "id":34,
           "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":true,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.1",
@@ -1185,7 +1234,7 @@
     },
     {
       "collapsed":true,
-      "gridPos":{"h":1,"w":24,"x":0,"y":46},
+      "gridPos":{"h":1,"w":24,"x":0,"y":51},
       "id":50,
       "panels":[
         {
@@ -1290,7 +1339,7 @@
               {"matcher":{"id":"byRegexp","options":"/Token|T\\$.*/"},"properties":[{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#346f36cc","value":100},{"color":"#f79f64","value":1000},{"color":"#cc4637d9","value":10000}]}},{"id":"unit","value":"none"},{"id":"custom.cellOptions","value":{"type":"color-text"}}]}
             ]
           },
-          "gridPos":{"h":25,"w":24,"x":0,"y":115},
+          "gridPos":{"h":25,"w":24,"x":0,"y":68},
           "id":54,
           "options":{"cellHeight":"sm","showHeader":true,"sortBy":[]},
           "pluginVersion":"12.3.1",
@@ -1392,7 +1441,7 @@
   "preload":false,
   "refresh":"30s",
   "schemaVersion":42,
-  "tags":["Claude","NODE"],
+  "tags":["Claude","NODE","Pigsty"],
   "templating":{"list":[{"current":{},"datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"definition":"job:claude","description":"Claude Code SessionID","label":"Session","name":"session","options":[],"query":{"field":"session.id","limit":1000,"query":"job:claude","refId":"VictoriaLogsVariableQueryEditor-VariableQuery","type":"fieldValue"},"refresh":1,"regex":"","type":"query"}]},
   "time":{"from":"now-1h","to":"now"},
   "timepicker":{"refresh_intervals":["5s","10s","30s","1m","5m"]},

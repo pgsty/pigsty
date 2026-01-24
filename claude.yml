@@ -1,0 +1,58 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   claude.yml
+# Desc      :   Configure Claude Code CLI on nodes
+# Ctime     :   2025-01-24
+# Mtime     :   2025-01-24
+# Path      :   claude.yml
+# Docs      :   https://pigsty.io/docs/claude
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: CLAUDE CODE
+  hosts: all
+  gather_facts: no
+  become: false
+
+  vars:
+    claude_env_default:
+      CLAUDE_CODE_ENABLE_TELEMETRY: 1
+      OTEL_LOG_USER_PROMPTS: 1
+      OTEL_METRICS_EXPORTER: otlp
+      OTEL_LOGS_EXPORTER: otlp
+      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://127.0.0.1:{{ vmagent_port | default(8428) }}/opentelemetry/v1/metrics"
+      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: "http://127.0.0.1:{{ vlogs_port | default(9428) }}/insert/opentelemetry/v1/logs"
+      OTEL_RESOURCE_ATTRIBUTES: "ip={{ inventory_hostname }},job=claude"
+
+  tasks:
+
+    - name: create claude config directory
+      tags: claude_config
+      file: { path: "~/.claude", state: directory, mode: '0700' }
+
+    - name: render claude.json (skip onboarding & warnings)
+      tags: claude_config
+      copy:
+        dest: "~/.claude.json"
+        mode: '0600'
+        force: true
+        content: |
+          {"hasCompletedOnboarding":true,"hasCompletedProjectOnboarding":true,"hasTrustDialogAccepted":true,"hasTrustDialogHooksAccepted":true,"bypassPermissionsModeAccepted":true,"shiftEnterKeyBindingInstalled":true}
+
+    - name: render claude settings.json
+      tags: claude_config
+      copy:
+        dest: "~/.claude/settings.json"
+        mode: '0600'
+        content: "{{ {'env': claude_env_default | combine(claude_env | default({}))} | to_nice_json }}\n"
+
+
+#---------------------------------------------------------------
+# Usage Examples
+#---------------------------------------------------------------
+# ./claude.yml -l meta                                    # basic
+# ./claude.yml -l meta -e claude_env.ANTHROPIC_API_KEY=sk-ant-xxx
+#---------------------------------------------------------------
+...
