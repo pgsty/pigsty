@@ -32,11 +32,11 @@ pull:
 	docker compose pull
 
 rmi:
-	docker rmi requarks/mattermost
+	docker rmi mattermost/mattermost-team-edition
 
 save:
 	mkdir -p /tmp/docker
-	docker save requarks/mattermost | gzip -9 -c > /tmp/docker/mattermost.tgz
+	docker save mattermost/mattermost-team-edition | gzip -9 -c > /tmp/docker/mattermost.tgz
 
 load:
 	cat /tmp/docker/mattermost.tgz | gzip -d -c - | docker load

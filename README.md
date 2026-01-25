@@ -194,7 +194,7 @@ Which gives you an out-of-the-box PostgreSQL singleton instance (`admin_ip:5432`
 
 [![pigsty-arch](https://pigsty.io/img/pigsty/arch.png)](https://pigsty.io/docs/concept/arch)
 
-The node can be used as an admin controller to deploy & monitor more nodes & clusters. For example, you can install these **4** **OPTIONAL** [extra modules](https://pigsty.io/docs/ref/module#extra-modules) for advanced use cases:
+The node can be used as an admin controller to deploy & monitor more nodes & clusters. For example, you can install these **6** **OPTIONAL** [extra modules](https://pigsty.io/docs/ref/module#extra-modules) for advanced use cases:
 
 [![MinIO](https://img.shields.io/badge/MINIO-%23C72E49?style=flat&logo=minio&logoColor=white)](https://pigsty.io/docs/minio) S3-compatible object storage service; used as an optional central backup server for `PGSQL`.
 
@@ -203,6 +203,10 @@ The node can be used as an admin controller to deploy & monitor more nodes & clu
 [![Ferret](https://img.shields.io/badge/FERRET-%23042133?style=flat&logo=ferretdb&logoColor=white)](https://pigsty.io/docs/ferret) Native support for FerretDB — adding MongoDB wire protocol compatibility to Postgres!
 
 [![Docker](https://img.shields.io/badge/DOCKER-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/docker) Launch optional docker daemons to run other stateless parts besides Pigsty RDS.
+
+[![Juice](https://img.shields.io/badge/JUICE-%2300C853?style=flat&logo=infinityfree&logoColor=white)](https://pigsty.io/docs/juice) JuiceFS can mount S3/MinIO, and even PostgreSQL as a filesystem 
+
+[![Vibe](https://img.shields.io/badge/VIBE-%23FF6B35?style=flat&logo=claude&logoColor=white)](https://pigsty.io/docs/vibe) Vibe coding environment with VS Code Server, JupyterLab, and Claude Code.
 
 Of course, you can deploy different kinds of HA **PostgreSQL** clusters on multiple nodes, as much as you want.
 

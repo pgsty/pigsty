@@ -2,7 +2,7 @@
 -- # File      :   cmdb.sql
 -- # Desc      :   Pigsty CMDB baseline
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2026-01-20
+-- # Mtime     :   2026-01-25
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -1640,4 +1640,19 @@ INSERT INTO pigsty.default_var VALUES
 (980, 'pg_safeguard', 'false', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'prevent purging running postgres instance? false by default', NULL),
 (981, 'pg_rm_data', 'true', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'remove postgres data during remove? true by default', NULL),
 (982, 'pg_rm_backup', 'true', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'remove pgbackrest backup during primary remove? true by default', NULL),
-(983, 'pg_rm_pkg', 'true',  'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'uninstall postgres packages during remove? true by default', NULL);
+(983, 'pg_rm_pkg', 'true',  'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'uninstall postgres packages during remove? true by default', NULL),
+
+-- VIBE PARAMETERS
+(1001, 'vibe_data', '"/fs"', 'VIBE', 'VIBE', 'path', 'C', 'vibe workspace directory, /fs by default', NULL),
+(1010, 'code_enabled', 'true', 'VIBE', 'CODE', 'bool', 'C', 'enable code-server installation', NULL),
+(1011, 'code_port', '8443', 'VIBE', 'CODE', 'port', 'C', 'code-server listen port, 8443 by default', NULL),
+(1012, 'code_data', '"/data/code"', 'VIBE', 'CODE', 'path', 'C', 'code-server user data directory', NULL),
+(1013, 'code_password', '"Vibe.Coding"', 'VIBE', 'CODE', 'password', 'C', 'code-server password', NULL),
+(1014, 'code_gallery', '"openvsx"', 'VIBE', 'CODE', 'enum', 'C', 'extension gallery: openvsx or microsoft', NULL),
+(1020, 'jupyter_enabled', 'true', 'VIBE', 'JUPYTER', 'bool', 'C', 'enable jupyter lab installation', NULL),
+(1021, 'jupyter_port', '8888', 'VIBE', 'JUPYTER', 'port', 'C', 'jupyter lab listen port, 8888 by default', NULL),
+(1022, 'jupyter_data', '"/data/jupyter"', 'VIBE', 'JUPYTER', 'path', 'C', 'jupyter lab data directory', NULL),
+(1023, 'jupyter_password', '"Vibe.Coding"', 'VIBE', 'JUPYTER', 'password', 'C', 'jupyter lab access token', NULL),
+(1024, 'jupyter_venv', '"/data/venv"', 'VIBE', 'JUPYTER', 'path', 'C', 'python venv path with jupyter', NULL),
+(1030, 'claude_enabled', 'true', 'VIBE', 'CLAUDE', 'bool', 'C', 'enable claude code configuration', NULL),
+(1031, 'claude_env', '{}', 'VIBE', 'CLAUDE', 'dict', 'C', 'extra env vars to merge with defaults', NULL);
