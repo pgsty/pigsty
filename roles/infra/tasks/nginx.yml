@@ -94,6 +94,17 @@
         /bin/true
       args: { executable: /bin/bash }
 
+- name: Create Cloudflare credentials file for Certbot
+  copy:
+    dest: /etc/nginx/conf.d/cert/cloudflare.ini
+    content: |
+      # Cloudflare API token used by Certbot
+      dns_cloudflare_api_token = {{ dns_cloudflare_api_token }}
+    owner: root
+    group: root
+    mode: '0600'
+  when: dns_cloudflare_api_token is defined and dns_cloudflare_api_token != ''
+  become: yes # Ensure file is created as root
 
 #--------------------------------------------------------------#
 # 3. Nginx Cert                                     [nginx_cert]
@@ -255,6 +266,7 @@
   when: certbot_sign is defined and certbot_sign | bool
   ignore_errors: true
   command: /etc/nginx/sign-cert
+  run_once: true
 
 - name: reload nginx service
   tags: nginx_reload
