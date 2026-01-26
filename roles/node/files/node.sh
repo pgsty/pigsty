@@ -41,7 +41,8 @@ fi
 #--------------------------------------------------------------#
 # aliases & functions
 alias c="clear"
-alias p="psql"
+alias p="pig"
+alias pp="psql"
 alias q="exit"
 alias j="jobs"
 alias k="kubectl"
@@ -70,7 +71,6 @@ alias sd="sudo su - dba"
 alias sa="sudo su - root"
 alias sp="sudo su - postgres"
 alias adm="sudo su - admin"
-alias pp="sudo su - postgres"
 alias vl="sudo cat /var/log/messages"
 alias ntps="sudo chronyc -a makestep"
 alias node-mt="curl -sL localhost:9100/metrics | grep -v '#' | grep node_"
