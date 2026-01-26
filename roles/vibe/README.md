@@ -15,6 +15,7 @@ The `vibe` role deploys an integrated development environment:
 - **Code Server**: VS Code in browser
 - **JupyterLab**: Interactive computing notebooks
 - **Claude Code**: AI coding assistant with observability
+- **Node.js**: JavaScript runtime with npm
 
 
 ## Quick Start
@@ -51,9 +52,12 @@ vibe
 │   ├── jupyter_dir
 │   ├── jupyter_config
 │   └── jupyter_launch
-└── claude            # Claude Code CLI
-    ├── claude_install
-    └── claude_config
+├── claude            # Claude Code CLI
+│   ├── claude_install
+│   └── claude_config
+└── nodejs            # Node.js Runtime
+    ├── nodejs_install
+    └── nodejs_config
 ```
 
 
@@ -94,6 +98,15 @@ vibe
 
 Claude Code is pre-configured with OpenTelemetry, sending metrics and logs to VictoriaMetrics/VictoriaLogs for observability.
 
+### Node.js
+
+| Variable          | Default | Description                                      |
+|-------------------|---------|--------------------------------------------------|
+| `nodejs_enabled`  | `true`  | Enable Node.js installation                      |
+| `nodejs_registry` | `''`    | npm registry URL, auto china mirror if empty     |
+
+When `nodejs_registry` is empty and `region=china`, npm is automatically configured to use `https://registry.npmmirror.com`.
+
 
 ## Usage
 
@@ -102,6 +115,7 @@ Claude Code is pre-configured with OpenTelemetry, sending metrics and logs to Vi
 ./vibe.yml -l <host> -t code      # Code Server only
 ./vibe.yml -l <host> -t jupyter   # JupyterLab only
 ./vibe.yml -l <host> -t claude    # Claude Code only
+./vibe.yml -l <host> -t nodejs    # Node.js only
 ```
 
 Disable components:
@@ -110,6 +124,7 @@ Disable components:
 ./vibe.yml -l <host> -e code_enabled=false
 ./vibe.yml -l <host> -e jupyter_enabled=false
 ./vibe.yml -l <host> -e claude_enabled=false
+./vibe.yml -l <host> -e nodejs_enabled=false
 ```
 
 

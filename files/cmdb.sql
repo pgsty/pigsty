@@ -1655,4 +1655,6 @@ INSERT INTO pigsty.default_var VALUES
 (1023, 'jupyter_password', '"Vibe.Coding"', 'VIBE', 'JUPYTER', 'password', 'C', 'jupyter lab access token', NULL),
 (1024, 'jupyter_venv', '"/data/venv"', 'VIBE', 'JUPYTER', 'path', 'C', 'python venv path with jupyter', NULL),
 (1030, 'claude_enabled', 'true', 'VIBE', 'CLAUDE', 'bool', 'C', 'enable claude code configuration', NULL),
-(1031, 'claude_env', '{}', 'VIBE', 'CLAUDE', 'dict', 'C', 'extra env vars to merge with defaults', NULL);
+(1031, 'claude_env', '{}', 'VIBE', 'CLAUDE', 'dict', 'C', 'extra env vars to merge with defaults', NULL),
+(1040, 'nodejs_enabled', 'true', 'VIBE', 'NODEJS', 'bool', 'C', 'enable nodejs installation', NULL),
+(1041, 'nodejs_registry', '""', 'VIBE', 'NODEJS', 'url', 'C', 'npm registry, auto china mirror if empty', NULL);

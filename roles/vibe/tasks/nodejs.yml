@@ -1,0 +1,33 @@
+---
+#--------------------------------------------------------------#
+# NODEJS - Node.js Runtime Installation & Configuration
+#--------------------------------------------------------------#
+
+#--------------------------------------------------------------#
+# nodejs_install - install nodejs package
+#--------------------------------------------------------------#
+- name: install nodejs package
+  tags: nodejs_install
+  package: name=nodejs state=present
+
+#--------------------------------------------------------------#
+# nodejs_config - configure npm registry
+#--------------------------------------------------------------#
+- name: configure npm registry
+  tags: nodejs_config
+  when: nodejs_registry != '' or (region is defined and region == 'china')
+  block:
+    - name: create npm global config directory
+      file:
+        path: /usr/local/node/etc
+        state: directory
+        mode: '0755'
+
+    - name: render npm global config
+      copy:
+        dest: /usr/local/node/etc/npmrc
+        mode: '0644'
+        content: |
+          registry={{ nodejs_registry | default('https://registry.npmmirror.com', true) }}
+
+...
