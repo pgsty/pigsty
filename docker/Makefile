@@ -65,28 +65,35 @@ help:
 	@echo "Pigsty Docker Image Builder"
 	@echo "============================================================"
 	@echo ""
-	@echo "Build Commands:"
-	@echo "  make build          Build pigsty image"
-	@echo "  make push           Build & push multi-arch image"
-	@echo ""
-	@echo "Run Commands:"
-	@echo "  make run            Run container"
+	@echo "Compose Commands (Recommended):"
+	@echo "  make pull           Pull latest image from Docker Hub"
+	@echo "  make up             Create and start container"
+	@echo "  make down           Stop and remove container"
 	@echo "  make start          Start stopped container"
 	@echo "  make stop           Stop running container"
 	@echo "  make restart        Restart container"
-	@echo "  make clean          Stop and remove container (keep data)"
-	@echo "  make purge          Stop, remove container AND delete data"
+	@echo "  make config         Run ./configure -c docker -g"
+	@echo "  make deploy         Run ./deploy.yml"
 	@echo ""
-	@echo "Access Commands:"
+	@echo "Quick Start:"
+	@echo "  make launch         # up + config + deploy"
+	@echo ""
+	@echo "Build Commands:"
+	@echo "  make build          Build image locally"
+	@echo "  make push           Build & push multi-arch image"
+	@echo ""
+	@echo "Alternative (docker run):"
+	@echo "  make run            Run container with docker run"
+	@echo "  make clean          Stop and remove container"
+	@echo "  make purge          Remove container AND data"
+	@echo ""
+	@echo "Container Access:"
 	@echo "  make exec           Exec bash into container"
 	@echo "  make ssh            SSH into container"
 	@echo "  make log            Show container logs"
 	@echo "  make status         Show systemd status"
-	@echo "  make pass           Show passwords from config"
-	@echo "  make conf           Show pigsty.yml config"
 	@echo ""
 	@echo "Image Management:"
-	@echo "  make pull           Pull image from Docker Hub"
 	@echo "  make save           Export image to tarball"
 	@echo "  make load           Import image from tarball"
 	@echo "  make rmi            Remove image"
@@ -102,6 +109,49 @@ help:
 	@echo "  DATA=/mnt/data make run       # Custom data directory"
 	@echo ""
 
+
+#--------------------------------------------------------------#
+# Docker Compose
+#--------------------------------------------------------------#
+launch: up config deploy
+up:
+	docker compose up -d
+
+down:
+	docker compose down
+
+start:
+	docker compose start
+
+stop:
+	docker compose stop
+
+restart:
+	docker compose restart
+
+pull:
+	docker compose pull
+
+c: config
+config:
+	docker compose exec pigsty ./configure -c docker -g -i 127.0.0.1
+
+d: deploy
+deploy:
+	docker compose exec pigsty ./deploy.yml
+
+# directly exec into container
+e: exec
+exec:
+	docker exec -it -w /root/pigsty $(NAME) /bin/bash -l
+
+# copy your ssh key into container for passwordless ssh
+s: ssh
+sshi:
+	sshpass -p pigsty ssh-copy-id -p $(SSH_PORT) root@localhost
+ssh:
+	ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+		root@localhost -p $(SSH_PORT)
 
 #--------------------------------------------------------------#
 # Image Build
@@ -165,15 +215,6 @@ run:
 #--------------------------------------------------------------#
 # Container Lifecycle
 #--------------------------------------------------------------#
-start:
-	docker start $(NAME)
-
-stop:
-	@docker stop $(NAME) 2>/dev/null || true
-
-restart:
-	@docker restart $(NAME)
-
 rm:
 	@docker rm $(NAME) 2>/dev/null || true
 
@@ -203,13 +244,6 @@ purge: stop rm
 #--------------------------------------------------------------#
 # Container Access
 #--------------------------------------------------------------#
-exec:
-	docker exec -it -w /root/pigsty $(NAME) /bin/bash -l
-
-ssh:
-	ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-		root@localhost -p $(SSH_PORT)
-
 log:
 	docker logs -f $(NAME)
 
@@ -219,19 +253,14 @@ status:
 ps:
 	docker exec -it $(NAME) ps aux
 
-pass:
-	@docker exec $(NAME) grep password /root/pigsty/pigsty.yml 2>/dev/null || echo "No passwords found"
-
 conf:
 	docker exec $(NAME) cat /root/pigsty/pigsty.yml
 
+pass:
+	@docker exec $(NAME) grep password /root/pigsty/pigsty.yml 2>/dev/null || echo "No passwords found"
 
-#--------------------------------------------------------------#
-# Image Registry Operations
-#--------------------------------------------------------------#
-pull:
-	docker pull --platform=linux/$(ARCH) $(REGISTRY)/$(IMAGE_NAME):$(VERSION)
-	docker tag $(REGISTRY)/$(IMAGE_NAME):$(VERSION) $(IMAGE)
+cat:
+	docker exec $(NAME) cat /root/pigsty/pigsty.yml
 
 
 #--------------------------------------------------------------#
@@ -290,8 +319,10 @@ rebuild: clean build run
 # Phony Targets
 #--------------------------------------------------------------#
 .PHONY: default help \
+        up down start stop restart pull \
+        config deploy launch \
         build push \
-        run start stop restart rm clean purge \
+        run rm clean purge \
         exec ssh log status ps pass conf \
-        pull save load rmi \
+        save load rmi \
         ip inspect top shell test all rebuild
