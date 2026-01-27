@@ -12,51 +12,49 @@ Works on both **macOS** (Docker Desktop) and **Linux**.
 
 ## Quick Start
 
-You can launch pigsty with the [`docker-compose.yml`](docker-compose.yml), pull from DockerHub:
+Make sure the default host ports (2222/8080/8443/5432) are available. otherwise, edit the [`.env`](.env) first.
+Then run the following commands to launch Pigsty in Docker:
 
 ```bash
-cd ~/pigsty/docker; make launch
+cd ~/pigsty/docker    # enter this dir 
+make launch           # = make up config deploy
 ```
 
-Or build on your own machine first
+You can also build the base container image first (based on debian13):
 
 ```bash
-cd ~/pigsty/docker; make build
+cd ~/pigsty/docker
+make build launch     # build image rather than pull
 ```
+
+------
+
+## Image
+
+| Image          | Pull   | Size  | Contents                                  |
+|----------------|--------|-------|-------------------------------------------|
+| `pgsty/pigsty` | ~500MB | 1.3GB | Debian 13 + systemd + SSH + pig + Ansible |
+
+- Supports **amd64** (x86_64) and **arm64** (Apple Silicon, AWS Graviton)
+- Tags match pigsty version: `v4.0.0`, `latest`
+- Configuration pre-generated with docker template
+- Ready to deploy with `./deploy.yml`
+
+> Web Portal & PostgreSQL are available after **Deployment** (`./deploy.yml`)
 
 ------
 
 ## Configuration
 
-And you can specify pigsty image name & tag with [`PIGSTY_IMAGE`](#image-variants) and  `PIGSTY_VERSION`
-,and configure ports and version in the [`.env`](.env) file:
+Configure ports via environment variables or [`.env`](.env) file:
 
 | Variable            | Default  | Container | Description |
 |---------------------|----------|-----------|-------------|
+| `PIGSTY_VERSION`    | v4.0.0   | -         | Image tag   |
 | `PIGSTY_SSH_PORT`   | 2222     | 22        | SSH access  |
 | `PIGSTY_HTTP_PORT`  | 8080     | 80        | Nginx HTTP  |
 | `PIGSTY_HTTPS_PORT` | 8443     | 443       | Nginx HTTPS |
 | `PIGSTY_PG_PORT`    | 5432     | 5432      | PostgreSQL  |
-
-------
-
-## Image Variants
-
-| Image          | Pull   | Size  | Contents                    | Use Case        |
-|----------------|--------|-------|-----------------------------|-----------------|
-| `pgsty/linux`  | ~150MB | 400MB | Debian 13 + systemd + SSH   | Base container  |
-| `pgsty/admin`  | ~500MB | 1.3GB | + pig + Ansible + packages  | **Admin node**  |
-| `pgsty/infra`  | ~1.0GB | 2.7GB | + monitoring stack          | Infra node      |
-| `pgsty/pgsql`  | ~1.2GB | 3.1GB | + PostgreSQL 18 core        | PGSQL node      |
-| `pgsty/pigsty` | ~1.6GB | 4.3GB | + all 340 extensions        | **Full Deploy** |
-
-- **Pull**: Compressed transfer size when pulling from Docker Hub
-- **Size**: Uncompressed disk size after pulling
-- All images support **amd64** (x86_64) and **arm64** (Apple Silicon, AWS Graviton)
-- Tag are same as pigsty version: `v4.0.0`, or `latest`
-
-> Web Portal & PostgreSQL are available after **Deployment** (`./deploy.yml`)
- 
 
 ------
 
@@ -82,27 +80,17 @@ And you can specify pigsty image name & tag with [`PIGSTY_IMAGE`](#image-variant
 make up           # Start container
 make down         # Stop and remove
 make exec         # Enter container
-make config       # Run ./configure
+make config       # Run ./configure (optional)
 make deploy       # Run ./deploy.yml
-make launch       # up + config + deploy
+make launch       # up + deploy
 ```
 
-### Build Images
+### Build Image
 
 ```bash
-make linux        # Base Debian + systemd
-make admin        # + pig + Ansible + packages
-make infra        # + monitoring stack
-make pgsql        # + PostgreSQL core
-make pigsty       # + all extensions
-make images       # Build all 5 images
-```
-
-### Push Images
-
-```bash
-make pigsty-push  # Push pgsty/pigsty (multi-arch)
-make images-push  # Push all images
+make build        # Build image locally
+make buildnc      # Build without cache
+make push         # Build and push multi-arch image
 ```
 
 ### Alternative (docker run)
@@ -123,31 +111,6 @@ make status       # systemd status
 make ps           # Process list
 ```
 
-
-------
-
-## Building
-
-```bash
-make linux        # build pgsty/linux stage image
-make admin        # build pgsty/admin stage image
-make infra        # build pgsty/infra stage image
-make pgsql        # build pgsty/pgsql stage image
-make pigsty       # build pgsty/pigsty stage image
-make images       # Build all 5 images
-make images-push  # Push all images
-```
-
-```bash
-debian:trixie
-    └── linux   (base + systemd + ssh)
-        └── admin   (+ pig + ansible + packages)
-            └── infra   (+ monitoring stack)
-                └── pgsql   (+ postgresql core)
-                    └── pigsty (+ all extensions)
-```
-
-
 ------
 
 ## Manual Run
@@ -155,21 +118,20 @@ debian:trixie
 If you prefer `docker run` over `docker compose`:
 
 ```bash
-mkdir -p /data/pigsty    # create data directory
+mkdir -p ./data
 docker run -d --privileged --name pigsty \
   -p 2222:22 -p 8080:80 -p 5432:5432 \
-  -v /data/pigsty:/data \
+  -v ./data:/data \
   pgsty/pigsty:v4.0.0
-docker exec -it pigsty /bin/bash
-./configure -c docker -g --ip 127.0.0.1
-./deploy.yml
+
+docker exec -it pigsty ./configure -c docker -g --ip 127.0.0.1
+docker exec -it pigsty ./deploy.yml
 ```
 
 ------
 
 ## Requirements
 
-- Docker 20.10+ (Docker Linux / Docker Desktop on macOS)
-- At least 1 vCPU  / 2GB+ RAM
+- Docker 20.10+ (Docker Engine on Linux / Docker Desktop on macOS)
+- At least 1 vCPU / 2GB+ RAM
 - 20GB+ disk space
-

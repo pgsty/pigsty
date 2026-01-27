@@ -8,22 +8,17 @@
 #==============================================================#
 #
 # Quick Start:
-#   make up             # Start with docker compose (recommended)
-#   make exec           # Enter container, then:
-#                       #   ./configure -c docker --ip 127.0.0.1
-#                       #   ./deploy.yml
+#   make up             # Start with docker compose
+#   make exec           # Enter container, then run: ./deploy.yml
 #
 # Or use one-liner:
-#   make launch         # up + config + deploy
+#   make launch         # up + deploy
 #
 #==============================================================#
 
 
 #--------------------------------------------------------------#
 # Platform Detection
-#--------------------------------------------------------------#
-# Detect OS: Darwin (macOS) or Linux
-# Detect Architecture: amd64 or arm64
 #--------------------------------------------------------------#
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
@@ -48,11 +43,6 @@ endif
 #--------------------------------------------------------------#
 # Configuration Variables
 #--------------------------------------------------------------#
-# Image naming: $(REGISTRY)/<stage>:$(TAG)
-# Examples:
-#   $(REGISTRY)/linux:v4.0.0    $(REGISTRY)/pigsty:v4.0.0
-#   $(REGISTRY)/linux:latest    $(REGISTRY)/pigsty:latest
-#--------------------------------------------------------------#
 VERSION      ?= v4.0.0
 REGISTRY     ?= pgsty
 NAME         ?= pigsty
@@ -67,10 +57,6 @@ PG_PORT      ?= 5432
 # Derived variables
 TAG          ?= $(VERSION)
 IMAGE        := $(REGISTRY)/pigsty:$(TAG)
-RUN_IMAGE    ?= $(IMAGE)
-
-# Multi-stage image names (5 stages)
-STAGES       := linux admin infra pgsql pigsty
 
 
 #--------------------------------------------------------------#
@@ -80,13 +66,14 @@ default: help
 
 help:
 	@echo "============================================================"
-	@echo "Pigsty Docker Image Builder"
+	@echo "Pigsty Docker Image"
 	@echo "============================================================"
 	@echo ""
 	@echo "Quick Start:"
-	@echo "  make launch         # up + config + deploy (one-liner)"
 	@echo "  make up             # Start container with docker compose"
 	@echo "  make exec           # Enter container"
+	@echo "  make deploy         # Run ./deploy.yml inside container"
+	@echo "  make launch         # up + deploy (one-liner)"
 	@echo ""
 	@echo "Compose Commands:"
 	@echo "  make up             # Create and start container"
@@ -94,26 +81,16 @@ help:
 	@echo "  make start/stop     # Start/stop container"
 	@echo "  make restart        # Restart container"
 	@echo "  make pull           # Pull latest image"
-	@echo "  make config         # Run ./configure"
-	@echo "  make deploy         # Run ./deploy.yml"
 	@echo ""
 	@echo "Build Commands:"
-	@echo "  make linux          # Build $(REGISTRY)/linux  (base)"
-	@echo "  make admin          # Build $(REGISTRY)/admin  (+ ansible + packages)"
-	@echo "  make infra          # Build $(REGISTRY)/infra  (+ monitoring)"
-	@echo "  make pgsql          # Build $(REGISTRY)/pgsql  (+ postgresql)"
-	@echo "  make pigsty         # Build $(REGISTRY)/pigsty (+ extensions)"
-	@echo "  make images         # Build all 5 images"
-	@echo ""
-	@echo "Push Commands:"
-	@echo "  make <stage>-push   # Push specific stage (multi-arch)"
-	@echo "  make images-push    # Push all images"
-	@echo "  make rmi-all        # Remove all built images"
+	@echo "  make build          # Build image locally"
+	@echo "  make buildnc        # Build without cache"
+	@echo "  make push           # Build and push multi-arch image"
 	@echo ""
 	@echo "Alternative (docker run):"
 	@echo "  make run            # Run with docker run"
-	@echo "  make clean          # Stop and remove"
-	@echo "  make purge          # Remove + delete data"
+	@echo "  make clean          # Stop and remove container"
+	@echo "  make purge          # Remove container + delete data"
 	@echo ""
 	@echo "Container Access:"
 	@echo "  make exec           # Bash into container"
@@ -121,7 +98,8 @@ help:
 	@echo "  make log/status/ps  # View logs/status/processes"
 	@echo ""
 	@echo "Current: OS=$(OS) ARCH=$(ARCH) VERSION=$(VERSION)"
-	@echo "         TAG=$(TAG) SSH=$(SSH_PORT) HTTP=$(HTTP_PORT) PG=$(PG_PORT)"
+	@echo "         IMAGE=$(IMAGE)"
+	@echo "         SSH=$(SSH_PORT) HTTP=$(HTTP_PORT) PG=$(PG_PORT)"
 	@echo ""
 
 
@@ -162,7 +140,7 @@ deploy:
 #--------------------------------------------------------------#
 e: exec
 exec:
-	docker exec -it -w /root/pigsty $(NAME) /bin/bash -l
+	docker exec -it $(NAME) /bin/bash -l
 
 s: ssh
 sshi:
@@ -189,85 +167,24 @@ pass:
 
 
 #--------------------------------------------------------------#
-# Image Build (Multi-stage)
+# Image Build
 #--------------------------------------------------------------#
-# Build specific stage: make <stage>
-# Inheritance: linux -> admin -> infra -> pgsql -> pigsty
-#--------------------------------------------------------------#
-linux:
-	@echo "Building $(REGISTRY)/linux:$(TAG) for $(ARCH)..."
-	docker build --platform=linux/$(ARCH) --target linux \
-		-t $(REGISTRY)/linux:$(TAG) .
+build:
+	@echo "Building $(IMAGE) for $(ARCH)..."
+	docker build --platform=linux/$(ARCH) -t $(IMAGE) .
 
-admin:
-	@echo "Building $(REGISTRY)/admin:$(TAG) for $(ARCH)..."
-	docker build --platform=linux/$(ARCH) --target admin \
-		-t $(REGISTRY)/admin:$(TAG) .
+buildnc:
+	@echo "Building $(IMAGE) without cache for $(ARCH)..."
+	docker build --no-cache --platform=linux/$(ARCH) -t $(IMAGE) .
 
-infra:
-	@echo "Building $(REGISTRY)/infra:$(TAG) for $(ARCH)..."
-	docker build --platform=linux/$(ARCH) --target infra \
-		-t $(REGISTRY)/infra:$(TAG) .
-
-pgsql:
-	@echo "Building $(REGISTRY)/pgsql:$(TAG) for $(ARCH)..."
-	docker build --platform=linux/$(ARCH) --target pgsql \
-		-t $(REGISTRY)/pgsql:$(TAG) .
-
-pigsty:
-	@echo "Building $(REGISTRY)/pigsty:$(TAG) for $(ARCH)..."
-	docker build --platform=linux/$(ARCH) --target pigsty \
-		-t $(REGISTRY)/pigsty:$(TAG) .
-
-images:
-	@echo "Building all images for $(ARCH)..."
-	@for stage in $(STAGES); do \
-		echo "Building $(REGISTRY)/$$stage:$(TAG)..."; \
-		docker build --platform=linux/$(ARCH) --target $$stage \
-			-t $(REGISTRY)/$$stage:$(TAG) . || exit 1; \
-	done
-
-build: images
-
-
-#--------------------------------------------------------------#
-# Image Push (Multi-arch)
-#--------------------------------------------------------------#
-linux-push:
-	docker buildx build --platform linux/amd64,linux/arm64 --target linux \
-		-t $(REGISTRY)/linux:$(TAG) --push .
-
-admin-push:
-	docker buildx build --platform linux/amd64,linux/arm64 --target admin \
-		-t $(REGISTRY)/admin:$(TAG) --push .
-
-infra-push:
-	docker buildx build --platform linux/amd64,linux/arm64 --target infra \
-		-t $(REGISTRY)/infra:$(TAG) --push .
-
-pgsql-push:
-	docker buildx build --platform linux/amd64,linux/arm64 --target pgsql \
-		-t $(REGISTRY)/pgsql:$(TAG) --push .
-
-pigsty-push:
-	docker buildx build --platform linux/amd64,linux/arm64 --target pigsty \
-		-t $(REGISTRY)/pigsty:$(TAG) --push .
-
-images-push:
-	@for stage in $(STAGES); do \
-		echo "Pushing $(REGISTRY)/$$stage:$(TAG)..."; \
-		docker buildx build --platform linux/amd64,linux/arm64 --target $$stage \
-			-t $(REGISTRY)/$$stage:$(TAG) --push . || exit 1; \
-	done
-
-push: images-push
+push:
+	@echo "Building and pushing $(IMAGE) (multi-arch)..."
+	docker buildx build --platform linux/amd64,linux/arm64 \
+		-t $(IMAGE) --push .
 
 
 #--------------------------------------------------------------#
 # Container Run (docker run alternative)
-#--------------------------------------------------------------#
-# Works on both macOS (Docker Desktop) and Linux
-# --privileged is required for systemd
 #--------------------------------------------------------------#
 run:
 	@mkdir -p $(DATA)
@@ -280,14 +197,13 @@ run:
 		-p $(HTTP_PORT):80 \
 		-p $(HTTPS_PORT):443 \
 		-p $(PG_PORT):5432 \
-		$(RUN_IMAGE)
+		$(IMAGE)
 	@echo ""
-	@echo "Container '$(NAME)' started with $(RUN_IMAGE)"
+	@echo "Container '$(NAME)' started with $(IMAGE)"
 	@echo ""
 	@echo "Next steps:"
-	@echo "  make exec                               # Enter container"
-	@echo "  ./configure -c docker -g --ip 127.0.0.1 # Configure"
-	@echo "  ./deploy.yml                            # Deploy"
+	@echo "  make exec       # Enter container"
+	@echo "  ./deploy.yml    # Deploy Pigsty"
 	@echo ""
 
 
@@ -298,6 +214,7 @@ rm:
 	@docker rm $(NAME) 2>/dev/null || true
 
 clean: stop rm
+
 purge: clean
 	@echo ""
 	@echo "WARNING: This will DELETE all data in ./data"
@@ -324,13 +241,6 @@ load:
 rmi:
 	docker rmi $(IMAGE) 2>/dev/null || true
 
-rmi-all:
-	@echo "Removing all pigsty images ($(TAG))..."
-	@for stage in $(STAGES); do \
-		echo "  Removing $(REGISTRY)/$$stage:$(TAG)..."; \
-		docker rmi $(REGISTRY)/$$stage:$(TAG) 2>/dev/null || true; \
-	done
-
 
 #--------------------------------------------------------------#
 # Inspection
@@ -349,7 +259,7 @@ top:
 # Utility
 #--------------------------------------------------------------#
 shell:
-	docker run -it --rm --privileged --platform=linux/$(ARCH) $(RUN_IMAGE) /bin/bash
+	docker run -it --rm --privileged --platform=linux/$(ARCH) $(IMAGE) /bin/bash
 
 test:
 	docker run -it --rm --platform=linux/$(ARCH) debian:trixie /bin/bash
@@ -363,10 +273,9 @@ rebuild: clean build run
 # Phony Targets
 #--------------------------------------------------------------#
 .PHONY: default help \
-        up down start stop restart pull config deploy launch \
+        up down start stop restart pull deploy launch \
         exec ssh log status ps conf pass \
-        linux admin infra pgsql pigsty build images \
-        linux-push admin-push infra-push pgsql-push pigsty-push push images-push \
+        build buildnc push \
         run rm clean purge \
-        save load rmi rmi-all \
+        save load rmi \
         ip inspect top shell test all rebuild
