@@ -52,7 +52,7 @@ alias mc="mcli"
 alias d="docker"
 alias dc="docker compose"
 alias x="claude"
-alias xx="claude --dangerously-skip-permissions"
+alias xx="IS_SANDBOX=1 claude --dangerously-skip-permissions"
 alias oc="opencode"
 alias gc='git checkout'
 alias gst="git status"
