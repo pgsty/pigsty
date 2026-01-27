@@ -2,7 +2,7 @@
 
 [![Webite: pigsty.io](https://img.shields.io/badge/website-pigsty.io-slategray?style=flat&logo=cilium&logoColor=white)](https://pigsty.io)
 [![网站: pigsty.cc](https://img.shields.io/badge/网站-pigsty.cc-slategray?style=flat&logo=cilium&logoColor=white)](https://pigsty.cc)
-[![Version: v4.0.0](https://img.shields.io/badge/version-v4.0.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases/tag/v4.0.0-c2)
+[![Version: v4.0.0](https://img.shields.io/badge/version-v4.0.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases/tag/v4.0.0)
 [![License: Apache-2.0](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://pigsty.io/docs/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
 [![Extensions: 444](https://img.shields.io/badge/extensions-444-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pgext.cloud/list)
@@ -12,7 +12,7 @@ Battery-Included, Local-First **PostgreSQL** Distribution as a Free & Better **R
 
 > "**P**ostgreSQL **I**n **G**reat **STY**le": **P**ostgres, **I**nfras, **G**raphics, **S**ervice, **T**oolbox, it's all **Y**ours.
 
-[Website](https://pigsty.io) | [ORG](https://github.com/pgsty) | [PGEXT.CLOUD](https://pgext.cloud) | [Public Demo](https://demo.pigsty.io) | [Blog](https://pigsty.io/blog/) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [中文站](https://pigsty.cc/) | [博客](https://vonng.com)
+[Website](https://pigsty.io) | [ORG](https://github.com/pgsty) | [PGEXT.CLOUD](https://pgext.cloud) | [AI INFRA](https://pigsty.io/docs/piglet) | [Public Demo](https://demo.pigsty.io) | [Blog](https://pigsty.io/blog/) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [中文站](https://pigsty.cc/) | [博客](https://vonng.com)
 
 [![banner](https://pigsty.io/img/pigsty/banner.png)](https://pigsty.io)
 
@@ -62,7 +62,7 @@ And gather the synergistic superpowers of all [**444+ PostgreSQL Extensions**](h
 [![EL Support: 8/9/10](https://img.shields.io/badge/EL-8/9/10-red?style=flat&logo=redhat&logoColor=red)](https://pigsty.io/docs/ref/linux#el)
 [![Debian Support: 12/13](https://img.shields.io/badge/Debian-12/13-%23A81D33?style=flat&logo=debian&logoColor=%23A81D33)](https://pigsty.io/docs/ref/linux#debian)
 [![Ubuntu Support: 22/24](https://img.shields.io/badge/Ubuntu-22/24-%23E95420?style=flat&logo=ubuntu&logoColor=%23E95420)](https://pigsty.io/docs/ref/linux#ubuntu)
-[![Docker Image](https://img.shields.io/badge/Docker-%232496ED?style=flat&logo=docker&logoColor=white)](docker/)
+[![Docker Image](https://img.shields.io/badge/Docker-v4.0.0-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/setup/docker)
 
 [**Prepare**](https://pigsty.io/docs/deploy/prepare) a fresh `x86_64` / `aarch64` node runs any [**compatible**](https://pigsty.io/docs/ref/linux) **Linux** OS Distros, then [**Install**](https://pigsty.io/docs/setup/install#install) **Pigsty** with:
 
@@ -78,6 +78,8 @@ Then [**configure**](https://pigsty.io/docs/concept/iac/configure) and run the [
 ```
 
 Finally, you will get a pigsty [**singleton node ready**](https://pigsty.io/docs/setup/install), with [**WebUI**](https://pigsty.io/docs/setup/webui) on port `80/443` and [**Postgres**](https://pigsty.io/docs/setup/pgsql) on port `5432`.
+
+For dev/testing purposes, you can also run Pigsty inside [**Docker**](https://pigsty.io/docs/setup/docker) containers: `cd docker; make launch`
 
 --------
 
@@ -170,17 +172,6 @@ git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v4.0.0
 
 </details>
 
-<details><summary>Run with Docker Compose</summary><br>
-
-You can run 1-node demo with `docker` or `docker-compose`: 
-
-```bash
-cd docker; make launch
-```
-
-Run pigsty inside docker is not recommended for **PRODUCTION**, check [**docker setup**](docker/) for details
-
-</details>
 
 
 
@@ -216,9 +207,9 @@ The node can be used as an admin controller to deploy & monitor more nodes & clu
 
 [![Docker](https://img.shields.io/badge/DOCKER-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/docker) Launch optional docker daemons to run other stateless parts besides Pigsty RDS.
 
-[![Juice](https://img.shields.io/badge/JUICE-%2300C853?style=flat&logo=infinityfree&logoColor=white)](https://pigsty.io/docs/juice) JuiceFS can mount S3/MinIO, and even PostgreSQL as a filesystem 
+[![Juice](https://img.shields.io/badge/JUICE-%2300C853?style=flat&logo=infinityfree&logoColor=white)](https://pigsty.io/docs/juice) JuiceFS can mount S3/MinIO, and even PostgreSQL as a filesystem shared by multi users.
 
-[![Vibe](https://img.shields.io/badge/VIBE-%23FF6B35?style=flat&logo=claude&logoColor=white)](https://pigsty.io/docs/vibe) Vibe coding environment with VS Code Server, JupyterLab, and Claude Code.
+[![Vibe](https://img.shields.io/badge/VIBE-%23FF6B35?style=flat&logo=claude&logoColor=white)](https://pigsty.io/docs/vibe) Vibe coding environment with VS Code Server, JupyterLab, Node.js, and Claude Code.
 
 Of course, you can deploy different kinds of HA **PostgreSQL** clusters on multiple nodes, as much as you want.
 
@@ -359,9 +350,9 @@ auto-routed, pooled [**Services & Access**](https://pigsty.io/docs/pgsql/service
 
 [![HA PostgreSQL Arch](https://pigsty.io/img/pigsty/ha.png)](https://pigsty.io/docs/concept/ha)
 
-The cluster keeps serving as long as **ANY** instance survives, with excellent fault-tolerance performance:
+The cluster keeps serving as long as **ANY** instance survives, with excellent [fault-tolerance](https://pigsty.io/docs/concept/ha/failure) performance:
 
-> [**RPO = 0**](https://pigsty.io/docs/concept/ha/rpo) on sync mode, **RPO < 1MB** on async mode; [**RTO < 2s**](https://pigsty.io/docs/concept/ha/failure) on switchover, [**RTO < 30s**](https://pigsty.io/docs/concept/ha/rto) on failover.
+> [**RPO = 0**](https://pigsty.io/docs/concept/ha/rpo) on sync mode, **RPO < 1MB** on async mode; **RTO < 2s** on switchover, [**RTO < 30s**](https://pigsty.io/docs/concept/ha/rto) on failover.
 
 
 
@@ -618,7 +609,7 @@ There are other pro, beta, or pilot modules, and there will be more coming in th
 [![VICTORIA](https://img.shields.io/badge/VICTORIA-%23621773?style=flat&logo=victoriametrics&labelColor=621773&logoColor=white)](https://pigsty.io/docs/pilot/victoria)
 [![KUBERNETES](https://img.shields.io/badge/KUBERNETES-%23326CE5?style=flat&logo=kubernetes&labelColor=326CE5&logoColor=white)](https://pigsty.io/docs/pilot/kube)
 [![CONSUL](https://img.shields.io/badge/CONSUL-%23F24C53?style=flat&logo=consul&labelColor=F24C53&logoColor=white)](https://pigsty.io/docs/pilot/consul)
-[![JUPYTER](https://img.shields.io/badge/JUPYTER-%23F37626?style=flat&logo=jupyter&labelColor=F37626&logoColor=white)](https://pigsty.io/docs/pilot/jupyter)
+[![JUPYTER](https://img.shields.io/badge/JUPYTER-%23F37626?style=flat&logo=jupyter&labelColor=F37626&logoColor=white)](https://pigsty.io/docs/vibe/)
 [![COCKROACH](https://img.shields.io/badge/COCKROACH-%236933FF?style=flat&logo=cockroachlabs&labelColor=6933FF&logoColor=white)](https://pigsty.io/docs/pilot)
 
 
@@ -628,7 +619,7 @@ There are other pro, beta, or pilot modules, and there will be more coming in th
 
 We recommend using RockyLinux 10.0, Debian 13.2, and Ubuntu 24.04.2 for production use.
 
-Pigsty runs on bare linux directly, and focuses on active maintained mainstream LTS [Linux distros](https://pigsty.io/docs/ref/linux):
+Pigsty runs on bare linux directly, and focuses on active maintained mainstream LTS [**Linux Distros**](https://pigsty.io/docs/ref/linux):
 
 |   Code   | Distro                            |                      `x86_64`                       | Status |                       `aarch64`                       | Status |
 |:--------:|-----------------------------------|:---------------------------------------------------:|:-------|:-----------------------------------------------------:|:-------|

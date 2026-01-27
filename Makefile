@@ -2,7 +2,7 @@
 # File      :   Makefile
 # Desc      :   pigsty shortcuts
 # Ctime     :   2019-04-13
-# Mtime     :   2026-01-10
+# Mtime     :   2026-01-27
 # Path      :   Makefile
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -24,18 +24,17 @@ endif
 # variables
 SRC_PKG=pigsty-$(VERSION).tgz
 APP_PKG=pigsty-app-$(VERSION).tgz
+DBA_PKG=pigsty-dba-$(VERSION).tgz
 DOCKER_PKG=pigsty-docker-$(VERSION).tgz
-EL7_PKG=pigsty-pkg-$(VERSION).el7.${ARCH}.tgz
 EL8_PKG=pigsty-pkg-$(VERSION).el8.${ARCH}.tgz
 EL9_PKG=pigsty-pkg-$(VERSION).el9.${ARCH}.tgz
 EL10_PKG=pigsty-pkg-$(VERSION).el10.${ARCH}.tgz
-D11_PKG=pigsty-pkg-$(VERSION).d11.${ARCH}.tgz
 D12_PKG=pigsty-pkg-$(VERSION).d12.${ARCH}.tgz
 D13_PKG=pigsty-pkg-$(VERSION).d13.${ARCH}.tgz
-U20_PKG=pigsty-pkg-$(VERSION).u20.${ARCH}.tgz
 U22_PKG=pigsty-pkg-$(VERSION).u22.${ARCH}.tgz
 U24_PKG=pigsty-pkg-$(VERSION).u24.${ARCH}.tgz
 META?=10.10.10.10
+OS?=el9
 PKG?=""
 #PKG?=pro
 
@@ -50,7 +49,7 @@ endif
 ###############################################################
 #                      1. Quick Start                         #
 ###############################################################
-# run with nopass SUDO user (or root) on CentOS 7.x node
+# run with nopass SUDO user (or root) on Linux node
 default: tip
 tip:
 	echo $(ARCH)
@@ -146,7 +145,6 @@ infra:
 # rebuild repo
 repo: repo-build node-repo
 
-
 # write upstream repo to /etc/yum.repos.d
 repo-upstream:
 	./infra.yml --tags=repo_upstream
@@ -177,7 +175,7 @@ redeploy: repo-clean
 # init grafana
 grafana:
 	./infra.yml --tags=grafana
-	./pgsql.yml --tags=register_grafana
+	./pgsql.yml --tags=register_ds
 
 # init vlogs & vector
 vv: vlogs vector
@@ -197,6 +195,7 @@ docker:
 	./docker.yml
 app:
 	./app.yml
+
 # install & uninstall pgsql (dangerous!!)
 pgsql-add:
 	./infra.yml -t repo_build
@@ -248,7 +247,7 @@ dns:
 # 3. start
 #------------------------------#
 # start will pull up node and write ssh-config
-# it may take a while to download centos/7 box for the first time
+# it may take a while to download the box for the first time
 start: up ssh      # 1-node version
 ssh:               # add current vagrant ssh config to your ~/.ssh/pigsty_config
 	vagrant/ssh
@@ -380,6 +379,10 @@ cc: release copy-src copy-pkg use-src use-pkg
 # copy pigsty source code
 copy-src:
 	scp "dist/${VERSION}/${SRC_PKG}" $(META):~/pigsty.tgz
+
+# copy offline packages (set OS=el8/el9/el10/d12/d13/u22/u24)
+copy-pkg:
+	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.${OS}.${ARCH}.tgz $(META):/tmp/pkg.tgz
 copy-el8:
 	scp dist/${VERSION}/$(PKG)${EL8_PKG} $(META):/tmp/pkg.tgz
 copy-el9:
@@ -430,40 +433,29 @@ copy-src-pro: copy-src-oss
 	ssh -t u22 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 csr: copy-src-rpm
 copy-src-rpm:
-	scp "dist/${VERSION}/${SRC_PKG}" el7:~/pigsty.tgz
 	scp "dist/${VERSION}/${SRC_PKG}" el8:~/pigsty.tgz
 	scp "dist/${VERSION}/${SRC_PKG}" el9:~/pigsty.tgz
-	ssh -t el7 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 	ssh -t el8 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 	ssh -t el9 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
-	ssh -t el7 'cd ~/pigsty && ./configure -i 10.10.10.7'
 	ssh -t el8 'cd ~/pigsty && ./configure -i 10.10.10.8'
 	ssh -t el9 'cd ~/pigsty && ./configure -i 10.10.10.9'
 csd: copy-src-deb
 copy-src-deb:
-	scp "dist/${VERSION}/${SRC_PKG}" d11:~/pigsty.tgz
 	scp "dist/${VERSION}/${SRC_PKG}" d12:~/pigsty.tgz
-	scp "dist/${VERSION}/${SRC_PKG}" u20:~/pigsty.tgz
 	scp "dist/${VERSION}/${SRC_PKG}" u22:~/pigsty.tgz
 	scp "dist/${VERSION}/${SRC_PKG}" u24:~/pigsty.tgz
-	ssh -t  d11 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 	ssh -t  d12 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
-	ssh -t  u20 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 	ssh -t  u22 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 	ssh -t  u24 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
-	ssh -t  d11 'cd ~/pigsty && ./configure -i 10.10.10.11'
 	ssh -t  d12 'cd ~/pigsty && ./configure -i 10.10.10.12'
-	ssh -t  u20 'cd ~/pigsty && ./configure -i 10.10.10.20'
 	ssh -t  u22 'cd ~/pigsty && ./configure -i 10.10.10.22'
 	ssh -t  u24 'cd ~/pigsty && ./configure -i 10.10.10.24'
 dfx: deb-fix
 deb-fix:
-	scp /etc/resolv.conf u22:/tmp/resolv.conf;
-	ssh -t u22 'sudo mv /tmp/resolv.conf /etc/resolv.conf'
 	scp /etc/resolv.conf d12:/tmp/resolv.conf;
 	ssh -t d12 'sudo mv /tmp/resolv.conf /etc/resolv.conf'
-	#scp /etc/resolv.conf u24:/tmp/resolv.conf;
-	#ssh -t u24 'sudo mv /tmp/resolv.conf /etc/resolv.conf'
+	scp /etc/resolv.conf u24:/tmp/resolv.conf;
+	ssh -t u24 'sudo mv /tmp/resolv.conf /etc/resolv.conf'
 
 #------------------------------#
 # push / pull
@@ -473,7 +465,7 @@ push:
 pull:
 	rsync -avz sv:~/pigsty/ ./ --exclude-from 'vagrant/Vagrantfile' --exclude-from 'vagrant/.vagrant'
 ss:
-	rsync -avz --exclude=temp --exclude=dist --exclude=vagrant/ --exclude=terraform --delete ./ sv:/data/pigsty/
+	rsync -avz --exclude=temp --exclude=dist --exclude=vagrant --exclude=terraform --delete ./ ai:/data/pigsty/
 gsync:
 	rsync -avz --delete .git/ sv:/data/pgsty/pigsty/.git/
 gpull:
@@ -495,21 +487,27 @@ r: release
 release:
 	bin/release ${VERSION}
 
-rr: remote-release
-remote-release: release copy-src use-src
-	ssh $(META) "cd pigsty; make release"
-	scp $(META):~/pigsty/dist/${VERSION}/${SRC_PKG} dist/${VERSION}/${SRC_PKG}
+u: upload-src
+upload-src:
+	cp -f dist/$(VERSION)/$(SRC_PKG) ~/pgsty/repo/src/
+	cd ~/pgsty/repo && make up-src
 
-# release offline packages with build environment
-ross: release-oss
-release-oss:
-	./cache.yml -i conf/build/oss.yml
-rpro: release-pro
-release-pro:
-	./cache.yml -i conf/build/pro.yml
-pb: publish
-publish:
-	bin/publish ${VERSION}
+rd: release-dba
+release-dba:
+	@mkdir -p dist/$(VERSION)
+	tar -czf dist/$(VERSION)/$(DBA_PKG) .claude CLAUDE.md
+	@echo "Created: dist/$(VERSION)/$(DBA_PKG)"
+
+gd: get-dba
+get-dba:
+	curl -fsSL "https://repo.pigsty.cc/dba/$(DBA_PKG)" | tar -xzf -
+	@echo "DBA package extracted to current directory"
+
+ud: upload-dba
+upload-dba:
+	cp -f dist/$(VERSION)/$(DBA_PKG) ~/pgsty/repo/dba/
+	cd ~/pgsty/repo && make up-dba
+	@echo "Uploaded: $(DBA_PKG)"
 
 
 ###############################################################
@@ -553,8 +551,6 @@ cpro:
 oss: coss del vo new ssh copy-src-oss dfx
 pro: cpro del vp new ssh dfx
 all: del va new ssh dfx
-rpm: crpm del vr new ssh copy-src-rpm
-deb: cdeb del vd new ssh copy-src-deb dfx
 vo: # oss building environment
 	vagrant/config oss
 vp: # pro building environment
@@ -574,28 +570,21 @@ boot-pkg:
 # simple 1-node devbox for quick setup, demonstration, and development
 
 meta: meta9
-meta7:  cmeta del vmeta7  up ssh #copy-el7 use-pkg
 meta8:  cmeta del vmeta8  up ssh #copy-el8 use-pkg
 meta9:  cmeta del vmeta9  up ssh #copy-el9 use-pkg
-meta11: cmeta del vmeta11 up ssh #copy-d11 use-pkg
 meta12: cmeta del vmeta12 up ssh #copy-d12 use-pkg
-meta20: cmeta del vmeta20 up ssh #copy-u20 use-pkg
 meta22: cmeta del vmeta22 up ssh #copy-u22 use-pkg
 meta24: cmeta del vmeta24 up ssh #use-pkg
 
 vm: vmeta
 vmeta:
 	vagrant/config meta
-vmeta7:
-	vagrant/config meta el7
 vmeta8:
 	vagrant/config meta el8
 vmeta9:
 	vagrant/config meta el9
 vmeta12:
 	vagrant/config meta debian12
-vmeta20:
-	vagrant/config meta ubuntu20
 vmeta22:
 	vagrant/config meta ubuntu22
 vmeta24:
@@ -607,30 +596,21 @@ vmeta24:
 # full-featured 4-node sandbox for HA-testing & tutorial & practices
 
 full:   full9
-full7:  cfull del vfull7  up ssh #copy-el7 use-pkg
 full8:  cfull del vfull8  up ssh #copy-el8 use-pkg
 full9:  cfull del vfull9  up ssh #copy-el9 use-pkg
-full11: cfull del vfull11 up ssh #copy-d11 use-pkg
 full12: cfull del vfull12 up ssh #copy-d12 use-pkg
-full20: cfull del vfull20 up ssh #copy-u20 use-pkg
 full22: cfull del vfull22 up ssh #copy-u22 use-pkg
 full24: cfull del vfull24 up ssh #copy-u24 use-pkg
 
 vf: vfull
 vfull:
 	vagrant/config full
-vfull7:
-	vagrant/config full el7
 vfull8:
 	vagrant/config full el8
 vfull9:
 	vagrant/config full el9
-vfull11:
-	vagrant/config full debian11
 vfull12:
 	vagrant/config full debian12
-vfull20:
-	vagrant/config full ubuntu20
 vfull22:
 	vagrant/config full ubuntu22
 vfull24:
@@ -667,36 +647,43 @@ simu22: csimu del vsimu22 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.u22.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 simu24: csimu del vsimu24 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.u24.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
-
 rs:
 	rsync -avz --exclude=vagrant ./ ai:~/pigsty/
-ext:
-	psql vonng -c "COPY (select id,name,pkg as alias,category,lead,rpm_repo,rpm_pkg,rpm_pg,deb_repo,deb_pkg,deb_pg FROM pgext.extension ORDER BY id) TO STDOUT CSV HEADER;" > files/extension.csv
 ###############################################################
+
 
 
 
 ###############################################################
 #                        Inventory                            #
 ###############################################################
-.PHONY: default tip link doc all boot conf configure bootstrap config deploy \
-        src pkg \
+.PHONY: default tip link doc boot bootstrap conf configure deploy \
+        src \
         c v validate \
-        infra pgsql repo repo-upstream repo-build repo-add node-repo node-upstream repo-clean pgsql-add pgsql-rm pgsql-ext \
-        grafana nginx cert docker app \
+        infra repo repo-upstream repo-check repo-build repo-add repo-clean \
+        node-repo node-upstream redeploy \
+        grafana vv vlogs vector nginx cert docker app \
+        pgsql-add pgsql-rm pgsql-ext \
         deps dns start ssh tssh \
-        up dw del new clean up-test dw-test del-test new-test clean \
-        st status suspend resume v1 v4 v7 v8 v9 vb vr vd vm vo vc vu vp vp7 vp9 \
-        ri rc rw ro rh rhc test-ri test-rw test-ro test-rw2 test-ro2 test-rc test-st test-rb1 test-rb2 test-rb3 \
+        up dw del nuke new clean \
+        up-test dw-test del-test new-test \
+        st status suspend resume \
+        ri rc rw ro rh test-ri test-rc test-rw test-ro test-rw2 test-ro2 test-rh test-st test-rb1 test-rb2 test-rb3 \
         di dd dc du dashboard-init dashboard-dump dashboard-clean \
-        copy copy-src copy-pkg copy-el7 copy-el8 copy-el9 copy-d11 copy-d12 copy-u20 copy-u22 copy-u24 \
-        copy-app copy-all use-src use-pkg use-all cmdb \
-        csa copy-src-all csr copy-src-rpm csd copy-src-deb df deb-fix push pull git-sync git-restore \
-        r release rr remote-release ross release-oss rpro release-pro pb publish \
-        oss pro all boot-pkg rpm deb vb vr vd vm vf vs vp all old va vo ve \
-        meta meta7 meta8 meta9 meta11 meta12 meta20 meta22 vmeta vmeta7 vmeta8 vmeta9 vfull11 vmeta12 vmeta20 vmeta22 vmeta24 \
-        full full7 full8 full9 full11 full12 full20 full22 vfull vfull7 vfull8 vfull9 vfull11 vfull12 vfull20 vfull22 vfull24 \
-        simu simu8 simu9 simu12 simu20 simu22 simu simu8 simu9 simu12 simu20 simu22 \
-        cmeta cdual ctrio cfull csimu coss cpro cext crpm cdeb tu td ts to
+        copy cc copy-src copy-pkg copy-el8 copy-el9 copy-el10 copy-d12 copy-d13 copy-u22 copy-u24 copy-app copy-all \
+        use-src use-pkg use-all cmdb \
+        cso copy-src-oss copy-src-pro csr copy-src-rpm csd copy-src-deb dfx deb-fix \
+        push pull ss gsync gpull grestore gpush \
+        r release u upload-src \
+        tu td ts to \
+        cmeta cdual ctrio cfull csimu coss cpro \
+        oss pro all vo vp vr vd va boot-pkg \
+        meta meta8 meta9 meta12 meta22 meta24 \
+        vm vmeta vmeta8 vmeta9 vmeta12 vmeta22 vmeta24 \
+        full full8 full9 full12 full22 full24 \
+        vf vfull vfull8 vfull9 vfull12 vfull22 vfull24 \
+        simu-conf vsimu vsimu8 vsimu9 vsimu12 vsimu22 vsimu24 \
+        vs simu simu8 simu9 simu12 simu22 simu24 rs \
+        rd release-dba gd get-dba ud upload-dba
 
 ###############################################################

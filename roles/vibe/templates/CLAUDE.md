@@ -48,7 +48,7 @@ Config docs: https://pigsty.cc/docs/config/
 
 ## PostgreSQL
 
-PG {{ pg_version | default(17) }} with [400+ extensions](https://ext.pigsty.io). Cluster: `{{ pg_cluster | default('pg-meta') }}`
+PG {{ pg_version | default(18) }} with [444 extensions](https://pgext.cloud). Cluster: `{{ pg_cluster | default('pg-meta') }}`
 
 ```bash
 psql 'postgres://{{ pg_admin_username | default('dbuser_dba') }}:{{ pg_admin_password | default('DBUser.DBA') }}@127.0.0.1/postgres'  # admin
@@ -116,5 +116,5 @@ It can handle domain names, https certs, make good use of it: https://pigsty.cc/
 ## Reference
 
 - [PGSQL Admin](https://pigsty.cc/docs/pgsql/admin/) | [User](https://pigsty.cc/docs/pgsql/user/) | [Database](https://pigsty.cc/docs/pgsql/db/) | [Backup](https://pigsty.cc/docs/pgsql/backup/)
-- [Config](https://pigsty.cc/docs/config/) | [Playbook](https://pigsty.cc/docs/pgsql/playbook/) | [Extensions](https://ext.pigsty.io)
+- [Config](https://pigsty.cc/docs/config/) | [Playbook](https://pigsty.cc/docs/pgsql/playbook/) | [Extensions](https://pgext.cloud/list)
 - [CLI Tools](https://pigsty.cc/docs/pgsql/admin/#pigsty-cli-tools): `bin/pgsql-*`, `bin/node-*`, `bin/redis-*`
