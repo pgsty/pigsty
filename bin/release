@@ -4,7 +4,7 @@ set -euo pipefail
 # File      :   release
 # Desc      :   make pigsty release
 # Ctime     :   2021-04-20
-# Mtime     :   2026-01-06
+# Mtime     :   2026-01-27
 # Path      :   bin/release
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -33,8 +33,8 @@ DIR="${RELEASE_DIR}/${PIGSTY_VERSION}"
 cd ${PIGSTY_HOME}
 mkdir -p "${DIR}"
 rm -rf "${DIR}/pigsty"
-mkdir -p "${DIR}/pigsty" "${DIR}/pigsty/files/bin" "${DIR}/pigsty/vagrant" "${DIR}/pigsty/terraform"
-
+mkdir -p "${DIR}/pigsty" "${DIR}/pigsty/files/bin" "${DIR}/pigsty/files/pki" "${DIR}/pigsty/vagrant" "${DIR}/pigsty/terraform" "${DIR}/pigsty/docker"
+mkdir ${DIR}/pigsty/files/pki/{ca,etcd,misc,infra,pgsql,redis,nginx,minio,mongo,mysql,csr}
 
 #--------------------------------------------------------------#
 # copy resources
@@ -42,6 +42,7 @@ mkdir -p "${DIR}/pigsty" "${DIR}/pigsty/files/bin" "${DIR}/pigsty/vagrant" "${DI
 cp -r ${PIGSTY_HOME}/{README.md,KEYS,LICENSE,Makefile} "${DIR}/pigsty/"
 cp -r ${PIGSTY_HOME}/vagrant/{ssh,dns,spec,nuke,config,Vagrantfile.libvirt,Vagrantfile.virtualbox,Makefile,README.md} "${DIR}/pigsty/vagrant/"
 cp -r ${PIGSTY_HOME}/terraform/{README.md,terraform.tf,spec,ssh,Makefile} "${DIR}/pigsty/terraform/"
+cp -r ${PIGSTY_HOME}/docker/{Dockerfile,docker-compose.yml,Makefile,README.md} "${DIR}/pigsty/docker/"
 cp -R ${PIGSTY_HOME}/files/{grafana,victoria,migration,postgres,*.sql} "${DIR}/pigsty/files/"
 cp -r ${PIGSTY_HOME}/app          "${DIR}/pigsty/" # copy pigsty app
 cp -r ${PIGSTY_HOME}/conf         "${DIR}/pigsty/" # copy pigsty conf
@@ -65,15 +66,11 @@ cp -r ${PIGSTY_HOME}/slim.yml     "${DIR}/pigsty/" # copy slim playbooks
 cp -r ${PIGSTY_HOME}/app.yml      "${DIR}/pigsty/" # copy app playbooks
 cp -r ${PIGSTY_HOME}/pigsty.yml   "${DIR}/pigsty/" # copy pigsty config
 cp -r ${PIGSTY_HOME}/.gitignore   "${DIR}/pigsty/" # copy .gitignore
-cp -r ${PIGSTY_HOME}/{bootstrap,configure} "${DIR}/pigsty/"   # basic scripts
-mkdir -p "${DIR}/pigsty/docker"                    # copy docker directory
-cp -r ${PIGSTY_HOME}/docker/{Dockerfile,Makefile,README.md} "${DIR}/pigsty/docker/"
+cp -r ${PIGSTY_HOME}/{bootstrap,configure} "${DIR}/pigsty/" # basic scripts
+
 rm -rf "${DIR}/pigsty/bin/__pycache__"             # remove py cache files
 rm -rf "${DIR}/pigsty/files/grafana/__pycache__"   # remove py cache files
 rm -rf "${DIR}/pigsty/conf/build/"                 # remove building file
-
-mkdir -p ${DIR}/pigsty/files/pki
-mkdir ${DIR}/pigsty/files/pki/{ca,etcd,misc,infra,pgsql,redis,nginx,minio,mongo,mysql,csr}
 find "${DIR}/pigsty/" -type f -name .DS_Store -delete
 
 #--------------------------------------------------------------#

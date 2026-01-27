@@ -1,17 +1,20 @@
 #==============================================================#
 # File      :   docker-compose.yml
 # Desc      :   Pigsty Docker Compose Configuration
-# Ctime     :   2026-01-27
-# Mtime     :   2026-01-27
+# Ctime     :   2025-01-27
+# Mtime     :   2025-01-27
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license
-# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+# Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 #
-# Quick Start:
-#   docker compose up -d        # Start container
+# Quick Start (works on both macOS and Linux):
+#   docker compose up -d
 #   docker compose exec pigsty bash
-#   ./configure -c docker -g -i 127.0.0.1
+#   ./configure -c docker -g --ip 127.0.0.1
 #   ./deploy.yml
+#
+# Or use one-liner:
+#   make launch
 #
 # Access after deployment:
 #   SSH:   ssh root@localhost -p 2222  (password: pigsty)
@@ -22,17 +25,17 @@
 
 services:
   pigsty:
-    image: pgsty/pigsty:v4.0.0
+    # default image: pgsty/pigsty:v4.0.0
+    image: ${PIGSTY_IMAGE}:${PIGSTY_VERSION:-v4.0.0}
     container_name: pigsty
     hostname: pigsty
     privileged: true
     volumes:
       - ./data:/data
-      - /sys/fs/cgroup:/sys/fs/cgroup:rw
     ports:
-      - "${SSH_PORT:-2222}:22"
-      - "${HTTP_PORT:-8080}:80"
-      - "${HTTPS_PORT:-8443}:443"
-      - "${PG_PORT:-5432}:5432"
+      - "${PIGSTY_SSH_PORT:-2222}:22"
+      - "${PIGSTY_HTTP_PORT:-8080}:80"
+      - "${PIGSTY_HTTPS_PORT:-8443}:443"
+      - "${PIGSTY_PG_PORT:-5432}:5432"
     stop_signal: SIGRTMIN+3
     restart: unless-stopped

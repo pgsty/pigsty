@@ -62,6 +62,7 @@ And gather the synergistic superpowers of all [**444+ PostgreSQL Extensions**](h
 [![EL Support: 8/9/10](https://img.shields.io/badge/EL-8/9/10-red?style=flat&logo=redhat&logoColor=red)](https://pigsty.io/docs/ref/linux#el)
 [![Debian Support: 12/13](https://img.shields.io/badge/Debian-12/13-%23A81D33?style=flat&logo=debian&logoColor=%23A81D33)](https://pigsty.io/docs/ref/linux#debian)
 [![Ubuntu Support: 22/24](https://img.shields.io/badge/Ubuntu-22/24-%23E95420?style=flat&logo=ubuntu&logoColor=%23E95420)](https://pigsty.io/docs/ref/linux#ubuntu)
+[![Docker Image](https://img.shields.io/badge/Docker-%232496ED?style=flat&logo=docker&logoColor=white)](docker/)
 
 [**Prepare**](https://pigsty.io/docs/deploy/prepare) a fresh `x86_64` / `aarch64` node runs any [**compatible**](https://pigsty.io/docs/ref/linux) **Linux** OS Distros, then [**Install**](https://pigsty.io/docs/setup/install#install) **Pigsty** with:
 
@@ -80,7 +81,7 @@ Finally, you will get a pigsty [**singleton node ready**](https://pigsty.io/docs
 
 --------
 
-> [**Single-Node Deploy**](https://pigsty.io/docs/setup/install) | [**Production Deploy**](https://pigsty.io/docs/deploy) | [**Offline Install**](https://pigsty.io/docs/setup/offline) | [**Minimal Install**](https://pigsty.io/docs/setup/slim) | [**Self-Hosting Supabase**](https://pigsty.io/docs/app/supabase)
+> [**Single-Node Setup**](https://pigsty.io/docs/setup/install) | [**Production Deploy**](https://pigsty.io/docs/deploy) | [**Offline Install**](https://pigsty.io/docs/setup/offline) | [**Minimal Install**](https://pigsty.io/docs/setup/slim) | [**Docker Install**](https://pigsty.io/docs/setup/docker) | [**Run Supabase**](https://pigsty.io/docs/app/supabase)
 
 <details><summary>Install with the pig cli</summary><br>
 
@@ -159,7 +160,7 @@ proceed with ./configure
 </details>
 
 
-<details><summary>Or clone src with git</summary><br>
+<details><summary>Clone src with git</summary><br>
 
 You can also download the pigsty source with `git`, remember to check out a specific version tag, the `main` branch is for development.
 
@@ -169,6 +170,17 @@ git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v4.0.0
 
 </details>
 
+<details><summary>Run with Docker Compose</summary><br>
+
+You can run 1-node demo with `docker` or `docker-compose`: 
+
+```bash
+cd docker; make launch
+```
+
+Run pigsty inside docker is not recommended for **PRODUCTION**, check [**docker setup**](docker/) for details
+
+</details>
 
 
 
@@ -349,7 +361,7 @@ auto-routed, pooled [**Services & Access**](https://pigsty.io/docs/pgsql/service
 
 The cluster keeps serving as long as **ANY** instance survives, with excellent fault-tolerance performance:
 
-> [**RPO**](https://pigsty.io/docs/concept/ha) **= 0** on sync mode, **RPO < 1MB** on async mode; [**RTO**](https://pigsty.io/docs/concept/ha) **< 1s** on switchover, **RTO ≈ 15s** on failover.
+> [**RPO = 0**](https://pigsty.io/docs/concept/ha/rpo) on sync mode, **RPO < 1MB** on async mode; [**RTO < 2s**](https://pigsty.io/docs/concept/ha/failure) on switchover, [**RTO < 30s**](https://pigsty.io/docs/concept/ha/rto) on failover.
 
 
 
