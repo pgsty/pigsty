@@ -1,0 +1,110 @@
+---
+#==============================================================#
+# File      :   docker.yml
+# Desc      :   Pigsty docker coding environment
+# Ctime     :   2026-01-19
+# Mtime     :   2026-01-27
+# Docs      :   https://pigsty.io/docs/conf/docker
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+# DOCKER CONFIG, use 127.0.0.1 inside docker
+# mount the /data volume when running docker container
+#
+# Usage:
+#   curl https://repo.pigsty.io/get | bash
+#   ./configure -c docker -i 127.0.0.1 -g
+#   ./deploy.yml
+
+all:
+  children:
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 }} ,vars: { repo_enabled: false }}
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1  }} ,vars: { etcd_cluster: etcd  }}
+    pgsql: { hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary  }} ,vars: { pg_cluster: pgsql }}
+  vars:
+
+    #----------------------------------------------#
+    # Infra
+    #----------------------------------------------#
+    version: v4.0.0                   # pigsty version string
+    admin_ip: 10.10.10.10               # admin node ip address
+    region: china                     # upstream mirror region: default|china|europe
+    dns_enabled: false                # disable dnsmasq service on single node
+    infra_portal:
+      home : { domain: i.pigsty }
+    proxy_env:                        # global proxy env when downloading packages
+      no_proxy: "localhost,10.10.10.10,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.myqcloud.com,*.tsinghua.edu.cn"
+      # http_proxy:  # set your proxy here: e.g http://user:pass@proxy.xxx.com
+      # https_proxy: # set your proxy here: e.g http://user:pass@proxy.xxx.com
+      # all_proxy:   # set your proxy here: e.g http://user:pass@proxy.xxx.com
+
+    #----------------------------------------------#
+    # Node
+    #----------------------------------------------#
+    nodename: pigsty
+    node_id_from_pg: false
+    node_tune: oltp
+    node_write_etc_hosts: false
+    node_dns_method: none
+    node_ntp_enabled: false
+    node_kernel_modules: []
+    node_repo_remove: true
+    node_repo_modules: 'node,infra,pgsql'
+    #node_packages: [ openssh-server ]
+
+    #----------------------------------------------#
+    # PGSQL: https://pigsty.io/docs/pgsql
+    #----------------------------------------------#
+    pg_version: 18                      # Default PostgreSQL Major Version is 18
+    pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+    pg_packages: [ pgsql-main, patroni, pgbackrest, pg_exporter, pgbackrest_exporter ]
+    pg_extensions: [ pg18-main ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
+    pg_users:
+      - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin   ] ,comment: pigsty admin user }
+      - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
+    pg_databases:
+      - { name: meta, baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [ postgis, timescaledb, vector ]}
+    pg_libs: 'timescaledb, pg_stat_statements, auto_explain, pg_wait_sampling'
+    pg_hba_rules:
+      - { user: all ,db: all ,addr: intra ,auth: pwd ,title: 'everyone intranet access with password' ,order: 800 }
+      - { user: all ,db: all ,addr: world ,auth: pwd ,title: 'everyone world access with password'    ,order: 900 }
+    pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
+    patroni_mode: remove                # remove patroni after deployment
+    pgbouncer_enabled: false            # disable pgbouncer pool
+    pgbouncer_exporter_enabled: false   # disable pgbouncer_exporter on pgsql hosts?
+    pgbackrest_exporter_enabled: false  # disable pgbackrest_exporter
+    pg_default_services: []             # do not provision pg services
+    #pg_reload: false                   # do not reload patroni/service
+
+    #----------------------------------------------#
+    # PASSWORD : https://pigsty.io/docs/setup/security/
+    #----------------------------------------------#
+    grafana_admin_password: pigsty
+    grafana_view_password: DBUser.Viewer
+    pg_admin_password: DBUser.DBA
+    pg_monitor_password: DBUser.Monitor
+    pg_replication_password: DBUser.Replicator
+    patroni_password: Patroni.API
+    haproxy_admin_password: pigsty
+
+    #----------------------------------------------#
+    # OPTIONAL
+    #----------------------------------------------#
+    #code_password: DBUser.Meta
+    #jupyter_password: DBUser.Meta
+    #
+    #juice_instances:  # dict of juicefs filesystems to deploy
+    #  jfs:
+    #    path  : /fs
+    #    meta  : postgres://dbuser_meta:DBUser.Meta@10.10.10.10:5432/meta
+    #    data  : --storage postgres --bucket 10.10.10.10:5432/meta --access-key dbuser_meta --secret-key DBUser.Meta
+    #    port  : 9567
+    #
+    #claude_env:
+    #  ANTHROPIC_BASE_URL: https://open.bigmodel.cn/api/anthropic
+    #  ANTHROPIC_API_URL: https://open.bigmodel.cn/api/anthropic
+    #  ANTHROPIC_AUTH_TOKEN: your_api_service_token
+    #  ANTHROPIC_MODEL: glm-4.7
+    #  ANTHROPIC_SMALL_FAST_MODEL: glm-4.5-air
+...

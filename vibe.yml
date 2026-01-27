@@ -4,7 +4,7 @@
 # File      :   vibe.yml
 # Desc      :   Deploy development tools (claude, code, jupyter)
 # Ctime     :   2025-01-24
-# Mtime     :   2025-01-24
+# Mtime     :   2025-01-27
 # Path      :   vibe.yml
 # Docs      :   https://pigsty.io/docs/vibe
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -15,21 +15,21 @@
   gather_facts: no
   become: true
   vars:
-    #vibe_data: /fs                   # vibe workspace directory
-    #claude_enabled: true            # enable claude code cli
-    #claude_env: {}                  # extra env vars for claude
-    #code_enabled: true              # enable code-server
-    #code_port: 8443                 # code-server listen port
-    #code_data: /data/code           # code-server data directory
-    #code_password: Vibe.Coding      # code-server password
-    #code_gallery: openvsx           # extension gallery: openvsx|microsoft
-    #jupyter_enabled: true           # enable jupyter lab
-    #jupyter_port: 8888              # jupyter lab listen port
-    #jupyter_data: /data/jupyter     # jupyter lab data directory
-    #jupyter_password: Vibe.Coding   # jupyter lab access token
-    #jupyter_venv: /data/venv        # python venv path with jupyter
-    #nodejs_enabled: true            # enable nodejs installation
-    #nodejs_registry: ''             # npm registry, auto china mirror if empty
+    #vibe_data: /fs                    # vibe workspace directory
+    #code_enabled: true                # enable code-server installation
+    #code_port: 8443                   # code-server listen port
+    #code_data: /data/code             # code-server user data directory
+    #code_password: Vibe.Coding        # code-server password
+    #code_gallery: 'openvsx'           # extension gallery: openvsx|microsoft
+    #jupyter_enabled: true             # enable jupyter lab installation
+    #jupyter_port: 8888                # jupyter lab listen port
+    #jupyter_data: /data/jupyter       # jupyter lab data directory
+    #jupyter_password: Vibe.Coding     # jupyter lab access token
+    #jupyter_venv: /data/venv          # python venv path with jupyter
+    #claude_enabled: true              # enable claude code configuration
+    #claude_env: {}                    # extra env vars to merge with defaults
+    #nodejs_enabled: true              # enable nodejs installation
+    #nodejs_registry: ''               # npm registry, auto china mirror if empty
   roles:
     - { role: node_id, tags: id   }
     - { role: vibe,    tags: vibe }
@@ -39,19 +39,16 @@
 # Usage
 #---------------------------------------------------------------
 # ./vibe.yml -l <host>                          # full install
-# ./vibe.yml -l <host> -t claude                # claude only
 # ./vibe.yml -l <host> -t code                  # code only
 # ./vibe.yml -l <host> -t jupyter               # jupyter only
 # ./vibe.yml -l <host> -t nodejs                # nodejs only
+# ./vibe.yml -l <host> -t claude                # claude only
 #
 # Disable components:
-#   ./vibe.yml -l <host> -e claude_enabled=false
 #   ./vibe.yml -l <host> -e code_enabled=false
 #   ./vibe.yml -l <host> -e jupyter_enabled=false
 #   ./vibe.yml -l <host> -e nodejs_enabled=false
-#
-# Configure Claude API key:
-#   ./vibe.yml -l <host> -e claude_env.ANTHROPIC_API_KEY=sk-ant-xxx
+#   ./vibe.yml -l <host> -e claude_enabled=false
 #
 # Access services:
 #   Code Server: https://<host>/code/
@@ -62,9 +59,6 @@
 #---------------------------------------------------------------
 # vibe                 : deploy vibe development tools
 #   - vibe_dir         : create workspace and render context files
-#   - claude           : configure claude code cli
-#     - claude_install : install claude-code package
-#     - claude_config  : render ~/.claude config files
 #   - code             : deploy code-server
 #     - code_install   : install code-server package
 #     - code_dir       : create code data directories
@@ -78,5 +72,8 @@
 #   - nodejs           : install nodejs runtime
 #     - nodejs_install : install nodejs package
 #     - nodejs_config  : configure npm registry
+#   - claude           : configure claude code cli
+#     - claude_install : install claude-code package
+#     - claude_config  : render ~/.claude config files
 #---------------------------------------------------------------
 ...

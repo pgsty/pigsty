@@ -3,7 +3,7 @@
 # File      :   vibe.yml
 # Desc      :   Pigsty ai vibe coding sandbox
 # Ctime     :   2026-01-19
-# Mtime     :   2026-01-25
+# Mtime     :   2026-01-27
 # Docs      :   https://pigsty.io/docs/conf/vibe
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -22,14 +22,14 @@
 
 all:
   children:
-    infra: { hosts: { 10.10.10.10: { infra_seq: 1 }} ,vars: { repo_enabled: false }}
-    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1  }} ,vars: { etcd_cluster: etcd  }}
-    pgsql: { hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } } ,vars: { pg_cluster: pgsql }}
+    infra: { hosts: { 127.0.0.1: { infra_seq: 1 }} ,vars: { repo_enabled: false }}
+    etcd:  { hosts: { 127.0.0.1: { etcd_seq: 1  }} ,vars: { etcd_cluster: etcd  }}
+    pgsql: { hosts: { 127.0.0.1: { pg_seq: 1, pg_role: primary } } ,vars: { pg_cluster: pgsql }}
 
     # optional modules
-    #minio: { hosts: { 10.10.10.10: { minio_seq: 1 }} ,vars: { minio_cluster: minio }}
+    #minio: { hosts: { 127.0.0.1: { minio_seq: 1 }} ,vars: { minio_cluster: minio }}
     #redis-ms:
-    #  hosts: { 10.10.10.10: { redis_node: 1 , redis_instances: { 6379: { }, 6380: { replica_of: '10.10.10.10 6379' } } } }
+    #  hosts: { 127.0.0.1: { redis_node: 1 , redis_instances: { 6379: { }, 6380: { replica_of: '127.0.0.1 6379' } } } }
     #  vars: { redis_cluster: redis-ms ,redis_password: 'redis.ms' ,redis_max_memory: 64MB }
 
   vars:
@@ -37,7 +37,7 @@ all:
     # INFRA: https://pigsty.io/docs/infra
     #----------------------------------------------#
     version: v4.0.0                     # pigsty version string
-    admin_ip: 10.10.10.10               # admin node ip address
+    admin_ip: 127.0.0.1               # admin node ip address
     region: default                     # upstream mirror region: default,china,europe
     infra_portal:                       # infra services exposed via portal
       home : { domain: i.pigsty }       # default domain name
@@ -86,16 +86,6 @@ all:
     #pg_reload: false                   # do not reload patroni/service
 
     #----------------------------------------------#
-    # JUICE : https://pigsty.io/docs/juice
-    #----------------------------------------------#
-    juice_instances:  # dict of juicefs filesystems to deploy
-      jfs:
-        path  : /fs
-        meta  : postgres://dbuser_meta:DBUser.Meta@10.10.10.10:5432/meta
-        data  : --storage postgres --bucket 10.10.10.10:5432/meta --access-key dbuser_meta --secret-key DBUser.Meta
-        port  : 9567
-
-    #----------------------------------------------#
     # PASSWORD : https://pigsty.io/docs/setup/security/
     #----------------------------------------------#
     grafana_admin_password: pigsty
@@ -105,10 +95,19 @@ all:
     pg_replication_password: DBUser.Replicator
     patroni_password: Patroni.API
     haproxy_admin_password: pigsty
+
+
+    #----------------------------------------------#
+    # OPTIONAL VIBE COMPONENTS
+    #----------------------------------------------#
     code_password: DBUser.Meta
     jupyter_password: DBUser.Meta
-
-    # you can use other models here!
+    juice_instances:
+      jfs:
+        path  : /fs
+        meta  : postgres://dbuser_meta:DBUser.Meta@127.0.0.1:5432/meta
+        data  : --storage postgres --bucket 127.0.0.1:5432/meta --access-key dbuser_meta --secret-key DBUser.Meta
+        port  : 9567
     #claude_env:
     #  ANTHROPIC_BASE_URL: https://open.bigmodel.cn/api/anthropic
     #  ANTHROPIC_API_URL: https://open.bigmodel.cn/api/anthropic
