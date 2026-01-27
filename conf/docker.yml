@@ -22,6 +22,8 @@ all:
     infra: { hosts: { 10.10.10.10: { infra_seq: 1 }} ,vars: { repo_enabled: false }}
     etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1  }} ,vars: { etcd_cluster: etcd  }}
     pgsql: { hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary  }} ,vars: { pg_cluster: pgsql }}
+    #minio: { hosts: { 10.10.10.10: { minio_seq: 1 }} ,vars: { minio_cluster: minio }}
+
   vars:
 
     #----------------------------------------------#
@@ -58,7 +60,6 @@ all:
     #----------------------------------------------#
     pg_version: 18                      # Default PostgreSQL Major Version is 18
     pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
-    pg_packages: [ pgsql-main, patroni, pgbackrest, pg_exporter, pgbackrest_exporter ]
     pg_extensions: [ pg18-main ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
     pg_users:
       - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin   ] ,comment: pigsty admin user }
@@ -70,11 +71,6 @@ all:
       - { user: all ,db: all ,addr: intra ,auth: pwd ,title: 'everyone intranet access with password' ,order: 800 }
       - { user: all ,db: all ,addr: world ,auth: pwd ,title: 'everyone world access with password'    ,order: 900 }
     pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
-    patroni_mode: remove                # remove patroni after deployment
-    pgbouncer_enabled: false            # disable pgbouncer pool
-    pgbouncer_exporter_enabled: false   # disable pgbouncer_exporter on pgsql hosts?
-    pgbackrest_exporter_enabled: false  # disable pgbackrest_exporter
-    pg_default_services: []             # do not provision pg services
     #pg_reload: false                   # do not reload patroni/service
 
     #----------------------------------------------#
@@ -87,6 +83,8 @@ all:
     pg_replication_password: DBUser.Replicator
     patroni_password: Patroni.API
     haproxy_admin_password: pigsty
+    minio_secret_key: S3User.MinIO
+    etcd_root_password: Etcd.Root
 
     #----------------------------------------------#
     # OPTIONAL
