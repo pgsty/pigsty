@@ -643,9 +643,7 @@ Special thanks to MiraclePlus for fund, to Cloudflare for hosting the Pigsty rep
 
 ## License
 
-Pigsty is licensed under [**Apache-2.0**](LICENSE) (since v4.0). 
-**optional** module [`MINIO`](roles/minio/LICENSE) and [`grafana`](files/grafana/LICENSE) related files are licensed under [**AGPL-3.0**](https://www.gnu.org/licenses/agpl-3.0.html) 
-due to upstream dependencies (Grafana & MinIO). See [**NOTICE**](NOTICE) and [**Docs**](https://pigsty.io/docs/about/license) for details.  
+Pigsty is licensed under [**Apache-2.0**](LICENSE) (since v4.0), Check [**Docs**](https://pigsty.io/docs/about/license) for details.  
 
 
 ## About

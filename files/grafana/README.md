@@ -2,14 +2,6 @@
 
 This directory contains Grafana dashboard definitions for Pigsty monitoring system.
 
-> **License**: AGPLv3 - GNU Affero General Public License v3.0
->
-> The Grafana dashboards and related tooling in this directory are licensed under AGPLv3.
-> See [LICENSE](LICENSE) for the full license text.
->
-> Copyright 2018-2026 Ruohang Feng / Vonng (rh@vonng.com)
-
-
 ## Overview
 
 Pigsty provides **57 built-in dashboards** organized by module:

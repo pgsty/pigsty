@@ -3,9 +3,9 @@
 # File      :   grafana.py
 # Desc      :   dump/load/init grafana dashboards
 # Ctime     :   2022-11-23
-# Mtime     :   2026-12-20
+# Mtime     :   2026-01-29
 # Path      :   files/grafana/grafana.py
-# License   :   AGPLv3 @ https://pigsty.io/docs/about/license/
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 import os, sys, json, requests
