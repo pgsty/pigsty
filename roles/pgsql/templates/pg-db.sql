@@ -80,10 +80,13 @@ ALTER DATABASE "{{ database.name }}" IS_TEMPLATE {{ database.is_template|lower }
 
 -- parameters
 {% if 'parameters' in database and database.parameters is not none %}
+{% set list_params = ['search_path', 'temp_tablespaces', 'local_preload_libraries', 'session_preload_libraries', 'log_destination'] %}
 {% for key, value in database.parameters.items() %}
 {% if value is not none %}
 {% if value | string | upper == 'DEFAULT' %}
 ALTER DATABASE "{{ database.name }}" SET "{{ key }}" = DEFAULT;
+{% elif key in list_params %}
+ALTER DATABASE "{{ database.name }}" SET "{{ key }}" = {{ value }};
 {% else %}
 ALTER DATABASE "{{ database.name }}" SET "{{ key }}" = '{{ value | replace("'", "''") }}';
 {% endif %}

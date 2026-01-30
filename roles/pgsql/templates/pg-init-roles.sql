@@ -75,10 +75,13 @@ ALTER USER "{{ user.name }}" CONNECTION LIMIT {{ user.connlimit | int }};
 
 -- parameters
 {% if 'parameters' in user and user.parameters is not none and user.parameters|length > 0 %}
+{% set list_params = ['search_path', 'temp_tablespaces', 'local_preload_libraries', 'session_preload_libraries'] %}
 {% for key, value in user.parameters.items() %}
 {% if value is not none %}
 {% if value | string | upper == 'DEFAULT' %}
 ALTER USER "{{ user.name }}" SET "{{ key }}" = DEFAULT;
+{% elif key in list_params %}
+ALTER USER "{{ user.name }}" SET "{{ key }}" = {{ value }};
 {% else %}
 ALTER USER "{{ user.name }}" SET "{{ key }}" = '{{ value | replace("'", "''") }}';
 {% endif %}
