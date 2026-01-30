@@ -124,9 +124,9 @@ node (full role)
 
 ### Security
 
-| Variable             | Default | Description                                     |
-|----------------------|---------|-------------------------------------------------|
-| `node_selinux_mode`  | `enum`  | set selinux mode: enforcing,permissive,disabled |
+| Variable             | Default | Description                                                       |
+|----------------------|---------|-------------------------------------------------------------------|
+| `node_selinux_mode`  | `enum`  | set selinux mode: enforcing,permissive,disabled                   |
 | `node_firewall_mode` | `enum`  | firewall mode: none (skip), off (disable), zone (enable & config) |
 
 
@@ -230,6 +230,7 @@ For production environments, review and adjust the following:
 ```yaml
 node_admin_sudo: limit              # Limited sudo commands without password
 node_selinux_mode: enforcing        # Full SELinux enforcement
+node_firewall_mode: zone            # trust intranet, expose 22 80 443 only
 node_firewall_public_port: [22, 80, 443]  # Remove 5432 from public
 vip_auth_pass: '<strong-secret>'    # Explicit VRRP authentication
 ```
@@ -237,6 +238,21 @@ vip_auth_pass: '<strong-secret>'    # Explicit VRRP authentication
 **SSH Host Key Checking**: The admin user's SSH config disables `StrictHostKeyChecking`
 for cluster operations. This is necessary for ansible but allows potential MITM attacks.
 Ensure your network is trusted or use a bastion host.
+
+
+## Firewall Management
+
+Enable firewall with `node_firewall_mode: zone`, then apply: `./node.yml -l <target> -t node_firewall`
+
+> **Note**: Firewall rules are **additive only**. To remove rules, use manual commands:
+
+```bash
+# RHEL/Rocky (firewalld)
+firewall-cmd --zone=public --remove-port=5432/tcp && firewall-cmd --runtime-to-permanent
+
+# Debian/Ubuntu (ufw)
+ufw delete allow 5432/tcp
+```
 
 
 ## See Also
