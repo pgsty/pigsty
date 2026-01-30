@@ -1657,4 +1657,5 @@ INSERT INTO pigsty.default_var VALUES
 (1030, 'claude_enabled', 'true', 'VIBE', 'CLAUDE', 'bool', 'C', 'enable claude code configuration', NULL),
 (1031, 'claude_env', '{}', 'VIBE', 'CLAUDE', 'dict', 'C', 'extra env vars to merge with defaults', NULL),
 (1040, 'nodejs_enabled', 'true', 'VIBE', 'NODEJS', 'bool', 'C', 'enable nodejs installation', NULL),
-(1041, 'nodejs_registry', '""', 'VIBE', 'NODEJS', 'url', 'C', 'npm registry, auto china mirror if empty', NULL);
+(1041, 'nodejs_registry', '""', 'VIBE', 'NODEJS', 'url', 'C', 'npm registry, auto china mirror if empty', NULL),
+(1042, 'npm_packages', '[]', 'VIBE', 'NODEJS', 'string[]', 'C', 'list of global npm packages to install', NULL);

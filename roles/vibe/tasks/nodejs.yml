@@ -4,14 +4,14 @@
 #--------------------------------------------------------------#
 
 #--------------------------------------------------------------#
-# nodejs_install - install nodejs package
+# nodejs_install - install nodejs package       [nodejs_install]
 #--------------------------------------------------------------#
 - name: install nodejs package
   tags: nodejs_install
   package: name=nodejs state=present
 
 #--------------------------------------------------------------#
-# nodejs_config - configure npm registry
+# nodejs_config - configure npm registry         [nodejs_config]
 #--------------------------------------------------------------#
 - name: configure npm registry
   tags: nodejs_config
@@ -29,5 +29,17 @@
         mode: '0644'
         content: |
           registry={{ nodejs_registry | default('https://registry.npmmirror.com', true) }}
+
+#--------------------------------------------------------------#
+# npm_packages - install global npm packages           [npm_pkg]
+#--------------------------------------------------------------#
+- name: install global npm packages
+  tags: nodejs_pkg
+  when: npm_packages | default([]) | length > 0
+  shell: npm install -g {{ item }}
+  args:
+    executable: /bin/bash
+  loop: "{{ npm_packages }}"
+  environment: "{{ proxy_env | default({}) | combine({'PATH': '/usr/local/node/bin:/usr/local/bin:/usr/bin:/bin'}) }}"
 
 ...

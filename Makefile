@@ -166,6 +166,9 @@ repo-clean:
 node-repo:
 	./node.yml -t node_repo
 
+node-pkg:
+	./node.yml -t node_pkg
+
 node-upstream:
 	./node.yml -t node_repo -e node_repo_modules=node,pgsql,infra,local
 
@@ -195,6 +198,10 @@ docker:
 	./docker.yml
 app:
 	./app.yml
+
+# claude
+claude:
+	./vibe.yml -t nodejs,claude
 
 # install & uninstall pgsql (dangerous!!)
 pgsql-add:
@@ -661,8 +668,8 @@ rs:
         src \
         c v validate \
         infra repo repo-upstream repo-check repo-build repo-add repo-clean \
-        node-repo node-upstream redeploy \
-        grafana vv vlogs vector nginx cert docker app \
+        node-repo node-upstream node-pkg redeploy \
+        grafana vv vlogs vector nginx cert claude cc docker app \
         pgsql-add pgsql-rm pgsql-ext \
         deps dns start ssh tssh \
         up dw del nuke new clean \

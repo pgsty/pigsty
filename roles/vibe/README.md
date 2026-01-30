@@ -57,7 +57,8 @@ vibe
 │   └── claude_config
 └── nodejs            # Node.js Runtime
     ├── nodejs_install
-    └── nodejs_config
+    ├── nodejs_config
+    └── nodejs_pkg
 ```
 
 
@@ -104,8 +105,18 @@ Claude Code is pre-configured with OpenTelemetry, sending metrics and logs to Vi
 |-------------------|---------|--------------------------------------------------|
 | `nodejs_enabled`  | `true`  | Enable Node.js installation                      |
 | `nodejs_registry` | `''`    | npm registry URL, auto china mirror if empty     |
+| `npm_packages`    | `[]`    | List of global npm packages to install           |
 
 When `nodejs_registry` is empty and `region=china`, npm is automatically configured to use `https://registry.npmmirror.com`.
+
+Use `npm_packages` to install global npm packages like `@anthropic-ai/claude-code`:
+
+```yaml
+npm_packages:
+  - '@anthropic-ai/claude-code'
+  - typescript
+  - pnpm
+```
 
 
 ## Usage
