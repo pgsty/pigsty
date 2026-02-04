@@ -17,9 +17,9 @@
   become_user: "{{ pg_dbsu|default('postgres') }}"
   shell: |
     {% if pg_mode|default('pgsql') == 'citus' %} 
-    /bin/patronictl -c /etc/patroni/patroni.yml restart {{ pg_cluster }} --force
+    /usr/bin/patronictl -c /etc/patroni/patroni.yml restart {{ pg_shard }} --group {{ pg_group }} --force
     {% else %}
-    /bin/patronictl -c /etc/patroni/patroni.yml restart {{ pg_shard }} --group {{ pg_group }} --force
+    /usr/bin/patronictl -c /etc/patroni/patroni.yml restart {{ pg_cluster }} --force
     {% endif %}
   args:
     executable: /bin/bash
@@ -37,6 +37,6 @@
   systemd: name=pgbouncer state=restarted daemon_reload=yes
 
 - name: restart vip-manager
-  systemd: name=pgbouncer_exporter state=restart daemon_reload=yes
+  systemd: name=vip-manager state=restarted daemon_reload=yes
 
 ...
