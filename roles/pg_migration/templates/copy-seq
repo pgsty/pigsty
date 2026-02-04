@@ -62,7 +62,7 @@ log_info   "generate sequence dump sql with ${SEQ_SHIFT} shift: ${DUMP_SQL}"
 cat > ${DUMP_SQL} <<-EOF
 SELECT '-- DUMP AT: ' || NOW()::TEXT || ' WITH SHIFT ${SEQ_SHIFT} ' AS sql
 UNION ALL
-SELECT format('SELECT setval(''%s.%s'', %s + ${SEQ_SHIFT});', schemaname, sequencename, last_value ) AS sql
+SELECT format('SELECT setval(''%I.%I'', %s + ${SEQ_SHIFT});', schemaname, sequencename, last_value ) AS sql
 FROM pg_sequences
 WHERE last_value IS NOT NULL
   AND schemaname !~ '^pg_'
@@ -79,7 +79,7 @@ log_info   "generate sequence dump sql without any shift: ${DUMP_SQL}"
 cat > ${DUMP_SQL} <<-EOF
 SELECT '-- DUMP AT: ' || NOW()::TEXT || ' WITH OUT SHIFT ' AS sql
 UNION ALL
-SELECT format('SELECT setval(''%s.%s'', %s);', schemaname, sequencename, last_value ) AS sql
+SELECT format('SELECT setval(''%I.%I'', %s);', schemaname, sequencename, last_value ) AS sql
 FROM pg_sequences
 WHERE last_value IS NOT NULL
   AND schemaname !~ '^pg_'
