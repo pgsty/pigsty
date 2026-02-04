@@ -119,7 +119,7 @@ ETCD requires 1, 3, 5, or 7 nodes for proper quorum:
 
 ## TLS Configuration
 
-ETCD uses mutual TLS for all communication:
+ETCD uses TLS encryption for all communication by default. Client/peer cert authentication is not enforced unless you explicitly enable `client-cert-auth` / `peer-client-cert-auth` in the config:
 
 - **CA**: `files/pki/ca/ca.crt`
 - **Server Cert**: `/etc/etcd/server.crt`
