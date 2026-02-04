@@ -4,7 +4,7 @@
 # File      :   infra-rm.yml
 # Desc      :   uninstall pigsty infra module
 # Ctime     :   2022-02-22
-# Mtime     :   2025-12-11
+# Mtime     :   2026-02-04
 # Path      :   infra-rm.yml
 # Docs      :   https://pigsty.io/docs/infra/playbook
 # License1  :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -16,10 +16,24 @@
 # Usage
 #---------------------------------------------------------------
 # ./infra-rm.yml               # remove everything about infra
+# ./infra-rm.yml -t deregister # remove infra targets/datasource/vector
 # ./infra-rm.yml -t service    # stop infra services
+# ./infra-rm.yml -t config     # remove infra config & unit
+# ./infra-rm.yml -t env        # remove infra env files
 # ./infra-rm.yml -t data       # remove infra data
 # ./infra-rm.yml -t package    # uninstall infra packages
 #---------------------------------------------------------------
+
+
+#--------------------------------------------------------------#
+# Node Identity
+#--------------------------------------------------------------#
+- name: NODE ID
+  become: true
+  hosts: infra
+  gather_facts: no
+  ignore_errors: true
+  roles: [ { role: node_id } ]
 
 
 #--------------------------------------------------------------#
@@ -31,6 +45,56 @@
   gather_facts: no
   ignore_errors: true
   tasks:
+
+    #---------------------------------------------
+    # Deregister from Infra Services
+    #---------------------------------------------
+    - name: remove infra targets from victoria
+      tags: [ deregister, rm_metrics ]
+      ignore_errors: true
+      when: infra_seq is defined
+      delegate_to: '{{ item }}'
+      loop: '{{ groups["infra"] | default([]) }}'
+      file: path="/infra/targets/infra/infra-{{ infra_seq }}.yml" state=absent
+
+    - name: remove infra datasource files
+      tags: [ deregister, rm_ds ]
+      ignore_errors: true
+      when: infra_seq is defined
+      delegate_to: '{{ item.0 }}'
+      loop: "{{ groups['infra'] | default([]) | product(ds_list) | list }}"
+      file: path="/infra/datasources/{{ item.1 }}.json" state=absent
+      vars:
+        ds_list:
+          - "vmetrics-{{ infra_seq }}"
+          - "vlogs-{{ infra_seq }}"
+          - "vtraces-{{ infra_seq }}"
+
+    - name: remove infra datasources from grafana
+      tags: [ deregister, rm_ds ]
+      ignore_errors: true
+      when: infra_seq is defined
+      delegate_to: '{{ item }}'
+      loop: '{{ groups["infra"] | default([]) }}'
+      shell: |
+        curl -sS -X DELETE "http://127.0.0.1:{{ gf_port }}/ui/api/datasources/name/vmetrics-{{ infra_seq }}" -u "{{ gf_user }}:{{ gf_pass }}" -H 'Content-Type: application/json' || true
+        curl -sS -X DELETE "http://127.0.0.1:{{ gf_port }}/ui/api/datasources/name/vlogs-{{ infra_seq }}" -u "{{ gf_user }}:{{ gf_pass }}" -H 'Content-Type: application/json' || true
+        curl -sS -X DELETE "http://127.0.0.1:{{ gf_port }}/ui/api/datasources/name/vtraces-{{ infra_seq }}" -u "{{ gf_user }}:{{ gf_pass }}" -H 'Content-Type: application/json' || true
+        true
+      args: { executable: /bin/bash }
+      vars:
+        gf_port: "{{ grafana_port|default(3000) }}"
+        gf_user: "{{ grafana_admin_username|default('admin') }}"
+        gf_pass: "{{ grafana_admin_password|default('pigsty') }}"
+
+    - name: remove nginx logs from vector
+      tags: [ deregister, rm_logs ]
+      ignore_errors: true
+      block:
+        - name: remove nginx vector logging config
+          file: path=/etc/vector/nginx.yaml state=absent
+        - name: reload vector to discard nginx log
+          systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
 
     #---------------------------------------------
     # Stop Service
@@ -56,7 +120,6 @@
     - name: remove infra conf
       file: state=absent path="{{ item }}"
       tags: config
-      vars: { systemd_dir: "{% if os_package is defined and os_package == 'deb' %}/lib/systemd/system/{% else %}/usr/lib/systemd/system{% endif %}" }
       with_items:
         - /etc/pki/infra.crt
         - /etc/pki/infra.key
