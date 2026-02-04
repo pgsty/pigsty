@@ -52,11 +52,11 @@ These are 1-node config template, which can be used to install pigsty on a singl
 * [pgsql.yml](pgsql.yml) : Vanilla PostgreSQL kernel with basic features (13~18)
 * [mssql.yml](mssql.yml) : Babelfish kernel with SQL Server wire-compatibility (15)
 * [polar.yml](polar.yml) : PolarDB PG kernel for Aurora / RAC flavor postgres (15)
-* [ivory.yml](ivory.yml) : IvorySQL Kernel for Oracle grammar compatibility (17)
+* [ivory.yml](ivory.yml) : IvorySQL Kernel for Oracle grammar compatibility (18)
 * [mysql.yml](mysql.yml) : OpenHalo Kernel for MySQL Compatibility (14)
-* [pgtde.yml](pgtde.yml) : Percona PostgreSQL Server with TDE (17)
+* [pgtde.yml](pgtde.yml) : Percona PostgreSQL Server with TDE (18)
 * [oriole.yml](oriole.yml) : OrioleDB Kernel for OLTP Enhancement (17, deb broken)
-* [supabase.yml](supabase.yml) : PostgreSQL configured for Supabase self-hosting (15~17)
+* [supabase.yml](supabase.yml) : PostgreSQL configured for Supabase self-hosting (15~18)
 
 You can add more nodes later, or use [HA config templates](#ha-templates) to plan it at the beginning.
 
@@ -84,7 +84,7 @@ You can run docker software/app with the following templates:
 * [app/supa.yml](app/supa.yml) : launch 1-node supabase
 * [app/odoo.yml](app/odoo.yml) : launch the odoo ERP system
 * [app/dify.yml](app/dify.yml) : launch the dify AI workflow system
-* [app/electirc.yml](app/electric.yml) : launch the electric sync engine app
+* [app/electric.yml](app/electric.yml) : launch the electric sync engine app
 
 ----------
 
@@ -106,4 +106,3 @@ In addition to the main templates, Pigsty provides a set of demo templates for d
 These config templates are used for development and testing purposes.
 
 * [build/oss.yml](build/oss.yml) : building config for EL 9, 10 ,Debian 12/13, and Ubuntu 22.04/24.04 OSS.
-

@@ -1,6 +1,6 @@
 ---
 #==============================================================#
-# File      :   fork.yml
+# File      :   kernel.yml
 # Desc      :   Pigsty 4 node for 4 pg forks
 # Ctime     :   2025-03-25
 # Mtime     :   2025-12-12
@@ -67,14 +67,14 @@ all:
             owner: dbuser_mssql
             parameters: { 'babelfishpg_tsql.migration_mode' : 'multi-db' }
             comment: babelfish cluster, a MSSQL compatible pg cluster
-            pg_libs: 'babelfishpg_tds, pg_stat_statements, auto_explain' # add timescaledb to shared_preload_libraries
-            pg_hba_rules: # use md5 auth for mssql user, inserted between admin(500) and readonly(550)
-              - { user: dbuser_mssql ,db: mssql ,addr: intra ,auth: md5 ,order: 525 ,title: 'allow mssql dbsu intranet md5 access' }
-            pg_default_services: # route primary & replica service to mssql port 1433
-              - { name: primary ,port: 5433 ,dest: 1433  ,check: /primary   ,selector: "[]" }
-              - { name: replica ,port: 5434 ,dest: 1433  ,check: /read-only ,selector: "[]" , backup: "[? pg_role == `primary` || pg_role == `offline` ]" }
-              - { name: default ,port: 5436 ,dest: postgres ,check: /primary   ,selector: "[]" }
-              - { name: offline ,port: 5438 ,dest: postgres ,check: /replica   ,selector: "[? pg_role == `offline` || pg_offline_query ]" , backup: "[? pg_role == `replica` && !pg_offline_query]" }
+        pg_libs: 'babelfishpg_tds, pg_stat_statements, auto_explain' # add timescaledb to shared_preload_libraries
+        pg_hba_rules: # use md5 auth for mssql user, inserted between admin(500) and readonly(550)
+          - { user: dbuser_mssql ,db: mssql ,addr: intra ,auth: md5 ,order: 525 ,title: 'allow mssql dbsu intranet md5 access' }
+        pg_default_services: # route primary & replica service to mssql port 1433
+          - { name: primary ,port: 5433 ,dest: 1433  ,check: /primary   ,selector: "[]" }
+          - { name: replica ,port: 5434 ,dest: 1433  ,check: /read-only ,selector: "[]" , backup: "[? pg_role == `primary` || pg_role == `offline` ]" }
+          - { name: default ,port: 5436 ,dest: postgres ,check: /primary   ,selector: "[]" }
+          - { name: offline ,port: 5438 ,dest: postgres ,check: /replica   ,selector: "[? pg_role == `offline` || pg_offline_query ]" , backup: "[? pg_role == `replica` && !pg_offline_query]" }
 
     # polardb the aurora flavor postgres cluster
     pg-polar:
