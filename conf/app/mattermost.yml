@@ -1,0 +1,141 @@
+---
+#==============================================================#
+# File      :   mattermost.yml
+# Desc      :   pigsty config for running 1-node mattermost app
+# Ctime     :   2026-02-04
+# Mtime     :   2026-02-04
+# Docs      :   https://pigsty.io/docs/app/mattermost
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+# tutorial: https://pigsty.io/docs/app/mattermost
+# how to use this template:
+#
+#  curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty
+# ./bootstrap                    # prepare local repo & ansible
+# ./configure -c app/mattermost  # use this mattermost config template
+# vi pigsty.yml                  # IMPORTANT: CHANGE CREDENTIALS!!
+# ./deploy.yml                   # install pigsty & pgsql
+# ./docker.yml                   # install docker & docker-compose
+# ./app.yml                      # install mattermost
+#
+# Design Notes:
+# - Mattermost data/config/logs/plugins/bleve-indexes are persisted under /data/mattermost (host paths).
+# - If you enable JuiceFS (PGFS), /data/mattermost becomes a mountpoint backed by PostgreSQL.
+#   This is optional and must be prepared with ./juice.yml before ./app.yml.
+# - Storing file data in PostgreSQL increases DB size, WAL, and IO load; monitor bloat and backup cost.
+
+all:
+  children:
+
+    # the mattermost application
+    mattermost:
+      hosts: { 10.10.10.10: {} }
+      vars:
+        app: mattermost   # specify app name to be installed (in the apps)
+        apps:             # define all applications
+          mattermost:     # app name, should have corresponding ~/pigsty/app/mattermost folder
+            file:         # data directory to be created
+              - { path: /data/mattermost                ,state: directory ,owner: 2000 ,group: 2000 ,mode: 0755 }
+              - { path: /data/mattermost/config         ,state: directory ,owner: 2000 ,group: 2000 ,mode: 0755 }
+              - { path: /data/mattermost/data           ,state: directory ,owner: 2000 ,group: 2000 ,mode: 0755 }
+              - { path: /data/mattermost/logs           ,state: directory ,owner: 2000 ,group: 2000 ,mode: 0755 }
+              - { path: /data/mattermost/plugins        ,state: directory ,owner: 2000 ,group: 2000 ,mode: 0755 }
+              - { path: /data/mattermost/client/plugins ,state: directory ,owner: 2000 ,group: 2000 ,mode: 0755 }
+              - { path: /data/mattermost/bleve-indexes  ,state: directory ,owner: 2000 ,group: 2000 ,mode: 0755 }
+            conf:         # override /opt/mattermost/.env config file
+              DOMAIN: mm.pigsty
+              APP_PORT: 8065
+              TZ: UTC
+
+              # postgres connection string
+              POSTGRES_URL: 'postgres://dbuser_mattermost:DBUser.Mattermost@10.10.10.10:5432/mattermost?sslmode=disable&connect_timeout=10'
+
+              # image version
+              MATTERMOST_IMAGE: mattermost-team-edition
+              MATTERMOST_IMAGE_TAG: latest
+
+              # data directories
+              MATTERMOST_CONFIG_PATH: /data/mattermost/config
+              MATTERMOST_DATA_PATH: /data/mattermost/data
+              MATTERMOST_LOGS_PATH: /data/mattermost/logs
+              MATTERMOST_PLUGINS_PATH: /data/mattermost/plugins
+              MATTERMOST_CLIENT_PLUGINS_PATH: /data/mattermost/client/plugins
+              MATTERMOST_BLEVE_INDEXES_PATH: /data/mattermost/bleve-indexes
+              MM_BLEVESETTINGS_INDEXDIR: /data/mattermost/bleve-indexes
+
+    # the mattermost database
+    pg-mattermost:
+      hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
+      vars:
+        pg_cluster: pg-mattermost
+        pg_users:
+          - { name: dbuser_mattermost ,password: DBUser.Mattermost ,pgbouncer: true ,roles: [ dbrole_admin ] ,createdb: true ,comment: admin user for mattermost }
+        pg_databases:
+          - { name: mattermost ,owner: dbuser_mattermost ,revokeconn: true ,comment: mattermost main database }
+        pg_hba_rules:
+          - { user: dbuser_mattermost ,db: all ,addr: 172.17.0.0/16  ,auth: pwd ,title: 'allow mattermost access from local docker network' }
+          - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
+        pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
+
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
+    #minio: { hosts: { 10.10.10.10: { minio_seq: 1 } }, vars: { minio_cluster: minio } }
+
+  vars:                               # global variables
+    version: v4.0.0                   # pigsty version string
+    admin_ip: 10.10.10.10             # admin node ip address
+    region: default                   # upstream mirror region: default|china|europe
+    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
+    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+    docker_enabled: true              # enable docker on app group
+    #docker_registry_mirrors: ["https://docker.1panel.live","https://docker.1ms.run","https://docker.xuanyuan.me","https://registry-1.docker.io"]
+
+    proxy_env:                        # global proxy env when downloading packages & pull docker images
+      no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.tsinghua.edu.cn"
+      #http_proxy:  127.0.0.1:12345 # add your proxy env here for downloading packages or pull images
+      #https_proxy: 127.0.0.1:12345 # usually the proxy is format as http://user:pass@proxy.xxx.com
+      #all_proxy:   127.0.0.1:12345
+
+    # Optional: PGFS with JuiceFS (store Mattermost file data in PostgreSQL)
+    # 1) Uncomment and adjust the block below
+    # 2) Run: ./juice.yml -l <host>
+    # 3) Ensure /data/mattermost is mounted before ./app.yml
+    #
+    #juice_cache: /data/juice
+    #juice_instances:
+    #  pgfs:
+    #    path  : /data/mattermost
+    #    meta  : postgres://dbuser_mattermost:DBUser.Mattermost@10.10.10.10:5432/mattermost
+    #    data  : --storage postgres --bucket 10.10.10.10:5432/mattermost --access-key dbuser_mattermost --secret-key DBUser.Mattermost
+    #    port  : 9567
+    #    owner : 2000
+    #    group : 2000
+    #    mode  : '0755'
+
+    infra_portal:                     # infra services exposed via portal
+      home       : { domain: i.pigsty }
+      mattermost:                      # nginx server config for mattermost
+        domain: mm.pigsty              # REPLACE WITH YOUR OWN DOMAIN!
+        endpoint: "${admin_ip}:8065"   # mattermost service endpoint: IP:PORT
+        websocket: true                # add websocket support
+        certbot: mm.pigsty             # certbot cert name, apply with `make cert`
+
+    repo_enabled: false
+    node_repo_modules: node,infra,pgsql
+    pg_version: 18
+
+    #----------------------------------------------#
+    # PASSWORD : https://pigsty.io/docs/setup/security/
+    #----------------------------------------------#
+    grafana_admin_password: pigsty
+    grafana_view_password: DBUser.Viewer
+    pg_admin_password: DBUser.DBA
+    pg_monitor_password: DBUser.Monitor
+    pg_replication_password: DBUser.Replicator
+    patroni_password: Patroni.API
+    haproxy_admin_password: pigsty
+    minio_secret_key: S3User.MinIO
+    etcd_root_password: Etcd.Root
+...
