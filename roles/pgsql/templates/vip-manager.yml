@@ -28,10 +28,11 @@ trigger-key: "{{ pg_namespace }}/{{ pg_cluster }}/leader"
 trigger-value: "{{ pg_cluster }}-{{ pg_seq }}"
 
 # the virtual ip address to manage
-ip: {{ pg_vip_addr }}
+{% set _vip = (pg_vip_address | default('') | string).partition('/') %}
+ip: {{ _vip[0] }}
 
 # netmask for the virtual ip
-netmask: {{ pg_vip_cidr }}
+netmask: {{ _vip[2] if _vip[2] != '' else '24' }}
 
 #interface to which the virtual ip will be added
 interface: {{ pg_vip_interface }}
