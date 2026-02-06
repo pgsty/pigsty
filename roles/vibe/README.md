@@ -52,13 +52,12 @@ vibe
 │   ├── jupyter_dir
 │   ├── jupyter_config
 │   └── jupyter_launch
-├── claude            # Claude Code CLI
-│   ├── claude_install
-│   └── claude_config
-└── nodejs            # Node.js Runtime
-    ├── nodejs_install
-    ├── nodejs_config
-    └── nodejs_pkg
+├── nodejs            # Node.js Runtime (claude-code installed here via npm)
+│   ├── nodejs_install
+│   ├── nodejs_config
+│   └── nodejs_pkg
+└── claude            # Claude Code CLI Config
+    └── claude_config
 ```
 
 
@@ -84,7 +83,7 @@ vibe
 
 | Variable           | Default         | Description            |
 |--------------------|-----------------|------------------------|
-| `jupyter_enabled`  | `true`          | Enable JupyterLab      |
+| `jupyter_enabled`  | `false`         | Enable JupyterLab      |
 | `jupyter_port`     | `8888`          | Listen port            |
 | `jupyter_data`     | `/data/jupyter` | Data directory         |
 | `jupyter_password` | `Vibe.Coding`   | Access token           |
@@ -105,15 +104,16 @@ Claude Code is pre-configured with OpenTelemetry, sending metrics and logs to Vi
 |-------------------|---------|--------------------------------------------------|
 | `nodejs_enabled`  | `true`  | Enable Node.js installation                      |
 | `nodejs_registry` | `''`    | npm registry URL, auto china mirror if empty     |
-| `npm_packages`    | `[]`    | List of global npm packages to install           |
+| `npm_packages`    | `['@anthropic-ai/claude-code', 'happy-coder']` | List of global npm packages to install |
 
 When `nodejs_registry` is empty and `region=china`, npm is automatically configured to use `https://registry.npmmirror.com`.
 
-Use `npm_packages` to install global npm packages like `@anthropic-ai/claude-code`:
+Claude Code is installed by default via `npm_packages`. You can add more packages as needed:
 
 ```yaml
 npm_packages:
   - '@anthropic-ai/claude-code'
+  - 'happy-coder'
   - typescript
   - pnpm
 ```
