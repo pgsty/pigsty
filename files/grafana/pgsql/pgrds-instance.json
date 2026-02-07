@@ -336,7 +336,7 @@
     },
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "description":"Database of this cluster ${cls}\n\nLoad: active_time / backends (PG14 only)\n\nQuery RT : max query rt of this database\n\nClient: Pgbouncer Active Clients\n\nServer: Pgbouncer Active Servers\n\nBackend: Postgres num backends\n\nT = is Template?\n\nD = Disabled in Pgbouncer ?\n\nP = Paused in Pgbouncer ?",
+      "description":"Database metrics of cluster ${cls}\n\nSize: database size\n\nAge: XID age usage\n\nBackend: PostgreSQL backend count\n\nTPS: transaction commit rate\n\nConnLimit: database connection limit on primary\n\nConn%: PostgreSQL connection usage\n\nLoad: active_time_rate1m (PG14+)\n\nT = is Template?\n\nOID = database OID",
       "fieldConfig":{
         "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"mode":"gradient","type":"color-background"},"inspect":false},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#e3e3e3e0"}]}},
         "overrides":[
@@ -426,8 +426,8 @@
       "options":{"cellHeight":"sm","footer":{"countRows":false,"fields":"","reducer":["sum"],"show":false},"showHeader":true,"sortBy":[{"desc":true,"displayName":"OID"}]},
       "pluginVersion":"12.0.0",
       "targets":[
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum by (datname) (pg_size_bytes{cls=\"$cls\", datname!~\"wal|log\"})","format":"table",             "instant":true,"interval":"","legendFormat":"Age"          ,"refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"max by (datname) (pg:db:age{cls=\"$cls\"})"                          ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"Commit"       ,"refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum by (datname) (pg_size_bytes{cls=\"$cls\", datname!~\"wal|log\"})","format":"table",             "instant":true,"interval":"","legendFormat":"Size"         ,"refId":"A" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"max by (datname) (pg:db:age{cls=\"$cls\"})"                          ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"Age"          ,"refId":"B" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"max by (datname) (pg_db_is_template{cls=\"$cls\", ins=\"$primary\"})","format":"table","hide":false,"instant":true,"interval":"","legendFormat":"isTemplate"   ,"refId":"C" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum by (datname) (pg_activity_count{cls=\"$cls\"})"                  ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"Backend"      ,"refId":"D" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum by (datname) (pg:db:xact_commit_rate1m{cls=\"$cls\"})"           ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"TPS"          ,"refId":"E" },
@@ -1450,7 +1450,7 @@
       "links":[{"title":"PGRDS Cluster : ${cls}","url":"/d/pgrds-cluster?var-cls=${cls}&viewPanel=153&${__url_time_range}"}],
       "options":{"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"11.6.0",
-      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum by (datname) (increase(pg_db_sessions{ins=\"$ins\"}[1m]))","interval":"","legendFormat":"{{ ins }}","range":true,"refId":"A"}],
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum by (datname) (increase(pg_db_sessions{ins=\"$ins\"}[1m]))","interval":"","legendFormat":"{{ datname }}","range":true,"refId":"A"}],
       "title":"New Sessions (increase1m)",
       "type":"timeseries"
     },
@@ -1498,7 +1498,7 @@
       "links":[{"title":"PGRDS Cluster: ${cls}","url":"/d/pgrds-cluster?var-cls=${cls}&viewPanel=149&${__url_time_range}"}],
       "options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true,"sortBy":"Last","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"11.6.0",
-      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum by (state) (pg_activity_count{ins=\"$ins\"})","interval":"","legendFormat":"{{ datname }}","range":true,"refId":"A"}],
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum by (state) (pg_activity_count{ins=\"$ins\"})","interval":"","legendFormat":"{{ state }}","range":true,"refId":"A"}],
       "title":"Backends by State",
       "type":"timeseries"
     },
