@@ -617,7 +617,7 @@ There are other pro, beta, or pilot modules, and there will be more coming in th
 
 ## Compatibility
 
-We recommend using RockyLinux 10.0, Debian 13.2, and Ubuntu 24.04.2 for production use.
+We recommend using RockyLinux 10.1, Debian 13.2, and Ubuntu 24.04.2 for production use.
 
 Pigsty runs on bare linux directly, and focuses on active maintained mainstream LTS [**Linux Distros**](https://pigsty.io/docs/ref/linux):
 
