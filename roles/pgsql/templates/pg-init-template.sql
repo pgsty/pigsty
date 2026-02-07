@@ -175,81 +175,77 @@ DROP VIEW IF EXISTS monitor.pg_table_bloat CASCADE;
 DROP VIEW IF EXISTS monitor.pg_index_bloat CASCADE;
 
 -- table bloat func
-CREATE OR REPLACE FUNCTION monitor.pg_table_bloat() RETURNS TABLE(datname TEXT,nspname TEXT,relname TEXT,tblid OID,size BIGINT,ratio FLOAT) SET search_path = '' AS
-$$SELECT CURRENT_CATALOG AS datname, nspname, relname , tblid , bs * tblpages AS size,
-         CASE WHEN tblpages - est_tblpages_ff > 0 THEN (tblpages - est_tblpages_ff)/tblpages::FLOAT ELSE 0 END AS ratio
-  FROM (
-           SELECT ceil( reltuples / ( (bs-page_hdr)*fillfactor/(tpl_size*100) ) ) + ceil( toasttuples / 4 ) AS est_tblpages_ff,
-                  tblpages, fillfactor, bs, tblid, nspname, relname, is_na
-           FROM (
-                    SELECT
-                        ( 4 + tpl_hdr_size + tpl_data_size + (2 * ma)
-                            - CASE WHEN tpl_hdr_size % ma = 0 THEN ma ELSE tpl_hdr_size % ma END
-                            - CASE WHEN ceil(tpl_data_size)::INT % ma = 0 THEN ma ELSE ceil(tpl_data_size)::INT % ma END
-                            ) AS tpl_size, (heappages + toastpages) AS tblpages, heappages,
-                        toastpages, reltuples, toasttuples, bs, page_hdr, tblid, nspname, relname, fillfactor, is_na
-                    FROM (
-                             SELECT
-                                 tbl.oid AS tblid, ns.nspname , tbl.relname, tbl.reltuples,
-                                 tbl.relpages AS heappages, coalesce(toast.relpages, 0) AS toastpages,
-                                 coalesce(toast.reltuples, 0) AS toasttuples,
-                                 coalesce(substring(array_to_string(tbl.reloptions, ' ') FROM 'fillfactor=([0-9]+)')::smallint, 100) AS fillfactor,
-                                 current_setting('block_size')::numeric AS bs,
-                                 CASE WHEN version()~'mingw32' OR version()~'64-bit|x86_64|ppc64|ia64|amd64' THEN 8 ELSE 4 END AS ma,
-                                 24 AS page_hdr,
-                                 23 + CASE WHEN MAX(coalesce(s.null_frac,0)) > 0 THEN ( 7 + count(s.attname) ) / 8 ELSE 0::int END
-                                     + CASE WHEN bool_or(att.attname = 'oid' and att.attnum < 0) THEN 4 ELSE 0 END AS tpl_hdr_size,
-                                 sum( (1-coalesce(s.null_frac, 0)) * coalesce(s.avg_width, 0) ) AS tpl_data_size,
-                                 bool_or(att.atttypid = 'pg_catalog.name'::regtype)
-                                     OR sum(CASE WHEN att.attnum > 0 THEN 1 ELSE 0 END) <> count(s.attname) AS is_na
-                             FROM pg_attribute AS att
-                                      JOIN pg_class AS tbl ON att.attrelid = tbl.oid
-                                      JOIN pg_namespace AS ns ON ns.oid = tbl.relnamespace
-                                      LEFT JOIN pg_stats AS s ON s.schemaname=ns.nspname AND s.tablename = tbl.relname AND s.inherited=false AND s.attname=att.attname
-                                      LEFT JOIN pg_class AS toast ON tbl.reltoastrelid = toast.oid
-                             WHERE NOT att.attisdropped AND tbl.relkind = 'r' AND nspname NOT IN ('pg_catalog','information_schema')
-                             GROUP BY tbl.oid, ns.nspname, tbl.relname, tbl.reltuples, tbl.relpages, toast.relpages, toast.reltuples, tbl.reloptions
-                         ) AS s
-                ) AS s2
-       ) AS s3
-  WHERE NOT is_na;
+CREATE OR REPLACE FUNCTION monitor.pg_table_bloat()
+RETURNS TABLE(datname TEXT, nspname TEXT, relname TEXT, tblid OID, size BIGINT, ratio FLOAT)
+SET search_path = '' AS $$
+WITH const AS (SELECT current_setting('block_size')::NUMERIC AS bs, 8::NUMERIC AS ma, 24::NUMERIC AS page_hdr),
+rel_stat AS (
+    SELECT tbl.oid AS tblid, ns.nspname, tbl.relname, tbl.reltuples, tbl.relpages AS heappages,
+           COALESCE(toast.relpages, 0) AS toastpages, COALESCE(toast.reltuples, 0) AS toasttuples,
+           COALESCE(substring(array_to_string(tbl.reloptions, ' ') FROM 'fillfactor=([0-9]+)')::SMALLINT, 100) AS fillfactor,
+           23 + CASE WHEN MAX(COALESCE(st.stanullfrac, 0)) > 0 THEN (7 + count(st.staattnum)) / 8 ELSE 0::INT END
+              + CASE WHEN bool_or(att.attname = 'oid' AND att.attnum < 0) THEN 4 ELSE 0 END AS tpl_hdr_size,
+           sum((1 - COALESCE(st.stanullfrac, 0)) * COALESCE(st.stawidth, 0)) AS tpl_data_size,
+           bool_or(att.atttypid = 'pg_catalog.name'::regtype)
+             OR sum(CASE WHEN att.attnum > 0 THEN 1 ELSE 0 END) <> count(st.staattnum) AS is_na
+    FROM pg_class AS tbl
+    JOIN pg_namespace AS ns ON ns.oid = tbl.relnamespace
+    JOIN pg_attribute AS att ON att.attrelid = tbl.oid AND NOT att.attisdropped
+    LEFT JOIN pg_class AS toast ON toast.oid = tbl.reltoastrelid
+    LEFT JOIN pg_statistic AS st ON st.starelid = tbl.oid AND st.staattnum = att.attnum AND NOT st.stainherit
+    WHERE tbl.relkind = 'r' AND ns.nspname !~ '^pg_' AND ns.nspname !~ '^_' AND ns.nspname !~ '^timescaledb' AND ns.nspname !~ '^citus' AND ns.nspname !~ '^columnar' AND ns.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'repack', 'monitor')
+    GROUP BY tbl.oid, ns.nspname, tbl.relname, tbl.reltuples, tbl.relpages, toast.relpages, toast.reltuples, tbl.reloptions
+),
+rel_calc AS (
+    SELECT r.tblid, r.nspname, r.relname, r.reltuples, r.toasttuples, r.fillfactor, r.is_na, c.bs, c.ma, c.page_hdr,
+           (r.heappages + r.toastpages) AS tblpages,
+           (4 + r.tpl_hdr_size + r.tpl_data_size + (2 * c.ma)
+              - CASE WHEN r.tpl_hdr_size % c.ma = 0 THEN c.ma ELSE r.tpl_hdr_size % c.ma END
+              - CASE WHEN ceil(r.tpl_data_size)::INT % c.ma = 0 THEN c.ma ELSE ceil(r.tpl_data_size)::INT % c.ma END) AS tpl_size
+    FROM rel_stat r CROSS JOIN const c
+)
+SELECT CURRENT_CATALOG AS datname, nspname, relname, tblid, (bs * tblpages)::BIGINT AS size,
+       CASE WHEN tblpages - (ceil(reltuples / ((bs - page_hdr) * fillfactor / (tpl_size * 100))) + ceil(toasttuples / 4.0)) > 0
+            THEN (tblpages - (ceil(reltuples / ((bs - page_hdr) * fillfactor / (tpl_size * 100))) + ceil(toasttuples / 4.0))) / tblpages::FLOAT
+            ELSE 0 END AS ratio
+FROM rel_calc WHERE NOT is_na;
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 -- index bloat func
-CREATE OR REPLACE FUNCTION monitor.pg_index_bloat() RETURNS TABLE(datname TEXT,nspname TEXT,relname TEXT,tblid OID,idxid OID,size BIGINT,ratio FLOAT) SET search_path = '' AS $$
-    SELECT CURRENT_CATALOG AS datname, nspname, idxname AS relname, tblid, idxid,
-          relpages::BIGINT * bs AS size,
-          COALESCE((relpages - ( reltuples * (6 + ma - (CASE WHEN index_tuple_hdr % ma = 0 THEN ma ELSE index_tuple_hdr % ma END)
-                                                  + nulldatawidth + ma - (CASE WHEN nulldatawidth % ma = 0 THEN ma ELSE nulldatawidth % ma END))
-                                     / (bs - pagehdr)::FLOAT  + 1 )), 0) / relpages::FLOAT AS ratio
-   FROM (
-            SELECT nspname, idxname, indrelid AS tblid, indexrelid AS idxid,
-                   reltuples, relpages,
-                   current_setting('block_size')::INTEGER AS bs,
-                   (CASE WHEN version() ~ 'mingw32' OR version() ~ '64-bit|x86_64|ppc64|ia64|amd64' THEN 8 ELSE 4 END) AS ma,
-                   24 AS pagehdr,
-                   (CASE WHEN max(COALESCE(pg_stats.null_frac, 0)) = 0 THEN 2 ELSE 6 END) AS index_tuple_hdr,
-                   sum((1.0 - COALESCE(pg_stats.null_frac, 0.0)) *
-                       COALESCE(pg_stats.avg_width, 1024))::INTEGER AS nulldatawidth
-            FROM pg_attribute
-                     JOIN (
-                SELECT pg_namespace.nspname, ic.relname AS idxname, ic.reltuples, ic.relpages, pg_index.indrelid,
-                       pg_index.indexrelid, tc.relname AS tablename,
-                       regexp_split_to_table(pg_index.indkey::TEXT, ' ')::INTEGER AS attnum,
-                       pg_index.indexrelid AS index_oid
-                FROM pg_index
-                         JOIN pg_class ic ON pg_index.indexrelid = ic.oid
-                         JOIN pg_class tc ON pg_index.indrelid = tc.oid
-                         JOIN pg_namespace ON ic.relnamespace = pg_namespace.oid
-                         JOIN pg_am ON ic.relam = pg_am.oid
-                WHERE pg_am.amname = 'btree' AND ic.relpages > 0 AND pg_namespace.nspname NOT IN ('pg_catalog', 'information_schema')
-            ) ind_atts ON pg_attribute.attrelid = ind_atts.indexrelid AND pg_attribute.attnum = ind_atts.attnum
-                     JOIN pg_stats ON pg_stats.schemaname = ind_atts.nspname
-                AND ((pg_stats.tablename = ind_atts.tablename AND pg_stats.attname = pg_get_indexdef(pg_attribute.attrelid, pg_attribute.attnum, TRUE))
-                    OR (pg_stats.tablename = ind_atts.idxname AND pg_stats.attname = pg_attribute.attname))
-            WHERE pg_attribute.attnum > 0
-            GROUP BY nspname, idxname, indrelid, indexrelid, reltuples, relpages
-        ) est
+CREATE OR REPLACE FUNCTION monitor.pg_index_bloat()
+RETURNS TABLE(datname TEXT, nspname TEXT, relname TEXT, tblid OID, idxid OID, size BIGINT, ratio FLOAT)
+SET search_path = '' AS $$
+WITH const AS (SELECT current_setting('block_size')::INTEGER AS bs, 8::INTEGER AS ma, 24::INTEGER AS pagehdr),
+idx_base AS (
+    SELECT ns.nspname, ic.relname AS idxname, i.indrelid AS tblid, i.indexrelid AS idxid, ic.reltuples, ic.relpages, k.key_attnum, k.key_pos
+    FROM pg_index i
+    JOIN pg_class ic ON ic.oid = i.indexrelid
+    JOIN pg_namespace ns ON ns.oid = ic.relnamespace
+    JOIN pg_am am ON am.oid = ic.relam
+    JOIN LATERAL unnest(string_to_array(i.indkey::TEXT, ' ')::SMALLINT[]) WITH ORDINALITY AS k(key_attnum, key_pos) ON true
+    WHERE am.amname = 'btree' AND ic.relpages > 0 AND ns.nspname !~ '^pg_' AND ns.nspname !~ '^_' AND ns.nspname !~ '^timescaledb' AND ns.nspname !~ '^citus' AND ns.nspname !~ '^columnar' AND ns.nspname NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'repack', 'monitor')
+),
+idx_stats AS (
+    SELECT b.nspname, b.idxname, b.tblid, b.idxid, b.reltuples, b.relpages, st.stanullfrac AS null_frac, st.stawidth AS avg_width
+    FROM idx_base b JOIN pg_statistic st ON st.starelid = b.tblid AND st.staattnum = b.key_attnum
+    WHERE b.key_attnum > 0
+    UNION ALL
+    SELECT b.nspname, b.idxname, b.tblid, b.idxid, b.reltuples, b.relpages, st.stanullfrac AS null_frac, st.stawidth AS avg_width
+    FROM idx_base b JOIN pg_statistic st ON st.starelid = b.idxid AND st.staattnum = b.key_pos::SMALLINT
+    WHERE b.key_attnum = 0
+),
+est AS (
+    SELECT nspname, idxname, tblid, idxid, reltuples, relpages,
+           CASE WHEN max(COALESCE(null_frac, 0)) = 0 THEN 2 ELSE 6 END AS index_tuple_hdr,
+           sum((1.0 - COALESCE(null_frac, 0.0)) * COALESCE(avg_width, 1024))::INTEGER AS nulldatawidth
+    FROM idx_stats
+    GROUP BY nspname, idxname, tblid, idxid, reltuples, relpages
+)
+SELECT CURRENT_CATALOG AS datname, e.nspname, e.idxname AS relname, e.tblid, e.idxid, e.relpages::BIGINT * c.bs AS size,
+       COALESCE((e.relpages - (e.reltuples * (6 + c.ma - (CASE WHEN e.index_tuple_hdr % c.ma = 0 THEN c.ma ELSE e.index_tuple_hdr % c.ma END)
+         + e.nulldatawidth + c.ma - (CASE WHEN e.nulldatawidth % c.ma = 0 THEN c.ma ELSE e.nulldatawidth % c.ma END))
+         / (c.bs - c.pagehdr)::FLOAT + 1)), 0) / e.relpages::FLOAT AS ratio
+FROM est e CROSS JOIN const c;
 $$ LANGUAGE SQL SECURITY DEFINER;
 
 CREATE OR REPLACE VIEW monitor.pg_table_bloat AS SELECT * FROM monitor.pg_table_bloat();
