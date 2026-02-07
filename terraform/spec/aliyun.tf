@@ -39,8 +39,8 @@ locals {
     amd64 = {
       el7   = "^centos_7_9_x64"
       el8   = "^rockylinux_8_10_x64"
-      el9   = "^rockylinux_9_6_x64"
-      el10  = "^rockylinux_10_0_x64"
+      el9   = "^rockylinux_9_7_x64"
+      el10  = "^rockylinux_10_1_x64"
       d11   = "^debian_11_11_x64"
       d12   = "^debian_12_11_x64"
       d13   = "^debian_13_2_x64"
@@ -52,8 +52,8 @@ locals {
     }
     arm64 = {
       el8   = "^rockylinux_8_10_arm64"
-      el9   = "^rockylinux_9_6_arm64"
-      el10   = "^rockylinux_10_0_arm64"
+      el9   = "^rockylinux_9_7_arm64"
+      el10   = "^rockylinux_10_1_arm64"
       d12   = "^debian_12_11_arm64"
       d13   = "^debian_13_2_arm64"
       u22   = "^ubuntu_22_04_arm64_20G"
