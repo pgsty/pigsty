@@ -303,11 +303,11 @@ bootstrap:
         max_parallel_maintenance_workers: {{ pg_max_parallel_mt_workers }}
         max_parallel_workers_per_gather: {{ pg_max_parallel_workers_per_gather|int }}
 
-        # double parallel cost in crit mode
-        parallel_setup_cost: 2000      # double from 100 to increase parallel cost
-        parallel_tuple_cost: 0.2       # double from 0.1 to increase parallel cost
-        min_parallel_table_scan_size: 16MB  # double from 8MB to increase parallel cost
-        min_parallel_index_scan_size: 1024   # double from 512 to increase parallel cost
+        # increase parallel cost to prefer non-parallel plans in crit mode
+        parallel_setup_cost: 2000      # 2x default 1000, reduce parallel tendency
+        parallel_tuple_cost: 0.2       # 2x default 0.1, reduce parallel tendency
+        min_parallel_table_scan_size: 32MB  # 4x default 8MB, prefer non-parallel scan
+        min_parallel_index_scan_size: 2MB   # 4x default 512kB, prefer non-parallel scan
 
 {% if pg_version|int >= 13 %}
         hash_mem_multiplier: 8.0                # use 8x work mem in hash-based operations
