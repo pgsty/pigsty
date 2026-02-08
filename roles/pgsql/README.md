@@ -193,7 +193,7 @@ pgsql (full role)
 
 | Variable        | Default                     | Description               |
 |-----------------|-----------------------------|---------------------------|
-| `pg_version`    | `17`                        | PostgreSQL major version  |
+| `pg_version`    | `18`                        | PostgreSQL major version  |
 | `pg_packages`   | `[pgsql-main pgsql-common]` | Packages to install       |
 | `pg_extensions` | `[]`                        | Extensions to install     |
 | `pg_dbsu`       | `postgres`                  | Database superuser name   |
