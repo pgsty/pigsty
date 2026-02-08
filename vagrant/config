@@ -3,7 +3,7 @@
 # File      :   config
 # Desc      :   generate vagrantfile
 # Ctime     :   2024-07-05
-# Mtime     :   2025-12-11
+# Mtime     :   2026-02-08
 # Path      :   vagrant/config
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -13,18 +13,58 @@
 import os
 import sys
 import re
+import platform
 
-IMAGES = {
-    "ubuntu2204": "generic/ubuntu2204", "ubuntu22": "generic/ubuntu2204", "u22": "generic/ubuntu2204", "ubuntu": "generic/ubuntu2204", "22": "generic/ubuntu2204",
-    "ubuntu2004": "generic/ubuntu2004", "ubuntu20": "generic/ubuntu2004", "u20": "generic/ubuntu2004", "20": "generic/ubuntu2004",
-    "ubuntu2404": "bento/ubuntu-24.04", "ubuntu24": "bento/ubuntu-24.04", "u24": "bento/ubuntu-24.04", "24": "bento/ubuntu-24.04",
-    "debian13": "cloud-image/debian-13", "deb13": "cloud-image/debian-13", "d13": "cloud-image/debian-13", "13": "bento/debian-13", "b13": "bento/debian-13",
-    "debian12": "generic/debian12", "deb12": "generic/debian12", "d12": "generic/debian12", "12": "generic/debian12", "k12": "koalephant/debian12", "b12": "bento/debian-12",
-    "debian11": "generic/debian11", "deb11": "generic/debian11", "d11": "generic/debian11", "11": "generic/debian11",
-    "el7": "generic/centos7", "rhel7": "generic/rhel7", "centos": "generic/centos7", "7": "generic/centos7", "oracle7": "generic/oracle7",
-    "el8": "bento/rockylinux-9", "rocky8": "bento/rockylinux-9", "rhel8": "generic/rhel8", "alma8": "generic/alma8", "oracle8": "generic/oracle8", "el": "bento/rockylinux-9", "8": "bento/rockylinux-9",
-    "el9": "bento/rockylinux-9", "rocky9": "bento/rockylinux-9", "rhel9": "generic/rhel9", "alma9": "generic/alma9", "oracle9": "generic/oracle9", "9": "bento/rockylinux-9",
-    "el10": "rockylinux/10", "rocky10": "rockylinux/10", "alma10": "almalinux/10", "b10": "bento/rockylinux-10", "10": "rockylinux/10",
+# Box selection matrix:
+#   BOXES[arch][provider][key] = "org/box"
+# Key set is intentionally "major-only":
+#   el8/el9/el10, d12/d13, u22/u24
+BASE_BOXES = {
+    "el8":  "cloud-image/almalinux-8",
+    "el9":  "cloud-image/almalinux-9",
+    "el10": "cloud-image/almalinux-10",
+    "d12":  "cloud-image/debian-12",
+    "d13":  "cloud-image/debian-13",
+    "u22":  "cloud-image/ubuntu-22.04",
+    "u24":  "cloud-image/ubuntu-24.04",
+}
+BOXES = {
+    arch: {provider: dict(BASE_BOXES) for provider in ("virtualbox", "libvirt")}
+    for arch in ("amd64", "arm64")
+}
+
+# Direct aliases: explicitly choose a box by name (bypass BOXES matrix).
+DIRECT_BOX_ALIASES = {
+    # Debian/Ubuntu shortcuts
+    "b12": "bento/debian-12",
+    "b13": "bento/debian-13",
+    "k12": "koalephant/debian12",
+    "b10": "bento/rockylinux-10",
+
+    # EL vendor-specific
+    "rhel8": "generic/rhel8",
+    "rhel9": "generic/rhel9",
+    "alma8": "generic/alma8",
+    "alma9": "generic/alma9",
+    "alma10": "almalinux/10",
+    "oracle8": "generic/oracle8",
+    "oracle9": "generic/oracle9",
+}
+
+# Alias -> canonical image key (for BOXES matrix lookup).
+IMAGE_ALIASES = {
+    # Ubuntu
+    "ubuntu2204": "u22", "ubuntu22": "u22", "u22": "u22", "ubuntu": "u22",
+    "ubuntu2404": "u24", "ubuntu24": "u24", "u24": "u24",
+
+    # Debian
+    "debian12": "d12", "deb12": "d12", "d12": "d12",
+    "debian13": "d13", "deb13": "d13", "d13": "d13",
+
+    # EL
+    "el8": "el8", "rocky8": "el8",
+    "el9": "el9", "rocky9": "el9", "el": "el9",
+    "el10": "el10", "rocky10": "el10",
 }
 
 # do not substitute image in building specs
@@ -36,12 +76,65 @@ ARGS = {
     'provider': "virtualbox",
 }
 
+def detect_arch():
+    # Allow override: VM_ARCH / VM_ARCHITECTURE (amd64|arm64)
+    env_arch = os.environ.get("VM_ARCH") or os.environ.get("VM_ARCHITECTURE")
+    if env_arch:
+        a = env_arch.strip().lower()
+        if a in ("amd64", "x86_64"):
+            return "amd64"
+        if a in ("arm64", "aarch64"):
+            return "arm64"
+        print("[WARN] unknown VM_ARCH=%s, fallback to host arch" % env_arch)
+
+    m = platform.machine().strip().lower()
+    if m in ("x86_64", "amd64"):
+        return "amd64"
+    if m in ("arm64", "aarch64"):
+        return "arm64"
+    return "amd64"
+
+def resolve_box(image, provider, arch):
+    """
+    Resolve a short image alias (e.g. el9/d13/u24) into the best box name
+    based on (provider, arch).
+    """
+    if not image:
+        return image
+
+    img = str(image).strip()
+    if not img:
+        return img
+
+    # Explicit box name always wins (e.g. "bento/rockylinux-9")
+    if "/" in img:
+        return img
+
+    key = img.lower()
+    if key in DIRECT_BOX_ALIASES:
+        return DIRECT_BOX_ALIASES[key]
+
+    key = IMAGE_ALIASES.get(key, key)
+    box = BOXES.get(arch, {}).get(provider, {}).get(key)
+    if box:
+        return box
+
+    # Fallback: provider-specific mapping under amd64 (helps when arch detection is odd)
+    box = BOXES.get("amd64", {}).get(provider, {}).get(key)
+    if box:
+        print("[WARN] no mapping for arch=%s provider=%s key=%s, fallback to amd64" % (arch, provider, key))
+        return box
+
+    print("[WARN] unknown image alias: %s (arch=%s provider=%s)" % (img, arch, provider))
+    return img
+
 def usage():
     print("Usage: %s [spec] [image] [scale] [provider]" % sys.argv[0])
     print("  [VM_SPEC]     spec:    meta, full, simu, dual, trio, oss, pro, rpm, deb, all...")
-    print("  [VM_IMAGE]    image:   el8, el9, d11, d12, u20, u22")
+    print("  [VM_IMAGE]    image:   el8, el9, el10, d12, d13, u22, u24 (or an explicit box name)")
     print("  [VM_SCALE]    scale:   1, 2, 3, ...")
     print("  [VM_PROVIDER] provider: virtualbox, libvirt")
+    print("  [VM_ARCH]     arch:    amd64, arm64 (optional, default = host arch)")
     sys.exit(1)
 
 def parse_arg():
@@ -64,14 +157,15 @@ def parse_arg():
     if len(sys.argv) > 4:
         ARGS['provider'] = sys.argv[4]
 
-    if 'image' in ARGS and ARGS['image'] in IMAGES:
-        ARGS['image'] = IMAGES[ARGS['image']]
+    ARGS['arch'] = detect_arch()
+    if 'image' in ARGS:
+        ARGS['image'] = resolve_box(ARGS['image'], ARGS['provider'], ARGS['arch'])
 
     if ARGS['spec'] == 'simu':
         ARGS['scale'] = 1  # do not scale simu template
 
     print(
-        "[INFO] spec=%s image=%s scale=%d provider=%s" % (ARGS['spec'], ARGS.get('image'), ARGS['scale'], ARGS['provider']))
+        "[INFO] spec=%s image=%s scale=%d provider=%s arch=%s" % (ARGS['spec'], ARGS.get('image'), ARGS['scale'], ARGS['provider'], ARGS['arch']))
 
     return ARGS
 

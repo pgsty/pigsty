@@ -1,19 +1,18 @@
-# deb: pigsty 7-node rocky/debian/ubuntu building environment templates:
+# all: pigsty 7-node EL/Debian/Ubuntu building environment templates
 
 Specs = [
 
-  # CentOS 7.9 / RockyLinux 8.10 / RockyLinux 9.5
-  { "name" => "el7",    "ip" => "10.10.10.7" ,  "cpu" => "1",  "mem" => "2048",  "image" =>  "generic/centos7"        },
-  { "name" => "el8",    "ip" => "10.10.10.8" ,  "cpu" => "1",  "mem" => "2048",  "image" =>  "bento/rockylinux-8"     },
-  { "name" => "el9",    "ip" => "10.10.10.9" ,  "cpu" => "1",  "mem" => "2048",  "image" =>  "bento/rockylinux-9"     },
+  # EL 8 / 9 / 10
+  { "name" => "el8",    "ip" => "10.10.10.8" ,  "cpu" => "1",  "mem" => "2048",  "image" =>  "cloud-image/almalinux-8" },
+  { "name" => "el9",    "ip" => "10.10.10.9" ,  "cpu" => "1",  "mem" => "2048",  "image" =>  "cloud-image/almalinux-9" },
+  { "name" => "el10",   "ip" => "10.10.10.10",  "cpu" => "1",  "mem" => "2048",  "image" =>  "cloud-image/almalinux-10" },
 
-  # Debian 11.11 / 12.9
-  { "name" => "d11",    "ip" => "10.10.10.11",  "cpu" => "1",  "mem" => "2048",  "image" =>  "generic/debian11"       },
-  { "name" => "d12",    "ip" => "10.10.10.12",  "cpu" => "1",  "mem" => "2048",  "image" =>  "generic/debian12"       },
+  # Debian 12 / 13
+  { "name" => "d12",    "ip" => "10.10.10.12",  "cpu" => "1",  "mem" => "2048",  "image" =>  "cloud-image/debian-12"  },
+  { "name" => "d13",    "ip" => "10.10.10.13",  "cpu" => "1",  "mem" => "2048",  "image" =>  "cloud-image/debian-13"  },
 
-  # Ubuntu 20.04.6 / 22.04.3 / 24.04.2
-  { "name" => "u20",    "ip" => "10.10.10.20",  "cpu" => "1",  "mem" => "2048",  "image" =>  "generic/ubuntu2004"     },
-  { "name" => "u22",    "ip" => "10.10.10.22",  "cpu" => "1",  "mem" => "2048",  "image" =>  "generic/ubuntu2204"     },
-  { "name" => "u24",    "ip" => "10.10.10.24",  "cpu" => "1",  "mem" => "2048",  "image" =>  "bento/ubuntu-24.04"     },
+  # Ubuntu 22.04 / 24.04
+  { "name" => "u22",    "ip" => "10.10.10.22",  "cpu" => "1",  "mem" => "2048",  "image" =>  "cloud-image/ubuntu-22.04" },
+  { "name" => "u24",    "ip" => "10.10.10.24",  "cpu" => "1",  "mem" => "2048",  "image" =>  "cloud-image/ubuntu-24.04" },
 
 ]

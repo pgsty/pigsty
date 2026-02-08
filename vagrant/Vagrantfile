@@ -2,7 +2,7 @@
 
 Specs = [
 
-  { "name" => "meta"   , "ip" => "10.10.10.10" ,  "cpu" => "2" ,  "mem" => "4096" ,  "image" => "bento/rockylinux-9" }
+  { "name" => "meta"   , "ip" => "10.10.10.10" ,  "cpu" => "2" ,  "mem" => "4096" ,  "image" => "bento/rockylinux-10" }
 
 ]
 
@@ -77,14 +77,20 @@ Vagrant.configure("2") do |config|
                       DISK=${DISKS[$((i-1))]}
                       MOUNT="/data${i}"
                       mkdir -p ${MOUNT}
-                      if [ -b "${DISK}" ] && ! blkid "${DISK}" | grep -q xfs; then
-                        mkfs.xfs -f "${DISK}"
+                      if [ -b "${DISK}" ] && ! blkid "${DISK}" >/dev/null 2>&1; then
+                        if command -v mkfs.xfs >/dev/null 2>&1; then
+                          mkfs.xfs -f "${DISK}"
+                        elif command -v mkfs.ext4 >/dev/null 2>&1; then
+                          mkfs.ext4 -F "${DISK}"
+                        else
+                          echo "[WARN] mkfs.xfs and mkfs.ext4 not found, skip formatting ${DISK}"
+                        fi
                       fi
-                      if ! grep -q "${DISK}" /etc/fstab; then
-                        echo "${DISK} ${MOUNT} xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab
+                      if blkid "${DISK}" >/dev/null 2>&1 && ! grep -q "${DISK}" /etc/fstab; then
+                        echo "${DISK} ${MOUNT} auto defaults,noatime,nodiratime 0 0" >> /etc/fstab
                       fi
                     done
-                    mount -a
+                    mount -a || true
                   SHELL
                 end
             else
@@ -97,14 +103,20 @@ Vagrant.configure("2") do |config|
                       echo "No additional data disk found, skipping..."
                       exit 0
                     fi
-                    if [ -b "${DATA_DISK}" ] && ! blkid "${DATA_DISK}" | grep -q xfs; then
-                      mkfs.xfs -f "${DATA_DISK}"
+                    if [ -b "${DATA_DISK}" ] && ! blkid "${DATA_DISK}" >/dev/null 2>&1; then
+                      if command -v mkfs.xfs >/dev/null 2>&1; then
+                        mkfs.xfs -f "${DATA_DISK}"
+                      elif command -v mkfs.ext4 >/dev/null 2>&1; then
+                        mkfs.ext4 -F "${DATA_DISK}"
+                      else
+                        echo "[WARN] mkfs.xfs and mkfs.ext4 not found, skip formatting ${DATA_DISK}"
+                      fi
                     fi
                     mkdir -p /data
-                    if ! grep -q "${DATA_DISK}" /etc/fstab; then
-                      echo "${DATA_DISK} /data xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab
+                    if blkid "${DATA_DISK}" >/dev/null 2>&1 && ! grep -q "${DATA_DISK}" /etc/fstab; then
+                      echo "${DATA_DISK} /data auto defaults,noatime,nodiratime 0 0" >> /etc/fstab
                     fi
-                    mount -a
+                    mount -a || true
                   SHELL
                 end
             end

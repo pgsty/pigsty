@@ -25,9 +25,9 @@ make trio       # 3-node env
 You can use variant alias to create environment with different base image:
 
 ```bash
-make meta9      # create singleton-meta node with bento/rockylinux-9 image
-make full22     # create 4-node sandbox with generic/ubuntu2204 image
-make simu12     # create 20-node simulation env with generic/debian12 image
+make meta9      # create singleton-meta node with EL9 base image
+make full22     # create 4-node sandbox with Ubuntu 22.04 base image
+make simu12     # create 20-node simulation env with Debian 12 base image
 ...             # available suffix: 8,9,10,12,13,22,24
 ```
 
@@ -36,8 +36,8 @@ You can also launch pigsty building env with these alias, base image will not be
 ```bash
 make oss        # 3-node oss building environment 
 make pro        # 5-node pro building environment
-make rpm        # 3-node el7/8/9 building env
-make deb        # 5-node debian11/12 ubuntu20/22/24
+make rpm        # 3-node el8/el9/el10 building env
+make deb        # 4-node debian12/13 + ubuntu22/24 building env
 make all        # 7-node building env with all base images
 ```
 
@@ -53,11 +53,11 @@ make all        # 7-node building env with all base images
 | [dual.rb](spec/dual.rb) | 2 node  |    1c2g x 2     |       Dual Nodes        |         |
 | [trio.rb](spec/trio.rb) | 3 node  |    1c2G x 3     |       Three Nodes       |         |
 | [full.rb](spec/full.rb) | 4 node  | 2c4g + 1c2g x 3 |  Full-Featured 4 Node   | Sandbox |
-| [simu.rb](spec/simu.rb) | 36 node |      misc       |   Prod Env Simulation   | Simubox |
+| [simu.rb](spec/simu.rb) | 20 node |      misc       |   Prod Env Simulation   | Simubox |
 |  [oss.rb](spec/oss.rb)  | 3 node  |    1c2g x 3     | 3-Node OSS Building Env |         |
 |  [pro.rb](spec/pro.rb)  | 5 node  |    1c2g x 5     | 5-Node PRO Building Env |         |
 |  [rpm.rb](spec/rpm.rb)  | 3 node  |    1c2G x 3     | 3-Node EL Building Env  |         |
-|  [deb.rb](spec/deb.rb)  | 5 node  |    1c2G x 5     | 5-Node Deb Building Env |         |
+|  [deb.rb](spec/deb.rb)  | 4 node  |    1c2G x 4     | 4-Node Deb Building Env |         |
 |  [all.rb](spec/all.rb)  | 7 node  |    1c2G x 7     | 7-Node All Building Env |         |
 
 Each spec file contains a `Specs` variable describe VM nodes. For example, the [`full.rb`](spec/full.rb) contains:
@@ -77,24 +77,24 @@ Specs = [
 You can use specs with the [`config`](config) script, it will render the final `Vagrantfile` according to the spec and other options
 
 ```bash
-cd ~/pigsty
-vagrant/config [spec] [image] [scale] [provider]
+	cd ~/pigsty
+	vagrant/config [spec] [image] [scale] [provider]
 
-vagrant/config meta                # use the 1-node spec, default el8 image
-vagrant/config dual el9            # use the 2-node spec, use el9 image instead 
-vagrant/config trio d12 2          # use the 3-node spec, use debian12 image, double the cpu/mem resource
-vagrant/config full u22 4          # use the 4-node spec, use ubuntu22 image instead, use 4x cpu/mem resource         
-vagrant/config simu u24 1 libvirt  # use the 20-node spec, use ubuntu24 image instead, use libvirt as provider instead of virtualbox 
+	vagrant/config meta el9            # use the 1-node spec, use EL9 base image
+	vagrant/config dual el9            # use the 2-node spec, use el9 image instead 
+	vagrant/config trio d12 2          # use the 3-node spec, use debian12 image, double the cpu/mem resource
+	vagrant/config full u22 4          # use the 4-node spec, use ubuntu22 image instead, use 4x cpu/mem resource         
+	vagrant/config simu u24 1 libvirt  # use the 20-node spec, use ubuntu24 image instead, use libvirt as provider instead of virtualbox 
 ```
 
 You can scale the resource unit with environment variable `VM_SCALE`, the default value is `1`.
 
-For example, if you use `VM_SCALE=2` with `vagrant/config meta`, it will double the cpu / mem resources of the meta
+For example, if you use `VM_SCALE=2` with `vagrant/config meta el9`, it will double the cpu / mem resources of the meta
 node.
 
 ```bash
 Specs = [
-  { "name" => "meta" , "ip" => "10.10.10.10", "cpu" => "8" , "mem" => "16384" , "image" => "bento/rockylinux-9" },
+  { "name" => "meta" , "ip" => "10.10.10.10", "cpu" => "8" , "mem" => "16384" , "image" => "cloud-image/almalinux-9" },
 ]
 ````
 
@@ -128,22 +128,23 @@ make nuke    # destroy all vm & volumes with virsh (if using libvirt)
 
 --------
 
-## Version
+## Boxes
 
-Pigsty currently use the following vagrant boxes for testing:
+Default `VM_IMAGE` aliases (major-only):
 
 ```bash
-$ vagrant box list
+el8  -> cloud-image/almalinux-8
+el9  -> cloud-image/almalinux-9
+el10 -> cloud-image/almalinux-10
+d12  -> cloud-image/debian-12
+d13  -> cloud-image/debian-13
+u22  -> cloud-image/ubuntu-22.04
+u24  -> cloud-image/ubuntu-24.04
 
-el8 :  bento/rockylinux-8     (libvirt, 202502.21.0, (amd64))
-el9 :  bento/rockylinux-9     (libvirt, 202502.21.0, (amd64))
-
-d11 :  generic/debian11       (libvirt, 4.3.12, (amd64))
-d12 :  generic/debian12       (libvirt, 4.3.12, (amd64))
-
-u20 :  generic/ubuntu2004     (libvirt, 4.3.12, (amd64))
-u22 :  generic/ubuntu2204     (libvirt, 4.3.12, (amd64))
-u24 :  bento/ubuntu-24.04     (libvirt, 20250316.0.0, (amd64))
+# optional direct aliases (virtualbox-focused):
+# b10 -> bento/rockylinux-10
+# b12 -> bento/debian-12
+# b13 -> bento/debian-13
 ```
 
 

@@ -52,28 +52,41 @@ Vagrant.configure("2") do |config|
                 node.vm.provision "shell" do |s|
                   s.inline = <<-SHELL
                     mkdir -p /data1 /data2 /data3 /data4;
-                    mkfs.xfs /dev/vdb; mkfs.xfs /dev/vdc; mkfs.xfs /dev/vdd; mkfs.xfs /dev/vde;
-                    mount -o noatime,nodiratime -t xfs /dev/vdb /data1;
-                    mount -o noatime,nodiratime -t xfs /dev/vdc /data2;
-                    mount -o noatime,nodiratime -t xfs /dev/vdd /data3;
-                    mount -o noatime,nodiratime -t xfs /dev/vde /data4;
-                    echo "/dev/vdb /data1 xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab;
-                    echo "/dev/vdc /data2 xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab;
-                    echo "/dev/vdd /data3 xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab;
-                    echo "/dev/vde /data4 xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab;
+                    for dev in /dev/vdb /dev/vdc /dev/vdd /dev/vde; do
+                      if [ -b "${dev}" ] && ! blkid "${dev}" >/dev/null 2>&1; then
+                        if command -v mkfs.xfs >/dev/null 2>&1; then
+                          mkfs.xfs -f "${dev}"
+                        elif command -v mkfs.ext4 >/dev/null 2>&1; then
+                          mkfs.ext4 -F "${dev}"
+                        else
+                          echo "[WARN] mkfs.xfs and mkfs.ext4 not found, skip formatting ${dev}"
+                        fi
+                      fi
+                    done
+                    if blkid /dev/vdb >/dev/null 2>&1 && ! grep -q '/dev/vdb' /etc/fstab; then echo "/dev/vdb /data1 auto defaults,noatime,nodiratime 0 0" >> /etc/fstab; fi
+                    if blkid /dev/vdc >/dev/null 2>&1 && ! grep -q '/dev/vdc' /etc/fstab; then echo "/dev/vdc /data2 auto defaults,noatime,nodiratime 0 0" >> /etc/fstab; fi
+                    if blkid /dev/vdd >/dev/null 2>&1 && ! grep -q '/dev/vdd' /etc/fstab; then echo "/dev/vdd /data3 auto defaults,noatime,nodiratime 0 0" >> /etc/fstab; fi
+                    if blkid /dev/vde >/dev/null 2>&1 && ! grep -q '/dev/vde' /etc/fstab; then echo "/dev/vde /data4 auto defaults,noatime,nodiratime 0 0" >> /etc/fstab; fi
+                    mount -a || true
                   SHELL
                 end
             else
                 node.vm.provision "shell" do |s|
                   s.inline = <<-SHELL
-                    if [ -b /dev/vdb ] && ! blkid /dev/vdb | grep -q xfs; then
-                      mkfs.xfs -f /dev/vdb
+                    if [ -b /dev/vdb ] && ! blkid /dev/vdb >/dev/null 2>&1; then
+                      if command -v mkfs.xfs >/dev/null 2>&1; then
+                        mkfs.xfs -f /dev/vdb
+                      elif command -v mkfs.ext4 >/dev/null 2>&1; then
+                        mkfs.ext4 -F /dev/vdb
+                      else
+                        echo "[WARN] mkfs.xfs and mkfs.ext4 not found, skip formatting /dev/vdb"
+                      fi
                     fi
                     mkdir -p /data
-                    if ! grep -q '/dev/vdb' /etc/fstab; then
-                      echo "/dev/vdb /data xfs defaults,noatime,nodiratime 0 0" >> /etc/fstab
+                    if blkid /dev/vdb >/dev/null 2>&1 && ! grep -q '/dev/vdb' /etc/fstab; then
+                      echo "/dev/vdb /data auto defaults,noatime,nodiratime 0 0" >> /etc/fstab
                     fi
-                    mount -a
+                    mount -a || true
                   SHELL
                 end
             end

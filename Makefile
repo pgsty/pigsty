@@ -2,7 +2,7 @@
 # File      :   Makefile
 # Desc      :   pigsty shortcuts
 # Ctime     :   2019-04-13
-# Mtime     :   2026-01-27
+# Mtime     :   2026-02-08
 # Path      :   Makefile
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -579,23 +579,29 @@ boot-pkg:
 meta: meta9
 meta8:  cmeta del vmeta8  up ssh #copy-el8 use-pkg
 meta9:  cmeta del vmeta9  up ssh #copy-el9 use-pkg
+meta10: cmeta del vmeta10 up ssh #copy-el10 use-pkg
 meta12: cmeta del vmeta12 up ssh #copy-d12 use-pkg
+meta13: cmeta del vmeta13 up ssh #copy-d13 use-pkg
 meta22: cmeta del vmeta22 up ssh #copy-u22 use-pkg
 meta24: cmeta del vmeta24 up ssh #use-pkg
 
 vm: vmeta
 vmeta:
-	vagrant/config meta
+	vagrant/config meta el9
 vmeta8:
 	vagrant/config meta el8
 vmeta9:
 	vagrant/config meta el9
+vmeta10:
+	vagrant/config meta el10
 vmeta12:
-	vagrant/config meta debian12
+	vagrant/config meta d12
+vmeta13:
+	vagrant/config meta d13
 vmeta22:
-	vagrant/config meta ubuntu22
+	vagrant/config meta u22
 vmeta24:
-	vagrant/config meta ubuntu24
+	vagrant/config meta u24
 
 #------------------------------#
 # full, four nodes, the sandbox
@@ -605,23 +611,29 @@ vmeta24:
 full:   full9
 full8:  cfull del vfull8  up ssh #copy-el8 use-pkg
 full9:  cfull del vfull9  up ssh #copy-el9 use-pkg
+full10: cfull del vfull10 up ssh #copy-el10 use-pkg
 full12: cfull del vfull12 up ssh #copy-d12 use-pkg
+full13: cfull del vfull13 up ssh #copy-d13 use-pkg
 full22: cfull del vfull22 up ssh #copy-u22 use-pkg
 full24: cfull del vfull24 up ssh #copy-u24 use-pkg
 
 vf: vfull
 vfull:
-	vagrant/config full
+	vagrant/config full el9
 vfull8:
 	vagrant/config full el8
 vfull9:
 	vagrant/config full el9
+vfull10:
+	vagrant/config full el10
 vfull12:
-	vagrant/config full debian12
+	vagrant/config full d12
+vfull13:
+	vagrant/config full d13
 vfull22:
-	vagrant/config full ubuntu22
+	vagrant/config full u22
 vfull24:
-	vagrant/config full ubuntu24
+	vagrant/config full u24
 
 #------------------------------#
 # simu, 20 nodes, the simubox
@@ -630,17 +642,21 @@ vfull24:
 simu-conf:
 	./configure -s -c ha/simu
 vsimu:
-	vagrant/config simu
+	vagrant/config simu el9
 vsimu8:
 	vagrant/config simu el8
 vsimu9:
 	vagrant/config simu el9
+vsimu10:
+	vagrant/config simu el10
 vsimu12:
-	vagrant/config simu debian12
+	vagrant/config simu d12
+vsimu13:
+	vagrant/config simu d13
 vsimu22:
-	vagrant/config simu ubuntu22
+	vagrant/config simu u22
 vsimu24:
-	vagrant/config simu ubuntu24
+	vagrant/config simu u24
 
 vs: simu
 simu: simu9
@@ -648,8 +664,12 @@ simu8: csimu del vsimu8 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.el8.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 simu9: csimu del vsimu9 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.el9.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
+simu10: csimu del vsimu10 new ssh
+	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.el10.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 simu12: csimu del vsimu12 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.d12.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
+simu13: csimu del vsimu13 new ssh
+	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.d13.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 simu22: csimu del vsimu22 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.u22.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 simu24: csimu del vsimu24 new ssh
@@ -685,12 +705,12 @@ rs:
         tu td ts to \
         cmeta cdual ctrio cfull csimu coss cpro \
         oss pro all vo vp vr vd va boot-pkg \
-        meta meta8 meta9 meta12 meta22 meta24 \
-        vm vmeta vmeta8 vmeta9 vmeta12 vmeta22 vmeta24 \
-        full full8 full9 full12 full22 full24 \
-        vf vfull vfull8 vfull9 vfull12 vfull22 vfull24 \
-        simu-conf vsimu vsimu8 vsimu9 vsimu12 vsimu22 vsimu24 \
-        vs simu simu8 simu9 simu12 simu22 simu24 rs \
+        meta meta8 meta9 meta10 meta12 meta13 meta22 meta24 \
+        vm vmeta vmeta8 vmeta9 vmeta10 vmeta12 vmeta13 vmeta22 vmeta24 \
+        full full8 full9 full10 full12 full13 full22 full24 \
+        vf vfull vfull8 vfull9 vfull10 vfull12 vfull13 vfull22 vfull24 \
+        simu-conf vsimu vsimu8 vsimu9 vsimu10 vsimu12 vsimu13 vsimu22 vsimu24 \
+        vs simu simu8 simu9 simu10 simu12 simu13 simu22 simu24 rs \
         rd release-dba gd get-dba ud upload-dba
 
 ###############################################################
