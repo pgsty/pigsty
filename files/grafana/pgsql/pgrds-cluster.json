@@ -1,12 +1,10 @@
 {
   "annotations":{"list":[{"builtIn":1,"datasource":{"type":"datasource","uid":"grafana"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"}]},
-  "author":"Ruohang Feng (rh@vonng.com)",
   "description":"PostgreSQL Monitoring for Remote RDS instances (with limited metrics)",
   "editable":true,
   "fiscalYearStartMonth":0,
   "graphTooltip":0,
   "id":null,
-  "license":"https://pigsty.io/docs/about/license/",
   "links":[
     { "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Overview"],"targetBlank":false,"title":"Overview","tooltip":"","type":"dashboards","url":"" },{ "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Cluster"] ,"targetBlank":false,"title":"Cluster" ,"tooltip":"","type":"dashboards","url":"" },
     { "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Instance"],"targetBlank":false,"title":"Instance","tooltip":"","type":"dashboards","url":"" },{ "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Database"],"targetBlank":false,"title":"Database","tooltip":"","type":"dashboards","url":"" }
@@ -23,7 +21,7 @@
       "gridPos":{"h":4,"w":6,"x":0,"y":1},
       "id":192,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"/.*/","values":true},"showPercentChange":false,"text":{"titleSize":16,"valueSize":16},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[
         { "datasource":{"type":"marcusolsson-static-datasource","uid":"ds-static"},"frame":{"fields":[{"config":{},"name":"Cluster","type":"string","values":["${cls}"]}],"meta":{},"name":""} ,"hide":false,"refId":"B" },
         { "datasource":{"type":"marcusolsson-static-datasource","uid":"ds-static"},"frame":{"fields":[{"config":{},"name":"Leader","type":"string","values":["$primary"]}],"meta":{},"name":""},"hide":false,"refId":"A" }
@@ -81,7 +79,7 @@
       "id":118,
       "links":[{"title":"PGRDS Instance : ${primary}","url":"/d/pgrds-instance?var-ins=${primary}&${__url_time_range}"}],
       "options":{"cellHeight":"sm","showHeader":true,"sortBy":[{"desc":false,"displayName":"Instance"}]},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"min by (ins,ip) (pg_up{cls=\"$cls\"})"                 ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"","refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins) (pg:ins:active_time_rate1m{cls=\"$cls\"})","format":"table","hide":false,"instant":true,"interval":"","legendFormat":"","refId":"B" },
@@ -159,7 +157,7 @@
       "gridPos":{"h":2,"w":6,"x":0,"y":5},
       "id":123,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"/.*/","values":false},"showPercentChange":false,"text":{"valueSize":20},"textMode":"value","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (address) (label_join(pg_meta_info{ins=\"$primary\"}, \"address\", \":\", \"ip\", \"listen_port\"))","format":"table","hide":false,"instant":true,"interval":"","legendFormat":"__auto","queryType":"measurements","refId":"A"}],
       "transformations":[
         {
@@ -199,7 +197,7 @@
       "gridPos":{"h":3,"w":6,"x":0,"y":7},
       "id":122,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"/.*/","values":false},"showPercentChange":false,"text":{"titleSize":14,"valueSize":16},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg_meta_info{ins=\"$primary\"}","format":"table","hide":false,"instant":true,"interval":"","legendFormat":"__auto","queryType":"measurements","refId":"A"}],
       "transformations":[
         {
@@ -306,10 +304,10 @@
       "id":120,
       "links":[{"title":"PGRDS Instance : ${primary}","url":"/d/pgrds-instance?var-ins=${primary}&${__url_time_range}"}],
       "options":{"cellHeight":"sm","showHeader":true,"sortBy":[{"desc":true,"displayName":"OID"}]},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum by (datname) (pg_size_bytes{cls=\"$cls\", datname!~\"wal|log\"})","format":"table",             "instant":true,"interval":"","legendFormat":"Age"          ,"refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"max by (datname) (pg:db:age{cls=\"$cls\"})"                          ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"Commit"       ,"refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (datname) (pg_db_age{cls=\"$cls\"}) / 2147483647"             ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"Commit"       ,"refId":"B" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"max by (datname) (pg_db_is_template{cls=\"$cls\", ins=\"$primary\"})","format":"table","hide":false,"instant":true,"interval":"","legendFormat":"isTemplate"   ,"refId":"C" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum by (datname) (pg_activity_count{cls=\"$cls\"})"                  ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"Backend"      ,"refId":"D" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum by (datname) (pg:db:xact_commit_rate1m{cls=\"$cls\"})"           ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"TPS"          ,"refId":"E" },
@@ -374,7 +372,7 @@
       "id":119,
       "links":[{"title":"PGSQL Replication : ${cls} ${__url_time_range}","url":"/d/pgsql-replication?var-cls=${cls}&${__url_time_range}"}],
       "options":{"legend":{"calcs":[],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"(pg_in_recovery{cls=\"$cls\"} == 0) * 0 + 1","interval":"","legendFormat":"{{ ins }}","range":true,"refId":"A"}],
       "title":"Leadership",
       "type":"timeseries"
@@ -396,7 +394,7 @@
       "gridPos":{"h":3,"w":2,"x":0,"y":14},
       "id":46,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"exemplar":false,"expr":"pg:cls:xact_commit_rate1m{cls=\"$cls\"}","interval":"","legendFormat":"Commit","refId":"A"}],
       "type":"stat"
     },
@@ -417,7 +415,7 @@
       "gridPos":{"h":3,"w":2,"x":2,"y":14},
       "id":57,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"exemplar":false,"expr":"pg:cls:xact_rollback_rate1m{cls=\"$cls\"}","interval":"","legendFormat":"Rollback","refId":"A"}],
       "type":"stat"
     },
@@ -438,7 +436,7 @@
       "gridPos":{"h":3,"w":2,"x":4,"y":14},
       "id":59,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:cls:active_time_rate1m{cls=\"$cls\"} / pg:cls:xact_total_rate1m{cls=\"$cls\"}","interval":"","legendFormat":"RT","range":true,"refId":"A"}],
       "type":"stat"
     },
@@ -457,7 +455,7 @@
       "gridPos":{"h":3,"w":2,"x":6,"y":14},
       "id":106,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max(pg:db:conn_usage{cls=\"$cls\"})","interval":"","legendFormat":"Conn%","range":true,"refId":"A"}],
       "type":"stat"
     },
@@ -478,7 +476,7 @@
       "gridPos":{"h":3,"w":2,"x":8,"y":14},
       "id":64,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"exemplar":false,"expr":"sum by (cls) (pg_db_numbackends{cls=\"$cls\"})","interval":"","legendFormat":"Backend","refId":"A"}],
       "type":"stat"
     },
@@ -499,7 +497,7 @@
       "gridPos":{"h":3,"w":2,"x":10,"y":14},
       "id":107,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:cls:active_backends{cls=\"$cls\"}","interval":"","legendFormat":"Active Conn","range":true,"refId":"A"}],
       "type":"stat"
     },
@@ -520,7 +518,7 @@
       "gridPos":{"h":3,"w":2,"x":12,"y":14},
       "id":189,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max(pg:cls:ixact_backends{cls=\"$cls\"})","interval":"","legendFormat":"iXact Conn","range":true,"refId":"A"}],
       "type":"stat"
     },
@@ -542,7 +540,7 @@
       "gridPos":{"h":3,"w":2,"x":14,"y":14},
       "id":190,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":12},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:cls:tup_fetched_rate1m{cls=\"$cls\"}","interval":"","legendFormat":"Row Fetch","range":true,"refId":"A"}],
       "type":"stat"
     },
@@ -564,7 +562,7 @@
       "gridPos":{"h":3,"w":2,"x":16,"y":14},
       "id":191,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":12},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:cls:tup_modified_rate1m{cls=\"$cls\"}","interval":"","legendFormat":"Row Change","range":true,"refId":"A"}],
       "type":"stat"
     },
@@ -587,8 +585,8 @@
       "gridPos":{"h":3,"w":2,"x":18,"y":14},
       "id":63,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"pg:cls:age{cls=\"$cls\"} / 2147483647","interval":"","legendFormat":"Age","refId":"A"}],
+      "pluginVersion":"12.3.1",
+      "targets":[{"editorMode":"code","exemplar":false,"expr":"max(pg_db_age{cls=\"$cls\"}) / 2147483647","interval":"","legendFormat":"Age","range":true,"refId":"A"}],
       "type":"stat"
     },
     {
@@ -608,7 +606,7 @@
       "gridPos":{"h":3,"w":2,"x":20,"y":14},
       "id":68,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:cls:lag_bytes{cls=\"$cls\"}","interval":"","legendFormat":"Lag (B)","range":true,"refId":"A"}],
       "type":"stat"
     },
@@ -629,7 +627,7 @@
       "gridPos":{"h":3,"w":2,"x":22,"y":14},
       "id":70,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"exemplar":false,"expr":"pg:cls:lag_seconds{cls=\"$cls\"}","interval":"","legendFormat":"Lag (s)","refId":"A"}],
       "type":"stat"
     },
@@ -640,7 +638,7 @@
       "gridPos":{"h":5,"w":3,"x":0,"y":17},
       "id":40,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:cls:active_time_rate1m{cls=\"$cls\"}","interval":"","legendFormat":"Load","range":true,"refId":"A"}],
       "type":"stat"
     },
@@ -685,7 +683,7 @@
       "gridPos":{"h":5,"w":9,"x":3,"y":17},
       "id":75,
       "options":{"legend":{"calcs":[],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:ins:active_time_rate5m{cls=\"$cls\", ins=\"$primary\"}" ,             "interval":"","legendFormat":"{{ ins }} \u2b50\ufe0f","range":true,"refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:ins:active_time_rate5m{cls=\"$cls\", ins!=\"$primary\"}","hide":false,"interval":"","legendFormat":"{{ ins }}"             ,"range":true,"refId":"B" }
@@ -698,7 +696,7 @@
       "gridPos":{"h":5,"w":3,"x":12,"y":17},
       "id":71,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"exemplar":false,"expr":"count(ALERTS{cls=\"$cls\", alertstate=\"firing\"}) or on() vector(0)","interval":"","legendFormat":"Alert","refId":"A"}],
       "type":"stat"
     },
@@ -755,7 +753,7 @@
       "gridPos":{"h":5,"w":9,"x":15,"y":17},
       "id":78,
       "options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"ALERTS{cls=\"$cls\", alertstate=\"firing\"}"  ,             "interval":"","legendFormat":"[{{ severity }}\ud83d\udd25] {{alertname}} @ {{ ins }}","refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"ALERTS{cls=\"$cls\", alertstate=\"pending\"} ","hide":false,"interval":"","legendFormat":"[{{ severity }}\u23f0] {{alertname}} @ {{ ins }}"      ,"refId":"B" },
@@ -808,7 +806,7 @@
       "id":169,
       "links":[{"title":"PGRDS Leader : ${primary}","url":"/d/pgrds-instance?var-ins=${primary}&viewPanel=169&${__url_time_range}"}],
       "options":{"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:cls:xact_commit_rate5m{cls=\"$cls\"}"  ,"hide":false,"interval":"","intervalFactor":1,"legendFormat":"Commits"  ,"range":true,"refId":"B" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:cls:xact_rollback_rate5m{cls=\"$cls\"}","hide":false,"interval":"","intervalFactor":1,"legendFormat":"Rollbacks","range":true,"refId":"A" }
@@ -859,7 +857,7 @@
       "id":109,
       "links":[{"title":"PGRDS Leader Transaction RT: ${primary}","url":"/d/pgrds-instance?var-ins=${primary}&viewPanel=109&${__url_time_range}"}],
       "options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"exemplar":false,"expr":"pg:cls:active_time_rate1m{cls=\"$cls\"} / pg:cls:xact_total_rate1m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"Cluster","refId":"A"},{"exemplar":false,"expr":"pg:ins:active_time_rate1m{cls=\"$cls\"} / pg:ins:xact_total_rate15m{cls=\"$cls\"}","hide":false,"interval":"","intervalFactor":1,"legendFormat":"{{ ins }}","refId":"B"}],
       "title":"Transaction RT (1m)",
       "type":"timeseries"
@@ -905,7 +903,7 @@
       "id":94,
       "links":[{"title":"PGRDS Leader TPS: ${primary}","url":"/d/pgrds-instance?var-ins=${primary}&viewPanel=94&${__url_time_range}"}],
       "options":{"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:ins:xact_commit_rate1m{cls=\"$cls\", ins=\"$primary\"}" ,"hide":false,"interval":"","intervalFactor":1,"legendFormat":"{{ ins }} \u2b50\ufe0f","range":true,"refId":"B" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:ins:xact_commit_rate1m{cls=\"$cls\", ins!=\"$primary\"}","hide":false,"interval":"","intervalFactor":1,"legendFormat":"{{ ins }}"             ,"range":true,"refId":"A" }
@@ -955,7 +953,7 @@
       "id":147,
       "links":[{"title":"PGRDS Leader Load : ${primary}","url":"/d/pgrds-instance?var-ins=${primary}&viewPanel=147&${__url_time_range}"}],
       "options":{"legend":{"calcs":["max","last"],"displayMode":"table","placement":"right","showLegend":true,"sortBy":"Max","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:ins:active_time_rate1m{cls=\"$cls\", datname!~'template\\\\d'}","interval":"","legendFormat":"{{ ins }}","range":true,"refId":"A"}],
       "title":"Postgres Load (rate1m)",
       "type":"timeseries"
@@ -1001,7 +999,7 @@
       "id":127,
       "links":[{"title":"PGRDS Leader : Row Fetched","url":"/d/pgrds-instance?var-ins=${primary}&viewPanel=127&${__url_time_range}"}],
       "options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum by (ins) (rate(pg_db_tup_fetched{cls=\"$cls\", ins=\"$primary\"}[1m]))" ,             "interval":"","legendFormat":"{{ ins }}\u2b50\ufe0f","range":true,"refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum by (ins) (rate(pg_db_tup_fetched{cls=\"$cls\", ins!=\"$primary\"}[1m]))","hide":false,"interval":"","legendFormat":"{{ ins }}"            ,"range":true,"refId":"B" }
@@ -1050,7 +1048,7 @@
       "id":128,
       "links":[{"title":"PGRDS Instance : Row Modified","url":"/d/pgrds-instance?var-ins=${primary}&viewPanel=128&${__url_time_range}"}],
       "options":{"legend":{"calcs":[],"displayMode":"list","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(rate(pg_db_tup_inserted{ins=\"$primary\"}[1m]))","hide":false,"interval":"","intervalFactor":2,"legendFormat":"INSERTED","refId":"A","range":true },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum(rate(pg_db_tup_updated{ins=\"$primary\"}[1m]))" ,"hide":false,"interval":"","intervalFactor":2,"legendFormat":"UPDATED" ,"refId":"C"              },
@@ -1100,7 +1098,7 @@
       "id":180,
       "links":[{"title":"PGRDS Leader Locks by Category: ${primary}","url":"/d/pgrds-instance?var-ins=${primary}&viewPanel=180&${__url_time_range}"}],
       "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true,"sortBy":"Name","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(pg:ins:xlock_count{cls=\"$cls\"})","interval":"","legendFormat":"Exclusive","range":true,"refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(pg:ins:wlock_count{cls=\"$cls\"})","interval":"","legendFormat":"Write"    ,"range":true,"refId":"B" },
@@ -1153,7 +1151,7 @@
       "id":154,
       "links":[{"title":"PGRDS Leader Locks: ${primary}","url":"/d/pgrds-instance?var-ins=${primary}&viewPanel=154&${__url_time_range}"}],
       "options":{"legend":{"calcs":["lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Max","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"12.3.1",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"sum by (mode) (pg_lock_count{cls=\"$cls\"})","interval":"","legendFormat":"{{ mode }}","refId":"A"}],
       "title":"Locks",
       "type":"timeseries"
@@ -2296,7 +2294,7 @@
           "links":[{"title":"PGSQL Database for ${__field.labels.datname}","url":"/d/pgsql-database?var-ins=${ins}&var-datname=${__field.labels.datname}&${__url_time_range}"}],
           "mappings":[],
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
-          "unit":"s"
+          "unit":"ms"
         },
         "overrides":[{"matcher":{"id":"byName","options":"Sync"},"properties":[{"id":"color","value":{"fixedColor":"#cc4637d9","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"Write"},"properties":[{"id":"color","value":{"fixedColor":"#3e668f","mode":"fixed"}}]}]
       },
@@ -3296,5 +3294,7 @@
   "title":"PGRDS Cluster",
   "uid":"pgrds-cluster",
   "version":1,
-  "weekStart":""
+  "weekStart":"",
+  "author":"Ruohang Feng (rh@vonng.com)",
+  "license":"https://pigsty.io/docs/about/license/"
 }
