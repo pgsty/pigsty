@@ -175,7 +175,7 @@ node (full role)
 | `node_tune`           | `oltp`  | Tuned profile to apply    |
 | `node_hugepage_count` | `0`     | Number of 2MB hugepages   |
 | `node_hugepage_ratio` | `0`     | Hugepage memory ratio     |
-| `node_sysctl_params`  | `{}`    | Extra sysctl parameters   |
+| `node_sysctl_params`  | `{fs.nr_open: 8388608}` | Extra sysctl parameters   |
 
 **Tuned Profiles** (`node_tune`):
 - `oltp`: Optimized for transaction processing (low latency, high throughput)

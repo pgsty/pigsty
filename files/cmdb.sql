@@ -1391,7 +1391,7 @@ INSERT INTO pigsty.default_var VALUES
 (246, 'node_hugepage_ratio', '0', 'NODE', 'NODE_TUNE', 'float', 'C', 'node mem hugepage ratio, 0 disable it by default', NULL),
 (247, 'node_overcommit_ratio', '0', 'NODE', 'NODE_TUNE', 'float', 'C', 'node mem overcommit ratio, 0 disable it by default', NULL),
 (248, 'node_tune', '"oltp"', 'NODE', 'NODE_TUNE', 'enum', 'C', 'node tuned profile: none,oltp,olap,crit,tiny', NULL),
-(249, 'node_sysctl_params', '{}', 'NODE', 'NODE_TUNE', 'dict', 'C', 'sysctl parameters in k:v format in addition to tuned', NULL),
+(249, 'node_sysctl_params', '{"fs.nr_open":8388608}', 'NODE', 'NODE_TUNE', 'dict', 'C', 'sysctl parameters in k:v format in addition to tuned', NULL),
 
 (250, 'node_data', '"/data"', 'NODE', 'NODE_ADMIN', 'path', 'C', 'node main data directory, `/data` by default', NULL),
 (251, 'node_admin_enabled', 'true', 'NODE', 'NODE_ADMIN', 'bool', 'C', 'create a admin user on target node?', NULL),
