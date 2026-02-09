@@ -1,10 +1,12 @@
 {
   "annotations":{"list":[{"builtIn":1,"datasource":{"type":"datasource","uid":"grafana"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"}]},
+  "author":"Ruohang Feng (rh@vonng.com)",
   "description":"PostgreSQL Monitoring for Remote RDS instances (with limited metrics)",
   "editable":true,
   "fiscalYearStartMonth":0,
   "graphTooltip":0,
   "id":null,
+  "license":"https://pigsty.io/docs/about/license/",
   "links":[
     { "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Overview"],"targetBlank":false,"title":"Overview","tooltip":"","type":"dashboards","url":"" },{ "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Cluster"] ,"targetBlank":false,"title":"Cluster" ,"tooltip":"","type":"dashboards","url":"" },
     { "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Instance"],"targetBlank":false,"title":"Instance","tooltip":"","type":"dashboards","url":"" },{ "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Database"],"targetBlank":false,"title":"Database","tooltip":"","type":"dashboards","url":"" }
@@ -2256,8 +2258,8 @@
       "options":{"legend":{"calcs":[],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
       "pluginVersion":"12.3.0",
       "targets":[
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg_checkpointer_timed{ins=\"$primary\"}","hide":false,"interval":"","legendFormat":"Scheduled","range":true,"refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg_checkpointer_req{ins=\"$primary\"} " ,"hide":false,"interval":"","legendFormat":"Requested","range":true,"refId":"B" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max without(__name__) (pg_checkpointer_timed{ins=\"$primary\"} or pg_bgwriter_checkpoints_timed{ins=\"$primary\"})","hide":false,"interval":"","legendFormat":"Scheduled","range":true,"refId":"A" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max without(__name__) (pg_checkpointer_req{ins=\"$primary\"} or pg_bgwriter_checkpoints_req{ins=\"$primary\"}) " ,"hide":false,"interval":"","legendFormat":"Requested","range":true,"refId":"B" }
       ],
       "title":"Checkpoint Scheduled / Requested",
       "type":"timeseries"
@@ -2304,8 +2306,8 @@
       "options":{"legend":{"calcs":[],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
       "targets":[
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"rate(pg_checkpointer_sync_time{ins=\"$primary\"}[1m])"   ,             "interval":"","legendFormat":"Sync" ,"range":true,"refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"- rate(pg_checkpointer_write_time{ins=\"$primary\"}[1m])","hide":false,"interval":"","legendFormat":"Write","range":true,"refId":"B" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max without(__name__) (rate(pg_checkpointer_sync_time{ins=\"$primary\"}[1m]) or rate(pg_bgwriter_checkpoint_sync_time{ins=\"$primary\"}[1m]))"   ,             "interval":"","legendFormat":"Sync" ,"range":true,"refId":"A" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"- max without(__name__) (rate(pg_checkpointer_write_time{ins=\"$primary\"}[1m]) or rate(pg_bgwriter_checkpoint_write_time{ins=\"$primary\"}[1m]))","hide":false,"interval":"","legendFormat":"Write","range":true,"refId":"B" }
       ],
       "title":"Checkpoint Time : Sync/Write",
       "type":"timeseries"
@@ -2350,9 +2352,9 @@
       "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
       "targets":[
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"rate(pg_bgwriter_buffers_clean{ins=\"$primary\"}[1m]) * 8192"     ,             "interval":"",               "legendFormat":"Clean"     ,"range":true,"refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"rate(pg_checkpointer_buffers_written{ins=\"$primary\"}[1m]) * 8192","hide":false,"interval":"",               "legendFormat":"Checkpoint","range":true,"refId":"B" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"rate(pg_bgwriter_buffers_backend{ins=\"$primary\"}[1m]) * 8192"   ,"hide":false,"interval":"","instant":true,"legendFormat":"Backend"   ,             "refId":"C" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"rate(pg_bgwriter_buffers_clean{ins=\"$primary\"}[1m]) * 8192"      ,             "interval":"",               "legendFormat":"Clean"     ,"range":true,"refId":"A" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"(max without(__name__) (rate(pg_checkpointer_buffers_written{ins=\"$primary\"}[1m]) or rate(pg_bgwriter_buffers_checkpoint{ins=\"$primary\"}[1m]))) * 8192","hide":false,"interval":"",               "legendFormat":"Checkpoint","range":true,"refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"rate(pg_bgwriter_buffers_backend{ins=\"$primary\"}[1m]) * 8192"    ,"hide":false,"interval":"","instant":true,"legendFormat":"Backend"   ,             "refId":"C" }
       ],
       "title":"BGWriter Buffer Flush",
       "type":"timeseries"
@@ -3294,7 +3296,5 @@
   "title":"PGRDS Cluster",
   "uid":"pgrds-cluster",
   "version":1,
-  "weekStart":"",
-  "author":"Ruohang Feng (rh@vonng.com)",
-  "license":"https://pigsty.io/docs/about/license/"
+  "weekStart":""
 }

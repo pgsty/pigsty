@@ -2,8 +2,8 @@
   "annotations":{
     "list":[
       {"builtIn":1,"datasource":{"type":"datasource","uid":"grafana"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"},
-      {"datasource":{"uid":"ds-prometheus"},"enable":true,"expr":"increase(pg_checkpointer_timed{ins=\"$ins\"}[15s]) > 0","hide":false,"iconColor":"blue","name":"Checkpoint Scheduled","step":"1m","titleFormat":"Checkpoint Scheduled"},
-      {"datasource":{"uid":"ds-prometheus"},"enable":true,"expr":"increase(pg_checkpointer_req{ins=\"$ins\"}[1m])","hide":false,"iconColor":"red","name":"Checkpoint Requested","step":"1m","titleFormat":"Requested","useValueForTime":false}
+      {"datasource":{"uid":"ds-prometheus"},"enable":true,"expr":"max without(__name__) (increase(pg_checkpointer_timed{ins=\"$ins\"}[15s]) or increase(pg_bgwriter_checkpoints_timed{ins=\"$ins\"}[15s])) > 0","hide":false,"iconColor":"blue","name":"Checkpoint Scheduled","step":"1m","titleFormat":"Checkpoint Scheduled"},
+      {"datasource":{"uid":"ds-prometheus"},"enable":true,"expr":"max without(__name__) (increase(pg_checkpointer_req{ins=\"$ins\"}[1m]) or increase(pg_bgwriter_checkpoints_req{ins=\"$ins\"}[1m]))","hide":false,"iconColor":"red","name":"Checkpoint Requested","step":"1m","titleFormat":"Requested","useValueForTime":false}
     ]
   },
   "author":"Ruohang Feng (rh@vonng.com)",
@@ -230,8 +230,8 @@
       "options":{"legend":{"calcs":[],"displayMode":"list","placement":"bottom","showLegend":false},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
       "pluginVersion":"12.3.1",
       "targets":[
-        {                                                          "editorMode":"code","exemplar":false,"expr":"increase(pg_checkpointer_req{ins=\"$ins\"}[1h])"  ,"hide":false,"interval":"","legendFormat":"Checkpoint Req"  ,"range":true,"refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"increase(pg_checkpointer_timed{ins=\"$ins\"}[1h])","hide":false,"interval":"","legendFormat":"Checkpoint Timed","range":true,"refId":"B" }
+        {                                                          "editorMode":"code","exemplar":false,"expr":"max without(__name__) (increase(pg_checkpointer_req{ins=\"$ins\"}[1h]) or increase(pg_bgwriter_checkpoints_req{ins=\"$ins\"}[1h]))"  ,"hide":false,"interval":"","legendFormat":"Checkpoint Req"  ,"range":true,"refId":"A" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max without(__name__) (increase(pg_checkpointer_timed{ins=\"$ins\"}[1h]) or increase(pg_bgwriter_checkpoints_timed{ins=\"$ins\"}[1h]))","hide":false,"interval":"","legendFormat":"Checkpoint Timed","range":true,"refId":"B" }
       ],
       "title":"Checkpoint (1h)",
       "type":"timeseries"
@@ -336,7 +336,7 @@
       "id":216,
       "options":{"legend":{"calcs":["max"],"displayMode":"list","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.1",
-      "targets":[{"editorMode":"code","exemplar":false,"expr":"rate(pg_checkpointer_sync_time{ins=\"$ins\"}[1m])","interval":"","legendFormat":"Sync","range":true,"refId":"A"},{"editorMode":"code","exemplar":false,"expr":"- rate(pg_checkpointer_write_time{ins=\"$ins\"}[1m])","hide":false,"interval":"","legendFormat":"Write","range":true,"refId":"B"}],
+      "targets":[{"editorMode":"code","exemplar":false,"expr":"max without(__name__) (rate(pg_checkpointer_sync_time{ins=\"$ins\"}[1m]) or rate(pg_bgwriter_checkpoint_sync_time{ins=\"$ins\"}[1m]))","interval":"","legendFormat":"Sync","range":true,"refId":"A"},{"editorMode":"code","exemplar":false,"expr":"- max without(__name__) (rate(pg_checkpointer_write_time{ins=\"$ins\"}[1m]) or rate(pg_bgwriter_checkpoint_write_time{ins=\"$ins\"}[1m]))","hide":false,"interval":"","legendFormat":"Write","range":true,"refId":"B"}],
       "title":"Checkpoint Sync/Write Time",
       "type":"timeseries"
     },
@@ -528,8 +528,8 @@
       "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.1",
       "targets":[
-        { "exemplar":false,"expr":"rate(pg_bgwriter_buffers_clean{ins=\"$ins\"}[1m]) * 8192"     ,             "interval":"",               "legendFormat":"Clean"     ,"refId":"A" },{ "exemplar":false,"expr":"rate(pg_checkpointer_buffers_written{ins=\"$ins\"}[1m]) * 8192","hide":false,"interval":"",               "legendFormat":"Checkpoint","refId":"B" },
-        { "exemplar":false,"expr":"rate(pg_bgwriter_buffers_backend{ins=\"$ins\"}[1m]) * 8192"   ,"hide":false,"interval":"","instant":true,"legendFormat":"Backend"   ,"refId":"C" }
+        { "exemplar":false,"expr":"rate(pg_bgwriter_buffers_clean{ins=\"$ins\"}[1m]) * 8192"      ,             "interval":"",               "legendFormat":"Clean"     ,"refId":"A" },{ "exemplar":false,"expr":"(max without(__name__) (rate(pg_checkpointer_buffers_written{ins=\"$ins\"}[1m]) or rate(pg_bgwriter_buffers_checkpoint{ins=\"$ins\"}[1m]))) * 8192","hide":false,"interval":"",               "legendFormat":"Checkpoint","refId":"B" },
+        { "exemplar":false,"expr":"rate(pg_bgwriter_buffers_backend{ins=\"$ins\"}[1m]) * 8192"    ,"hide":false,"interval":"","instant":true,"legendFormat":"Backend"   ,"refId":"C" }
       ],
       "title":"Buffer Flush",
       "type":"timeseries"

@@ -795,7 +795,7 @@ groups:
       #--------------------------------#
       # buffer flushed by checkpoint (good)
       - record: pg:ins:buf_flush_checkpoint_rate1m
-        expr: rate(pg_checkpointer_buffers_written[1m])
+        expr: rate(pg_checkpointer_buffers_written[1m]) or ignoring(__name__) rate(pg_bgwriter_buffers_checkpoint[1m])
       - record: pg:cls:buf_flush_checkpoint_rate1m
         expr: sum by (job, cls) (pg:ins:buf_flush_checkpoint_rate1m)
 
@@ -830,15 +830,15 @@ groups:
       # checkpoint stats
       # True(1) if scheduled checkpoint occurs on last 1 minute
       - record: pg:ins:ckpt_timed_1m
-        expr: increase(pg_checkpointer_timed[1m])
+        expr: increase(pg_checkpointer_timed[1m]) or ignoring(__name__) increase(pg_bgwriter_checkpoints_timed[1m])
 
       # True(1) if requested checkpoint occurs on last 1 minute
       - record: pg:ins:ckpt_req_1m
-        expr: increase(pg_checkpointer_req[1m])
+        expr: increase(pg_checkpointer_req[1m]) or ignoring(__name__) increase(pg_bgwriter_checkpoints_req[1m])
 
       # Number of checkpoint happened in last 1 hour
       - record: pg:ins:ckpt_1h
-        expr: increase(pg_checkpointer_timed[1h]) + increase(pg_checkpointer_req[1h])
+        expr: (increase(pg_checkpointer_timed[1h]) or ignoring(__name__) increase(pg_bgwriter_checkpoints_timed[1h])) + (increase(pg_checkpointer_req[1h]) or ignoring(__name__) increase(pg_bgwriter_checkpoints_req[1h]))
 
 
 
