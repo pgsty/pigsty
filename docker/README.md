@@ -36,7 +36,7 @@ make build launch     # build image rather than pull
 | `pgsty/pigsty` | ~500MB | 1.3GB | Debian 13 + systemd + SSH + pig + Ansible |
 
 - Supports **amd64** (x86_64) and **arm64** (Apple Silicon, AWS Graviton)
-- Tags match pigsty version: `v4.0.0`, `latest`
+- Tags match pigsty version: `v4.1.0`, `latest`
 - Configuration pre-generated with docker template
 - Ready to deploy with `./deploy.yml`
 
@@ -50,7 +50,7 @@ Configure ports via environment variables or [`.env`](.env) file:
 
 | Variable            | Default  | Container | Description |
 |---------------------|----------|-----------|-------------|
-| `PIGSTY_VERSION`    | v4.0.0   | -         | Image tag   |
+| `PIGSTY_VERSION`    | v4.1.0   | -         | Image tag   |
 | `PIGSTY_SSH_PORT`   | 2222     | 22        | SSH access  |
 | `PIGSTY_HTTP_PORT`  | 8080     | 80        | Nginx HTTP  |
 | `PIGSTY_HTTPS_PORT` | 8443     | 443       | Nginx HTTPS |
@@ -122,7 +122,7 @@ mkdir -p ./data
 docker run -d --privileged --name pigsty \
   -p 2222:22 -p 8080:80 -p 5432:5432 \
   -v ./data:/data \
-  pgsty/pigsty:v4.0.0
+  pgsty/pigsty:v4.1.0
 
 docker exec -it pigsty ./configure -c docker -g --ip 127.0.0.1
 docker exec -it pigsty ./deploy.yml

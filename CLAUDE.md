@@ -1,6 +1,6 @@
 # Pigsty Production Environment - Claude Code Guide
 
-Pigsty v4.0.0 | PostgreSQL RDS/DBaaS | Apache-2.0
+Pigsty v4.1.0 | PostgreSQL RDS/DBaaS | Apache-2.0
 - EN Docs: https://pigsty.io/docs
 - CN Docs: https://pigsty.cc/docs
 - Expert Support: https://pigsty.io/price (rh@vonng.com)
@@ -493,4 +493,3 @@ Additional experimental and internal modules not recommended for production use 
 - `pg_exporter/` - Standalone PostgreSQL metrics exporter for external PostgreSQL instances
 - `piglet/` - Lightweight Pigsty variant for minimal deployments
 - `juice/`, `vibe/` - Internal development modules
-
