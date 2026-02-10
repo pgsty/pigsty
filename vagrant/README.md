@@ -134,12 +134,12 @@ Default `VM_IMAGE` aliases (major-only):
 
 ```bash
 el8  -> cloud-image/almalinux-8
-el9  -> cloud-image/almalinux-9
+el9  -> cloud-image/almalinux-9  (arm64) / bento/rockylinux-9 (amd64 override)
 el10 -> cloud-image/almalinux-10
 d12  -> cloud-image/debian-12
 d13  -> cloud-image/debian-13
 u22  -> cloud-image/ubuntu-22.04
-u24  -> cloud-image/ubuntu-24.04
+u24  -> cloud-image/ubuntu-24.04 (arm64) / bento/ubuntu-24.04 (amd64 override)
 
 # optional direct aliases (virtualbox-focused):
 # b10 -> bento/rockylinux-10
