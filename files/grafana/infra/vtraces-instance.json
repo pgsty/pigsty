@@ -831,8 +831,8 @@
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"sum(rate(process_pressure_memory_waiting_seconds_total{}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}} - waiting","range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(process_pressure_memory_stalled_seconds_total{}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}} - stalled","range":true,"refId":"B" }
+            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"sum(rate(process_pressure_memory_waiting_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}} - waiting","range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(process_pressure_memory_stalled_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}} - stalled","range":true,"refId":"B" }
           ],
           "title":"Memory pressure",
           "type":"timeseries"
@@ -882,8 +882,8 @@
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(process_pressure_cpu_waiting_seconds_total{}[$__rate_interval])) by (instance)","format":"time_series",             "interval":"","intervalFactor":2,"legendFormat":"{{instance}}: waiting","range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"sum(rate(process_pressure_cpu_stalled_seconds_total{}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}}: stalled","range":true,"refId":"B" }
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(process_pressure_cpu_waiting_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series",             "interval":"","intervalFactor":2,"legendFormat":"{{instance}}: waiting","range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"sum(rate(process_pressure_cpu_stalled_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}}: stalled","range":true,"refId":"B" }
           ],
           "title":"CPU pressure",
           "type":"timeseries"
@@ -1068,8 +1068,8 @@
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"max(rate(process_pressure_io_waiting_seconds_total{}[$__rate_interval])) by (instance)","format":"time_series",             "interval":"","intervalFactor":2,"legendFormat":"{{instance}}: waiting","range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(process_pressure_io_stalled_seconds_total{}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}}: stalled","range":true,"refId":"B" }
+            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"max(rate(process_pressure_io_waiting_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series",             "interval":"","intervalFactor":2,"legendFormat":"{{instance}}: waiting","range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(process_pressure_io_stalled_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}}: stalled","range":true,"refId":"B" }
           ],
           "title":"IO pressure",
           "type":"timeseries"
@@ -1351,7 +1351,7 @@
       "panels":[
         {
           "datasource":{"type":"prometheus","uid":"$ds"},
-          "description":"Number of restarts per job. The chart can be useful to identify periodic process restarts and correlate them with potential issues or anomalies. \n\nNormally, processes shouldn't restart unless restart was inited by user. The reason of restarts should be figured out by checking the logs of each specific service. ",
+          "description":"Number of restarts per job. The chart can be useful to identify periodic process restarts and correlate them with potential issues or anomalies. \n\nNormally, processes shouldn't restart unless restart was initiated by user. The reason of restarts should be figured out by checking the logs of each specific service. ",
           "fieldConfig":{
             "defaults":{
               "color":{"mode":"palette-classic"},
@@ -1802,7 +1802,7 @@
           "type":"timeseries"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-          "description":"Rate of incoming query requests by endpoint path. This metric tracks the query load on VictoriaTraces, including different query interfaces and internal operations. \n\nHigher rates indicate increased query activity from users or applications. Monitor for sudden spikes that might indicate new dashboards, automated queries, or potential performance issues. Sustained high rates may require scaling query processing capacity.",
+          "description":"Rate of incoming insert requests by endpoint path. This metric tracks ingestion load on VictoriaTraces, including different insert interfaces and internal insert operations. \n\nHigher rates indicate increased ingestion activity from applications or pipelines. Monitor for sudden spikes that might indicate new sources, deployments, or capacity bottlenecks. Sustained high rates may require scaling ingestion capacity.",
           "fieldConfig":{
             "defaults":{
               "color":{"mode":"palette-classic"},
@@ -1843,7 +1843,7 @@
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
           "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(rate(vt_http_requests_total{ins=~\"$ins\",path=~\"^/(internal/)?insert.*\"}[$__rate_interval])) by (path) > 0","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
-          "title":"Request rate",
+          "title":"Insert request rate",
           "type":"timeseries"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
@@ -1932,7 +1932,7 @@
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
           "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(vt_http_request_duration_seconds{ins=~\"$ins\", quantile=\"0.99\", path=~\"^/(internal/)?insert.*\"}) by (path) > 0","format":"time_series","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
-          "title":"Request duration p99 ($ins)",
+          "title":"Insert request duration p99 ($ins)",
           "type":"timeseries"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
@@ -2068,7 +2068,7 @@
           "id":143,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(increase(vm_concurrent_insert_limit_reached_total[$__rate_interval])) by (instance)","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(increase(vm_concurrent_insert_limit_reached_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Concurrent insert limit reached ($ins)",
           "type":"timeseries"
         },{
