@@ -1110,7 +1110,7 @@
     {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":51},"id":241,"panels":[],"title":"Logs","type":"row"},
     {
       "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},
-      "description":"Keepalived log of instance $ins @ $ip from syslog, HAPROXY is from the app unit, from the unit keepalived, keepalived_exporter, and keyword search from syslog",
+      "description":"VIP manager / keepalived logs of instance $ins @ $ip from syslog",
       "fieldConfig":{
         "defaults":{
           "color":{"fixedColor":"#346f36cc","mode":"palette-classic"},
@@ -1150,21 +1150,21 @@
       "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
       "pluginVersion":"12.3.0",
       "targets":[
-        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"ip:$ip job:syslog unit:in('keepalived', 'keepalived_exporter') | stats by (app) count() as count"                        ,             "legendFormat":"{{ app }}","queryType":"statsRange","refId":"A" },
-        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"ip:$ip job:syslog _msg:~\"keepalive\" NOT unit:in('keepalived', 'keepalived_exporter') | stats by (app) count() as count","hide":false,"legendFormat":"{{ app }}","queryType":"statsRange","refId":"B" }
+        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"ip:$ip job:syslog (app:vip-manager OR unit:in('keepalived', 'keepalived_exporter')) | stats by (app) count() as count"                        ,             "legendFormat":"{{ app }}","queryType":"statsRange","refId":"A" },
+        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"ip:$ip job:syslog _msg:~\"keepalive\" NOT (app:vip-manager OR unit:in('keepalived', 'keepalived_exporter')) | stats by (app) count() as count","hide":false,"legendFormat":"{{ app }}","queryType":"statsRange","refId":"B" }
       ],
       "title":"Keepalived Log",
       "type":"timeseries"
     },
     {
       "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},
-      "description":"Syslog with unitname = keepalived, from ${ip:doublequote}",
+      "description":"Syslog with app=vip-manager or unit=keepalived, from ${ip:doublequote}",
       "gridPos":{"h":17,"w":10,"x":0,"y":59},
       "id":245,
       "options":{"dedupStrategy":"none","enableInfiniteScrolling":true,"enableLogDetails":true,"fontSize":"small","prettifyLogMessage":false,"showCommonLabels":false,"showControls":true,"showLabels":true,"showTime":true,"sortOrder":"Descending","wrapLogMessage":false},
       "pluginVersion":"12.3.0",
-      "targets":[{"datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"ip:in(${ip:doublequote}) job:syslog unit:keepalived | fields level, ip, _msg","instant":false,"legendFormat":"{{ ins }}","queryType":"instant","range":true,"refId":"A"}],
-      "title":"Keepalived Logs",
+      "targets":[{"datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"ip:in(${ip:doublequote}) job:syslog (app:vip-manager OR unit:keepalived) | fields level, ip, _msg","instant":false,"legendFormat":"{{ ins }}","queryType":"instant","range":true,"refId":"A"}],
+      "title":"VIP Manager Logs",
       "type":"logs"
     },
     {
@@ -1174,7 +1174,7 @@
       "id":244,
       "options":{"dedupStrategy":"none","enableInfiniteScrolling":true,"enableLogDetails":true,"fontSize":"small","prettifyLogMessage":false,"showCommonLabels":false,"showControls":true,"showLabels":true,"showTime":true,"sortOrder":"Descending","wrapLogMessage":false},
       "pluginVersion":"12.3.0",
-      "targets":[{"datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"ip:$ip job:syslog _msg:~\"keepalive\" NOT unit:in('keepalived', 'keepalived_exporter') | fields level,unit,_msg","instant":false,"legendFormat":"","queryType":"instant","range":true,"refId":"A"}],
+      "targets":[{"datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"ip:$ip job:syslog _msg:~\"keepalive\" NOT (app:vip-manager OR unit:in('keepalived', 'keepalived_exporter')) | fields level,unit,_msg","instant":false,"legendFormat":"","queryType":"instant","range":true,"refId":"A"}],
       "title":"Search Keepalived in Syslog",
       "type":"logs"
     }
