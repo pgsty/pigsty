@@ -12,7 +12,7 @@
     {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":0},"id":118,"panels":[],"title":"Overview","type":"row"},
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "description":"Members: Total number of instance in this cluster\n\nQuorum : minimal alive instances required, calculated as floor(total members / 2) + 1\n\nTolerance: max failure nodes allowed, calculated as member - quorum",
+      "description":"Members: total number of instances in this cluster\n\nQuorum: minimum alive instances required, calculated as floor(total members / 2) + 1\n\nTolerance: max failed nodes allowed, calculated as members - quorum",
       "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"noValue":"N/A","thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},"unit":"none"},"overrides":[]},
       "gridPos":{"h":7,"w":3,"x":0,"y":1},
       "id":129,
@@ -41,7 +41,7 @@
     },
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "description":"All instances among etcd cluster ${cls}\n\nInstance: Goto PGSQL Instance\n\nIP: Goto PGSQL Node\n\nStatus: Goto PGSQL Service\n\nLoad: max(cpu,postgres,pgbouncer)\n\nSpace: Disk space usage max(all device)\n\nProxy: session number, Goto Haproxy Admin Page",
+      "description":"All instances in etcd cluster ${cls}\n\nInstance: etcd member name\n\nIP: go to node dashboard\n\nStatus: member role (Follower/Learner/Leader)\n\nServer ID: unique etcd member identifier",
       "fieldConfig":{
         "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"footer":{"reducers":[]},"inspect":false},"mappings":[],"max":1.2,"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#e3e3e3e0","value":0}]}},
         "overrides":[
@@ -449,7 +449,7 @@
             { "targetBlank":true,"title":"AlertInfo ${__field.labels.alertname} on Cluster ${cls}","url":"/alertmgr/#/alerts?filter=%7Bcls%3D%22${cls}%22%2C%20alertname%3D%22${__field.labels.alertname}%22%7D"       },
             { "targetBlank":true,"title":"Silence ${__field.labels.alertname} on Cluster ${cls}"  ,"url":"/alertmgr/#/silences/new?filter=%7Bcls%3D%22${cls}%22%2C%20alertname%3D%22${__field.labels.alertname}%22%7D" },
             {                    "title":"PGSQL Instance for ${__field.labels.ins}"               ,"url":"/d/pgsql-instance?var-ins=${__field.labels.ins}&${__url_time_range}"                                         },
-            {                    "title":"PGSQL Node for ${__field.labels.ins}"                   ,"url":"/d/node-instance?var-ins=${__field.labels.ins}&${__url_time_range}"                                          }
+            {                    "title":"Node Instance for ${__field.labels.ins}"                ,"url":"/d/node-instance?var-id=${__field.labels.ins}&${__url_time_range}"                                           }
           ],
           "mappings":[],
           "min":0,
@@ -716,7 +716,7 @@
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"sum(etcd:ins:rpm{cls=\"$cls\"})"  ,"interval":"","legendFormat":"\u25b2 Reads" ,"range":true,"refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"- sum(etcd:ins:wpm{cls=\"$cls\"})","interval":"","legendFormat":"\u25bc Writes","range":true,"refId":"B" }
       ],
-      "title":"Read / Write per Mintue",
+      "title":"Read / Write per Minute",
       "type":"timeseries"
     },
     {
@@ -849,7 +849,7 @@
       "pluginVersion":"12.3.0",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"sum(rate(etcd_network_peer_sent_bytes_total{job=\"etcd\", cls=\"$cls\"}[1m])) by (ins)"             ,"interval":"","legendFormat":"\u25b2{{ ins }}","range":true,"refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"- sum(rate(etcd_network_client_grpc_received_bytes_total{job=\"etcd\", cls=\"$cls\"}[1m])) by (ins)","interval":"","legendFormat":"\u25bc{{ ins }}","range":true,"refId":"B" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"- sum(rate(etcd_network_peer_received_bytes_total{job=\"etcd\", cls=\"$cls\"}[1m])) by (ins)"      ,"interval":"","legendFormat":"\u25bc{{ ins }}","range":true,"refId":"B" }
       ],
       "title":"Peer Traffic",
       "type":"timeseries"
@@ -939,7 +939,7 @@
       "pluginVersion":"12.3.0",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"sum(rate(etcd_network_client_grpc_sent_bytes_total{job=\"etcd\", cls=\"$cls\"}[1m])) by (ins)","interval":"","legendFormat":"\u25b2{{ ins }}","range":true,"refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"- sum(rate(etcd_network_peer_received_bytes_total{job=\"etcd\", cls=\"$cls\"}[1m])) by (ins)" ,"interval":"","legendFormat":"\u25bc{{ ins }}","range":true,"refId":"B" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"- sum(rate(etcd_network_client_grpc_received_bytes_total{job=\"etcd\", cls=\"$cls\"}[1m])) by (ins)","interval":"","legendFormat":"\u25bc{{ ins }}","range":true,"refId":"B" }
       ],
       "title":"Client Traffic",
       "type":"timeseries"
@@ -1076,7 +1076,7 @@
     },
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "description":"Total number of PUT seen by this etcd instance",
+      "description":"Total number of DELETE seen by this etcd instance",
       "fieldConfig":{
         "defaults":{
           "color":{"mode":"palette-classic"},
