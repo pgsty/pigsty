@@ -205,7 +205,7 @@ class PSQL(object):
         '''
         columns = []
         values = []
-        for column, value in json_data.iteritems():
+        for column, value in json_data.items():
             columns.append(column)
             values.append(value)
         sql = self.insert_sql(table, columns)
