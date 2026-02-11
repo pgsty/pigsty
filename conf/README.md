@@ -92,7 +92,7 @@ You can run docker software/app with the following templates:
 
 In addition to the main templates, Pigsty provides a set of demo templates for different scenarios.
 
-* [demo/el.yml](demo/remote.yml) : config file with all default parameters for EL 8/9 systems.
+* [demo/el.yml](demo/el.yml) : config file with all default parameters for EL 8/9 systems.
 * [demo/debian.yml](demo/debian.yml) : config file with all default parameters for debian/ubuntu systems.
 * [demo/remote.yml](demo/remote.yml) : example config for monitoring a remote pgsql cluster or RDS PG.
 * [demo/redis.yml](demo/redis.yml) : example config for redis clusters

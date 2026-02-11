@@ -92,7 +92,7 @@ all:
         mongo_cluster: pg-mongo
         mongo_pgurl: 'postgres://dbuser_meta:DBUser.Meta@10.10.10.10:5432/grafana'
 
-    # ./kafka.yml -l kf-main
+    # Kafka is a pilot module, see: https://pigsty.io/docs/pilot/kafka
     kf-main:
       hosts: { 10.10.10.10: { kafka_seq: 1, kafka_role: controller } }
       vars:
@@ -131,8 +131,10 @@ all:
       - pool cn.pool.ntp.org iburst
       - pool ${admin_ip} iburst       # assume non-admin nodes does not have internet access
     pgbackrest_enabled: false         # do not take backups since this is disposable demo env
-    #prometheus_options: '--storage.tsdb.retention.time=15d' # prometheus extra server options
-    prometheus_options: '--storage.tsdb.retention.size=3GB' # keep 3GB data at most on demo env
+    # keep 3GiB metrics data at most on demo env
+    vmetrics_options: >-
+      -retentionPeriod=15d
+      -retention.maxDiskSpaceUsageBytes=3GiB
 
     # install all postgresql18 extensions
     pg_version: 18                    # default postgres version
