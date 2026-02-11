@@ -491,12 +491,14 @@ def validate_hba(hba, cls, var_name, i):
             success = False
         elif hba['addr'] not in HBA_ADDR_ALIAS and not is_valid_ipv4_cidr(hba['addr']):
             print("[ERRO] `pgsql.%s.vars.%s[%s].addr` has invalid value: %s" % (cls, var_name, i, hba['addr']))
+            success = False
 
         if 'auth' not in hba:
             print("[ERRO] `pgsql.%s.vars.%s[%s]` missing 'auth' field" % vars)
             success = False
         elif hba['auth'] not in HBA_AUTH_ALIAS:
             print("[ERRO] `pgsql.%s.vars.%s[%s].auth` has invalid value: %s" % (cls, var_name, i, hba['auth']))
+            success = False
 
         if 'user' not in hba:
             print("[ERRO] `pgsql.%s.vars.%s[%s]` missing 'user' field" % vars)
@@ -515,7 +517,7 @@ def validate_pgsql_hba(gvars):
         if var_name in gvars:
             if isinstance(gvars[var_name], list):
                 for i, hba in enumerate(gvars[var_name]):
-                    validate_hba(hba, cls, var_name, i)
+                    success = validate_hba(hba, cls, var_name, i) and success
             else:
                 print("[ERRO] `all.children.%s.vars.%s` should be a list" % (cls, var_name))
                 success = False
