@@ -34,8 +34,8 @@ def parse_vagrant_spec(vagrant_filepath):
             activate = False
             break
         if activate and '"name"' in line and '"ip"' in line:
-            name = re.findall('"name"\s*=>\s*"([^"]+)"', line)[0]
-            ip = re.findall('"ip"\s*=>\s*"([^"]+)"', line)[0]
+            name = re.findall(r'"name"\s*=>\s*"([^"]+)"', line)[0]
+            ip = re.findall(r'"ip"\s*=>\s*"([^"]+)"', line)[0]
             result[name] = ip
             specs.append((ip, name))
     return result, specs
@@ -48,11 +48,13 @@ def build_dns_records(specs):
             if DNS_MARKER not in line:
                 etc_hosts.append(line)
 
-    if not specs or len(specs) > 0:
+    if specs and len(specs) > 0:
         etc_hosts.append('\n\n' + DNS_MARKER + '\n')
         etc_hosts.append('%-16s %s %s\n' % (specs[0][0], STATIC_DNS, DNS_MARKER))
         for ip, name in specs:
             etc_hosts.append('%-16s %s %s\n' % (ip, name, DNS_MARKER))
+    else:
+        print("no node specs found in Vagrantfile, skip pigsty dns records")
     return etc_hosts
 
 

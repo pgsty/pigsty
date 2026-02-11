@@ -5,7 +5,7 @@
 Docs: https://pigsty.io/docs/deploy/terraform
 
 All templates create a single-node `pg-meta` instance with:
-- **OS**: Debian 12 (default) or Debian 13
+- **OS**: Debian 12 (default) or EL10 (Aliyun templates)
 - **Arch**: amd64 (default) or arm64 (where supported)
 - **Network**: VPC with `10.10.10.0/24` subnet, private IP `10.10.10.10`
 - **Security**: All ports open (demo only - restrict in production!)
@@ -22,7 +22,7 @@ There are lots of cloud providers out there. Choose one that fits your needs.
 | **AWS**          | [aws.tf](spec/aws.tf)                   | t3.medium / t4g.medium          | ~$30         | Yes         |
 | **Azure**        | [azure.tf](spec/azure.tf)               | Standard_B2s / Standard_B2ps_v2 | ~$30         | Yes         |
 | **GCP**          | [gcp.tf](spec/gcp.tf)                   | e2-medium / t2a-standard-2      | ~$25         | Yes         |
-| **Tencent**      | [qcloud.tf](spec/tencentcloud.tf)       | S5.MEDIUM4 / SR1.MEDIUM4        | ~$20         | Yes         |
+| **Qcloud**         | [qcloud.tf](spec/qcloud.tf)             | S5.MEDIUM4 / SR1.MEDIUM4        | ~$20         | Yes         |
 | **Hetzner**      | [hetzner.tf](spec/hetzner.tf)           | cx22 / cax21                    | **~$4.5**    | Yes         |
 | **Vultr**        | [vultr.tf](spec/vultr.tf)               | vc2-2c-4gb                      | ~$20         | No          |
 | **DigitalOcean** | [digitalocean.tf](spec/digitalocean.tf) | s-2vcpu-4gb                     | ~$24         | No          |
@@ -115,9 +115,10 @@ Most templates support these variables:
 
 | Variable       | Description                                            | Default |
 |----------------|--------------------------------------------------------|---------|
-| `distro`       | OS distribution (`d12` = Debian 12, `d13` = Debian 13) | `d12`   |
+| `distro`       | OS distribution (`d12` = Debian 12, `el10` = EL 10, etc.)  | `d12`   |
 | `architecture` | CPU architecture (`amd64` or `arm64`)                  | `amd64` |
 | `region`       | Cloud region/location                                  | Varies  |
+| `zone`         | Availability zone / subnet zone (provider-specific)    | Varies  |
 
 Override via command line:
 ```bash

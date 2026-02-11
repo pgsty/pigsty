@@ -26,6 +26,18 @@ variable "distro" {
   default     = "el9"       # el7/el8/el9/el10/d11/d12/d13/u20/u22/an8
 }
 
+variable "region" {
+  description = "Aliyun region (e.g., cn-shanghai)"
+  type        = string
+  default     = "cn-shanghai"
+}
+
+variable "zone" {
+  description = "Aliyun availability zone for VSwitch (e.g., cn-shanghai-l)"
+  type        = string
+  default     = "cn-shanghai-l"
+}
+
 locals {
   bandwidth = 100                       # internet bandwidth in Mbps (100Mbps)
   disk_size = 40                        # system disk size in GB (40GB)
@@ -79,7 +91,7 @@ data "alicloud_images" "pigsty_img" {
 provider "alicloud" {
   # access_key = "????????????????????"
   # secret_key = "????????????????????"
-  region = "cn-shanghai"
+  region = var.region
 }
 
 
@@ -96,7 +108,7 @@ resource "alicloud_vpc" "vpc" {
 resource "alicloud_vswitch" "vsw" {
   vpc_id     = "${alicloud_vpc.vpc.id}"
   cidr_block = "10.10.10.0/24"
-  zone_id    = "cn-shanghai-l"
+  zone_id    = var.zone
 }
 
 # add default security group and allow all tcp traffic

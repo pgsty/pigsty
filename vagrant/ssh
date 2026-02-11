@@ -60,14 +60,27 @@ def generate_ssh_config(config, mapping):
 def write_ssh_config(config, name="pigsty"):
     config_name = '%s_config' % name
     include_cmd = 'Include ~/.ssh/%s_config' % name
-    main_config_path = os.path.join(os.environ['HOME'], '.ssh', 'config')
-    extra_config_path = os.path.join(os.environ['HOME'], '.ssh', config_name)
+    ssh_dir = os.path.join(os.environ['HOME'], '.ssh')
+    main_config_path = os.path.join(ssh_dir, 'config')
+    extra_config_path = os.path.join(ssh_dir, config_name)
+
+    if not os.path.exists(ssh_dir):
+        print("create ssh directory: %s" % ssh_dir)
+        os.makedirs(ssh_dir, mode=0o700, exist_ok=True)
+    else:
+        os.chmod(ssh_dir, 0o700)
 
     # write extra config
     print("write extra ssh config [%s] to %s" % (name, extra_config_path))
     with open(extra_config_path, 'w') as f:
         f.write(config)
     os.chmod(extra_config_path, 0o600)
+
+    if not os.path.exists(main_config_path):
+        print("create ssh config file: %s" % main_config_path)
+        with open(main_config_path, 'w') as f:
+            f.write('')
+        os.chmod(main_config_path, 0o600)
 
     with open(main_config_path, 'r') as f:
         ssh_config = f.read()
