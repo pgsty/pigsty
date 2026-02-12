@@ -55,11 +55,11 @@ psql 'postgres://{{ pg_admin_username | default('dbuser_dba') }}:{{ pg_admin_pas
 sudo -iu postgres psql    # superuser via socket
 ```
 
-If you are asked to create an app with database, prefer using the existing `meta` database in the current cluster.
-or create dedicate new database if necessary. avoid using the `postgres` and `template1` database.
-You can use the `public` schema for simple app, and create dedicate schema for complex app.
+If you are asked to create an app with a database, prefer using the existing `meta` database in the current cluster.
+Create a dedicated new database only if necessary, and avoid using the `postgres` and `template1` databases.
+You can use the `public` schema for simple apps, and create a dedicated schema for complex apps.
 
-We don't have pgbouncer, and patroni here, this is a trimed version of single node pigsty
+This environment does not include pgbouncer or patroni; it is a trimmed single-node Pigsty setup.
 
 **Admin** ([doc](https://pigsty.cc/docs/pgsql/admin/)):
 ```bash
