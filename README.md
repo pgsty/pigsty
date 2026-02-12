@@ -269,9 +269,9 @@ pg-meta:
         pool_auth_user: dbuser_meta    # optional, all connection to this pgbouncer database will be authenticated by this user
         pool_mode: transaction         # optional, pgbouncer pool mode at database level, default transaction
         pool_size: 64                  # optional, pgbouncer pool size at database level, default 64
-        pool_size_reserve: 32          # optional, pgbouncer pool size reserve at database level, default 32
+        pool_reserve: 32               # optional, pgbouncer pool size reserve at database level, default 32
         pool_size_min: 0               # optional, pgbouncer pool size min at database level, default 0
-        pool_max_db_conn: 100          # optional, max database connections at database level, default 100
+        pool_connlimit: 100            # optional, max database connections at database level, default 100
         # shared parameters for CREATE DATABASE (shared with PostgreSQL)
         is_template: false             # optional, mark this database as template? default false
         strategy: wal_log              # optional (shared), PostgreSQL 15+, wal_log or file_copy

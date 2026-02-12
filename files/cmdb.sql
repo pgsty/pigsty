@@ -411,6 +411,9 @@ CREATE OR REPLACE VIEW pigsty.pg_database AS
            coalesce((value -> 'parameters')::JSONB, '{}'::JSONB) AS parameters,
            (value ->> 'baseline')                                AS baseline,
            (value ->> 'pool_mode')                               AS pool_mode,
+           (value ->> 'pool_size')::INTEGER                      AS pool_size,
+           (value ->> 'pool_size_min')::INTEGER                  AS pool_size_min,
+           (value ->> 'pool_reserve')::INTEGER                   AS pool_reserve,
            (value ->> 'pool_connlimit')::INTEGER                 AS pool_connlimit,
            (value ->> 'pool_auth_user')                          AS pool_auth_user,
            value                                                 AS database
@@ -445,10 +448,9 @@ CREATE OR REPLACE VIEW pigsty.pg_users AS
        (u ->> 'pool_auth_user')                        AS pool_auth_user,
        (u ->> 'pool_mode')                             AS pool_mode,
        (u ->> 'pool_size')::INTEGER                    AS pool_size,
-       (u ->> 'pool_size_reserve')::INTEGER            AS pool_size_reserve,
        (u ->> 'pool_size_min')::INTEGER                AS pool_size_min,
+       (u ->> 'pool_reserve')::INTEGER                 AS pool_reserve,
        (u ->> 'pool_connlimit')::INTEGER               AS pool_connlimit,
-       (u ->> 'pool_connlimit')::INTEGER               AS pool_max_db_conn,  -- legacy alias
        u                                               AS "user"
     FROM pigsty.pg_cluster, jsonb_array_elements(pg_users) AS u;
 COMMENT ON VIEW pigsty.pg_users IS 'pigsty postgres users definition';

@@ -380,7 +380,8 @@ DB_FIELDS = {
     'owner': 'str', 'template': 'str', 'encoding': 'str', 'locale': 'str', 'lc_collate': 'str', 'lc_ctype': 'str',
     'tablespace': 'str', 'allowconn': 'bool', 'revokeconn': 'bool', 'register_datasource': 'bool', 'connlimit': 'int',
     'pool_auth_user': 'str', 'pool_mode': 'enum:transaction,session,statement',
-    'pool_size': 'int', 'pool_size_reserve': 'int', 'pool_size_min': 'int', 'pool_max_db_conn': 'int',
+    'pool_size': 'int', 'pool_size_min': 'int',
+    'pool_reserve': 'int', 'pool_connlimit': 'int',
     'parameters': 'dict'
 }
 
@@ -400,8 +401,10 @@ def validate_pgsql_db(gvars):
                 for k, v in db.items():
                     if k not in DB_FIELDS:
                         print("[WARN] `pgsql.%s.vars.pg_databases[%s]` has an unknown key '%s'" % (cls, i, k))
-                    elif not validate_type(v, DB_FIELDS[k]):
-                        print("[ERRO] `pgsql.%s.vars.pg_databases[%s].%s` should be a %s" % (cls, i, k, DB_FIELDS[k]))
+                    else:
+                        if not validate_type(v, DB_FIELDS[k]):
+                            print("[ERRO] `pgsql.%s.vars.pg_databases[%s].%s` should be a %s" % (cls, i, k, DB_FIELDS[k]))
+                            success = False
 
         else:
             print("[ERRO] `pgsql.%s.vars.pg_databases` should be a list" % cls)
