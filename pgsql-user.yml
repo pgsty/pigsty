@@ -4,7 +4,7 @@
 # File      :   pgsql-user.yml
 # Desc      :   create or modify user/role on pgsql cluster
 # Ctime     :   2021-02-27
-# Mtime     :   2022-12-29
+# Mtime     :   2026-02-12
 # Path      :   pgsql-user.yml
 # Deps      :   templates/pg-user.sql
 # Docs      :   https://pigsty.io/docs/pgsql/playbook
@@ -112,7 +112,7 @@
               - user_def != {}
             fail_msg: define user {{ username }} in pg_users first
 
-        - debug: { msg: "{{ user_def }}" }
+        - debug: { msg: "process user={{ user_def.name }} state={{ user_def.state|default('create') }}" }
 
 
     #----------------------------------------------------------#
@@ -127,6 +127,7 @@
     # write biz user plain password to .pgpass file for citus cluster
     - name: write plain biz user password to pgpass for citus cluster
       tags: postgres
+      no_log: true
       become_user: "{{ pg_dbsu|default('postgres') }}"
       when: pg_mode|default('pgsql') == 'citus' and user_def.password is defined and user_def.password != '' and not user_def.password.startswith('md5') and not user_def.password.startswith('scram')
       shell: /bin/bash /pg/bin/pg-pass-add "{{ user_def.name }}" "{{ user_def.password }}"
@@ -137,7 +138,7 @@
     #----------------------------------------------------------#
     - name: refresh pgbouncer users
       tags: pgbouncer
-      when: user_def.pgbouncer is defined and user_def.pgbouncer|bool
+      when: pgbouncer_enabled|default(true)|bool and user_def.pgbouncer is defined and user_def.pgbouncer|bool
       block:
 
         # regenerate user level parameters for pgbouncer if specified
