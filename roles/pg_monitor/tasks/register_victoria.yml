@@ -15,7 +15,10 @@
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]  | default([]) }}'
   ignore_errors: true
-  when: pg_exporter_enabled|bool or pgbouncer_exporter_enabled|bool or (patroni_enabled|bool and patroni_mode != 'remove')
+  when: pg_exporter_enabled|bool
+        or (pgbouncer_enabled|bool and pgbouncer_exporter_enabled|bool)
+        or (not patroni_ssl_enabled|bool and patroni_enabled|bool and patroni_mode != 'remove')
+        or (pgbackrest_enabled|bool and pgbackrest_exporter_enabled|bool)
   copy:
     dest: "/infra/targets/pgsql/{{ pg_cluster }}-{{ pg_seq }}.yml"
     owner: victoria
@@ -24,7 +27,7 @@
     content: |
       # {{ pg_cluster }}-{{ pg_seq }} [{{ pg_role }}] @ {{ inventory_hostname }}
       - labels: { cls: {{ pg_cluster }}, ins: {{ pg_cluster }}-{{ pg_seq }}, ip: {{ inventory_hostname }} }
-        targets: {% if not pg_exporter_enabled|bool and not pgbouncer_exporter_enabled|bool and not (not patroni_ssl_enabled|bool and patroni_enabled|bool and patroni_mode != 'remove') %} [] {% endif %}
+        targets:
 
       {% if pg_exporter_enabled|bool %}
           - {{ inventory_hostname }}:{{ pg_exporter_port|default(9630) }}
