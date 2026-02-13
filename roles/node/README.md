@@ -127,7 +127,7 @@ node (full role)
 | Variable             | Default | Description                                                       |
 |----------------------|---------|-------------------------------------------------------------------|
 | `node_selinux_mode`  | `enum`  | set selinux mode: enforcing,permissive,disabled                   |
-| `node_firewall_mode` | `enum`  | firewall mode: none (skip), off (disable), zone (enable & config) |
+| `node_firewall_mode` | `enum`  | firewall mode: zone (default), off (disable), none (skip & self-managed) |
 
 
 ### Packages
@@ -215,14 +215,15 @@ Some features have OS-specific implementations:
 
 ## Security Considerations
 
-The default configuration prioritizes **convenience for development/testing**.
+The default configuration provides a baseline secure stance while keeping development convenient.
 For production environments, review and adjust the following:
 
 | Setting                     | Default         | Production Recommendation                   |
 |-----------------------------|-----------------|---------------------------------------------|
 | `node_admin_sudo`           | `nopass`        | Use `limit` or `all` for least privilege    |
 | `node_selinux_mode`         | `permissive`    | Consider `enforcing` for critical systems   |
-| `node_firewall_public_port` | includes `5432` | Remove PostgreSQL port from public exposure |
+| `node_firewall_mode`        | `zone`          | Keep `zone`; use `none` only if self-managed |
+| `node_firewall_public_port` | `[22, 80, 443]` | Add extra ports (e.g. 5432) only when required |
 | `vip_auth_pass`             | auto-generated  | Set explicit strong password                |
 
 **Recommended production settings**:
@@ -231,7 +232,7 @@ For production environments, review and adjust the following:
 node_admin_sudo: limit              # Limited sudo commands without password
 node_selinux_mode: enforcing        # Full SELinux enforcement
 node_firewall_mode: zone            # trust intranet, expose 22 80 443 only
-node_firewall_public_port: [22, 80, 443]  # Remove 5432 from public
+node_firewall_public_port: [22, 80, 443]  # Minimal public exposure
 vip_auth_pass: '<strong-secret>'    # Explicit VRRP authentication
 ```
 
@@ -242,7 +243,7 @@ Ensure your network is trusted or use a bastion host.
 
 ## Firewall Management
 
-Enable firewall with `node_firewall_mode: zone`, then apply: `./node.yml -l <target> -t node_firewall`
+`node_firewall_mode` defaults to `zone` (trusted intranet + restricted public ports). Re-apply firewall rules with: `./node.yml -l <target> -t node_firewall`
 
 > **Note**: Firewall rules are **additive only**. To remove rules, use manual commands:
 

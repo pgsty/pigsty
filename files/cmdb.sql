@@ -1380,9 +1380,9 @@ INSERT INTO pigsty.default_var VALUES
 (226, 'node_pip_packages', '""', 'NODE', 'NODE_PACKAGE', 'string', 'C', 'pip packages to be installed in uv venv', NULL),
 
 (230, 'node_selinux_mode', '"permissive"', 'NODE', 'NODE_SEC', 'enum', 'C', 'selinux mode: enforcing,permissive,disabled', NULL),
-(231, 'node_firewall_mode', '"none"', 'NODE', 'NODE_SEC', 'enum', 'C', 'firewall mode: none (skip), off (disable), zone (enable & config)', NULL),
+(231, 'node_firewall_mode', '"zone"', 'NODE', 'NODE_SEC', 'enum', 'C', 'firewall mode: zone (default), off (disable), none (skip & self-managed)', NULL),
 (232, 'node_firewall_intranet', '["10.0.0.0/8","192.168.0.0/16","172.16.0.0/12"]', 'NODE', 'NODE_SEC', 'cidr[]', 'C', 'node trusted intranet cidr list', NULL),
-(233, 'node_firewall_public_port', '[22,80,443,5432]', 'NODE', 'NODE_SEC', 'port[]', 'C', 'ports open to public in zone mode', NULL),
+(233, 'node_firewall_public_port', '[22,80,443]', 'NODE', 'NODE_SEC', 'port[]', 'C', 'ports open to public in zone mode', NULL),
 
 (240, 'node_disable_numa', 'false', 'NODE', 'NODE_TUNE', 'bool', 'C', 'disable node numa, reboot required', NULL),
 (241, 'node_disable_swap', 'false', 'NODE', 'NODE_TUNE', 'bool', 'C', 'disable node swap, use with caution', NULL),

@@ -17,16 +17,16 @@
 #--------------------------------------------------------------#
 # Firewall                                       [node_firewall]
 #--------------------------------------------------------------#
-# mode: off (disable firewall), none (do nothing), zone (trust intranet)
+# mode: zone (default, trust intranet), off (disable firewall), none (skip & self-managed)
 - name: setup node firewall
   tags: [ node_sec, node_firewall ]
-  when: node_firewall_mode|default('none') != 'none'
+  when: node_firewall_mode|default('zone') != 'none'
   ignore_errors: true
   vars:
     fw_intranet: "{{ node_firewall_intranet | default([]) | join(' ') }}"
     fw_public: "{{ node_firewall_public_port | default([]) | join(' ') }}"
   shell: |
-    MODE="{{ node_firewall_mode }}"
+    MODE="{{ node_firewall_mode | default('zone') }}"
     INTRANET="{{ fw_intranet }}"
     PUBLIC="{{ fw_public }}"
     if command -v firewall-cmd &>/dev/null; then
