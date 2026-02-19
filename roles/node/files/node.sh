@@ -145,49 +145,15 @@ alias st="sudo systemctl status "
 alias sr="sudo systemctl restart  "
 alias ssdr="sudo systemctl daemon-reload"
 
-if [ -f /usr/share/bash-completion/completions/systemctl ] && ! type -f _alias_sr_completion &>/dev/null ; then
-  source /usr/share/bash-completion/completions/systemctl
-
-  complete -F _systemctl s
-  complete -F _alias_sr_completion sr
-  complete -F _alias_st_completion st
-
-  _alias_sr_completion() {
-    local cur compopt
-    _get_comp_words_by_ref -n : cur
-    comps=$( __get_restartable_units --system "$cur" )
-    compopt -o filenames
-    COMPREPLY=( $(compgen -o filenames -W '$comps' -- "$cur") )
-    return 0
-  }
-
-  _alias_st_completion() {
-    local cur compopt
-    _get_comp_words_by_ref -n : cur
-    comps=$( __get_non_template_units --system "$cur" )
-    compopt -o filenames
-    COMPREPLY=( $(compgen -o filenames -W '$comps' -- "$cur") )
-    return 0
-  }
-fi
+_pigsty_unit_completion() {
+  local cur
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  COMPREPLY=( $(compgen -W "$(systemctl list-units --no-legend --no-pager 2>/dev/null | awk '{print $1}')" -- "$cur") )
+}
+complete -F _pigsty_unit_completion s st sr ju
 #--------------------------------------------------------------#
 # journalctl
 alias je="journalctl -xe"
 alias ju="journalctl -u"
-if [ -f /usr/share/bash-completion/completions/journalctl ] && ! type _alias_ju_completion &>/dev/null ; then
-  source /usr/share/bash-completion/completions/journalctl
-  _alias_ju_completion() {
-    local cur
-    _get_comp_words_by_ref -n : cur
-    comps=$(journalctl -F '_SYSTEMD_UNIT' 2>/dev/null)
-    if ! [[ $cur =~ '\\' ]]; then
-        cur="$(printf '%q' $cur)"
-    fi
-    compopt -o filenames
-    COMPREPLY=( $(compgen -o filenames -W '$comps' -- "$cur") )
-    return 0
-  }
-  complete -F _alias_ju_completion ju
-fi
 #==============================================================#
 # vim:ts=2:sw=2
