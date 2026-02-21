@@ -2,7 +2,7 @@
 -- # File      :   supabase.sql
 -- # Desc      :   Pigsty self-hosting supabase baseline schema
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2026-01-19
+-- # Mtime     :   2026-02-17
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -890,7 +890,7 @@ COMMENT ON FUNCTION extensions.set_graphql_placeholder IS 'Reintroduces placehol
 
 
 -------------------------------------------------------
--- 20220321174452_fix-postgrest-alter-type-event-triger.sql
+-- 20220321174452_fix-postgrest-alter-type-event-trigger.sql
 ------------------------------------------------------
 -- migrate:up
 
@@ -1757,6 +1757,36 @@ alter role supabase_storage_admin set log_statement = none;
 
 
 ----------------------------------------------------
+-- 20250205144616_move_orioledb_to_extensions_schema.sql
+----------------------------------------------------
+-- migrate:up
+do $$
+declare
+    ext_schema text;
+    extensions_schema_exists boolean;
+begin
+    -- check if the "extensions" schema exists
+    select exists (
+        select 1 from pg_namespace where nspname = 'extensions'
+    ) into extensions_schema_exists;
+
+    if extensions_schema_exists then
+        -- check if the "orioledb" extension is in the "public" schema
+        select nspname into ext_schema
+        from pg_extension e
+                 join pg_namespace n on e.extnamespace = n.oid
+        where extname = 'orioledb';
+
+        if ext_schema = 'public' then
+            execute 'alter extension orioledb set schema extensions';
+        end if;
+    end if;
+end $$;
+
+-- migrate:down
+
+
+----------------------------------------------------
 -- 20250218031949_pgsodium_mask_role.sql
 ----------------------------------------------------
 -- migrate:up
@@ -1865,6 +1895,14 @@ END $$;
 -- migrate:up
 -- alter function pgbouncer.get_auth owner to supabase_admin;
 -- grant execute on function pgbouncer.get_auth(p_usename text) to postgres;
+-- migrate:down
+
+
+----------------------------------------------------
+-- 20250402093753_grant_subscription_to_postgres_16_and_above.sql
+----------------------------------------------------
+-- migrate:up
+-- skip: superseded by 20251001204436_predefined_role_grants.sql
 -- migrate:down
 
 
@@ -2000,6 +2038,14 @@ end $$;
 -- migrate:up
 grant execute on function pg_catalog.pg_reload_conf() to postgres with grant option;
 
+-- migrate:down
+
+
+----------------------------------------------------
+-- 20251121132723_correct_search_path_pgbouncer.sql
+----------------------------------------------------
+-- migrate:up
+-- skip since pigsty already have pgbouncer.get_auth function
 -- migrate:down
 
 
@@ -2215,4 +2261,3 @@ ALTER function supabase_functions.http_request() SET search_path = supabase_func
 REVOKE ALL ON FUNCTION supabase_functions.http_request() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION supabase_functions.http_request() TO postgres, anon, authenticated, service_role;
 COMMIT;
-
