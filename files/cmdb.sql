@@ -1492,7 +1492,7 @@ INSERT INTO pigsty.default_var VALUES
 (701, 'redis_cluster', NULL, 'REDIS', 'REDIS', 'string', 'C', 'redis cluster name, required identity parameter', NULL),
 (702, 'redis_instances', NULL, 'REDIS', 'REDIS', 'dict', 'I', 'redis instances definition on this redis node', NULL),
 (703, 'redis_node', NULL, 'REDIS', 'REDIS', 'int', 'I', 'redis node sequence number, node int id required', NULL),
-(710, 'redis_fs_main', '"/data"', 'REDIS', 'REDIS', 'path', 'C', 'redis main data mountpoint, `/data` by default', NULL),
+(710, 'redis_fs_main', '"/data/redis"', 'REDIS', 'REDIS', 'path', 'C', 'redis main data directory, `/data/redis` by default', NULL),
 (711, 'redis_exporter_enabled', 'true', 'REDIS', 'REDIS', 'bool', 'C', 'install redis exporter on redis nodes?', NULL),
 (712, 'redis_exporter_port', '9121', 'REDIS', 'REDIS', 'port', 'C', 'redis exporter listen port, 9121 by default', NULL),
 (713, 'redis_exporter_options', '""', 'REDIS', 'REDIS', 'string', 'C/I', 'cli args and extra options for redis exporter', NULL),

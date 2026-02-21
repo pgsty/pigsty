@@ -74,6 +74,7 @@ redis_remove (full role)
 | `redis_safeguard` | `false` | Prevent accidental removal     |
 | `redis_rm_data`   | `true`  | Remove data directories        |
 | `redis_rm_pkg`    | `false` | Uninstall Redis packages       |
+| `redis_fs_main`   | `/data/redis` | Redis data root directory used by cleanup |
 
 
 ## CLI Arguments
@@ -113,7 +114,7 @@ Override with:
 |--------------|---------------------------------------------|
 | Monitoring   | `/infra/targets/redis/<cluster>-<node>.yml` |
 | Logging      | `/etc/vector/redis.yaml`                    |
-| Data         | `/data/redis/` (all instances)              |
+| Data         | `redis_fs_main` (default `/data/redis/`; legacy `redis_fs_main=/data` is compat-mapped to `/data/redis`) |
 | Packages     | `redis`, `redis_exporter` (if enabled)      |
 
 

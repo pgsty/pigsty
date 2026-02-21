@@ -30,7 +30,7 @@
         - /etc/redis
         - /var/log/redis/
         - /var/run/redis/
-        - "{{ redis_fs_main }}/redis"
+        - "{{ redis_fs_main }}"
 
     # make sure the /var/run/redis is created after reboot
     - name: create redis tmpfiles.d entry
@@ -51,12 +51,12 @@
   shell: |
     command -v semanage &>/dev/null || exit 0
     # data dir: redis_var_lib_t for /data/redis (rdb, aof, temp files)
-    semanage fcontext -m -t redis_var_lib_t "{{ redis_fs_main }}/redis(/.*)?" 2>/dev/null || \
-    semanage fcontext -a -t redis_var_lib_t "{{ redis_fs_main }}/redis(/.*)?" 2>/dev/null
+    semanage fcontext -m -t redis_var_lib_t "{{ redis_fs_main }}(/.*)?" 2>/dev/null || \
+    semanage fcontext -a -t redis_var_lib_t "{{ redis_fs_main }}(/.*)?" 2>/dev/null
     # run dir: redis_var_run_t for /run/redis (pid files)
     semanage fcontext -m -t redis_var_run_t "/run/redis(/.*)?" 2>/dev/null || \
     semanage fcontext -a -t redis_var_run_t "/run/redis(/.*)?" 2>/dev/null
-    restorecon -Rv {{ redis_fs_main }}/redis /run/redis 2>/dev/null
+    restorecon -Rv {{ redis_fs_main }} /run/redis 2>/dev/null
     /bin/true
   args: { executable: /bin/bash }
 ...

@@ -97,6 +97,12 @@ redis (full role)
 | `redis_conf`         | `redis.conf` | Config template name              |
 | `redis_bind_address` | `0.0.0.0`    | Listen address                    |
 
+### Filesystem
+
+| Variable        | Default       | Description                                                                 |
+|-----------------|---------------|-----------------------------------------------------------------------------|
+| `redis_fs_main` | `/data/redis` | Redis data root directory; instance dirs are created under it (`/data` is rejected at deploy-time) |
+
 ### Resource Limits
 
 | Variable           | Default       | Description              |
