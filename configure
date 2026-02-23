@@ -74,21 +74,35 @@ OS_MANAGER=""
 #----------------------------------------------#
 # region
 #----------------------------------------------#
-# return 0 if behind gfw (inside mainland china), otherwise 1
+# return 0 if url is reachable, otherwise 1
+function url_reachable() {
+    local return_code
+    return_code=$(curl -I -s --max-time 2 "$1" -w %{http_code} -o /dev/null)
+    [[ "${return_code}" != "000" ]]
+}
+
+# return 0 if behind gfw (inside mainland china), 1 if not behind gfw, 2 if internet unreachable
 function behind_gfw() {
-    local return_code=$(curl -I -s --max-time 2 www.google.com -w %{http_code} | tail -n1)
-    if [ "${return_code}" = "200" ]; then
+    if url_reachable "https://www.google.com"; then
         return 1
     fi
-    return 0
+    if url_reachable "https://pigsty.cc"; then
+        return 0
+    fi
+    return 2
 }
 
 function check_region(){
   if [ "${REGION}" == "" ]; then
-    if behind_gfw; then
+    behind_gfw
+    local detect_result=$?
+    if [[ ${detect_result} -eq 0 ]]; then
         REGION=china       # mainland china is behind GFW
     else
         REGION=default     # otherwise use default mirror
+        if [[ ${detect_result} -eq 2 ]]; then
+            log_warn "internet unreachable, fallback to default"
+        fi
     fi
     log_info "region = ${REGION}"
   fi
@@ -565,13 +579,19 @@ function check_config(){
     local mode=${2-${MODE}} # use files/pigsty/${mode}.yml as template
     local pigsty_home=${3-${PIGSTY_HOME}}
     local config_src="${pigsty_home}/conf/${mode}.yml"
-    local config_dst="${pigsty_home}/${OUTPUT}"
+    local config_dst=""
+    if [[ "${OUTPUT}" == /* ]]; then
+        config_dst="${OUTPUT}"
+    else
+        config_dst="${pigsty_home}/${OUTPUT}"
+    fi
 
     # panic if given config file not exists
     if [[ ! -f ${config_src} ]]; then
         log_error "config = conf/${mode}.yml not exists"
         exit 11
     fi
+    mkdir -p "$(dirname "${config_dst}")"
     cat "${config_src}" > "${config_dst}"
 
     # replace placeholder IP 10.10.10.10 with primary_ip for singleton templates
