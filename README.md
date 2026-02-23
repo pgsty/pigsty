@@ -16,7 +16,12 @@ Battery-Included, Local-First **PostgreSQL** Distribution as a Free & Better **R
 
 [![banner](https://pigsty.io/img/pigsty/banner.png)](https://pigsty.io)
 
-Pigsty scales from [**laptop**](https://pigsty.io/docs/setup) to [**datacenter**](https://pigsty.io/docs/deploy). Enterprise-grade. Developer-friendly. [**Get Started**](https://pigsty.io/docs/setup/install) with the latest [**v4.1.0**](https://github.com/pgsty/pigsty/releases/tag/v4.1.0):
+Pigsty scales from [**laptop**](https://pigsty.io/docs/setup) to [**datacenter**](https://pigsty.io/docs/deploy). Enterprise-grade. Developer-friendly. [**Get Started**](https://pigsty.io/docs/setup/install) with the latest [**v4.1.0**](https://github.com/pgsty/pigsty/releases/tag/v4.2.0):
+
+> [!IMPORTANT]
+> ## PostgreSQL 18.2, 17.8,... Breaks, Do not deploy until 2026-02-26
+> Check [Out-of-cycle release scheduled for February 26, 2026](https://www.postgresql.org/about/news/out-of-cycle-release-scheduled-for-february-26-2026-3241/) for details.
+> We strongly recommend holding off on any new deployment until the patched PostgreSQL packages (18.3,...) is released, use [v4.0.0 offline package](https://github.com/pgsty/pigsty/releases/tag/v4.0.0) (PG 18.1) for urgent needs.
 
 ```bash
 curl -fsSL https://repo.pigsty.io/get | bash -s v4.1.0
@@ -62,7 +67,7 @@ And gather the synergistic superpowers of all [**451+ PostgreSQL Extensions**](h
 [![EL Support: 8/9/10](https://img.shields.io/badge/EL-8/9/10-red?style=flat&logo=redhat&logoColor=red)](https://pigsty.io/docs/ref/linux#el)
 [![Debian Support: 12/13](https://img.shields.io/badge/Debian-12/13-%23A81D33?style=flat&logo=debian&logoColor=%23A81D33)](https://pigsty.io/docs/ref/linux#debian)
 [![Ubuntu Support: 22/24](https://img.shields.io/badge/Ubuntu-22/24-%23E95420?style=flat&logo=ubuntu&logoColor=%23E95420)](https://pigsty.io/docs/ref/linux#ubuntu)
-[![Docker Image](https://img.shields.io/badge/Docker-v4.1.0-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/setup/docker)
+[![Docker Image](https://img.shields.io/badge/Docker-v4.2.0-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/setup/docker)
 
 [**Prepare**](https://pigsty.io/docs/deploy/prepare) a fresh `x86_64` / `aarch64` node runs any [**compatible**](https://pigsty.io/docs/ref/linux) **Linux** OS Distros, then [**Install**](https://pigsty.io/docs/setup/install#install) **Pigsty** with:
 
@@ -102,24 +107,24 @@ pig sty deploy   # run the deploy.yml playbook
 <details><summary>Install with get script</summary><br>
 
 ```bash
-[root@pg-meta ~]# curl -fsSL https://repo.pigsty.io/get | bash -s v4.1.0
-[v4.1.0] ===========================================
+[root@pg-meta ~]# curl -fsSL https://repo.pigsty.io/get | bash -s v4.2.0
+[v4.2.0] ===========================================
 $ curl -fsSL https://repo.pigsty.io/get | bash
 [Docs] https://pigsty.io/docs
 [Demo] https://demo.pigsty.io
 [Repo] https://github.com/pgsty/pigsty
 [Download] ===========================================
-[ OK ] version = v4.1.0 (from arg)
-curl -fSL https://repo.pigsty.io/src/pigsty-v4.1.0.tgz -o /tmp/pigsty-v4.1.0.tgz
+[ OK ] version = v4.2.0 (from arg)
+curl -fSL https://repo.pigsty.io/src/pigsty-v4.2.0.tgz -o /tmp/pigsty-v4.2.0.tgz
 ######################################################################## 100.0%
-[ OK ] md5sums = 53cb5980f9XXXXX1fbb832d7ee2fc93a  /tmp/pigsty-v4.1.0.tgz
+[ OK ] md5sums = 53cb5980f9XXXXX1fbb832d7ee2fc93a  /tmp/pigsty-v4.2.0.tgz
 [Install] ===========================================
 [WARN] os user = root , it's recommended to use a non-root sudo-able admin
-[ OK ] install = /root/pigsty, from /tmp/pigsty-v4.1.0.tgz
+[ OK ] install = /root/pigsty, from /tmp/pigsty-v4.2.0.tgz
 
 [Bootstrap] ===========================================
 [WARN] ansible = not found, bootstrap
-bootstrap pigsty v4.1.0 begin
+bootstrap pigsty v4.2.0 begin
 [ OK ] region = china
 [ OK ] kernel  = Linux
 [ OK ] machine = x86_64
@@ -156,7 +161,7 @@ proceed with ./configure
 > HINT: To install a specific version, pass the version string as the first parameter:
 >
 > ```bash
-> curl -fsSL https://repo.pigsty.io/get | bash -s v4.1.0
+> curl -fsSL https://repo.pigsty.io/get | bash -s v4.2.0
 > ```
 
 </details>
@@ -167,7 +172,7 @@ proceed with ./configure
 You can also download the pigsty source with `git`, remember to check out a specific version tag, the `main` branch is for development.
 
 ```bash
-git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v4.1.0
+git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v4.2.0
 ```
 
 </details>
