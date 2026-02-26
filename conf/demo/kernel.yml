@@ -1,9 +1,9 @@
 ---
 #==============================================================#
 # File      :   kernel.yml
-# Desc      :   Pigsty 4 node for 4 pg forks
+# Desc      :   Pigsty 10-node kernel matrix demo
 # Ctime     :   2025-03-25
-# Mtime     :   2025-12-12
+# Mtime     :   2026-02-26
 # Docs      :   https://pigsty.io/docs/conf
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -11,24 +11,27 @@
 
 
 all:
-
   children:
-    infra: { hosts: { 10.10.10.10: { infra_seq: 1 } }, vars: {} }
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 } }, vars: { repo_enabled: false } }
     etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
 
-    # vanilla postgres cluster
-    pg-meta:
+    # 1. Vanilla PostgreSQL + Citus in one kernel template
+    pg-citus:
       hosts:
         10.10.10.10: { pg_seq: 1, pg_role: primary }
       vars:
-        pg_cluster: pg-meta
+        pg_cluster: pg-citus
         pg_version: 18
         pg_packages: [ pgsql-main, pgsql-common, citus, timescaledb ]
+        pg_users:
+          - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: pigsty admin user }
+          - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
+        pg_databases:
+          - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [citus, postgis, timescaledb, vector] }
+        pg_extensions: [ citus, postgis, timescaledb, pgvector ]
         pg_libs: 'citus, timescaledb, pg_stat_statements, auto_explain'
-        pg_users: [{ name: dbuser_meta ,password: DBUser.Meta ,pgbouncer: true ,roles: [dbrole_admin] ,comment: pigsty admin user }]
-        pg_databases: [{ name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [vector, postgis, timescaledb] }]
 
-    # ivorysql the oracle compatible postgres cluster
+    # 2. IvorySQL kernel
     pg-ivory:
       hosts:
         10.10.10.11: { pg_seq: 1, pg_role: primary }
@@ -38,44 +41,41 @@ all:
         pg_version: 18
         pg_packages: [ ivorysql, pgsql-common ]
         pg_libs: 'liboracle_parser, pg_stat_statements, auto_explain'
-        pg_users: [{ name: dbuser_meta ,password: DBUser.Meta ,pgbouncer: true ,roles: [dbrole_admin] ,comment: pigsty admin user }]
-        pg_databases: [{ name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] }]
+        pg_users:
+          - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: pigsty admin user }
+          - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
+        pg_databases:
+          - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] }
 
-    # babelfish the mssql compatible postgres cluster
+    # 3. Babelfish (MSSQL compatible) kernel
     pg-mssql:
       hosts:
         10.10.10.12: { pg_seq: 1, pg_role: primary }
       vars:
         pg_mode: mssql
         pg_cluster: pg-mssql
-        pg_version: 15
+        pg_version: 17
         pg_packages: [ babelfish, pgsql-common, sqlcmd ]
-        pg_users: [{name: dbuser_mssql ,password: DBUser.MSSQL ,superuser: true, pgbouncer: true ,roles: [dbrole_admin], comment: superuser & owner for babelfish }]
+        pg_users:
+          - { name: dbuser_mssql ,password: DBUser.MSSQL ,superuser: true ,pgbouncer: true ,roles: [dbrole_admin] ,comment: superuser & owner for babelfish }
         pg_databases:
           - name: mssql
-            baseline: mssql.sql # init babelfish database & user
-            extensions:
-              - { name: uuid-ossp          }
-              - { name: babelfishpg_common }
-              - { name: babelfishpg_tsql   }
-              - { name: babelfishpg_tds    }
-              - { name: babelfishpg_money  }
-              - { name: pg_hint_plan       }
-              - { name: system_stats       }
-              - { name: tds_fdw            }
+            baseline: mssql.sql
+            extensions: [ uuid-ossp, babelfishpg_common, babelfishpg_tsql, babelfishpg_tds, babelfishpg_money ]
             owner: dbuser_mssql
             parameters: { 'babelfishpg_tsql.migration_mode' : 'multi-db' }
             comment: babelfish cluster, a MSSQL compatible pg cluster
-        pg_libs: 'babelfishpg_tds, pg_stat_statements, auto_explain' # add timescaledb to shared_preload_libraries
-        pg_hba_rules: # use md5 auth for mssql user, inserted between admin(500) and readonly(550)
-          - { user: dbuser_mssql ,db: mssql ,addr: intra ,auth: md5 ,order: 525 ,title: 'allow mssql dbsu intranet md5 access' }
-        pg_default_services: # route primary & replica service to mssql port 1433
-          - { name: primary ,port: 5433 ,dest: 1433  ,check: /primary   ,selector: "[]" }
-          - { name: replica ,port: 5434 ,dest: 1433  ,check: /read-only ,selector: "[]" , backup: "[? pg_role == `primary` || pg_role == `offline` ]" }
-          - { name: default ,port: 5436 ,dest: postgres ,check: /primary   ,selector: "[]" }
-          - { name: offline ,port: 5438 ,dest: postgres ,check: /replica   ,selector: "[? pg_role == `offline` || pg_offline_query ]" , backup: "[? pg_role == `replica` && !pg_offline_query]" }
+        pg_libs: 'babelfishpg_tds, pg_stat_statements, auto_explain'
+        pg_hba_rules:
+          - { user: dbuser_mssql ,db: mssql ,addr: intra ,auth: md5 ,title: 'allow mssql dbsu intranet access'      ,order: 525 }
+          - { user: all          ,db: all   ,addr: intra ,auth: md5 ,title: 'everyone intranet access with md5 pwd' ,order: 800 }
+        pg_default_services:
+          - { name: primary ,port: 5433 ,dest: 1433      ,check: /primary   ,selector: "[]" }
+          - { name: replica ,port: 5434 ,dest: 1433      ,check: /read-only ,selector: "[]" ,backup: "[? pg_role == `primary` || pg_role == `offline` ]" }
+          - { name: default ,port: 5436 ,dest: postgres  ,check: /primary   ,selector: "[]" }
+          - { name: offline ,port: 5438 ,dest: postgres  ,check: /replica   ,selector: "[? pg_role == `offline` || pg_offline_query ]" ,backup: "[? pg_role == `replica` && !pg_offline_query]" }
 
-    # polardb the aurora flavor postgres cluster
+    # 4. PolarDB kernel
     pg-polar:
       hosts:
         10.10.10.13: { pg_seq: 1, pg_role: primary }
@@ -84,15 +84,124 @@ all:
         pg_cluster: pg-polar
         pg_version: 15
         pg_packages: [ polardb, pgsql-common ]
-        pg_default_roles:                 # default roles and users in postgres cluster
+        pg_exporter_exclude_database: 'template0,template1,postgres,polardb_admin'
+        pg_default_roles:
           - { name: dbrole_readonly  ,login: false ,comment: role for global read-only access     }
           - { name: dbrole_offline   ,login: false ,comment: role for restricted read-only access }
           - { name: dbrole_readwrite ,login: false ,roles: [dbrole_readonly] ,comment: role for global read-write access }
           - { name: dbrole_admin     ,login: false ,roles: [pg_monitor, dbrole_readwrite] ,comment: role for object creation }
           - { name: postgres     ,superuser: true  ,comment: system superuser }
-          - { name: replicator   ,superuser: true  ,replication: true ,roles: [pg_monitor, dbrole_readonly] ,comment: system replicator } # <- superuser is required for replication
-          - { name: dbuser_dba   ,superuser: true  ,roles: [dbrole_admin]  ,pgbouncer: true ,pool_mode: session, pool_connlimit: 16 ,comment: pgsql admin user }
-          - { name: dbuser_monitor ,roles: [pg_monitor] ,pgbouncer: true ,parameters: {log_min_duration_statement: 1000 } ,pool_mode: session ,pool_connlimit: 8 ,comment: pgsql monitor user }
+          - { name: replicator   ,superuser: true  ,replication: true ,roles: [pg_monitor, dbrole_readonly] ,comment: system replicator }
+          - { name: dbuser_dba   ,superuser: true  ,roles: [dbrole_admin]  ,pgbouncer: true ,pool_mode: session ,pool_connlimit: 16 ,comment: pgsql admin user }
+          - { name: dbuser_monitor ,roles: [pg_monitor] ,pgbouncer: true ,parameters: { log_min_duration_statement: 1000 } ,pool_mode: session ,pool_connlimit: 8 ,comment: pgsql monitor user }
+
+    # 5. percona tde kernel
+    pg-tde:
+      hosts:
+        10.10.10.14: { pg_seq: 1, pg_role: primary }
+      vars:
+        node_repo_modules: node,infra,pgsql,percona
+        pg_cluster: pg-tde
+        pg_version: 18
+        pg_packages: [ percona-main, pgsql-common ]
+        pg_libs: 'pg_tde, pgaudit, pg_stat_statements, pg_stat_monitor, auto_explain'
+        pg_users:
+          - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: pigsty admin user }
+          - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
+        pg_databases:
+          - name: meta
+            baseline: cmdb.sql
+            comment: pigsty tde database
+            schemas: [pigsty]
+            extensions: [ vector, postgis, pg_tde ,pgaudit, { name: pg_stat_monitor, schema: monitor } ]
+
+    # 6. OrioleDB kernel
+    pg-oriole:
+      hosts:
+        10.10.10.15: { pg_seq: 1, pg_role: primary }
+      vars:
+        pg_mode: oriole
+        pg_cluster: pg-oriole
+        pg_version: 17
+        pg_packages: [ oriole, pgsql-common ]
+        pg_libs: 'orioledb, pg_stat_statements, auto_explain'
+        pg_users:
+          - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: pigsty admin user }
+          - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
+        pg_databases:
+          - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [orioledb] }
+
+    # 7. OpenHaloDB (MySQL compatible) kernel
+    pg-mysql:
+      hosts:
+        10.10.10.16: { pg_seq: 1, pg_role: primary }
+      vars:
+        pg_mode: mysql
+        pg_cluster: pg-mysql
+        pg_version: 14
+        pg_packages: [ openhalodb, pgsql-common ]
+        pg_users:
+          - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: pigsty admin user }
+          - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
+        pg_databases:
+          - { name: postgres ,extensions: [aux_mysql] }
+          - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] }
+
+    # 8. DocumentDB + MongoDB (FerretDB) kernel
+    pg-mongo:
+      hosts:
+        10.10.10.17: { pg_seq: 1, pg_role: primary ,mongo_seq: 1 }
+      vars:
+        pg_cluster: pg-mongo
+        pg_version: 18
+        pg_users:
+          - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: pigsty admin user }
+          - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
+        pg_databases:
+          - { name: postgres ,extensions: [documentdb, postgis, vector, pg_cron, rum] }
+        pg_hba_rules:
+          - { user: dbuser_view ,db: all ,addr: infra     ,auth: pwd   ,title: 'allow grafana dashboard access cmdb from infra nodes' }
+          - { user: postgres    ,db: all ,addr: world     ,auth: pwd   ,title: 'dbsu password access everywhere (demo only)' }
+          - { user: all         ,db: all ,addr: localhost ,order: 1    ,auth: trust ,title: 'documentdb localhost trust access' }
+          - { user: all         ,db: all ,addr: local     ,order: 1    ,auth: trust ,title: 'documentdb local trust access' }
+          - { user: all         ,db: all ,addr: intra     ,auth: pwd   ,order: 800  ,title: 'everyone intranet access with password' }
+        pg_parameters: { cron.database_name: postgres }
+        pg_extensions: [ documentdb, postgis, pgvector, pg_cron, rum ]
+        pg_libs: 'pg_documentdb, pg_documentdb_core, pg_documentdb_extended_rum, pg_cron, pg_stat_statements, auto_explain'
+        mongo_cluster: ferret
+        mongo_pgurl: 'postgres://dbuser_dba:DBUser.DBA@10.10.10.17:5432/postgres'
+
+    # 9. AgensGraph kernel
+    pg-agens:
+      hosts:
+        10.10.10.18: { pg_seq: 1, pg_role: primary }
+      vars:
+        pg_mode: agens
+        pg_cluster: pg-agens
+        pg_version: 16
+        pg_packages: [ agensgraph, pgsql-common ]
+        pg_users:
+          - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: pigsty admin user }
+          - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
+        pg_databases:
+          - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] }
+
+    # 10. pgedge kernel (stock pigsty pgsql repo path)
+    pg-edge:
+      hosts:
+        10.10.10.19: { pg_seq: 1, pg_role: primary }
+      vars:
+        pg_mode: pgedge
+        pg_cluster: pg-edge
+        pg_version: 17
+        pg_packages: [ pgedge, pgsql-common ]
+        pg_extensions: [ spock, snowflake, lolor ]
+        pg_libs: 'spock, lolor, pg_stat_statements, auto_explain'
+        pg_users:
+          - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: pigsty admin user }
+          - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
+        pg_databases:
+          - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [spock, snowflake, lolor] }
 
   vars:
     version: v4.2.0                   # pigsty version string
@@ -100,22 +209,12 @@ all:
     region: default                   # upstream mirror region: default|china|europe
     node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
     pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
-    proxy_env:                        # global proxy env when downloading packages
+    node_repo_modules: node,infra,pgsql
+    proxy_env:
       no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.myqcloud.com,*.tsinghua.edu.cn"
-      # http_proxy:  # set your proxy here: e.g http://user:pass@proxy.xxx.com
-      # https_proxy: # set your proxy here: e.g http://user:pass@proxy.xxx.com
-      # all_proxy:   # set your proxy here: e.g http://user:pass@proxy.xxx.com
-    infra_portal:                     # infra services exposed via portal
-      home : { domain: i.pigsty }     # default domain name
+    infra_portal:
+      home : { domain: i.pigsty }
 
-    repo_remove: true                 # remove existing repo on admin node during repo bootstrap
-    node_repo_remove: true            # remove existing node repo for node managed by pigsty
-    repo_extra_packages: [ pg18-main, polardb, ivorysql, citus, timescaledb, sqlcmd ]
-    pg_version: 18                    # default postgres version
-
-    #----------------------------------------------#
-    # PASSWORD : https://pigsty.io/docs/setup/security/
-    #----------------------------------------------#
     grafana_admin_password: pigsty
     grafana_view_password: DBUser.Viewer
     pg_admin_password: DBUser.DBA
