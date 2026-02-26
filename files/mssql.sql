@@ -5,4 +5,6 @@ ALTER SYSTEM SET babelfishpg_tsql.database_name = 'mssql';
 
 SELECT pg_reload_conf();
 
+SET babelfishpg_tsql.database_name = 'mssql';
+
 CALL sys.initialize_babelfish('dbuser_mssql');

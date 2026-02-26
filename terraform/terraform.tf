@@ -23,7 +23,7 @@ variable "architecture" {
 variable "distro" {
   description = "The distro code (el8,el9,u22,u24,d12,d13)"
   type        = string
-  default     = "el10"     # el7/el8/el9/el10/d11/d12/d13/u20/u22/an8
+  default     = "u24"     # el7/el8/el9/el10/d11/d12/d13/u20/u22/an8
 }
 
 variable "region" {
