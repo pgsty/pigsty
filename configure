@@ -35,6 +35,7 @@ REGION=""                         # default region (default|china|europe)
 USE_PROXY=false                   # use global env http_proxy, https_proxy, all_proxy, no_proxy
 SKIP=false                        # skip ip probe (convenient if using fixed templates)
 SSH_PORT=""                       # default SSH port
+SSH_CHECK_TIMEOUT=5              # hard limit for SSH checks in configure
 GENERATE_PASSWORD=false           # generate random passwords for security
 DEFAULT_NO_PROXY="localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,mirror.*,*.tsinghua.edu.cn"
 
@@ -302,9 +303,9 @@ function can_nopass_ssh(){
     local user=${1-${current_user}}
     local ipaddr=${2-'127.0.0.1'}
     if [[ -n "${SSH_PORT}" ]]; then
-        ssh -p "${SSH_PORT}" -oBatchMode=yes -o "StrictHostKeyChecking no" ${user}@${ipaddr} 'ls' 1>/dev/null 2>/dev/null
+        ssh -p "${SSH_PORT}" -oBatchMode=yes -o "StrictHostKeyChecking no" -o "ConnectTimeout=${SSH_CHECK_TIMEOUT}" -o "ConnectionAttempts=1" -o "ServerAliveInterval=${SSH_CHECK_TIMEOUT}" -o "ServerAliveCountMax=1" ${user}@${ipaddr} 'ls' 1>/dev/null 2>/dev/null
     else
-        ssh -oBatchMode=yes -o "StrictHostKeyChecking no" ${user}@${ipaddr} 'ls' 1>/dev/null 2>/dev/null
+        ssh -oBatchMode=yes -o "StrictHostKeyChecking no" -o "ConnectTimeout=${SSH_CHECK_TIMEOUT}" -o "ConnectionAttempts=1" -o "ServerAliveInterval=${SSH_CHECK_TIMEOUT}" -o "ServerAliveCountMax=1" ${user}@${ipaddr} 'ls' 1>/dev/null 2>/dev/null
     fi
 }
 
@@ -469,9 +470,9 @@ function check_admin(){
 
     local current_user=$(whoami)
     if [[ -n "${SSH_PORT}" ]]; then
-        ssh -p "${SSH_PORT}" -t -o "StrictHostKeyChecking no" -o "ConnectTimeout=4" "${primary_ip}" 'sudo -n ls' 1>/dev/null 2>/dev/null
+        ssh -p "${SSH_PORT}" -t -oBatchMode=yes -o "StrictHostKeyChecking no" -o "ConnectTimeout=${SSH_CHECK_TIMEOUT}" -o "ConnectionAttempts=1" -o "ServerAliveInterval=${SSH_CHECK_TIMEOUT}" -o "ServerAliveCountMax=1" "${primary_ip}" 'sudo -n ls' 1>/dev/null 2>/dev/null
     else
-        ssh -t -o "StrictHostKeyChecking no" -o "ConnectTimeout=4" "${primary_ip}" 'sudo -n ls' 1>/dev/null 2>/dev/null
+        ssh -t -oBatchMode=yes -o "StrictHostKeyChecking no" -o "ConnectTimeout=${SSH_CHECK_TIMEOUT}" -o "ConnectionAttempts=1" -o "ServerAliveInterval=${SSH_CHECK_TIMEOUT}" -o "ServerAliveCountMax=1" "${primary_ip}" 'sudo -n ls' 1>/dev/null 2>/dev/null
     fi
 
     if [[ $? -eq 0 ]]; then
