@@ -16,20 +16,20 @@ all:
     etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
 
     # 1. Vanilla PostgreSQL + Citus in one kernel template
-    pg-meta:
+    pg-citus:
       hosts:
         10.10.10.10: { pg_seq: 1, pg_role: primary }
       vars:
         pg_cluster: pg-citus
         pg_version: 18
-        pg_packages: [ pgsql-main, pgsql-common, citus, timescaledb ]
+        pg_packages: [ pgsql-main, pgsql-common, citus ]
         pg_users:
           - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: pigsty admin user }
           - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
         pg_databases:
           - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [citus, postgis, timescaledb, vector] }
         pg_extensions: [ citus, postgis, timescaledb, pgvector ]
-        pg_libs: 'citus, timescaledb, pg_stat_statements, auto_explain'
+        pg_libs: 'citus, pg_stat_statements, auto_explain'
 
     # 2. IvorySQL kernel
     pg-ivory:
