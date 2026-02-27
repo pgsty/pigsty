@@ -12,12 +12,14 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 
 # use different kernels
 ./configure -c pgsql            # Vanilla PostgreSQL kernel with basic features (13~18)
-./configure -c mssql            # Babelfish kernel with SQL Server wire-compatibility (15)
+./configure -c mssql            # Babelfish kernel with SQL Server wire-compatibility (17)
 ./configure -c polar            # PolarDB PG kernel for Aurora / RAC flavor postgres (15)
 ./configure -c ivory            # IvorySQL Kernel for Oracle grammar compatibility (18)
 ./configure -c mysql            # OpenHalo Kernel for MySQL Compatibility (14)
 ./configure -c pgtde            # Percona PostgreSQL Server with TDE (18)
 ./configure -c oriole           # OrioleDB Kernel for OLTP Enhancement (17)
+./configure -c agens            # AgensGraph kernel for Graph DB workloads (16)
+./configure -c pgedge           # pgEdge kernel for distributed PostgreSQL workloads (17)
 ./configure -c supabase         # PostgreSQL configured for Supabase self-hosting (15~18)
 
 # use multi-node HA templates
@@ -29,6 +31,8 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 
 # special configuration
 ./configure -c vibe             # 1-node vibe coding devbox
+./configure -c mongo            # 1-node MongoDB-compatible stack (FerretDB/DocumentDB)
+./configure -c docker           # 1-node docker coding environment
 ```
 
 Pigsty will use the `meta.yml` single node config template if you do not specify a conf.
@@ -46,16 +50,20 @@ These are 1-node config template, which can be used to install pigsty on a singl
 * [fat.yml](fat.yml) : extreme feature-rich config with all extensions installed!
 * [infra.yml](infra.yml) : only install the infra components without postgres
 * [vibe.yml](vibe.yml) : 1-node vibe coding devbox with pgsql and various tools
+* [mongo.yml](mongo.yml) : 1-node MongoDB-compatible stack with FerretDB/DocumentDB
+* [docker.yml](docker.yml) : 1-node docker coding environment
 
 **Templates for exotic DBMS and kernels:**
 
 * [pgsql.yml](pgsql.yml) : Vanilla PostgreSQL kernel with basic features (13~18)
-* [mssql.yml](mssql.yml) : Babelfish kernel with SQL Server wire-compatibility (15)
+* [mssql.yml](mssql.yml) : Babelfish kernel with SQL Server wire-compatibility (17)
 * [polar.yml](polar.yml) : PolarDB PG kernel for Aurora / RAC flavor postgres (15)
 * [ivory.yml](ivory.yml) : IvorySQL Kernel for Oracle grammar compatibility (18)
 * [mysql.yml](mysql.yml) : OpenHalo Kernel for MySQL Compatibility (14)
 * [pgtde.yml](pgtde.yml) : Percona PostgreSQL Server with TDE (18)
-* [oriole.yml](oriole.yml) : OrioleDB Kernel for OLTP Enhancement (17, deb broken)
+* [oriole.yml](oriole.yml) : OrioleDB Kernel for OLTP Enhancement (17)
+* [agens.yml](agens.yml) : AgensGraph kernel for Graph DB workloads (16)
+* [pgedge.yml](pgedge.yml) : pgEdge kernel for distributed PostgreSQL workloads (17)
 * [supabase.yml](supabase.yml) : PostgreSQL configured for Supabase self-hosting (15~18)
 
 You can add more nodes later, or use [HA config templates](#ha-templates) to plan it at the beginning.
@@ -85,6 +93,10 @@ You can run docker software/app with the following templates:
 * [app/odoo.yml](app/odoo.yml) : launch the odoo ERP system
 * [app/dify.yml](app/dify.yml) : launch the dify AI workflow system
 * [app/electric.yml](app/electric.yml) : launch the electric sync engine app
+* [app/mattermost.yml](app/mattermost.yml) : launch the mattermost team messaging app
+* [app/teable.yml](app/teable.yml) : launch the teable no-code database app
+* [app/maybe.yml](app/maybe.yml) : launch the maybe personal finance app
+* [app/registry.yml](app/registry.yml) : launch the docker registry mirror
 
 ----------
 
@@ -92,11 +104,15 @@ You can run docker software/app with the following templates:
 
 In addition to the main templates, Pigsty provides a set of demo templates for different scenarios.
 
+* [demo/bare.yml](demo/bare.yml) : minimal barebone 1-node starter config.
 * [demo/el.yml](demo/el.yml) : config file with all default parameters for EL 8/9 systems.
 * [demo/debian.yml](demo/debian.yml) : config file with all default parameters for debian/ubuntu systems.
+* [demo/kernel.yml](demo/kernel.yml) : 10-node kernel matrix demo with one config file.
 * [demo/remote.yml](demo/remote.yml) : example config for monitoring a remote pgsql cluster or RDS PG.
 * [demo/redis.yml](demo/redis.yml) : example config for redis clusters
 * [demo/minio.yml](demo/minio.yml) : example config for a 3-node minio clusters
+* [demo/saas.yml](demo/saas.yml) : feature-rich 1-node template with all extensions.
+* [demo/wool.yml](demo/wool.yml) : low-cost Aliyun ECS demo template.
 * [demo/demo.yml](demo/demo.yml) : config file for the pigsty [public demo](https://demo.pigsty.io)
 
 ----------
@@ -106,3 +122,5 @@ In addition to the main templates, Pigsty provides a set of demo templates for d
 These config templates are used for development and testing purposes.
 
 * [build/oss.yml](build/oss.yml) : building config for EL 9, 10 ,Debian 12/13, and Ubuntu 22.04/24.04 OSS.
+* [build/dev.yml](build/dev.yml) : 3-node local build development config.
+* [build/pro.yml](build/pro.yml) : 6-node production build matrix config.
