@@ -34,7 +34,7 @@ RUN groupadd -g 543 postgres && useradd -u 543 -g 543 -m -s /bin/bash postgres
 RUN apt-get update && apt-get install -y --no-install-recommends \
     systemd systemd-sysv dbus dbus-user-session \
     openssh-server openssh-client sudo \
-    locales ca-certificates curl wget \
+    locales ca-certificates curl wget less \
     vim git jq lz4 make bash lsof rsync ncdu \
     python3 procps iproute2 net-tools iputils-ping \
     && apt-get clean \
