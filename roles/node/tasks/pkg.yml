@@ -124,7 +124,7 @@
 
     - name: create uv directories
       file: path={{ item }} state=directory mode=0755
-      with_items: [/etc/uv, "{{ node_uv_env }}"]
+      with_items: [/etc/uv]
 
     - name: render uv config for china region
       when: region is defined and region == 'china'
@@ -140,7 +140,7 @@
       ignore_errors: true
       environment: "{{ proxy_env | default({}) }}"
       shell: |
-        uv venv {{ node_uv_env }};
+        [ -f {{ node_uv_env }}/bin/python ] || uv venv {{ node_uv_env }};
         {% if node_pip_packages is defined and node_pip_packages != '' %}
         uv pip install --python {{ node_uv_env }}/bin/python {{ node_pip_packages }};
         {% endif %}
