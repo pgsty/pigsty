@@ -2,13 +2,13 @@
 # File      :   Makefile
 # Desc      :   pigsty shortcuts
 # Ctime     :   2019-04-13
-# Mtime     :   2026-02-09
+# Mtime     :   2026-03-05
 # Path      :   Makefile
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 # pigsty version string
-VERSION?=v4.2.0
+VERSION?=v4.2.1
 
 # detect architecture
 ARCH?=x86_64

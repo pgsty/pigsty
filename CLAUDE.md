@@ -1,6 +1,6 @@
 # Pigsty Production Environment - Claude Code Guide
 
-Pigsty v4.2.0 | PostgreSQL RDS/DBaaS | Apache-2.0
+Pigsty v4.2.1 | PostgreSQL RDS/DBaaS | Apache-2.0
 - EN Docs: https://pigsty.io/docs
 - CN Docs: https://pigsty.cc/docs
 - Expert Support: https://pigsty.io/price (rh@vonng.com)

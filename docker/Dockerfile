@@ -8,7 +8,7 @@
 #==============================================================#
 FROM debian:trixie
 
-ARG VERSION=4.2.0
+ARG VERSION=4.2.1
 
 LABEL maintainer="Ruohang Feng <rh@vonng.com>"
 LABEL org.opencontainers.image.title="Pigsty"
