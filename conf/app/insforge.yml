@@ -1,0 +1,127 @@
+---
+#==============================================================#
+# File      :   insforge.yml
+# Desc      :   pigsty config for running 1-node insforge app
+# Ctime     :   2026-03-10
+# Mtime     :   2026-03-11
+# Docs      :   https://pigsty.io/docs/app/insforge
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# InsForge: Open-source Backend-as-a-Service for AI coding agents
+# GitHub: https://github.com/InsForge/InsForge
+#
+# how to use this template:
+#
+#  curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty
+# ./bootstrap                  # prepare local repo & ansible
+# ./configure -c app/insforge  # use this insforge config template
+# vi pigsty.yml                # IMPORTANT: CHANGE CREDENTIALS!!
+# ./deploy.yml                 # install pigsty & pgsql
+# ./docker.yml                 # install docker & docker-compose
+# ./app.yml                    # install insforge with docker-compose
+#
+# To replace domain name:
+#   sed -ie 's/isf.pigsty/isf.yourdomain.com/g' pigsty.yml
+
+
+all:
+  children:
+
+    # the insforge application
+    insforge:
+      hosts: { 10.10.10.10: {} }
+      vars:
+        app: insforge   # specify app name to be installed (in the apps)
+        apps:           # define all applications
+          insforge:     # app name, should have corresponding ~/pigsty/app/insforge folder
+            conf:       # override /opt/insforge/.env config file
+
+              # secrets (CHANGE THESE!)
+              JWT_SECRET: your-secret-key-here-must-be-32-char-or-above
+              ADMIN_EMAIL: admin@example.com
+              ADMIN_PASSWORD: pigsty
+
+              # database credentials (must match pg_users below)
+              POSTGRES_HOST: 10.10.10.10
+              POSTGRES_PORT: 5432
+              POSTGRES_DB: insforge
+              POSTGRES_USER: dbuser_insforge
+              POSTGRES_PASSWORD: DBUser.Insforge
+
+              # optional: LLM model gateway via OpenRouter
+              #OPENROUTER_API_KEY: sk-or-xxxxx
+
+              # optional: OAuth providers
+              #GOOGLE_CLIENT_ID:
+              #GOOGLE_CLIENT_SECRET:
+              #GITHUB_CLIENT_ID:
+              #GITHUB_CLIENT_SECRET:
+
+    pg-meta:
+      hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
+      vars:
+        pg_cluster: pg-meta
+        pg_users:
+          - { name: dbuser_insforge ,password: DBUser.Insforge ,pgbouncer: true ,roles: [dbrole_admin] ,superuser: true ,comment: 'insforge superuser' }
+          - { name: anon            ,login: false ,comment: 'insforge anonymous role for PostgREST' }
+          - { name: authenticated   ,login: false ,comment: 'insforge authenticated role' }
+          - { name: project_admin   ,login: false ,comment: 'insforge project admin with RLS bypass' }
+        pg_databases:
+          - name: insforge
+            owner: dbuser_insforge
+            baseline: insforge.sql
+            extensions: [pgcrypto, http, pg_cron]
+            comment: InsForge BaaS database
+        pg_libs: 'pg_cron, pg_stat_statements, auto_explain'
+        pg_parameters: { cron.database_name: insforge }
+        pg_extensions: [ pg_cron, pgsql_http ]
+        pg_hba_rules:
+          - { user: dbuser_insforge ,db: all ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow insforge access from local docker network' }
+        pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
+
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
+    #minio: { hosts: { 10.10.10.10: { minio_seq: 1 } }, vars: { minio_cluster: minio } }
+
+  vars:                               # global variables
+    version: v4.2.1                   # pigsty version string
+    admin_ip: 10.10.10.10             # admin node ip address
+    region: default                   # upstream mirror region: default|china|europe
+    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
+    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+
+    docker_enabled: true              # enable docker on app group
+    #docker_registry_mirrors: ["https://docker.1panel.live","https://docker.1ms.run","https://docker.xuanyuan.me","https://registry-1.docker.io"]
+
+    proxy_env:                        # global proxy env when downloading packages & pull docker images
+      no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.tsinghua.edu.cn"
+      #http_proxy:  127.0.0.1:12345 # add your proxy env here for downloading packages or pull images
+      #https_proxy: 127.0.0.1:12345 # usually the proxy is format as http://user:pass@proxy.xxx.com
+      #all_proxy:   127.0.0.1:12345
+
+    infra_portal:                     # domain names and upstream servers
+      home    :  { domain: i.pigsty }
+      insforge:                       # nginx server config for insforge
+        domain: isf.pigsty            # REPLACE WITH YOUR OWN DOMAIN!
+        endpoint: "10.10.10.10:7130"  # insforge API+dashboard endpoint: IP:PORT
+        websocket: true               # add websocket support
+        certbot: isf.pigsty           # certbot cert name, apply with `make cert`
+
+    repo_enabled: false
+    node_repo_modules: node,infra,pgsql
+    pg_version: 17
+
+    #----------------------------------------------#
+    # PASSWORD : https://pigsty.io/docs/setup/security/
+    #----------------------------------------------#
+    grafana_admin_password: pigsty
+    grafana_view_password: DBUser.Viewer
+    pg_admin_password: DBUser.DBA
+    pg_monitor_password: DBUser.Monitor
+    pg_replication_password: DBUser.Replicator
+    patroni_password: Patroni.API
+    haproxy_admin_password: pigsty
+    minio_secret_key: S3User.MinIO
+    etcd_root_password: Etcd.Root
+...
