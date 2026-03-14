@@ -3,6 +3,7 @@
 > [InsForge](https://github.com/InsForge/InsForge) -- Open-source Backend-as-a-Service for AI coding agents
 
 Pigsty allows you to self-host **InsForge** with an existing managed HA PostgreSQL cluster, and launch the stateless services with docker-compose.
+This template targets the prebuilt `v2.0.1` InsForge OSS image with external PostgreSQL managed by Pigsty.
 
 InsForge is a Supabase-alternative BaaS platform built upon PostgreSQL.
 It provides authentication, REST API (PostgREST), edge functions (Deno), real-time subscriptions, and an LLM gateway out of the box.
@@ -21,7 +22,7 @@ Download & [install](https://pigsty.io/docs/setup/install) Pigsty with the `insf
 ```bash
 curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty
 ./bootstrap                 # prepare local repo & ansible
-./configure -c app/insforge  # use the insforge config template
+./configure -c app/insforge # use the insforge config template
 vi pigsty.yml               # IMPORTANT: CHANGE CREDENTIALS!!
 ./deploy.yml                # install pigsty & pgsql
 ./docker.yml                # install docker & docker-compose
@@ -55,7 +56,7 @@ Visit `http://<your-ip>:7130` for the InsForge dashboard.
                     └──────────────────────────────────────────────┘
 ```
 
-- **InsForge App** (`ghcr.io/insforge/insforge-oss:v1.5.0`): Main application server with dashboard UI and API (port 7130)
+- **InsForge App** (`ghcr.io/insforge/insforge-oss:v2.0.1`): Main application server with dashboard UI and API (port 7130)
 - **PostgREST** (`postgrest/postgrest:v12.2.12`): Auto-generated REST API from PostgreSQL schema (port 5430)
 - **Deno Runtime** (`ghcr.io/insforge/deno-runtime:latest`): Serverless edge functions runtime (port 7133)
 - **PostgreSQL**: Managed externally by Pigsty with HA, PITR, monitoring
@@ -90,6 +91,9 @@ Edit `pigsty.yml` before deploying:
 | `ADMIN_PASSWORD` | `pigsty` | Admin login password |
 | `POSTGRES_PASSWORD` | `DBUser.Insforge` | Database user password |
 | `infra_portal.insforge.domain` | `isf.pigsty` | Nginx domain name |
+| `ACCESS_API_KEY` | empty | Optional MCP / API key override |
+| `AWS_S3_BUCKET` | empty | Optional S3 bucket for object storage |
+| `DENO_SUBHOSTING_TOKEN` | empty | Optional Deno Deploy subhosting token |
 
 ### Domain Name
 
@@ -181,6 +185,27 @@ POSTGRES_PASSWORD=DBUser.Insforge
 
 # Optional: LLM Gateway
 OPENROUTER_API_KEY=
+
+# Optional: MCP / Cloud API access
+ACCESS_API_KEY=
+CLOUD_API_HOST=
+
+# Optional: object storage / CDN
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_REGION=
+AWS_S3_BUCKET=
+S3_ACCESS_KEY_ID=
+S3_SECRET_ACCESS_KEY=
+S3_ENDPOINT_URL=
+AWS_CLOUDFRONT_URL=
+AWS_CLOUDFRONT_KEY_PAIR_ID=
+AWS_CLOUDFRONT_PRIVATE_KEY=
+MAX_FILE_SIZE=
+
+# Optional: edge function subhosting
+DENO_SUBHOSTING_TOKEN=
+DENO_SUBHOSTING_ORG_ID=
 
 # Optional: OAuth Providers
 GITHUB_CLIENT_ID=

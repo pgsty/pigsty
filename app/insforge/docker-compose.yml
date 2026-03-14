@@ -2,7 +2,7 @@
 # File      :   docker-compose.yml
 # Desc      :   InsForge docker compose file (external PostgreSQL)
 # Ctime     :   2026-03-10
-# Mtime     :   2026-03-11
+# Mtime     :   2026-03-14
 # Path      :   app/insforge/docker-compose.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -37,7 +37,7 @@ services:
       - insforge-network
 
   insforge:
-    image: ghcr.io/insforge/insforge-oss:v1.5.0
+    image: ghcr.io/insforge/insforge-oss:v2.0.1
     container_name: insforge
     depends_on:
       postgrest:
@@ -55,6 +55,11 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-${JWT_SECRET:-your-secret-key-here-must-be-32-char-or-above}}
       - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-pigsty}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID:-}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY:-}
+      - MAX_FILE_SIZE=${MAX_FILE_SIZE:-}
       # PostgreSQL connection (external Pigsty managed)
       - POSTGRES_HOST=${POSTGRES_HOST:-10.10.10.10}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
@@ -65,12 +70,27 @@ services:
       - POSTGREST_BASE_URL=http://postgrest:3000
       # Deno runtime
       - DENO_RUNTIME_URL=http://deno:7133
+      - DENO_SUBHOSTING_TOKEN=${DENO_SUBHOSTING_TOKEN:-}
+      - DENO_SUBHOSTING_ORG_ID=${DENO_SUBHOSTING_ORG_ID:-}
+      # Storage & CDN
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET:-}
+      - AWS_REGION=${AWS_REGION:-}
+      - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
+      - AWS_CLOUDFRONT_URL=${AWS_CLOUDFRONT_URL:-}
+      - AWS_CLOUDFRONT_KEY_PAIR_ID=${AWS_CLOUDFRONT_KEY_PAIR_ID:-}
+      - AWS_CLOUDFRONT_PRIVATE_KEY=${AWS_CLOUDFRONT_PRIVATE_KEY:-}
+      # Cloud / multi-tenant integration
+      - DEPLOYMENT_ID=${DEPLOYMENT_ID:-}
+      - PROJECT_ID=${PROJECT_ID:-}
+      - APP_KEY=${APP_KEY:-}
+      - ACCESS_API_KEY=${ACCESS_API_KEY:-}
+      - CLOUD_API_HOST=${CLOUD_API_HOST:-}
       # LLM
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
       # Logs & Storage
       - LOGS_DIR=/insforge-logs
       - STORAGE_DIR=/insforge-storage
-      - AUTH_APP_URL=http://localhost:7132
+      - AUTH_APP_URL=${AUTH_APP_URL:-http://localhost:7132}
       # OAuth (all optional)
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}

@@ -32,7 +32,7 @@ pull:
 save:
 	mkdir -p /tmp/docker/insforge
 	docker save postgrest/postgrest:v12.2.12          | gzip -c -9 > /tmp/docker/insforge/postgrest.tgz
-	docker save ghcr.io/insforge/insforge-oss:v1.5.0  | gzip -c -9 > /tmp/docker/insforge/insforge.tgz
+	docker save ghcr.io/insforge/insforge-oss:v2.0.1  | gzip -c -9 > /tmp/docker/insforge/insforge.tgz
 	docker save ghcr.io/insforge/deno-runtime:latest   | gzip -c -9 > /tmp/docker/insforge/deno.tgz
 
 tarball: save
