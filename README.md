@@ -5,14 +5,14 @@
 [![Version: v4.2.1](https://img.shields.io/badge/version-v4.2.1-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases)
 [![License: Apache-2.0](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://pigsty.io/docs/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
-[![Extensions: 461](https://img.shields.io/badge/extensions-461-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pgext.cloud/list)
+[![Extensions: 464](https://img.shields.io/badge/extensions-464-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pigsty.io/ext/list)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/pgsty/pigsty)
 
 Enterprise-Grade Open-Source **PostgreSQL** Distribution with HA, PITR, IaC, Monitor, and 460 PG extensions.
 
 > "**P**ostgreSQL **I**n **G**reat **STY**le": **P**ostgres, **I**nfras, **G**raphics, **S**ervice, **T**oolbox, it's all **Y**ours.
 
-[Website](https://pigsty.io) | [ORG](https://github.com/pgsty) | [PGEXT.CLOUD](https://pgext.cloud) | [AI INFRA](https://pigsty.io/docs/piglet) | [Public Demo](https://demo.pigsty.io) | [Blog](https://pigsty.io/blog/) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [中文](https://pigsty.cc/)
+[Website](https://pigsty.io) | [ORG](https://github.com/pgsty) | [PGEXT](https://pigsty.io/ext) | [AI INFRA](https://pigsty.io/docs/piglet) | [Public Demo](https://demo.pigsty.io) | [Blog](https://pigsty.io/blog/) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [中文](https://pigsty.cc/)
 
 [![banner](https://pigsty.io/img/pigsty/banner.png)](https://pigsty.io)
 
@@ -25,7 +25,7 @@ curl -fsSL https://repo.pigsty.io/get | bash -s v4.2.1
 
 ## Features
 
-- **Extensible**:   **461+** [**PG Extensions**](https://pgext.cloud/list) & **12** [**PG Kernels**](https://pigsty.io/docs/pgsql/kernel) available, Packed for [**14 Linux Platforms**](https://pigsty.io/docs/ref/linux), Battery-Included.
+- **Extensible**:   **464+** [**PG Extensions**](https://pigsty.io/ext/list) & **12** [**PG Kernels**](https://pigsty.io/docs/pgsql/kernel) available, Packed for [**14 Linux Platforms**](https://pigsty.io/docs/ref/linux), Battery-Included.
 - **Reliable**:     Self-healing [**HA**](https://pigsty.io/docs/concept/ha) clusters with pre-configured [**PITR**](https://pigsty.io/docs/pgsql/backup) and built-in [**ACL**](https://pigsty.io/docs/pgsql/config/acl), [**CA & SSL**](https://pigsty.io/docs/infra/admin/cert) secure best practice.
 - **Observable**:   SOTA monitoring for [**PG**](https://demo.pigsty.io/ui/d/pgrds-instance/pgrds-instance) / [**Infra**](https://pigsty.io/docs/infra) / [**Node**](https://pigsty.io/docs/node) based on the **Victoria** & **Grafana** stack: [**Demo**](https://demo.pigsty.io) & [**Gallery**](https://github.com/pgsty/pigsty/wiki/Gallery).
 - **Scalable**:     Auto-routed & pooled customizable database [**Services**](https://pigsty.io/docs/pgsql/service) [**Access**](https://pigsty.io/docs/pgsql/service#access-service) with **haproxy**, **pgbouncer**, and **VIP**.
@@ -68,9 +68,9 @@ You can even use many exotic [**PG Kernel Forks**](https://pigsty.io/docs/pgsql/
 |     [pgEdge](https://pigsty.io/docs/pgsql/kernel/pgedge)     |  **Multi-Master Distributive**   | Geo-Distributive multi-writer Postgres            |
 | [Cloudberry](https://pigsty.io/docs/pgsql/kernel/cloudberry) |      **MPP Data Warehouse**      | Greenplum 7 Apache OSS Fork                       |
 
-And gather the synergistic superpowers of all [**460+ PostgreSQL Extensions**](https://pgext.cloud/list) all together:
+And gather the synergistic superpowers of all [**460+ PostgreSQL Extensions**](https://pigsty.io/ext/list) all together:
 
-[![ecosystem](https://github.com/user-attachments/assets/c952441e-5ff7-4acb-aace-dd3021d28622)](https://pgext.cloud)
+[![ecosystem](https://github.com/user-attachments/assets/c952441e-5ff7-4acb-aace-dd3021d28622)](https://pigsty.io/ext)
 
 
 ## Get Started
@@ -534,7 +534,7 @@ pg-citus: # citus group
 
 
 You can deploy different kinds of PostgreSQL instance such as [`primary`](https://pigsty.io/docs/pgsql/config/cluster#primary), [`replica`](https://pigsty.io/docs/pgsql/config/cluster#replica), [`offline`](https://pigsty.io/docs/pgsql/config/cluster#offline), [`delayed`](https://pigsty.io/docs/pgsql/config/cluster#delayed), [`sync standby`](https://pigsty.io/docs/pgsql/config/cluster#sync-standby), etc.,
-and customize with scene-optimize [**config templates**](https://pigsty.io/docs/concept/iac/template) and all **460+** [**extensions**](https://pgext.cloud/list) out-of-the-box.
+and customize with scene-optimize [**config templates**](https://pigsty.io/docs/concept/iac/template) and all **460+** [**extensions**](https://pigsty.io/ext/list) out-of-the-box.
 
 You can define [**Users**](https://pigsty.io/docs/pgsql/config/user), [**Databases**](https://pigsty.io/docs/pgsql/config/db), [**Service**](https://pigsty.io/docs/pgsql/service), [**HBAs**](https://pigsty.io/docs/pgsql/config/hba) and other entities with code and provision them in one pass.
 

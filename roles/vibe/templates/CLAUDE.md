@@ -1,6 +1,6 @@
 # Pigsty Vibe Coding Environment
 
-`{{ inventory_hostname }}` | [Docs](https://pigsty.io/docs) | [中文](https://pigsty.cc/docs)
+`{{ inventory_hostname }}` | [Docs](https://pigsty.io/docs) | [中文](https://pigsty.io/docs)
 
 This environment is designed for **vibe coding**—create apps, sites, and visualizations through natural conversation.
 
@@ -43,12 +43,12 @@ Key sections in `pigsty.yml`:
 - `all.children.<cluster>.vars.pg_databases` — databases (name, owner, extensions)
 - `all.vars` — global defaults
 
-Config docs: https://pigsty.cc/docs/config/
+Config docs: https://pigsty.io/docs/config/
 
 
 ## PostgreSQL
 
-PG {{ pg_version | default(18) }} with [444 extensions](https://pgext.cloud). Cluster: `{{ pg_cluster | default('pg-meta') }}`
+PG {{ pg_version | default(18) }} with [464 extensions](https://pigsty.io/ext). Cluster: `{{ pg_cluster | default('pg-meta') }}`
 
 ```bash
 psql 'postgres://{{ pg_admin_username | default('dbuser_dba') }}:{{ pg_admin_password | default('DBUser.DBA') }}@127.0.0.1/postgres'  # admin
@@ -61,7 +61,7 @@ You can use the `public` schema for simple apps, and create a dedicated schema f
 
 This environment does not include pgbouncer or patroni; it is a trimmed single-node Pigsty setup.
 
-**Admin** ([doc](https://pigsty.cc/docs/pgsql/admin/)):
+**Admin** ([doc](https://pigsty.io/docs/pgsql/admin/)):
 ```bash
 pg-backup full                        # backup now (or: incr, diff)
 bin/pgsql-user {{ pg_cluster | default('pg-meta') }} <user>   # create user  (define in pigsty.yml first)
@@ -109,12 +109,12 @@ Nginx serves `/www/` at http://{{ inventory_hostname }}/.
 - Static site: use `hugo` (in repo), build to `/www/mysite/`
 - Dynamic app: run on a port, access directly or proxy via Nginx
 
-It can handle domain names, https certs, make good use of it: https://pigsty.cc/docs/infra/admin/
+It can handle domain names, https certs, make good use of it: https://pigsty.io/docs/infra/admin/
 
 
 
 ## Reference
 
-- [PGSQL Admin](https://pigsty.cc/docs/pgsql/admin/) | [User](https://pigsty.cc/docs/pgsql/user/) | [Database](https://pigsty.cc/docs/pgsql/db/) | [Backup](https://pigsty.cc/docs/pgsql/backup/)
-- [Config](https://pigsty.cc/docs/config/) | [Playbook](https://pigsty.cc/docs/pgsql/playbook/) | [Extensions](https://pgext.cloud/list)
-- [CLI Tools](https://pigsty.cc/docs/pgsql/admin/#pigsty-cli-tools): `bin/pgsql-*`, `bin/node-*`, `bin/redis-*`
+- [PGSQL Admin](https://pigsty.io/docs/pgsql/admin/) | [User](https://pigsty.io/docs/pgsql/user/) | [Database](https://pigsty.io/docs/pgsql/db/) | [Backup](https://pigsty.io/docs/pgsql/backup/)
+- [Config](https://pigsty.io/docs/config/) | [Playbook](https://pigsty.io/docs/pgsql/playbook/) | [Extensions](https://pigsty.io/ext)
+- [CLI Tools](https://pigsty.io/docs/pgsql/admin/#pigsty-cli-tools): `bin/pgsql-*`, `bin/node-*`, `bin/redis-*`

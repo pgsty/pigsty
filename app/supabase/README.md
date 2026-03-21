@@ -14,7 +14,7 @@ But there is no doubt that when you really grow to millions of users, some may c
 
 That's where Pigsty comes in. Pigsty provides a complete one-click self-hosting solution for Supabase.
 Self-hosted Supabase can enjoy full PostgreSQL monitoring, IaC, PITR, and high availability, the new PG 18 kernels (and 15~18),
-and [437](https://pgext.cloud/list) PostgreSQL extensions ready to use, and can take full advantage of the performance and cost advantages of modern hardware.
+and [464](https://pigsty.io/ext/list) PostgreSQL extensions ready to use, and can take full advantage of the performance and cost advantages of modern hardware.
 
 
 
