@@ -12,9 +12,9 @@
 --==================================================================--
 --                       IDENTIFIER VALIDATION                      --
 --==================================================================--
--- valid identifier: ^[a-z_][a-z0-9_]{0,62}$
-{% if not user.name | regex_search('^[a-z_][a-z0-9_]{0,62}$') %}
-{{ None['ERROR: Invalid username "' ~ user.name ~ '". Must match ^[a-z_][a-z0-9_]{0,62}$ (lowercase, digits, underscore, start with letter/underscore, max 63 chars)'] }}
+-- valid identifier: ^[a-z_][a-z0-9_@.-]{0,62}$
+{% if not user.name | regex_search('^[a-z_][a-z0-9_@.-]{0,62}$') %}
+{{ None['ERROR: Invalid username "' ~ user.name ~ '". Must match ^[a-z_][a-z0-9_@.-]{0,62}$ (lowercase, digits, underscore, hyphen, dot, at sign, start with letter/underscore, max 63 chars)'] }}
 {% endif %}
 
 --==================================================================--
