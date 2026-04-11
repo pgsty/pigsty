@@ -2,7 +2,7 @@
 -- # File      :   supabase.sql
 -- # Desc      :   Pigsty self-hosting supabase baseline schema
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2026-02-17
+-- # Mtime     :   2026-04-10
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -2046,6 +2046,26 @@ grant execute on function pg_catalog.pg_reload_conf() to postgres with grant opt
 ----------------------------------------------------
 -- migrate:up
 -- skip since pigsty already have pgbouncer.get_auth function
+-- migrate:down
+
+
+----------------------------------------------------
+-- 20260211120934_supabase_privileged_role.sql
+----------------------------------------------------
+-- migrate:up
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_roles
+        WHERE rolname = 'supabase_privileged_role'
+    ) THEN
+        CREATE ROLE supabase_privileged_role;
+        GRANT supabase_privileged_role TO postgres, supabase_etl_admin;
+    END IF;
+END
+$$;
+
 -- migrate:down
 
 

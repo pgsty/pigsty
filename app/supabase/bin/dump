@@ -2,9 +2,9 @@
 set -euo pipefail
 #==============================================================#
 # File      :   app/supabase/bin/dump
-# Desc      :   Dump Supabase Docker images to local dir in parallel
+# Desc      :   Dump Supabase Docker images to local dir
 # Ctime     :   2025-07-01
-# Mtime     :   2025-07-01
+# Mtime     :   2026-04-10
 # Args      :   [directory] (default: /tmp/docker/supabase/)
 # Usage     :   bin/load [/tmp/docker/supabase/]
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -14,20 +14,33 @@ IMG_DIR=${1:-/tmp/docker/supabase}
 mkdir -p ${IMG_DIR}
 echo "Dumping Supabase Docker images to: $IMG_DIR"
 
-# Dump all images in parallel
-docker save supabase/storage-api   | gzip -c -9 > ${IMG_DIR}/storage.tgz   &
-docker save darthsim/imgproxy      | gzip -c -9 > ${IMG_DIR}/imgproxy.tgz  &
-docker save supabase/studio        | gzip -c -9 > ${IMG_DIR}/studio.tgz    &
-docker save supabase/realtime      | gzip -c -9 > ${IMG_DIR}/realtime.tgz  &
-docker save supabase/edge-runtime  | gzip -c -9 > ${IMG_DIR}/edge.tgz      &
-docker save supabase/gotrue        | gzip -c -9 > ${IMG_DIR}/gotrue.tgz    &
-docker save supabase/postgres-meta | gzip -c -9 > ${IMG_DIR}/postgres.tgz  &
-docker save supabase/logflare      | gzip -c -9 > ${IMG_DIR}/logflare.tgz  &
-docker save postgrest/postgrest    | gzip -c -9 > ${IMG_DIR}/postgrest.tgz &
-docker save timberio/vector        | gzip -c -9 > ${IMG_DIR}/vector.tgz    &
-docker save kong                   | gzip -c -9 > ${IMG_DIR}/kong.tgz      &
+images=(
+  "supabase/storage-api:v1.48.26 storage.tgz"
+  "supabase/studio:2026.04.08-sha-205cbe7 studio.tgz"
+  "supabase/realtime:v2.76.5 realtime.tgz"
+  "supabase/edge-runtime:v1.71.2 edge.tgz"
+  "supabase/gotrue:v2.186.0 gotrue.tgz"
+  "supabase/postgres-meta:v0.96.3 postgres.tgz"
+  "supabase/logflare:1.36.1 logflare.tgz"
+  "postgrest/postgrest:v14.8 postgrest.tgz"
+  "timberio/vector:0.53.0-alpine vector.tgz"
+  "kong/kong:3.9.1 kong.tgz"
+)
 
-# Wait for all background jobs to complete
-wait
+# Docker 29 on arm64 can produce incomplete archives under concurrent save.
+for item in "${images[@]}"; do
+  image=${item% *}
+  archive=${item#* }
+  docker save "${image}" | gzip -c -9 > "${IMG_DIR}/${archive}"
+done
+
+# imgproxy produces an incomplete docker save archive on Docker 29 arm64,
+# so export/import its rootfs instead of relying on docker save/load.
+cid=$(docker create darthsim/imgproxy:v3.30.1)
+trap 'docker rm -f "${cid}" >/dev/null 2>&1 || true' EXIT
+docker export "${cid}" | gzip -c -9 > "${IMG_DIR}/imgproxy.tgz"
+docker rm -f "${cid}" >/dev/null 2>&1 || true
+trap - EXIT
+
 echo "All Supabase Docker images dump successfully!"
 ls -alh ${IMG_DIR}/*.tgz

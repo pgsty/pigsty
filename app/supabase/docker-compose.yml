@@ -4,7 +4,7 @@
 # File      :   docker-compose.yml
 # Desc      :   modified supabase docker compose for pigsty pg
 # Ctime     :   2023-09-19
-# Mtime     :   2026-02-17
+# Mtime     :   2026-04-10
 # Path      :   app/supabase/docker-compose.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -13,8 +13,8 @@
 # Source: https://github.com/supabase/supabase/blob/master/docker/docker-compose.yml
 # Tutorial: https://supabase.com/docs/guides/self-hosting/docker
 
-
 name: supabase
+
 services:
 
   #--------------------------------------------------------------#
@@ -23,10 +23,10 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#studio-dashboard
   studio:
     container_name: supabase-studio
-    image: supabase/studio:2026.02.16-sha-26c615c
+    image: supabase/studio:2026.04.08-sha-205cbe7
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "node", "-e", "fetch('http://studio:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})"]
+      test: [ "CMD", "node", "-e", "fetch('http://studio:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})" ]
       timeout: 10s
       interval: 5s
       retries: 3
@@ -42,14 +42,18 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
-      DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION}
-      DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,storage,graphql_public}
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
+      DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION:-Default Organization}
+      DEFAULT_PROJECT_NAME: ${STUDIO_DEFAULT_PROJECT:-Default Project}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       SUPABASE_URL: http://kong:8000
       SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       AUTH_JWT_SECRET: ${JWT_SECRET}
+      # LOGFLARE_API_KEY is deprecated
       LOGFLARE_API_KEY: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
       LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
       LOGFLARE_PRIVATE_ACCESS_TOKEN: ${LOGFLARE_PRIVATE_ACCESS_TOKEN}
@@ -64,37 +68,51 @@ services:
     extra_hosts:
       - "${POSTGRES_DOMAIN}:${POSTGRES_HOST}"
 
-
   #--------------------------------------------------------------#
   # Kong: the API gateway for all supabase services
   #--------------------------------------------------------------#
   # https://supabase.com/docs/guides/getting-started/architecture#kong-api-gateway
   kong:
     container_name: supabase-kong
-    image: kong:2.8.1
+    image: kong/kong:3.9.1
     restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - api-gw
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    depends_on:
+      studio:
+        condition: service_healthy
     ports:
-      - ${KONG_HTTP_PORT}:8000/tcp
-      - ${KONG_HTTPS_PORT}:8443/tcp
+      - ${KONG_HTTP_PORT:-8000}:8000/tcp
+      - ${KONG_HTTPS_PORT:-8443}:8443/tcp
     volumes:
       - ./volumes/api/kong.yml:/home/kong/temp.yml:ro,z
-    depends_on:
-      analytics:
-        condition: service_healthy
+      - ./volumes/api/kong-entrypoint.sh:/home/kong/kong-entrypoint.sh:ro,z
     environment:
       KONG_DATABASE: "off"
-      KONG_DECLARATIVE_CONFIG: /home/kong/kong.yml
+      KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
       # https://github.com/supabase/cli/issues/14
       KONG_DNS_ORDER: LAST,A,CNAME
-      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth,request-termination,ip-restriction
+      KONG_DNS_NOT_FOUND_TTL: 1
+      KONG_PLUGINS: request-transformer,cors,key-auth,acl,basic-auth,request-termination,ip-restriction,post-function
       KONG_NGINX_PROXY_PROXY_BUFFER_SIZE: 160k
       KONG_NGINX_PROXY_PROXY_BUFFERS: 64 160k
+      KONG_PROXY_ACCESS_LOG: /dev/stdout combined
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
+      ANON_KEY_ASYMMETRIC: ${ANON_KEY_ASYMMETRIC:-}
+      SERVICE_ROLE_KEY_ASYMMETRIC: ${SERVICE_ROLE_KEY_ASYMMETRIC:-}
       DASHBOARD_USERNAME: ${DASHBOARD_USERNAME}
       DASHBOARD_PASSWORD: ${DASHBOARD_PASSWORD}
-    entrypoint: bash -c 'eval "echo \"$$(cat ~/temp.yml)\"" > ~/kong.yml && /docker-entrypoint.sh kong docker-start'
-
+    entrypoint: ["/bin/sh", "/home/kong/kong-entrypoint.sh"]
 
   #--------------------------------------------------------------#
   # Auth: JWT-based API for authentication using GoTrue
@@ -108,7 +126,7 @@ services:
       analytics:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD","wget","--no-verbose","--tries=1","--spider","http://localhost:9999/health" ]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:9999/health" ]
       timeout: 5s
       interval: 5s
       retries: 3
@@ -125,7 +143,10 @@ services:
       GOTRUE_JWT_AUD: authenticated
       GOTRUE_JWT_DEFAULT_GROUP_NAME: authenticated
       GOTRUE_JWT_EXP: ${JWT_EXPIRY}
+      # Legacy symmetric HS256 key
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
+      # JSON array of signing JWKs (EC private + legacy symmetric)
+      # GOTRUE_JWT_KEYS: ${JWT_KEYS:-[]}
       GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP}
       GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: ${ENABLE_ANONYMOUS_USERS}
       GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM}
@@ -139,14 +160,14 @@ services:
       GOTRUE_SMTP_USER: ${SMTP_USER}
       GOTRUE_SMTP_PASS: ${SMTP_PASS}
       GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME}
-      # use absolute URLs for mailer URL paths
-      GOTRUE_MAILER_URLPATHS_INVITE: "${SUPABASE_PUBLIC_URL}/${MAILER_URLPATHS_INVITE}"
-      GOTRUE_MAILER_URLPATHS_CONFIRMATION: "${SUPABASE_PUBLIC_URL}/${MAILER_URLPATHS_CONFIRMATION}"
-      GOTRUE_MAILER_URLPATHS_RECOVERY: "${SUPABASE_PUBLIC_URL}/${MAILER_URLPATHS_RECOVERY}"
-      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: "${SUPABASE_PUBLIC_URL}/${MAILER_URLPATHS_EMAIL_CHANGE}"
+      GOTRUE_MAILER_URLPATHS_INVITE: ${MAILER_URLPATHS_INVITE}
+      GOTRUE_MAILER_URLPATHS_CONFIRMATION: ${MAILER_URLPATHS_CONFIRMATION}
+      GOTRUE_MAILER_URLPATHS_RECOVERY: ${MAILER_URLPATHS_RECOVERY}
+      GOTRUE_MAILER_URLPATHS_EMAIL_CHANGE: ${MAILER_URLPATHS_EMAIL_CHANGE}
       GOTRUE_EXTERNAL_PHONE_ENABLED: ${ENABLE_PHONE_SIGNUP}
       GOTRUE_SMS_AUTOCONFIRM: ${ENABLE_PHONE_AUTOCONFIRM}
-      # Uncomment to enable custom access token hook. Please see: https://supabase.com/docs/guides/auth/auth-hooks for full list of hooks and additional details about custom_access_token_hook
+      # Uncomment to enable custom access token hook.
+      # See: https://supabase.com/docs/guides/auth/auth-hooks
       # GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_ENABLED: "true"
       # GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_URI: "pg-functions://postgres/public/custom_access_token_hook"
       # GOTRUE_HOOK_CUSTOM_ACCESS_TOKEN_SECRETS: "<standard-base64-secret>"
@@ -169,20 +190,23 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#postgrest-api
   rest:
     container_name: supabase-rest
-    image: postgrest/postgrest:v14.5
+    image: postgrest/postgrest:v14.8
     restart: unless-stopped
     depends_on:
       analytics:
         condition: service_healthy
     environment:
       PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,storage,graphql_public}
+      PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
+      PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
       PGRST_DB_ANON_ROLE: anon
-      PGRST_JWT_SECRET: ${JWT_SECRET}
+      # PostgREST accepts a plain-text symmetric secret, a single JWK, or a JWKS
+      PGRST_JWT_SECRET: ${JWT_JWKS:-${JWT_SECRET}}
       PGRST_DB_USE_LEGACY_GUCS: "false"
       PGRST_APP_SETTINGS_JWT_SECRET: ${JWT_SECRET}
       PGRST_APP_SETTINGS_JWT_EXP: ${JWT_EXPIRY}
-    command: "postgrest"
+    command: [ "postgrest" ]
     extra_hosts:
       - "${POSTGRES_DOMAIN}:${POSTGRES_HOST}"
 
@@ -199,7 +223,7 @@ services:
       analytics:
         condition: service_healthy
     healthcheck:
-      test: [ "CMD-SHELL","curl -sSfL --head -o /dev/null -H \"Authorization: Bearer ${ANON_KEY}\" http://localhost:4000/api/tenants/realtime-dev/health" ]
+      test: [ "CMD-SHELL", "curl -sSfL --head -o /dev/null -H \"Authorization: Bearer ${ANON_KEY}\" http://localhost:4000/api/tenants/realtime-dev/health" ]
       timeout: 5s
       interval: 30s
       retries: 3
@@ -213,8 +237,12 @@ services:
       DB_NAME: ${POSTGRES_DB}
       DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
       DB_ENC_KEY: supabaserealtime
+      # Legacy symmetric HS256 key
       API_JWT_SECRET: ${JWT_SECRET}
+      # JWKS for token verification (EC public + legacy symmetric)
+      # API_JWT_JWKS: ${JWT_JWKS:-{"keys":[]}}
       SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      METRICS_JWT_SECRET: ${JWT_SECRET}
       ERL_AFLAGS: -proto_dist inet_tcp
       DNS_NODES: "''"
       RLIMIT_NOFILE: "10000"
@@ -231,49 +259,48 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#storage-api-large-file-storage
   storage:
     container_name: supabase-storage
-    image: supabase/storage-api:v1.37.8
+    image: supabase/storage-api:v1.48.26
+    restart: unless-stopped
     depends_on:
       rest:
         condition: service_started
       imgproxy:
         condition: service_started
     healthcheck:
-      test: [ "CMD","wget","--no-verbose","--tries=1","--spider","http://storage:5000/status" ]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://storage:5000/status" ]
       timeout: 5s
       interval: 5s
       retries: 3
-    restart: unless-stopped
+      start_period: 10s
     environment:
       ANON_KEY: ${ANON_KEY}
       SERVICE_KEY: ${SERVICE_ROLE_KEY}
       POSTGREST_URL: http://rest:3000
-      PGRST_JWT_SECRET: ${JWT_SECRET}
+      # Legacy symmetric HS256 key
+      AUTH_JWT_SECRET: ${JWT_SECRET}
+      # JWKS for token verification (EC public + legacy symmetric)
+      # JWT_JWKS: ${JWT_JWKS:-{"keys":[]}}
       DATABASE_URL: postgres://supabase_storage_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      STORAGE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
       REQUEST_ALLOW_X_FORWARDED_PATH: "true"
       FILE_SIZE_LIMIT: 52428800
-      TENANT_ID: stub
-      ENABLE_IMAGE_TRANSFORMATION: "true"
-      IMGPROXY_URL: http://imgproxy:5001
-
-      # local file storage (use minio instead)
-      #STORAGE_BACKEND: file
-      #FILE_STORAGE_BACKEND_PATH: /var/lib/storage
-
       STORAGE_BACKEND: s3
-      REGION: ${S3_REGION}
       GLOBAL_S3_BUCKET: ${S3_BUCKET}
       GLOBAL_S3_ENDPOINT: ${S3_ENDPOINT}
+      GLOBAL_S3_PROTOCOL: ${S3_PROTOCOL}
+      GLOBAL_S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE}
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
       AWS_DEFAULT_REGION: ${S3_REGION}
-      GLOBAL_S3_PROTOCOL: ${S3_PROTOCOL}
-      GLOBAL_S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE}
+      TENANT_ID: ${STORAGE_TENANT_ID:-stub}
+      REGION: ${S3_REGION}
+      ENABLE_IMAGE_TRANSFORMATION: "true"
+      IMGPROXY_URL: http://imgproxy:5001
+      # S3 protocol endpoint configuration
       S3_PROTOCOL_ACCESS_KEY_ID: ${S3_PROTOCOL_ACCESS_KEY_ID}
       S3_PROTOCOL_ACCESS_KEY_SECRET: ${S3_PROTOCOL_ACCESS_KEY_SECRET}
-
-      # add pigsty ca to the container
+      # Add Pigsty CA to the container for self-signed MinIO endpoints.
       NODE_EXTRA_CA_CERTS: /etc/pki/ca.crt
-
     volumes:
       - /etc/pki/ca.crt:/etc/pki/ca.crt:ro
       - ./volumes/storage:/var/lib/storage:z
@@ -281,13 +308,15 @@ services:
       - "${POSTGRES_DOMAIN}:${POSTGRES_HOST}"
       - "sss.pigsty:${MINIO_DOMAIN_IP}"
 
-
   #--------------------------------------------------------------#
   # imgproxy: the proxy for image
   #--------------------------------------------------------------#
   imgproxy:
     container_name: supabase-imgproxy
     image: darthsim/imgproxy:v3.30.1
+    restart: unless-stopped
+    volumes:
+      - ./volumes/storage:/var/lib/storage:z
     healthcheck:
       test: [ "CMD", "imgproxy", "health" ]
       timeout: 5s
@@ -297,18 +326,15 @@ services:
       IMGPROXY_BIND: ":5001"
       IMGPROXY_LOCAL_FILESYSTEM_ROOT: /
       IMGPROXY_USE_ETAG: "true"
-      IMGPROXY_ENABLE_WEBP_DETECTION: ${IMGPROXY_ENABLE_WEBP_DETECTION}
+      IMGPROXY_AUTO_WEBP: ${IMGPROXY_AUTO_WEBP:-true}
       IMGPROXY_MAX_SRC_RESOLUTION: 16.8
-    volumes:
-      - ./volumes/storage:/var/lib/storage:z
-
 
   #--------------------------------------------------------------#
-  # postgres-meta: RESTful API Service to managing your Postgres
+  # postgres-meta: RESTful API service for managing your Postgres
   #--------------------------------------------------------------#
   meta:
     container_name: supabase-meta
-    image: supabase/postgres-meta:v0.95.2
+    image: supabase/postgres-meta:v0.96.3
     restart: unless-stopped
     depends_on:
       analytics:
@@ -322,28 +348,33 @@ services:
       PG_META_DB_PASSWORD: ${POSTGRES_PASSWORD}
       CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
 
-
   #--------------------------------------------------------------#
-  # Edge Functions: A modern runtime for JavaScript and TypeScript
+  # Edge Functions: a modern runtime for JavaScript and TypeScript
   #--------------------------------------------------------------#
   # https://supabase.com/docs/guides/getting-started/architecture#deno-edge-functions
   functions:
     container_name: supabase-edge-functions
-    image: supabase/edge-runtime:v1.70.3
+    image: supabase/edge-runtime:v1.71.2
     restart: unless-stopped
     volumes:
       - ./volumes/functions:/home/deno/functions:Z
+      - deno-cache:/root/.cache/deno
     depends_on:
-      analytics:
+      kong:
         condition: service_healthy
     environment:
+      # Legacy symmetric HS256 key
       JWT_SECRET: ${JWT_SECRET}
       SUPABASE_URL: http://kong:8000
+      SUPABASE_PUBLIC_URL: ${SUPABASE_PUBLIC_URL}
+      # Legacy API keys (HS256-signed JWTs)
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      # New opaque API keys
+      SUPABASE_PUBLISHABLE_KEYS: "{\"default\":\"${SUPABASE_PUBLISHABLE_KEY:-}\"}"
+      SUPABASE_SECRET_KEYS: "{\"default\":\"${SUPABASE_SECRET_KEY:-}\"}"
       SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-      # Allow configuring VERIFY_JWT per function. This PR might help: https://github.com/supabase/cli/pull/786
-      VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
+      VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT:-false}"
     command: [ "start", "--main-service", "/home/deno/functions/main" ]
     extra_hosts:
       - "${POSTGRES_DOMAIN}:${POSTGRES_HOST}"
@@ -354,33 +385,29 @@ services:
   # https://docs.logflare.app/self-hosting/
   analytics:
     container_name: supabase-analytics
-    image: supabase/logflare:1.31.2
+    image: supabase/logflare:1.36.1
+    restart: unless-stopped
     healthcheck:
       test: [ "CMD", "curl", "http://localhost:4000/health" ]
       timeout: 5s
       interval: 5s
       retries: 10
-    restart: unless-stopped
     environment:
       LOGFLARE_NODE_HOST: 127.0.0.1
       DB_USERNAME: supabase_admin
-      DB_DATABASE: supabase
+      DB_DATABASE: ${POSTGRES_DB}
       DB_HOSTNAME: ${POSTGRES_HOST}
       DB_PORT: ${POSTGRES_PORT}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_SCHEMA: _analytics
-      LOGFLARE_LOG_LEVEL: ${LOGFLARE_LOG_LEVEL}
       LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
       LOGFLARE_PRIVATE_ACCESS_TOKEN: ${LOGFLARE_PRIVATE_ACCESS_TOKEN}
       LOGFLARE_SINGLE_TENANT: true
       LOGFLARE_SUPABASE_MODE: true
-      LOGFLARE_MIN_CLUSTER_SIZE: 1
       # Comment variables to use Big Query backend for analytics
-      POSTGRES_BACKEND_URL: postgresql://supabase_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/supabase
+      POSTGRES_BACKEND_URL: postgresql://supabase_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       POSTGRES_BACKEND_SCHEMA: _analytics
-      LOGFLARE_FEATURE_FLAG_OVERRIDE: multibackend=false
-    ports:
-      - 4000:4000
+      LOGFLARE_FEATURE_FLAG_OVERRIDE: multibackend=true
     extra_hosts:
       - "${POSTGRES_DOMAIN}:${POSTGRES_HOST}"
 
@@ -390,15 +417,20 @@ services:
   vector:
     container_name: supabase-vector
     image: timberio/vector:0.53.0-alpine
+    restart: unless-stopped
+    volumes:
+      - ./volumes/logs/vector.yml:/etc/vector/vector.yml:ro,z
+      - ${DOCKER_SOCKET_LOCATION:-/var/run/docker.sock}:/var/run/docker.sock:ro,z
     healthcheck:
-      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider","http://vector:9001/health" ]
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://vector:9001/health" ]
       timeout: 5s
       interval: 5s
       retries: 3
     environment:
       LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
-    volumes:
-      - ./volumes/logs/vector.yml:/etc/vector/vector.yml:ro
-      - ${DOCKER_SOCKET_LOCATION}:/var/run/docker.sock:ro
-    command: ["--config", "/etc/vector/vector.yml"]
-...
+    command: [ "--config", "/etc/vector/vector.yml" ]
+    security_opt:
+      - "label=disable"
+
+volumes:
+  deno-cache:
