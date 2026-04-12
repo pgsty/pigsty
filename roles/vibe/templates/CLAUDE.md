@@ -48,7 +48,7 @@ Config docs: https://pigsty.io/docs/config/
 
 ## PostgreSQL
 
-PG {{ pg_version | default(18) }} with [464 extensions](https://pigsty.io/ext). Cluster: `{{ pg_cluster | default('pg-meta') }}`
+PG {{ pg_version | default(18) }} with [481 extensions](https://pigsty.io/ext). Cluster: `{{ pg_cluster | default('pg-meta') }}`
 
 ```bash
 psql 'postgres://{{ pg_admin_username | default('dbuser_dba') }}:{{ pg_admin_password | default('DBUser.DBA') }}@127.0.0.1/postgres'  # admin

@@ -43,7 +43,7 @@ endif
 #--------------------------------------------------------------#
 # Configuration Variables
 #--------------------------------------------------------------#
-VERSION      ?= v4.2.2
+VERSION      ?= v4.3.0
 REGISTRY     ?= pgsty
 NAME         ?= pigsty
 DATA         ?= $(PWD)/data
