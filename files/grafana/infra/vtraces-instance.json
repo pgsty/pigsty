@@ -4,27 +4,25 @@
       {"builtIn":1,"datasource":{"type":"grafana","uid":"-- Grafana --"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"},
       {"datasource":{"type":"prometheus","uid":"$ds"},"enable":true,"expr":"sum(vm_app_version{ins=~\"$ins\"}) by(short_version) unless (sum(vm_app_version{ins=~\"$ins\"} offset $__interval) by(short_version))","hide":true,"iconColor":"blue","name":"version change","textFormat":"{{short_version}}","titleFormat":"Version change"},
       {"datasource":{"type":"prometheus","uid":"ds-prometheus"},"enable":true,"expr":"sum(changes(vm_app_start_timestamp{ins=~\"$ins\"}[$__interval])) by(job)","hide":true,"iconColor":"orange","name":"restarts","textFormat":"{{instance}} restarted"},
-      {"datasource":{"type":"prometheus","uid":"${ds}"},"enable":true,"filter":{"exclude":false,"ids":[75]},"hide":false,"iconColor":"#57f26d1c","name":"gc","target":{"expr":"go_memstats_last_gc_time_seconds{ins=~\"$ins\"} * 1000","interval":"","refId":"Anno"},"textFormat":"GC event","useValueForTime":true}
+      {"datasource":{"type":"prometheus","uid":"${ds}"},"enable":true,"filter":{"ids":[75]},"hide":false,"iconColor":"#57f26d1c","name":"gc","target":{"expr":"go_memstats_last_gc_time_seconds{ins=~\"$ins\"} * 1000","interval":"","refId":"Anno"},"textFormat":"GC event","useValueForTime":true}
     ]
   },
-  "author":"Ruohang Feng (rh@vonng.com)",
   "description":"VictoriaTraces Single Node Dashboard",
   "editable":true,
   "fiscalYearStartMonth":0,
   "graphTooltip":0,
   "id":null,
-  "license":"https://pigsty.io/docs/about/license/",
   "links":[{"asDropdown":true,"icon":"external link","includeVars":false,"keepTime":true,"tags":["Pigsty","INFRA"],"targetBlank":false,"title":"INFRA","tooltip":"","type":"dashboards","url":""}],
+  "liveNow":false,
   "panels":[
-    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":0},"id":200,"panels":[],"title":"Overview","type":"row"},
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":0},"id":219,"title":"Overview","type":"row"},
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "description":"",
-      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":null}]}},"overrides":[{"matcher":{"id":"byName","options":"IP"},"properties":[{"id":"links","value":[{"title":"Node Instance : $ip","url":"/d/node-instance?var-id=${ip}&${__url_time_range}"}]}]}]},
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":0}]}},"overrides":[{"matcher":{"id":"byName","options":"IP"},"properties":[{"id":"links","value":[{"title":"Node Instance : $ip","url":"/d/node-instance?var-id=${ip}&${__url_time_range}"}]}]}]},
       "gridPos":{"h":6,"w":5,"x":0,"y":1},
       "id":201,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"/.*/","values":true},"showPercentChange":false,"text":{"titleSize":16,"valueSize":16},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"vm_app_version{ins=\"$ins\"}","format":"table","instant":true,"legendFormat":"__auto","range":false,"refId":"A"}],
       "title":"",
       "transformations":[
@@ -39,30 +37,31 @@
       "datasource":{"type":"prometheus","uid":"$ds"},
       "description":"All VictoriaTraces instances",
       "fieldConfig":{
-        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"footer":{"reducers":[]},"inspect":false},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#e3e3e3e0","value":null}]}},
+        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"footer":{"reducers":[]},"inspect":false},"thresholds":{"mode":"absolute","steps":[{"color":"#e3e3e3e0","value":0}]}},
         "overrides":[
-          {"matcher":{"id":"byName","options":"Instance"},"properties":[{"id":"links","value":[{"title":"VTraces Instance ${__data.fields.Instance}","url":"/d/vtraces-instance?var-ins=${__data.fields.Instance}&${__url_time_range}"}]},{"id":"custom.width"}]},
-          {"matcher":{"id":"byName","options":"IP"},"properties":[{"id":"custom.width","value":110},{"id":"links","value":[{"title":"Node Instance : ${__data.fields.IP}","url":"/d/node-instance?var-id=${__data.fields.IP}&${__url_time_range}"}]}]},
-          {"matcher":{"id":"byName","options":"Up"},"properties":[{"id":"custom.width","value":50},{"id":"mappings","value":[{"options":{"0":{"color":"#cc4637d9","index":0,"text":"Dead"},"1":{"color":"#346f36cc","index":1,"text":"Alive"}},"type":"value"}]},{"id":"custom.cellOptions","value":{"type":"color-background"}}]},
-          {"matcher":{"id":"byName","options":"Uptime"},"properties":[{"id":"custom.width","value":80},{"id":"unit","value":"dtdurations"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"red","value":null},{"color":"#fcdb72","value":300},{"color":"#346f36cc","value":3600}]}},{"id":"custom.cellOptions","value":{"type":"color-text"}}]},
-          {"matcher":{"id":"byName","options":"Traces"},"properties":[{"id":"custom.width","value":90},{"id":"unit","value":"short"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#3e668f","value":null},{"color":"#346f36cc","value":1000000},{"color":"#fcdb72","value":100000000},{"color":"#f79f64","value":1000000000}]}},{"id":"custom.cellOptions","value":{"type":"color-text"}}]},
-          {"matcher":{"id":"byName","options":"Ingest"},"properties":[{"id":"custom.width","value":80},{"id":"unit","value":"short"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#3e668f","value":null},{"color":"#346f36cc","value":100},{"color":"#fcdb72","value":10000},{"color":"#f79f64","value":100000}]}},{"id":"custom.cellOptions","value":{"type":"color-text"}}]},
-          {"matcher":{"id":"byName","options":"Disk"},"properties":[{"id":"custom.width","value":80},{"id":"unit","value":"bytes"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#3e668f","value":null},{"color":"#346f36cc","value":1073741824},{"color":"#fcdb72","value":107374182400},{"color":"#f79f64","value":1099511627776}]}},{"id":"custom.cellOptions","value":{"type":"color-text"}}]},
-          {"matcher":{"id":"byName","options":"Memory"},"properties":[{"id":"custom.width","value":80},{"id":"unit","value":"bytes"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#3e668f","value":null},{"color":"#346f36cc","value":1073741824},{"color":"#fcdb72","value":8589934592},{"color":"#f79f64","value":17179869184}]}},{"id":"custom.cellOptions","value":{"type":"color-text"}}]}
+          { "matcher":{"id":"byName","options":"Instance"},"properties":[{"id":"links","value":[{"title":"VTraces Instance ${__data.fields.Instance}","url":"/d/vtraces-instance?var-ins=${__data.fields.Instance}&${__url_time_range}"}]},{"id":"custom.width","value":null}]                                                                                                                                         },
+          { "matcher":{"id":"byName","options":"IP"}      ,"properties":[{"id":"custom.width","value":110},{"id":"links","value":[{"title":"Node Instance : ${__data.fields.IP}","url":"/d/node-instance?var-id=${__data.fields.IP}&${__url_time_range}"}]}]                                                                                                                                                           },
+          { "matcher":{"id":"byName","options":"Up"}      ,"properties":[{"id":"custom.width","value":50},{"id":"mappings","value":[{"options":{"0":{"color":"#cc4637d9","index":0,"text":"Dead"},"1":{"color":"#346f36cc","index":1,"text":"Alive"}},"type":"value"}]},{"id":"custom.cellOptions","value":{"type":"color-background"}}]                                                                               },
+          { "matcher":{"id":"byName","options":"Uptime"}  ,"properties":[{"id":"custom.width","value":80},{"id":"unit","value":"dtdurations"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"red","value":0},{"color":"#fcdb72","value":300},{"color":"#346f36cc","value":3600}]}},{"id":"custom.cellOptions","value":{"type":"color-text"}}]                                                        },
+          { "matcher":{"id":"byName","options":"Traces"}  ,"properties":[{"id":"custom.width","value":90},{"id":"unit","value":"short"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#346f36cc","value":1000000},{"color":"#fcdb72","value":100000000},{"color":"#f79f64","value":1000000000}]}},{"id":"custom.cellOptions","value":{"type":"color-text"}}]          },
+          { "matcher":{"id":"byName","options":"Ingest"}  ,"properties":[{"id":"custom.width","value":80},{"id":"unit","value":"short"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#346f36cc","value":100},{"color":"#fcdb72","value":10000},{"color":"#f79f64","value":100000}]}},{"id":"custom.cellOptions","value":{"type":"color-text"}}]                      },
+          { "matcher":{"id":"byName","options":"Disk"}    ,"properties":[{"id":"custom.width","value":80},{"id":"unit","value":"bytes"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#346f36cc","value":1073741824},{"color":"#fcdb72","value":107374182400},{"color":"#f79f64","value":1099511627776}]}},{"id":"custom.cellOptions","value":{"type":"color-text"}}] },
+          { "matcher":{"id":"byName","options":"Memory"}  ,"properties":[{"id":"custom.width","value":80},{"id":"unit","value":"bytes"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#346f36cc","value":1073741824},{"color":"#fcdb72","value":8589934592},{"color":"#f79f64","value":17179869184}]}},{"id":"custom.cellOptions","value":{"type":"color-text"}}]     }
         ]
       },
       "gridPos":{"h":6,"w":15,"x":5,"y":1},
       "id":202,
       "options":{"cellHeight":"sm","showHeader":true,"sortBy":[{"desc":false,"displayName":"Instance"}]},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"13.0.0",
       "targets":[
-        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"min by (ins,ip) (up{cls=\"vtraces\"})"                                         ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"","refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"min by (ins) (vm_app_uptime_seconds{cls=\"vtraces\"})"                         ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"","refId":"B" },
-        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum by (ins) (vt_storage_rows{cls=\"vtraces\"})"                               ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"","refId":"C" },
-        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum by (ins) (rate(vt_rows_ingested_total{cls=\"vtraces\"}[$__rate_interval]))","format":"table","hide":false,"instant":true,"interval":"","legendFormat":"","refId":"D" },
-        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum by (ins) (vt_data_size_bytes{cls=\"vtraces\"})"                            ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"","refId":"E" },
-        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum by (ins) (process_resident_memory_bytes{cls=\"vtraces\"})"                 ,"format":"table","hide":false,"instant":true,"interval":"","legendFormat":"","refId":"F" }
+        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"min by (ins,ip) (up{cls=\"vtraces\"})"                                         ,"format":"table","instant":true,"interval":"","legendFormat":"","refId":"A" },
+        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"min by (ins) (vm_app_uptime_seconds{cls=\"vtraces\"})"                         ,"format":"table","instant":true,"interval":"","legendFormat":"","refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum by (ins) (vt_storage_rows{cls=\"vtraces\"})"                               ,"format":"table","instant":true,"interval":"","legendFormat":"","refId":"C" },
+        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum by (ins) (rate(vt_rows_ingested_total{cls=\"vtraces\"}[$__rate_interval]))","format":"table","instant":true,"interval":"","legendFormat":"","refId":"D" },
+        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum by (ins) (vt_data_size_bytes{cls=\"vtraces\"})"                            ,"format":"table","instant":true,"interval":"","legendFormat":"","refId":"E" },
+        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum by (ins) (process_resident_memory_bytes{cls=\"vtraces\"})"                 ,"format":"table","instant":true,"interval":"","legendFormat":"","refId":"F" }
       ],
+      "title":"",
       "transformations":[
         {"id":"seriesToColumns","options":{"byField":"ins"}},
         {
@@ -74,7 +73,6 @@
     },
     {
       "datasource":{"type":"prometheus","uid":"$ds"},
-      "description":"",
       "fieldConfig":{
         "defaults":{
           "color":{"fixedColor":"#c4895c","mode":"fixed"},
@@ -101,29 +99,27 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
-          "thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":null}]},
+          "thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":0}]},
           "unit":"short"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":6,"w":4,"x":20,"y":1},
       "id":203,
-      "options":{"legend":{"calcs":[],"displayMode":"list","placement":"bottom","showLegend":false},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":[],"displayMode":"list","placement":"bottom","showLegend":false},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(rate(vt_rows_ingested_total{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","intervalFactor":1,"legendFormat":"Ingestion Rate","range":true,"refId":"A"}],
       "title":"Ingestion Rate",
       "type":"timeseries"
     },
-    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":7},"id":210,"panels":[],"title":"Key Metrics","type":"row"},
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":7},"id":220,"title":"Key Metrics","type":"row"},
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"How long the VictoriaTraces instance has been running",
-      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":null}]},"unit":"dtdurations"},"overrides":[]},
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":0}]},"unit":"dtdurations"}},
       "gridPos":{"h":3,"w":3,"x":0,"y":8},
       "id":211,
       "options":{"colorMode":"background_solid","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"min(vm_app_uptime_seconds{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","legendFormat":"Uptime","refId":"A"}],
       "title":"",
       "type":"stat"
@@ -131,11 +127,11 @@
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"Total number of trace spans stored",
-      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":null}]},"unit":"short"},"overrides":[]},
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":0}]},"unit":"short"}},
       "gridPos":{"h":3,"w":3,"x":3,"y":8},
       "id":212,
       "options":{"colorMode":"background_solid","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(vt_storage_rows{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","legendFormat":"Traces","refId":"A"}],
       "title":"",
       "type":"stat"
@@ -143,11 +139,11 @@
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"Current trace ingestion rate in spans per second",
-      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":null}]},"unit":"short"},"overrides":[]},
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":0}]},"unit":"short"}},
       "gridPos":{"h":3,"w":3,"x":6,"y":8},
       "id":213,
       "options":{"colorMode":"background_solid","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(rate(vt_rows_ingested_total{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","instant":true,"interval":"","legendFormat":"Ingest Rate","refId":"A"}],
       "title":"",
       "type":"stat"
@@ -155,11 +151,11 @@
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"Data ingestion rate in bytes per second",
-      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":null}]},"unit":"binBps"},"overrides":[]},
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":0}]},"unit":"binBps"}},
       "gridPos":{"h":3,"w":3,"x":9,"y":8},
       "id":214,
       "options":{"colorMode":"background_solid","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(rate(vt_bytes_ingested_total{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","instant":true,"interval":"","legendFormat":"Bytes Ingested","refId":"A"}],
       "title":"",
       "type":"stat"
@@ -167,11 +163,11 @@
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"Total disk space used by VictoriaTraces data",
-      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":null}]},"unit":"bytes"},"overrides":[]},
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":0}]},"unit":"bytes"}},
       "gridPos":{"h":3,"w":3,"x":12,"y":8},
       "id":215,
       "options":{"colorMode":"background_solid","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(vt_data_size_bytes{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","legendFormat":"Disk Usage","refId":"A"}],
       "title":"",
       "type":"stat"
@@ -179,11 +175,11 @@
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"Current resident memory usage of the process",
-      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":null}]},"unit":"bytes"},"overrides":[]},
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":0}]},"unit":"bytes"}},
       "gridPos":{"h":3,"w":3,"x":15,"y":8},
       "id":216,
       "options":{"colorMode":"background_solid","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(process_resident_memory_bytes{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","legendFormat":"Memory","refId":"A"}],
       "title":"",
       "type":"stat"
@@ -191,11 +187,11 @@
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"Rate of incoming query requests",
-      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":null}]},"unit":"reqps"},"overrides":[]},
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":0}]},"unit":"reqps"}},
       "gridPos":{"h":3,"w":3,"x":18,"y":8},
       "id":217,
       "options":{"colorMode":"background_solid","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(rate(vt_select_requests_total{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","instant":true,"interval":"","legendFormat":"Query Rate","refId":"A"}],
       "title":"",
       "type":"stat"
@@ -203,11 +199,11 @@
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"Number of active traces",
-      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":null}]},"unit":"short"},"overrides":[]},
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"#c4895c","value":0}]},"unit":"short"}},
       "gridPos":{"h":3,"w":3,"x":21,"y":8},
       "id":218,
       "options":{"colorMode":"background_solid","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(vt_active_traces{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","legendFormat":"Active Traces","refId":"A"}],
       "title":"",
       "type":"stat"
@@ -215,126 +211,126 @@
     {
       "collapsed":true,
       "gridPos":{"h":1,"w":24,"x":0,"y":11},
-      "id":16,
+      "id":221,
       "panels":[
         {
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"Total amount of trace spans in the storage.",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"},"overrides":[]},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"}},
           "gridPos":{"h":4,"w":4,"x":0,"y":12},
           "id":133,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(vt_storage_rows{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(vt_storage_rows{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
           "title":"Total trace spans",
           "type":"stat"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"The total number of trace spans ingested over the past 24 hours.",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"},"overrides":[]},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"}},
           "gridPos":{"h":4,"w":5,"x":4,"y":12},
           "id":134,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(increase(vt_rows_ingested_total{ins=~\"$ins\"}[24h]))","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(increase(vt_rows_ingested_total{ins=~\"$ins\"}[24h]))","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
           "title":"Ingested spans 24h",
           "type":"stat"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"Average ingestion rate of trace spans.",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"},"overrides":[]},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"}},
           "gridPos":{"h":4,"w":5,"x":9,"y":12},
           "id":135,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(rate(vt_rows_ingested_total{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(rate(vt_rows_ingested_total{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
           "title":"Insert req/s",
           "type":"stat"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"Total amount of used disk space.\nAccounts for all compressed trace spans and index size.\n\nSee how to [control disk usage](https://docs.victoriametrics.com/victoriatraces/#retention-by-disk-space-usage).",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"bytes"},"overrides":[]},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"bytes"}},
           "gridPos":{"h":4,"w":5,"x":14,"y":12},
           "id":136,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(vt_data_size_bytes{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(vt_data_size_bytes{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
           "title":"Disk space usage",
           "type":"stat"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"Integer number of CPU cores available to the application. This value is automatically rounded down from fractional CPU quotas. For optimal performance, fractional CPU units should be avoided. See the [best practices](https://docs.victoriametrics.com/victoriametrics/bestpractices/#kubernetes) documentation for more details.",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"},"overrides":[]},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"}},
           "gridPos":{"h":4,"w":5,"x":19,"y":12},
           "id":137,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(vm_available_cpu_cores{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(vm_available_cpu_cores{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
           "title":"Available CPU",
           "type":"stat"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"How many spans are ingested per second.",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"},"overrides":[]},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"}},
           "gridPos":{"h":4,"w":4,"x":0,"y":16},
           "id":144,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(rate(vt_storage_rows{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(rate(vt_storage_rows{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
           "title":"Ingested spans/s",
           "type":"stat"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"The cumulative number of trace spans ingested over the last 24h. \n\nThe size is calculated before compression.",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"bytes"},"overrides":[]},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"bytes"}},
           "gridPos":{"h":4,"w":5,"x":4,"y":16},
           "id":139,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(increase(vt_bytes_ingested_total{ins=~\"$ins\"}[24h]))","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(increase(vt_bytes_ingested_total{ins=~\"$ins\"}[24h]))","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
           "title":"Ingested bytes 24h",
           "type":"stat"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"Rate of HTTP read requests.",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"},"overrides":[]},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"}},
           "gridPos":{"h":4,"w":5,"x":9,"y":16},
           "id":140,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(rate(vt_http_requests_total{ins=~\"$ins\", path=~\"/select/.*\"}[$__rate_interval]))","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(rate(vt_http_requests_total{ins=~\"$ins\", path=~\"/select/.*\"}[$__rate_interval]))","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
           "title":"Read req/s",
           "type":"stat"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"The ratio between original data size and compressed data stored on disk. This metric excludes indexdb size. \n\nThe ratio can go up or down as the system performs automatic maintenance and applies retention policies. For examples:\n- Background merges: [Merges](https://docs.victoriametrics.com/victoriatraces/#forced-merge) improve compression by combining data into larger, more efficiently compressed blocks\n- Retention policies: When old data is deleted due to retention settings, the ratio changes as different time periods have varying compression characteristics\n\n",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"none"},"overrides":[]},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"none"}},
           "gridPos":{"h":4,"w":5,"x":14,"y":16},
           "id":141,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":" sum(vt_uncompressed_data_size_bytes{ins=~\"$ins\"}) / sum(vt_compressed_data_size_bytes{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"{{instance}}","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":" sum(vt_uncompressed_data_size_bytes{ins=~\"$ins\"}) / sum(vt_compressed_data_size_bytes{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"{{instance}}","refId":"A"}],
           "title":"Compression ratio",
           "type":"stat"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"Total system memory available to the application. This represents the system or container's memory capacity or limit, not the currently free memory.",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"bytes"},"overrides":[]},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"bytes"}},
           "gridPos":{"h":4,"w":5,"x":19,"y":16},
           "id":142,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(vm_available_memory_bytes{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(vm_available_memory_bytes{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"total","refId":"A"}],
           "title":"Available memory",
           "type":"stat"
         }
@@ -342,7 +338,7 @@
       "title":"Stats",
       "type":"row"
     },
-    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":20},"id":18,"panels":[],"title":"Overview","type":"row"},
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":12},"id":222,"title":"Overview","type":"row"},
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"Ingestion rate in number of trace spans and bytes per second.",
@@ -372,21 +368,19 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "links":[],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
           "unit":"short"
         },
         "overrides":[{"matcher":{"id":"byRegexp","options":"/.*(bytes)/"},"properties":[{"id":"custom.axisPlacement","value":"right"},{"id":"unit","value":"bytes"}]}]
       },
-      "gridPos":{"h":8,"w":12,"x":0,"y":21},
+      "gridPos":{"h":8,"w":12,"x":0,"y":13},
       "id":2,
-      "options":{"legend":{"calcs":["mean","lastNotNull"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
-      "pluginVersion":"12.3.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["mean","lastNotNull"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
+      "pluginVersion":"13.0.0",
       "targets":[
-        { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"sum(rate(vt_rows_ingested_total{ins=~\"$ins\"}[$__rate_interval])) by (type) > 0" ,"format":"time_series","hide":false,                "intervalFactor":1,"legendFormat":"{{type}}"        ,"range":true,"refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(vt_bytes_ingested_total{ins=~\"$ins\"}[$__rate_interval])) by (type) > 0",                       "hide":false,"instant":false,                   "legendFormat":"{{type}} (bytes)","range":true,"refId":"B" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(vt_rows_ingested_total{ins=~\"$ins\"}[$__rate_interval])) by (type) > 0" ,"format":"time_series",                "intervalFactor":1,"legendFormat":"{{type}}"        ,"range":true,"refId":"A" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(vt_bytes_ingested_total{ins=~\"$ins\"}[$__rate_interval])) by (type) > 0",                       "instant":false,                   "legendFormat":"{{type}} (bytes)","range":true,"refId":"B" }
       ],
       "title":"Trace spans ingestion rate",
       "type":"timeseries"
@@ -420,20 +414,17 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "links":[],
-          "mappings":[],
           "min":0,
           "noValue":"0",
           "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
           "unit":"short"
-        },
-        "overrides":[]
+        }
       },
-      "gridPos":{"h":8,"w":12,"x":12,"y":21},
+      "gridPos":{"h":8,"w":12,"x":12,"y":13},
       "id":14,
-      "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
-      "pluginVersion":"12.3.0",
-      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(vt_http_requests_total{ins=~\"$ins\"}[$__rate_interval])) by (path) > 0","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
+      "pluginVersion":"13.0.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(rate(vt_http_requests_total{ins=~\"$ins\"}[$__rate_interval])) by (path) > 0","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
       "title":"Requests rate",
       "type":"timeseries"
     },
@@ -466,21 +457,18 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "links":[],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
           "unit":"short"
-        },
-        "overrides":[]
+        }
       },
-      "gridPos":{"h":8,"w":12,"x":0,"y":29},
+      "gridPos":{"h":8,"w":12,"x":0,"y":21},
       "id":69,
-      "options":{"legend":{"calcs":["mean","lastNotNull"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
-      "pluginVersion":"12.3.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["mean","lastNotNull"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
+      "pluginVersion":"13.0.0",
       "targets":[
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(rate(vm_http_request_errors_total{ins=~\"$ins\"}[$__rate_interval])) by (path)","format":"time_series",             "interval":"","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","exemplar":false,"expr":"sum(rate(vt_http_errors_total{ins=~\"$ins\"}[$__rate_interval])) by (path)"        ,"format":"time_series","hide":false,"interval":"","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"B" }
+        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(rate(vm_http_request_errors_total{ins=~\"$ins\"}[$__rate_interval])) by (path)","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A" },
+        { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(rate(vt_http_errors_total{ins=~\"$ins\"}[$__rate_interval])) by (path)"        ,"format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"B" }
       ],
       "title":"Requests error rate",
       "type":"timeseries"
@@ -514,20 +502,17 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "links":[],
-          "mappings":[],
           "min":0,
           "noValue":"0",
           "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
           "unit":"s"
-        },
-        "overrides":[]
+        }
       },
-      "gridPos":{"h":8,"w":12,"x":12,"y":29},
+      "gridPos":{"h":8,"w":12,"x":12,"y":21},
       "id":66,
-      "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
-      "pluginVersion":"12.3.0",
-      "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(vt_http_request_duration_seconds{ins=~\"$ins\", quantile=\"0.99\"}) by (path) > 0","format":"time_series","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
+      "pluginVersion":"13.0.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(vt_http_request_duration_seconds{ins=~\"$ins\", quantile=\"0.99\"}) by (path) > 0","format":"time_series","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
       "title":"Request duration p99",
       "type":"timeseries"
     },
@@ -562,19 +547,16 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "links":[],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
           "unit":"bytes"
-        },
-        "overrides":[]
+        }
       },
-      "gridPos":{"h":8,"w":12,"x":0,"y":37},
+      "gridPos":{"h":8,"w":12,"x":0,"y":29},
       "id":6,
-      "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
-      "pluginVersion":"12.3.0",
-      "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(vt_total_disk_space_bytes{ins=~\"$ins\"}) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
+      "pluginVersion":"13.0.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(vt_total_disk_space_bytes{ins=~\"$ins\"}) by (instance)","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
       "title":"Disk space usage",
       "type":"timeseries"
     },
@@ -607,34 +589,33 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
           "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]}
         },
         "overrides":[{"matcher":{"id":"byRegexp","options":".*warn:.*"},"properties":[{"id":"color","value":{"fixedColor":"orange","mode":"fixed"}}]},{"matcher":{"id":"byRegexp","options":".*error:.*"},"properties":[{"id":"color","value":{"fixedColor":"red","mode":"fixed"}}]}]
       },
-      "gridPos":{"h":8,"w":12,"x":12,"y":37},
+      "gridPos":{"h":8,"w":12,"x":12,"y":29},
       "id":67,
-      "options":{"legend":{"calcs":["lastNotNull","mean","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
-      "pluginVersion":"12.3.0",
-      "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(rate(vm_log_messages_total{ins=~\"$ins\", level!=\"info\"}[$__rate_interval])) by (instance, level, location)","interval":"5m","legendFormat":"{{instance}} - {{level}}: {{location}}","range":true,"refId":"A"}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["lastNotNull","mean","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"13.0.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(vm_log_messages_total{ins=~\"$ins\", level!=\"info\"}[$__rate_interval])) by (instance, level, location)","interval":"5m","legendFormat":"{{instance}} - {{level}}: {{location}}","range":true,"refId":"A"}],
       "title":"Logging rate",
       "type":"timeseries"
     },
     {
       "collapsed":true,
-      "gridPos":{"h":1,"w":24,"x":0,"y":45},
-      "id":28,
+      "gridPos":{"h":1,"w":24,"x":0,"y":37},
+      "id":223,
       "panels":[
         {
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"Percentage of physical RAM used compared to the memory limit. If this percentage is high, check the `RSS` anonymous vs resident ratio panel for more details.",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"yellow","value":0.8},{"color":"red","value":0.9}]},"unit":"percentunit"},"overrides":[]},
-          "gridPos":{"h":5,"w":7,"x":0,"y":78},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"yellow","value":0.8},{"color":"red","value":0.9}]},"unit":"percentunit"}},
+          "gridPos":{"h":5,"w":7,"x":0,"y":38},
           "id":79,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"max(\n    max_over_time(process_resident_memory_bytes{ins=~\"$ins\"}[$__rate_interval])\n    /\n    vm_available_memory_bytes{ins=~\"$ins\"}\n)","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"{{instance}}","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max(\n    max_over_time(process_resident_memory_bytes{ins=~\"$ins\"}[$__rate_interval])\n    /\n    vm_available_memory_bytes{ins=~\"$ins\"}\n)","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"{{instance}}","refId":"A"}],
           "title":"RSS % of memory limit",
           "type":"stat"
         },{
@@ -666,32 +647,29 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "max":1,
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"percentunit"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":10,"w":17,"x":7,"y":78},
+          "gridPos":{"h":10,"w":17,"x":7,"y":38},
           "id":38,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"max(\n    max_over_time(process_resident_memory_bytes{ins=~\"$ins\"}[$__rate_interval])\n    /\n    vm_available_memory_bytes{ins=~\"$ins\"}\n) by (instance)","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max(\n    max_over_time(process_resident_memory_bytes{ins=~\"$ins\"}[$__rate_interval])\n    /\n    vm_available_memory_bytes{ins=~\"$ins\"}\n) by (instance)","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Physical memory usage ($ins)",
           "type":"timeseries"
         },{
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"Portion of RAM that CANNOT be reclaimed without swapping. If both the `RSS`-to-limit percentage and this ratio are high, the process is at high risk of an `OOM` kill.",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"percentunit"},"overrides":[]},
-          "gridPos":{"h":5,"w":7,"x":0,"y":83},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"percentunit"}},
+          "gridPos":{"h":5,"w":7,"x":0,"y":43},
           "id":78,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"max(process_resident_memory_anon_bytes{ins=~\"$ins\"}\n/\nprocess_resident_memory_bytes{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"{{instance}}","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max(process_resident_memory_anon_bytes{ins=~\"$ins\"}\n/\nprocess_resident_memory_bytes{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"{{instance}}","refId":"A"}],
           "title":"Anonymous / Resident ratio",
           "type":"stat"
         },{
@@ -723,22 +701,19 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"bytes"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":88},
+          "gridPos":{"h":8,"w":12,"x":0,"y":48},
           "id":40,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"sum(process_resident_memory_anon_bytes{ins=~\"$ins\"})"  ,"format":"time_series","hide":false,"intervalFactor":1,"legendFormat":"anonymous resident memory"  ,"range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(process_resident_memory_file_bytes{ins=~\"$ins\"})"  ,"format":"time_series","hide":false,"intervalFactor":1,"legendFormat":"file-backed resident memory","range":true,"refId":"B" },
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"sum(process_resident_memory_shared_bytes{ins=~\"$ins\"})","format":"time_series","hide":false,"intervalFactor":1,"legendFormat":"shared resident memory"     ,"range":true,"refId":"C" }
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(process_resident_memory_anon_bytes{ins=~\"$ins\"})"  ,"format":"time_series","intervalFactor":1,"legendFormat":"anonymous resident memory"  ,"range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(process_resident_memory_file_bytes{ins=~\"$ins\"})"  ,"format":"time_series","intervalFactor":1,"legendFormat":"file-backed resident memory","range":true,"refId":"B" },
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(process_resident_memory_shared_bytes{ins=~\"$ins\"})","format":"time_series","intervalFactor":1,"legendFormat":"shared resident memory"     ,"range":true,"refId":"C" }
           ],
           "title":"Memory usage ($ins)",
           "type":"timeseries"
@@ -770,20 +745,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "max":1,
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"percentunit"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":88},
+          "gridPos":{"h":8,"w":12,"x":12,"y":48},
           "id":118,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"max(\n    rate(process_cpu_seconds_total{ins=~\"$ins\"}[$__rate_interval])\n    /\n    process_cpu_cores_available{ins=~\"$ins\"}\n) by(instance)","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max(\n    rate(process_cpu_seconds_total{ins=~\"$ins\"}[$__rate_interval])\n    /\n    process_cpu_cores_available{ins=~\"$ins\"}\n) by(instance)","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"CPU % usage ($ins)",
           "type":"timeseries"
         },{
@@ -816,23 +788,20 @@
                 "thresholdsStyle":{"mode":"off"}
               },
               "decimals":0,
-              "links":[],
-              "mappings":[],
               "max":1,
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":0.2}]},
               "unit":"percentunit"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":96},
+          "gridPos":{"h":8,"w":12,"x":0,"y":56},
           "id":73,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"sum(rate(process_pressure_memory_waiting_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}} - waiting","range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(process_pressure_memory_stalled_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}} - stalled","range":true,"refId":"B" }
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(process_pressure_memory_waiting_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","interval":"","intervalFactor":2,"legendFormat":"{{instance}} - waiting","range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(process_pressure_memory_stalled_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","interval":"","intervalFactor":2,"legendFormat":"{{instance}} - stalled","range":true,"refId":"B" }
           ],
           "title":"Memory pressure",
           "type":"timeseries"
@@ -868,22 +837,19 @@
                 "thresholdsStyle":{"mode":"line"}
               },
               "decimals":0,
-              "links":[],
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},
               "unit":"percentunit"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":96},
+          "gridPos":{"h":8,"w":12,"x":12,"y":56},
           "id":72,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(process_pressure_cpu_waiting_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series",             "interval":"","intervalFactor":2,"legendFormat":"{{instance}}: waiting","range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"sum(rate(process_pressure_cpu_stalled_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}}: stalled","range":true,"refId":"B" }
+            { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(rate(process_pressure_cpu_waiting_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","interval":"","intervalFactor":2,"legendFormat":"{{instance}}: waiting","range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(rate(process_pressure_cpu_stalled_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","interval":"","intervalFactor":2,"legendFormat":"{{instance}}: stalled","range":true,"refId":"B" }
           ],
           "title":"CPU pressure",
           "type":"timeseries"
@@ -916,20 +882,18 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
             },
             "overrides":[{"matcher":{"id":"byName","options":"read calls"},"properties":[{"id":"custom.transform","value":"negative-Y"}]}]
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":104},
+          "gridPos":{"h":8,"w":12,"x":0,"y":64},
           "id":56,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"max(rate(process_io_read_syscalls_total{ins=~\"$ins\"}[$__rate_interval]))" ,"format":"time_series","hide":false,"interval":"","intervalFactor":1,"legendFormat":"read calls" ,"range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(rate(process_io_write_syscalls_total{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","hide":false,"interval":"","intervalFactor":1,"legendFormat":"write calls","range":true,"refId":"B" }
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(rate(process_io_read_syscalls_total{ins=~\"$ins\"}[$__rate_interval]))" ,"format":"time_series","interval":"","intervalFactor":1,"legendFormat":"read calls" ,"range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(rate(process_io_write_syscalls_total{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"write calls","range":true,"refId":"B" }
           ],
           "title":"Read/Write syscalls ($ins)",
           "type":"timeseries"
@@ -963,19 +927,17 @@
                 "thresholdsStyle":{"mode":"off"}
               },
               "decimals":2,
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"percentunit"
             },
             "overrides":[{"matcher":{"id":"byName","options":"max"},"properties":[{"id":"color","value":{"fixedColor":"#C4162A","mode":"fixed"}}]}]
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":104},
+          "gridPos":{"h":8,"w":12,"x":12,"y":64},
           "id":46,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max_over_time(process_open_fds{ins=~\"$ins\"}[$__rate_interval])\n/\nprocess_max_fds{ins=~\"$ins\"}","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max_over_time(process_open_fds{ins=~\"$ins\"}[$__rate_interval])\n/\nprocess_max_fds{ins=~\"$ins\"}","format":"time_series","interval":"","intervalFactor":2,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Open FDs % usage ($ins)",
           "type":"timeseries"
         },{
@@ -1007,20 +969,18 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"bytes"
             },
             "overrides":[{"matcher":{"id":"byName","options":"read"},"properties":[{"id":"custom.transform","value":"negative-Y"}]}]
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":112},
+          "gridPos":{"h":8,"w":12,"x":0,"y":72},
           "id":52,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(rate(process_io_storage_read_bytes_total{ins=~\"$ins\"}[$__rate_interval]))"   ,"format":"time_series","hide":false,"interval":"","intervalFactor":1,"legendFormat":"read" ,"range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"max(rate(process_io_storage_written_bytes_total{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","hide":false,"interval":"","intervalFactor":1,"legendFormat":"write","range":true,"refId":"C" }
+            { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(rate(process_io_storage_read_bytes_total{ins=~\"$ins\"}[$__rate_interval]))"   ,"format":"time_series","interval":"","intervalFactor":1,"legendFormat":"read" ,"range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(rate(process_io_storage_written_bytes_total{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"write","range":true,"refId":"C" }
           ],
           "title":"Disk writes/reads ($ins)",
           "type":"timeseries"
@@ -1054,22 +1014,19 @@
                 "thresholdsStyle":{"mode":"line"}
               },
               "decimals":0,
-              "links":[],
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},
               "unit":"percentunit"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":112},
+          "gridPos":{"h":8,"w":12,"x":12,"y":72},
           "id":74,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"max(rate(process_pressure_io_waiting_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series",             "interval":"","intervalFactor":2,"legendFormat":"{{instance}}: waiting","range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(process_pressure_io_stalled_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"interval":"","intervalFactor":2,"legendFormat":"{{instance}}: stalled","range":true,"refId":"B" }
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(rate(process_pressure_io_waiting_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","interval":"","intervalFactor":2,"legendFormat":"{{instance}}: waiting","range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(process_pressure_io_stalled_seconds_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","interval":"","intervalFactor":2,"legendFormat":"{{instance}}: stalled","range":true,"refId":"B" }
           ],
           "title":"IO pressure",
           "type":"timeseries"
@@ -1102,19 +1059,16 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":120},
+          "gridPos":{"h":8,"w":12,"x":0,"y":80},
           "id":60,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(vm_tcplistener_conns{ins=~\"$ins\"}) by (instance)","format":"time_series","hide":false,"intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(vm_tcplistener_conns{ins=~\"$ins\"}) by (instance)","format":"time_series","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"TCP connections ($ins)",
           "type":"timeseries"
         },{
@@ -1146,19 +1100,16 @@
                 "thresholdsStyle":{"mode":"off"}
               },
               "decimals":0,
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":120},
+          "gridPos":{"h":8,"w":12,"x":12,"y":80},
           "id":50,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(go_goroutines{ins=~\"$ins\"}) by (instance)","format":"time_series","intervalFactor":2,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(go_goroutines{ins=~\"$ins\"}) by (instance)","format":"time_series","intervalFactor":2,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Goroutines ($ins)",
           "type":"timeseries"
         },{
@@ -1190,19 +1141,16 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":128},
+          "gridPos":{"h":8,"w":12,"x":0,"y":88},
           "id":58,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(rate(vm_tcplistener_accepts_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(rate(vm_tcplistener_accepts_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"TCP connections rate ($ins)",
           "type":"timeseries"
         },{
@@ -1234,19 +1182,16 @@
                 "thresholdsStyle":{"mode":"off"}
               },
               "decimals":0,
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":128},
+          "gridPos":{"h":8,"w":12,"x":12,"y":88},
           "id":54,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(process_num_threads{ins=~\"$ins\"}) by (instance)","format":"time_series","intervalFactor":2,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(process_num_threads{ins=~\"$ins\"}) by (instance)","format":"time_series","intervalFactor":2,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Threads ($ins)",
           "type":"timeseries"
         },{
@@ -1279,19 +1224,16 @@
                 "thresholdsStyle":{"mode":"off"}
               },
               "decimals":0,
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"percentunit"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":136},
+          "gridPos":{"h":8,"w":12,"x":0,"y":96},
           "id":119,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(\n  rate(go_gc_cpu_seconds_total{ins=~\"$ins\"}[$__rate_interval]) \n / rate(process_cpu_seconds_total{ins=~\"$ins\"}[$__rate_interval])\n ) by(instance)","format":"time_series","interval":"","intervalFactor":2,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(\n  rate(go_gc_cpu_seconds_total{ins=~\"$ins\"}[$__rate_interval]) \n / rate(process_cpu_seconds_total{ins=~\"$ins\"}[$__rate_interval])\n ) by(instance)","format":"time_series","interval":"","intervalFactor":2,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"CPU spent on GC ($ins)",
           "type":"timeseries"
         },{
@@ -1324,19 +1266,16 @@
                 "thresholdsStyle":{"mode":"line"}
               },
               "decimals":0,
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":0.1}]},
               "unit":"s"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":136},
+          "gridPos":{"h":8,"w":12,"x":12,"y":96},
           "id":61,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(histogram_quantile(0.99, sum(rate(go_sched_latencies_seconds_bucket{}[$__rate_interval])) by (instance, le))) by (instance)","format":"time_series","interval":"","intervalFactor":2,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(histogram_quantile(0.99, sum(rate(go_sched_latencies_seconds_bucket{}[$__rate_interval])) by (instance, le))) by (instance)","format":"time_series","interval":"","intervalFactor":2,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Go scheduling latency",
           "type":"timeseries"
         }
@@ -1346,8 +1285,8 @@
     },
     {
       "collapsed":true,
-      "gridPos":{"h":1,"w":24,"x":0,"y":46},
-      "id":68,
+      "gridPos":{"h":1,"w":24,"x":0,"y":38},
+      "id":224,
       "panels":[
         {
           "datasource":{"type":"prometheus","uid":"$ds"},
@@ -1380,19 +1319,16 @@
                 "thresholdsStyle":{"mode":"off"}
               },
               "decimals":0,
-              "links":[],
-              "mappings":[],
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"none"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":145},
+          "gridPos":{"h":8,"w":12,"x":0,"y":39},
           "id":62,
           "options":{"legend":{"calcs":["lastNotNull"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(changes(vm_app_start_timestamp{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","hide":false,"instant":false,"legendFormat":"{{instance}}","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(changes(vm_app_start_timestamp{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","instant":false,"legendFormat":"{{instance}}","refId":"A"}],
           "title":"Restarts",
           "type":"timeseries"
         },{
@@ -1425,33 +1361,30 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":145},
+          "gridPos":{"h":8,"w":12,"x":12,"y":39},
           "id":26,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(increase(vt_streams_created_total{ins=~\"$ins\"}[1d])) by (instance)","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(increase(vt_streams_created_total{ins=~\"$ins\"}[1d])) by (instance)","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Streams churn rate 24h ($ins)",
           "type":"timeseries"
         },{
           "datasource":{"type":"prometheus","uid":"$ds"},
           "description":"Flags explicitly set to non-default values",
           "fieldConfig":{
-            "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"auto","cellOptions":{"type":"auto"},"footer":{"reducers":[]},"inspect":false},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]}},
+            "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"auto","cellOptions":{"type":"auto"},"footer":{"reducers":[]},"inspect":false},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]}},
             "overrides":[{"matcher":{"id":"byName","options":"Time"},"properties":[{"id":"custom.hideFrom.viz","value":true}]},{"matcher":{"id":"byName","options":"Value"},"properties":[{"id":"custom.hideFrom.viz","value":true}]}]
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":153},
+          "gridPos":{"h":8,"w":12,"x":0,"y":47},
           "id":70,
           "options":{"cellHeight":"sm","showHeader":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(flag{is_set=\"true\", ins=~\"$ins\"}) by(job, instance, name, value)","format":"table","instant":true,"legendFormat":"{{name}}={{value}}","range":false,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(flag{is_set=\"true\", ins=~\"$ins\"}) by(job, instance, name, value)","format":"table","instant":true,"legendFormat":"{{name}}={{value}}","range":false,"refId":"A"}],
           "title":"Non-default flags",
           "transformations":[{"id":"groupBy","options":{"fields":{"instance":{"aggregations":["uniqueValues"],"operation":"aggregate"},"job":{"aggregations":[],"operation":"groupby"},"name":{"aggregations":[],"operation":"groupby"},"value":{"aggregations":[],"operation":"groupby"}}}}],
           "type":"table"
@@ -1484,20 +1417,18 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":153},
+          "gridPos":{"h":8,"w":12,"x":12,"y":47},
           "id":71,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"sum(increase(vt_rows_dropped_total{ins=~\"$ins\"}[1h])) by (reason) ","hide":false,                "interval":"","legendFormat":"{{reason}}"   ,"range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code",                "expr":"sum(increase(vt_too_long_lines_skipped_total{ins=~\"$ins\"}[1h]))"   ,"hide":false,"instant":false,              "legendFormat":"line_too_long","range":true,"refId":"B" }
+            { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":true,"expr":"sum(increase(vt_rows_dropped_total{ins=~\"$ins\"}[1h])) by (reason) ",                "interval":"","legendFormat":"{{reason}}"   ,"range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code",                "expr":"sum(increase(vt_too_long_lines_skipped_total{ins=~\"$ins\"}[1h]))"   ,"instant":false,              "legendFormat":"line_too_long","range":true,"refId":"B" }
           ],
           "title":"Trace spans dropped for last 1h",
           "type":"timeseries"
@@ -1508,19 +1439,19 @@
     },
     {
       "collapsed":true,
-      "gridPos":{"h":1,"w":24,"x":0,"y":47},
-      "id":82,
+      "gridPos":{"h":1,"w":24,"x":0,"y":39},
+      "id":225,
       "panels":[
         {
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"Total number of time-based (daily) partitions in storage. The number typically grows over time as new data arrives and is partitioned by time periods. \n\nExcessive partition counts may indicate retention policy issues or very high data ingestion rates that could impact query performance.",
-          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"},"overrides":[]},
-          "gridPos":{"h":8,"w":3,"x":0,"y":162},
+          "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},"unit":"short"}},
+          "gridPos":{"h":8,"w":3,"x":0,"y":40},
           "id":88,
           "maxDataPoints":100,
           "options":{"colorMode":"value","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","exemplar":false,"expr":"sum(vt_partitions{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"{{instance}}","refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(vt_partitions{ins=~\"$ins\"})","format":"time_series","instant":true,"interval":"","intervalFactor":1,"legendFormat":"{{instance}}","refId":"A"}],
           "title":"Partition Count",
           "type":"stat"
         },{
@@ -1552,17 +1483,15 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":9,"x":3,"y":162},
+          "gridPos":{"h":8,"w":9,"x":3,"y":40},
           "id":84,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"${ds}"},"editorMode":"code","exemplar":true,"expr":"max(vt_storage_parts{ins=~\"$ins\"}) by(type)","hide":false,"interval":"","legendFormat":"{{type}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(vt_storage_parts{ins=~\"$ins\"}) by(type)","interval":"","legendFormat":"{{type}}","range":true,"refId":"A"}],
           "title":"Part count max by type ($ins)",
           "type":"timeseries"
         },{
@@ -1596,19 +1525,18 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"line"}
               },
-              "mappings":[],
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":1}]},
               "unit":"percentunit"
             },
             "overrides":[{"matcher":{"id":"byName","options":"max space retention of instances"},"properties":[{"id":"color","value":{"fixedColor":"orange","mode":"fixed"}},{"id":"custom.insertNulls","value":3600000}]}]
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":162},
+          "gridPos":{"h":8,"w":12,"x":12,"y":40},
           "id":110,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"${ds}"}        ,"editorMode":"code","exemplar":true,"expr":"max(max_over_time(vt_max_disk_space_usage_bytes{ins=~\"$ins\"}[$__rate_interval])) by (job)\n/\nmax(vt_total_disk_space_bytes{ins=~\"$ins\"}) by (job) > 0","hide":false,"interval":"","legendFormat":"max space retention of instances","range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(max_over_time(vt_data_size_bytes{ins=~\"$ins\"}[$__rate_interval])) by (job)\n/\nmax(vt_total_disk_space_bytes{ins=~\"$ins\"}) by (job)"               ,"hide":false,"interval":"","legendFormat":"{{job}}"                         ,"range":true,"refId":"B" }
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(max_over_time(vt_max_disk_space_usage_bytes{ins=~\"$ins\"}[$__rate_interval])) by (job)\n/\nmax(vt_total_disk_space_bytes{ins=~\"$ins\"}) by (job) > 0","interval":"","legendFormat":"max space retention of instances","range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(max_over_time(vt_data_size_bytes{ins=~\"$ins\"}[$__rate_interval])) by (job)\n/\nmax(vt_total_disk_space_bytes{ins=~\"$ins\"}) by (job)"               ,"interval":"","legendFormat":"{{job}}"                         ,"range":true,"refId":"B" }
           ],
           "title":"Disk ($ins)",
           "type":"timeseries"
@@ -1641,19 +1569,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":170},
+          "gridPos":{"h":8,"w":12,"x":0,"y":48},
           "id":112,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"sum(increase(vt_merges_total{ins=~\"$ins\"}[$__rate_interval])) by(type)","hide":false,"interval":"$__rate_interval","legendFormat":"{{type}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"${ds}"},"editorMode":"code","exemplar":true,"expr":"sum(increase(vt_merges_total{ins=~\"$ins\"}[$__rate_interval])) by(type)","interval":"$__rate_interval","legendFormat":"{{type}}","range":true,"refId":"A"}],
           "title":"Merge events",
           "type":"timeseries"
         },{
@@ -1685,18 +1611,16 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"s"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":170},
+          "gridPos":{"h":8,"w":12,"x":12,"y":48},
           "id":86,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(vl_merge_duration_seconds{ins=~\"$ins\", quantile=\"0.9\"}) by (type) > 0","hide":false,"interval":"","legendFormat":"{{type}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"${ds}"},"editorMode":"code","exemplar":true,"expr":"max(vl_merge_duration_seconds{ins=~\"$ins\", quantile=\"0.9\"}) by (type) > 0","interval":"","legendFormat":"{{type}}","range":true,"refId":"A"}],
           "title":"Merge duration p99 ($ins)",
           "type":"timeseries"
         },{
@@ -1728,19 +1652,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"bytes"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":24,"x":0,"y":178},
+          "gridPos":{"h":8,"w":24,"x":0,"y":56},
           "id":109,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(vl_merge_bytes{ins=~\"$ins\", quantile=\"0.99\"}) by (type) > 0","hide":false,"interval":"","legendFormat":"{{type}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"${ds}"},"editorMode":"code","exemplar":true,"expr":"max(vl_merge_bytes{ins=~\"$ins\", quantile=\"0.99\"}) by (type) > 0","interval":"","legendFormat":"{{type}}","range":true,"refId":"A"}],
           "title":"Merge bytes p99 ($ins)",
           "type":"timeseries"
         }
@@ -1750,8 +1672,8 @@
     },
     {
       "collapsed":true,
-      "gridPos":{"h":1,"w":24,"x":0,"y":48},
-      "id":83,
+      "gridPos":{"h":1,"w":24,"x":0,"y":40},
+      "id":226,
       "panels":[
         {
           "datasource":{"type":"prometheus","uid":"$ds"},
@@ -1782,21 +1704,19 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
             },
             "overrides":[{"matcher":{"id":"byRegexp","options":"/.*(bytes)/"},"properties":[{"id":"custom.axisPlacement","value":"right"},{"id":"unit","value":"bytes"}]}]
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":187},
+          "gridPos":{"h":8,"w":12,"x":0,"y":41},
           "id":113,
           "options":{"legend":{"calcs":["mean","lastNotNull"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(vt_rows_ingested_total{ins=~\"$ins\"}[$__rate_interval])) by (type) > 0" ,"format":"time_series","hide":false,                "intervalFactor":1,"legendFormat":"{{type}}"        ,"range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"sum(rate(vt_bytes_ingested_total{ins=~\"$ins\"}[$__rate_interval])) by (type) > 0",                       "hide":false,"instant":false,                   "legendFormat":"{{type}} (bytes)","range":true,"refId":"B" }
+            { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(rate(vt_rows_ingested_total{ins=~\"$ins\"}[$__rate_interval])) by (type) > 0" ,"format":"time_series",                "intervalFactor":1,"legendFormat":"{{type}}"        ,"range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(rate(vt_bytes_ingested_total{ins=~\"$ins\"}[$__rate_interval])) by (type) > 0",                       "instant":false,                   "legendFormat":"{{type}} (bytes)","range":true,"refId":"B" }
           ],
           "title":"Trace spans ingestion rate",
           "type":"timeseries"
@@ -1829,20 +1749,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":187},
+          "gridPos":{"h":8,"w":12,"x":12,"y":41},
           "id":117,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(rate(vt_http_requests_total{ins=~\"$ins\",path=~\"^/(internal/)?insert.*\"}[$__rate_interval])) by (path) > 0","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(vt_http_requests_total{ins=~\"$ins\",path=~\"^/(internal/)?insert.*\"}[$__rate_interval])) by (path) > 0","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
           "title":"Insert request rate",
           "type":"timeseries"
         },{
@@ -1874,19 +1791,16 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"s"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":195},
+          "gridPos":{"h":8,"w":12,"x":0,"y":49},
           "id":103,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(vt_http_request_duration_seconds{ins=~\"$ins\", quantile=\"0.99\", path=~\"^/(internal/)?insert.*\"}) by (path) > 0","format":"time_series","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(vt_http_request_duration_seconds{ins=~\"$ins\", quantile=\"0.99\", path=~\"^/(internal/)?insert.*\"}) by (path) > 0","format":"time_series","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
           "title":"Insert duration p99",
           "type":"timeseries"
         },{
@@ -1918,20 +1832,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"s"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":195},
+          "gridPos":{"h":8,"w":12,"x":12,"y":49},
           "id":116,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(vt_http_request_duration_seconds{ins=~\"$ins\", quantile=\"0.99\", path=~\"^/(internal/)?insert.*\"}) by (path) > 0","format":"time_series","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(vt_http_request_duration_seconds{ins=~\"$ins\", quantile=\"0.99\", path=~\"^/(internal/)?insert.*\"}) by (path) > 0","format":"time_series","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
           "title":"Insert request duration p99 ($ins)",
           "type":"timeseries"
         },{
@@ -1964,22 +1875,19 @@
                 "thresholdsStyle":{"mode":"off"}
               },
               "decimals":0,
-              "links":[],
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":203},
+          "gridPos":{"h":8,"w":12,"x":0,"y":57},
           "id":97,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"max(max_over_time(vt_insert_processors_count{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series",             "interval":"",                "intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(max_over_time(vm_concurrent_insert_capacity{ins=~\"$ins\"}[$__rate_interval]))"           ,                       "hide":false,              "instant":false,                   "legendFormat":"soft limit"  ,"range":true,"refId":"B" }
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(max_over_time(vt_insert_processors_count{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series",                "interval":"","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(max_over_time(vm_concurrent_insert_capacity{ins=~\"$ins\"}[$__rate_interval]))"           ,                       "instant":false,                                 "legendFormat":"soft limit"  ,"range":true,"refId":"B" }
           ],
           "title":"Message processors ($ins)",
           "type":"timeseries"
@@ -2012,19 +1920,16 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":203},
+          "gridPos":{"h":8,"w":12,"x":12,"y":57},
           "id":104,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(vt_pending_rows{ins=~\"$ins\"}) by (type)","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{type}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(vt_pending_rows{ins=~\"$ins\"}) by (type)","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{type}}","range":true,"refId":"A"}],
           "title":"Pending rows ($ins)",
           "type":"timeseries"
         },{
@@ -2056,19 +1961,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
             },
             "overrides":[{"matcher":{"id":"byName","options":"limit"},"properties":[{"id":"color","value":{"fixedColor":"red","mode":"fixed"}}]}]
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":211},
+          "gridPos":{"h":8,"w":12,"x":0,"y":65},
           "id":143,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(increase(vm_concurrent_insert_limit_reached_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(increase(vm_concurrent_insert_limit_reached_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Concurrent insert limit reached ($ins)",
           "type":"timeseries"
         },{
@@ -2100,17 +2003,15 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":1}]},
               "unit":"reqps"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":211},
+          "gridPos":{"h":8,"w":12,"x":12,"y":65},
           "id":131,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(vm_concurrent_insert_limit_timeout_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(rate(vm_concurrent_insert_limit_timeout_total{ins=~\"$ins\"}[$__rate_interval])) by (instance)","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Insert timeouts ($ins)",
           "type":"timeseries"
         },{
@@ -2142,19 +2043,16 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"s"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":219},
+          "gridPos":{"h":8,"w":12,"x":0,"y":73},
           "id":115,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(vt_insert_flush_duration_seconds{ins=~\"$ins\", quantile=\"0.99\"}) by (type) > 0","format":"time_series","intervalFactor":1,"legendFormat":"{{type}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(vt_insert_flush_duration_seconds{ins=~\"$ins\", quantile=\"0.99\"}) by (type) > 0","format":"time_series","intervalFactor":1,"legendFormat":"{{type}}","range":true,"refId":"A"}],
           "title":"Flush duration p99",
           "type":"timeseries"
         }
@@ -2164,8 +2062,8 @@
     },
     {
       "collapsed":true,
-      "gridPos":{"h":1,"w":24,"x":0,"y":49},
-      "id":81,
+      "gridPos":{"h":1,"w":24,"x":0,"y":41},
+      "id":227,
       "panels":[
         {
           "datasource":{"type":"prometheus","uid":"$ds"},
@@ -2196,20 +2094,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":228},
+          "gridPos":{"h":8,"w":12,"x":0,"y":42},
           "id":102,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(vt_http_requests_total{ins=~\"$ins\",path=~\"^/(internal/)?select.*\"}[$__rate_interval])) by (path) > 0","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(rate(vt_http_requests_total{ins=~\"$ins\",path=~\"^/(internal/)?select.*\"}[$__rate_interval])) by (path) > 0","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
           "title":"Query rate",
           "type":"timeseries"
         },{
@@ -2241,20 +2136,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"s"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":228},
+          "gridPos":{"h":8,"w":12,"x":12,"y":42},
           "id":108,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(vt_http_request_duration_seconds{ins=~\"$ins\", quantile=\"0.99\", path=~\"^/(internal/)?select.*\"}) by (path) > 0","format":"time_series","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(vt_http_request_duration_seconds{ins=~\"$ins\", quantile=\"0.99\", path=~\"^/(internal/)?select.*\"}) by (path) > 0","format":"time_series","intervalFactor":1,"legendFormat":"{{path}}","range":true,"refId":"A"}],
           "title":"Query duration p99",
           "type":"timeseries"
         },{
@@ -2286,21 +2178,19 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "links":[],
-              "mappings":[],
               "min":0,
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"short"
             },
             "overrides":[{"matcher":{"id":"byName","options":"limit"},"properties":[{"id":"color","value":{"fixedColor":"red","mode":"fixed"}}]}]
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":236},
+          "gridPos":{"h":8,"w":12,"x":0,"y":50},
           "id":107,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"desc"}},
           "pluginVersion":"12.3.0",
           "targets":[
-            { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"max(max_over_time(vt_concurrent_select_current{ins=~\"$ins\"}[$__rate_interval]))" ,"format":"time_series",             "interval":"","intervalFactor":1,"legendFormat":"current","range":true,"refId":"A" },
-            { "datasource":{"type":"prometheus","uid":"$ds"}          ,"editorMode":"code","expr":"max(max_over_time(vt_concurrent_select_capacity{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","hide":false,"interval":"","intervalFactor":1,"legendFormat":"limit"  ,"range":true,"refId":"B" }
+            { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(max_over_time(vt_concurrent_select_current{ins=~\"$ins\"}[$__rate_interval]))" ,"format":"time_series","interval":"","intervalFactor":1,"legendFormat":"current","range":true,"refId":"A" },
+            { "datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"max(max_over_time(vt_concurrent_select_capacity{ins=~\"$ins\"}[$__rate_interval]))","format":"time_series","interval":"","intervalFactor":1,"legendFormat":"limit"  ,"range":true,"refId":"B" }
           ],
           "title":"Concurrent queries ($ins)",
           "type":"timeseries"
@@ -2333,17 +2223,15 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":1}]},
               "unit":"reqps"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":236},
+          "gridPos":{"h":8,"w":12,"x":12,"y":50},
           "id":132,
           "options":{"legend":{"calcs":[],"displayMode":"list","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"$ds"},"editorMode":"code","expr":"sum(rate(vt_concurrent_select_limit_timeout_total{ins=~\"$ins\"}[$__rate_interval])) by (instance) > 0","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum(rate(vt_concurrent_select_limit_timeout_total{ins=~\"$ins\"}[$__rate_interval])) by (instance) > 0","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Query timeouts ($ins)",
           "type":"timeseries"
         }
@@ -2353,8 +2241,8 @@
     },
     {
       "collapsed":true,
-      "gridPos":{"h":1,"w":24,"x":0,"y":50},
-      "id":126,
+      "gridPos":{"h":1,"w":24,"x":0,"y":42},
+      "id":228,
       "panels":[
         {
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
@@ -2385,19 +2273,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"bytes"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":245},
+          "gridPos":{"h":8,"w":12,"x":0,"y":43},
           "id":130,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"${ds}"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_processed_blocks_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance)","hide":false,"interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_processed_blocks_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance)","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Blocks/query p99 ($ins)",
           "type":"timeseries"
         },{
@@ -2429,19 +2315,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"bytes"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":245},
+          "gridPos":{"h":8,"w":12,"x":12,"y":43},
           "id":121,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"${ds}"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_total_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance)","hide":false,"interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_total_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance)","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Bytes/query p99 ($ins)",
           "type":"timeseries"
         },{
@@ -2473,19 +2357,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"bytes"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":253},
+          "gridPos":{"h":8,"w":12,"x":0,"y":51},
           "id":124,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"${ds}"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_block_headers_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance) > 0.001","hide":false,"interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_block_headers_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance) > 0.001","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Block header bytes/query p99 ($ins)",
           "type":"timeseries"
         },{
@@ -2517,19 +2399,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"bytes"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":253},
+          "gridPos":{"h":8,"w":12,"x":12,"y":51},
           "id":129,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"${ds}"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_bloom_filters_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance) > 0.001","hide":false,"interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_bloom_filters_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance) > 0.001","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Bloom filter bytes/query p99 ($ins)",
           "type":"timeseries"
         },{
@@ -2561,19 +2441,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"bytes"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":261},
+          "gridPos":{"h":8,"w":12,"x":0,"y":59},
           "id":122,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"${ds}"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_values_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance)","hide":false,"interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_values_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance)","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Value bytes/query p99 ($ins)",
           "type":"timeseries"
         },{
@@ -2605,19 +2483,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"bytes"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":261},
+          "gridPos":{"h":8,"w":12,"x":12,"y":59},
           "id":127,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"${ds}"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_timestamps_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance)","hide":false,"interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_timestamps_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance)","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"_time bytes/query p99 ($ins)",
           "type":"timeseries"
         },{
@@ -2649,19 +2525,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"bytes"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":0,"y":269},
+          "gridPos":{"h":8,"w":12,"x":0,"y":67},
           "id":128,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"${ds}"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_columns_header_indexes_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance)","hide":false,"interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_columns_header_indexes_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance)","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Column header index bytes/query p99 ($ins)",
           "type":"timeseries"
         },{
@@ -2693,19 +2567,17 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"off"}
               },
-              "mappings":[],
               "min":0,
               "noValue":"0",
               "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":80}]},
               "unit":"bytes"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":12,"x":12,"y":269},
+          "gridPos":{"h":8,"w":12,"x":12,"y":67},
           "id":123,
           "options":{"legend":{"calcs":["mean","lastNotNull","max"],"displayMode":"table","placement":"bottom","showLegend":true,"sortBy":"Last *","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
           "pluginVersion":"12.3.0",
-          "targets":[{"datasource":{"type":"prometheus","uid":"${ds}"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_columns_headers_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance)","hide":false,"interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
+          "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":true,"expr":"max(histogram_quantile(0.99, sum(increase(vt_storage_per_query_columns_headers_read_bytes_bucket{ins=~\"$ins\"}[$__rate_interval])) by (instance, vmrange))) by (instance)","interval":"","legendFormat":"{{instance}}","range":true,"refId":"A"}],
           "title":"Column header bytes/query p99 ($ins)",
           "type":"timeseries"
         }
@@ -2720,17 +2592,52 @@
   "tags":["Pigsty","INFRA","VICTORIA","VTRACES","INSTANCE"],
   "templating":{
     "list":[
-      {"current":{},"hide":2,"includeAll":false,"name":"ds","options":[],"query":"prometheus","refresh":1,"regex":"","type":"datasource"},
-      {"allValue":".*","current":{},"datasource":{"type":"prometheus","uid":"$ds"},"definition":"label_values(vm_app_version{cls=\"vtraces\"},ins)","includeAll":false,"name":"ins","options":[],"query":{"qryType":1,"query":"label_values(vm_app_version{cls=\"vtraces\"},ins)","refId":"PrometheusVariableQueryEditor-VariableQuery"},"refresh":1,"regex":"","type":"query"},
-      {"current":{},"datasource":{"type":"prometheus","uid":"$ds"},"definition":"label_values(vm_app_version{ins=\"$ins\"},ip)","hide":2,"name":"ip","options":[],"query":{"qryType":1,"query":"label_values(vm_app_version{ins=\"$ins\"},ip)","refId":"PrometheusVariableQueryEditor-VariableQuery"},"refresh":1,"regex":"","type":"query"},
-      {"baseFilters":[],"datasource":{"type":"prometheus","uid":"$ds"},"filters":[],"name":"adhoc","type":"adhoc"}
+      {"allowCustomValue":true,"current":{},"hide":2,"includeAll":false,"multi":false,"name":"ds","options":[],"query":"prometheus","refresh":1,"regex":"","skipUrlSync":false,"type":"datasource"},
+      {
+        "allValue":".*",
+        "allowCustomValue":true,
+        "current":{},
+        "datasource":{"type":"prometheus","uid":"$ds"},
+        "definition":"label_values(vm_app_version{cls=\"vtraces\"},ins)",
+        "hide":0,
+        "includeAll":false,
+        "multi":false,
+        "name":"ins",
+        "options":[],
+        "query":{"qryType":1,"query":"label_values(vm_app_version{cls=\"vtraces\"},ins)","refId":"PrometheusVariableQueryEditor-VariableQuery"},
+        "refresh":1,
+        "regex":"",
+        "regexApplyTo":"value",
+        "skipUrlSync":false,
+        "sort":0,
+        "type":"query"
+      },{
+        "allowCustomValue":true,
+        "current":{},
+        "datasource":{"type":"prometheus","uid":"$ds"},
+        "definition":"label_values(vm_app_version{ins=\"$ins\"},ip)",
+        "hide":2,
+        "includeAll":false,
+        "multi":false,
+        "name":"ip",
+        "options":[],
+        "query":{"qryType":1,"query":"label_values(vm_app_version{ins=\"$ins\"},ip)","refId":"PrometheusVariableQueryEditor-VariableQuery"},
+        "refresh":1,
+        "regex":"",
+        "regexApplyTo":"value",
+        "skipUrlSync":false,
+        "sort":0,
+        "type":"query"
+      },
+      {"allowCustomValue":true,"datasource":{"type":"prometheus","uid":"$ds"},"enableGroupBy":false,"hide":0,"name":"adhoc","skipUrlSync":false,"type":"adhoc"}
     ]
   },
   "time":{"from":"now-1h","to":"now"},
-  "timepicker":{},
-  "timezone":"",
+  "timepicker":{"refresh_intervals":["5s","10s","30s","1m","5m","15m","30m","1h","2h","1d"]},
+  "timezone":"browser",
   "title":"Victoria Traces",
   "uid":"vtraces-instance",
   "version":1,
-  "weekStart":""
+  "author":"Ruohang Feng (rh@vonng.com)",
+  "license":"https://pigsty.io/docs/about/license/"
 }

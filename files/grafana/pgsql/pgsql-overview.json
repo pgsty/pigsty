@@ -1,33 +1,33 @@
 {
-  "annotations":{"list":[{"builtIn":1,"datasource":{"type":"datasource","uid":"grafana"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"}]},
-  "author":"Ruohang Feng (rh@vonng.com)",
+  "annotations":{"list":[{"builtIn":1,"datasource":{"type":"grafana","uid":"grafana"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"}]},
   "description":"PostgreSQL Monitoring HQ",
   "editable":true,
   "fiscalYearStartMonth":0,
   "graphTooltip":0,
   "id":null,
-  "license":"https://pigsty.io/docs/about/license/",
   "links":[
     { "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Overview"],"targetBlank":false,"title":"Overview","tooltip":"","type":"dashboards","url":"" },{ "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Cluster"] ,"targetBlank":false,"title":"Cluster" ,"tooltip":"","type":"dashboards","url":"" },
     { "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Instance"],"targetBlank":false,"title":"Instance","tooltip":"","type":"dashboards","url":"" },{ "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Database"],"targetBlank":false,"title":"Database","tooltip":"","type":"dashboards","url":"" }
   ],
+  "liveNow":false,
   "panels":[
-    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":0},"id":132,"panels":[],"title":"Overview","type":"row"},
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":0},"id":147,"title":"Overview","type":"row"},
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"links":[{"title":"Node Overview","url":"/d/node-overview?${__url_time_range}"}],"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0}]}},"overrides":[]},
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"links":[{"title":"Node Overview","url":"/d/node-overview?${__url_time_range}"}],"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0}]}}},
       "gridPos":{"h":3,"w":8,"x":0,"y":1},
       "id":99,
       "options":{"colorMode":"background","graphMode":"none","justifyMode":"center","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"1","format":"table","instant":true,"interval":"","legendFormat":"","queryType":"measurements","refId":"A"}],
+      "title":"",
       "transformations":[{"id":"organize","options":{"excludeByName":{"Time":true},"indexByName":{},"renameByName":{"Time":"","Value":"${job}"}}}],
       "type":"stat"
     },
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "fieldConfig":{
-        "defaults":{"color":{"mode":"thresholds"},"mappings":[],"max":2.5,"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0}]}},
+        "defaults":{"color":{"mode":"thresholds"},"max":2.5,"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0}]}},
         "overrides":[
           { "matcher":{"id":"byRegexp","options":"/Mem|Disk|Data/"},"properties":[{"id":"unit","value":"bytes"},{"id":"decimals","value":0}]                                         },{ "matcher":{"id":"byName","options":"Cluster"}          ,"properties":[{"id":"links","value":[{"title":"PGSQL Cluster","url":"/d/pgsql-cluster?${__url_time_range}"}]}]   },
           { "matcher":{"id":"byName","options":"Instance"}         ,"properties":[{"id":"links","value":[{"title":"PGSQL Instance","url":"/d/pgsql-instance?${__url_time_range}"}]}] },{ "matcher":{"id":"byName","options":"Service"}          ,"properties":[{"id":"links","value":[{"title":"PGSQL Service","url":"/d/pgsql-service?${__url_time_range}"}]}]   },
@@ -37,26 +37,27 @@
       "gridPos":{"h":3,"w":16,"x":8,"y":1},
       "id":31,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"center","orientation":"vertical","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":16,"valueSize":14},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"count(count by (cls) (pg_up{job=\"$job\"}))"                                                   ,            "instant":true,"interval":"","legendFormat":"Cluster" ,"queryType":"measurements","refId":"G" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"count(pg_up{job=\"$job\"})"                                                                    ,            "instant":true,"interval":"","legendFormat":"Instance","queryType":"measurements","refId":"I" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"count(pg_in_recovery{job=\"$job\"} == 1)"                                                      ,"hide":true,"instant":true,"interval":"","legendFormat":"Replica" ,"queryType":"measurements","refId":"H" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"count(count by (proxy) (haproxy_server_status{job=\"$job\"}))"                                 ,            "instant":true,"interval":"","legendFormat":"Service" ,"queryType":"measurements","refId":"B" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"count(count(pg_up{job=\"$job\"}) by (ip))"                                                     ,            "instant":true,"interval":"","legendFormat":"Node"    ,"queryType":"measurements","refId":"A" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"count(count by (cls) (pg_up{job=\"$job\"}))"                                          ,            "instant":true,"interval":"","legendFormat":"Cluster" ,"queryType":"measurements","refId":"G" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"count(pg_up{job=\"$job\"})"                                                           ,            "instant":true,"interval":"","legendFormat":"Instance","queryType":"measurements","refId":"I" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"count(pg_in_recovery{job=\"$job\"} == 1)"                                             ,"hide":true,"instant":true,"interval":"","legendFormat":"Replica" ,"queryType":"measurements","refId":"H" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"count(count by (proxy) (haproxy_server_status{job=\"$job\"}))"                        ,            "instant":true,"interval":"","legendFormat":"Service" ,"queryType":"measurements","refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"count(count(pg_up{job=\"$job\"}) by (ip))"                                            ,            "instant":true,"interval":"","legendFormat":"Node"    ,"queryType":"measurements","refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"count(max by (cls,datname) (pg_db_age{job=\"$job\", datname!~'template0|template1'}))",            "instant":true,"interval":"","legendFormat":"DB"      ,"queryType":"measurements","refId":"C" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum(pg:cls:cpu_count{job=\"$job\"})"                                                           ,            "instant":true,"interval":"","legendFormat":"Core"    ,"queryType":"measurements","refId":"E" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum(pg:ins:mem_size{job=\"$job\"})"                                                            ,            "instant":true,"interval":"","legendFormat":"Mem"     ,"queryType":"measurements","refId":"F" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum(pg:ins:fs_size{job=\"$job\"})"                                                             ,"hide":true,"instant":true,"interval":"","legendFormat":"Disk"    ,"queryType":"measurements","refId":"D" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum(max by (cls,datname)(pg_size_bytes{datname!~\"log|wal\", job=\"$job\"}))"                  ,            "instant":true,"interval":"","legendFormat":"Data"    ,"queryType":"measurements","refId":"J" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum(pg:cls:cpu_count{job=\"$job\"})"                                                  ,            "instant":true,"interval":"","legendFormat":"Core"    ,"queryType":"measurements","refId":"E" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum(pg:ins:mem_size{job=\"$job\"})"                                                   ,            "instant":true,"interval":"","legendFormat":"Mem"     ,"queryType":"measurements","refId":"F" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum(pg:ins:fs_size{job=\"$job\"})"                                                    ,"hide":true,"instant":true,"interval":"","legendFormat":"Disk"    ,"queryType":"measurements","refId":"D" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"sum(max by (cls,datname)(pg_size_bytes{datname!~\"log|wal\", job=\"$job\"}))"         ,            "instant":true,"interval":"","legendFormat":"Data"    ,"queryType":"measurements","refId":"J" }
       ],
+      "title":"",
       "type":"stat"
     },
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"ETCD Health server ratio, and number of Postgres cluster in Failsafe mode",
       "fieldConfig":{
-        "defaults":{"color":{"mode":"thresholds"},"links":[{"title":"ETCD Overview","url":"/d/etcd-overview?${__url_time_range}"}],"mappings":[],"noValue":"N/A","thresholds":{"mode":"absolute","steps":[{"color":"red","value":0}]},"unit":"none"},
+        "defaults":{"color":{"mode":"thresholds"},"links":[{"title":"ETCD Overview","url":"/d/etcd-overview?${__url_time_range}"}],"noValue":"N/A","thresholds":{"mode":"absolute","steps":[{"color":"red","value":0}]},"unit":"none"},
         "overrides":[
           {
             "matcher":{"id":"byName","options":"ETCD Status"},
@@ -79,11 +80,12 @@
       "id":127,
       "maxDataPoints":100,
       "options":{"colorMode":"background","graphMode":"none","justifyMode":"auto","orientation":"vertical","percentChangeColorMode":"standard","reduceOptions":{"calcs":["last"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":10},"textMode":"auto","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(up{job=\"etcd\", cls=\"etcd\"}) by (cls) /\n count(up{job=\"etcd\", cls=\"etcd\"}) by (cls)\nor on() vector(0)","format":"time_series","instant":true,"intervalFactor":2,"legendFormat":"ETCD Status"  ,"range":false,"refId":"A","step":600 },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(max by (cls) (patroni_failsafe_mode_is_active{}))"                                                             ,"format":"time_series","instant":true,"intervalFactor":2,"legendFormat":"Failsafe Mode","range":false,"refId":"B","step":600 }
       ],
+      "title":"",
       "type":"stat"
     },
     {
@@ -96,47 +98,47 @@
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#346f36cc","value":0.1},{"color":"#fcdb72","value":0.3},{"color":"#f79f64","value":0.5},{"color":"red","value":0.7},{"color":"#b783af","value":0.9},{"color":"text","value":1}]},
           "unit":"percentunit"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":3,"w":2,"x":4,"y":4},
       "id":82,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:env:cpu_usage{job=\"$job\"}","interval":"","legendFormat":"CPU","refId":"A"}],
+      "title":"",
       "type":"stat"
     },
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"links":[{"title":"PGSQL Alert: Backend Session","url":"/d/pgsql-alert?viewPanel=101&${__url_time_range}"}],"mappings":[{"options":{"match":"null+nan","result":{"color":"gray","index":0,"text":"\u2205"}},"type":"special"}],"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},"unit":"none"},"overrides":[]},
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"links":[{"title":"PGSQL Alert: Backend Session","url":"/d/pgsql-alert?viewPanel=101&${__url_time_range}"}],"mappings":[{"options":{"match":"null+nan","result":{"color":"gray","index":0,"text":"\u2205"}},"type":"special"}],"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},"unit":"none"}},
       "gridPos":{"h":3,"w":2,"x":6,"y":4},
       "id":76,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"sum(pg:cls:num_backends{job=\"$job\"})","interval":"","legendFormat":"Session","refId":"A"}],
+      "title":"",
       "type":"stat"
     },
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"links":[{"title":"PGSQL Alert: Xact Commit","url":"/d/pgsql-alert?viewPanel=98&${__url_time_range}"}],"mappings":[{"options":{"match":"null+nan","result":{"color":"gray","index":0,"text":"\u2205"}},"type":"special"}],"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},"unit":"none"},"overrides":[]},
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"links":[{"title":"PGSQL Alert: Xact Commit","url":"/d/pgsql-alert?viewPanel=98&${__url_time_range}"}],"mappings":[{"options":{"match":"null+nan","result":{"color":"gray","index":0,"text":"\u2205"}},"type":"special"}],"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},"unit":"none"}},
       "gridPos":{"h":3,"w":2,"x":8,"y":4},
       "id":72,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:env:xact_commit_rate1m{job=\"$job\"}","interval":"","legendFormat":"Commit","refId":"A"}],
+      "title":"",
       "type":"stat"
     },
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "fieldConfig":{
-        "defaults":{"color":{"mode":"thresholds"},"links":[{"title":"PGSQL Alert: Rollback","url":"/d/pgsql-alert?viewPanel=99&${__url_time_range}"}],"mappings":[{"options":{"match":"null+nan","result":{"color":"gray","index":0,"text":"\u2205"}},"type":"special"}],"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"#EAB839","value":10}]},"unit":"none"},
-        "overrides":[]
-      },
+      "fieldConfig":{"defaults":{"color":{"mode":"thresholds"},"links":[{"title":"PGSQL Alert: Rollback","url":"/d/pgsql-alert?viewPanel=99&${__url_time_range}"}],"mappings":[{"options":{"match":"null+nan","result":{"color":"gray","index":0,"text":"\u2205"}},"type":"special"}],"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"#EAB839","value":10}]},"unit":"none"}},
       "gridPos":{"h":3,"w":2,"x":10,"y":4},
       "id":73,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:env:xact_rollback_rate1m{job=\"$job\"}","interval":"","legendFormat":"Rollback","refId":"A"}],
+      "title":"",
       "type":"stat"
     },
     {
@@ -151,14 +153,14 @@
           "noValue":"\u2205",
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"#fcdb72","value":0.8},{"color":"#f79f64","value":0.85},{"color":"red","value":0.9},{"color":"#b783af","value":0.95},{"color":"text","value":1}]},
           "unit":"percentunit"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":3,"w":2,"x":12,"y":4},
       "id":87,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"max(pg:ins:space_usage{job=\"$job\"})","interval":"","legendFormat":"Space Max","refId":"A"}],
+      "title":"",
       "type":"stat"
     },
     {
@@ -174,14 +176,14 @@
           "noValue":"\u2205",
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"#fcdb72","value":0.8},{"color":"#f79f64","value":0.85},{"color":"red","value":0.9},{"color":"#b783af","value":0.95},{"color":"text","value":1}]},
           "unit":"percentunit"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":3,"w":2,"x":14,"y":4},
       "id":85,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:env:age{job=\"$job\"}","interval":"","legendFormat":"Age Max","refId":"A"}],
+      "title":"",
       "type":"stat"
     },
     {
@@ -194,14 +196,14 @@
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"#fcdb72","value":1000},{"color":"#f79f64","value":100000},{"color":"red","value":1000000},{"color":"#b783af","value":10000000},{"color":"text","value":100000000}]},
           "unit":"decbytes"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":3,"w":2,"x":16,"y":4},
       "id":102,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"max(pg:cls:lag_bytes{job=\"$job\"})","interval":"","legendFormat":"Lag Max","refId":"A"}],
+      "title":"",
       "type":"stat"
     },
     {
@@ -214,14 +216,14 @@
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"#f79f64","value":1},{"color":"red","value":8}]},
           "unit":"none"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":3,"w":2,"x":18,"y":4},
       "id":78,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"max(pg:cls:ixact_backends{job=\"$job\"})","interval":"","legendFormat":"iXact Max","refId":"A"}],
+      "title":"",
       "type":"stat"
     },
     {
@@ -234,14 +236,14 @@
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"#f79f64","value":1},{"color":"red","value":8}]},
           "unit":"none"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":3,"w":2,"x":20,"y":4},
       "id":77,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":12},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"max(pgbouncer:cls:waiting_clients{job=\"$job\"})","interval":"","legendFormat":"Queue Max","refId":"A"}],
+      "title":"",
       "type":"stat"
     },
     {
@@ -256,20 +258,20 @@
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#346f36cc","value":0.1},{"color":"#fcdb72","value":0.3},{"color":"#f79f64","value":0.5},{"color":"red","value":0.7},{"color":"#b783af","value":0.9}]},
           "unit":"percentunit"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":3,"w":2,"x":22,"y":4},
       "id":79,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12,"valueSize":18},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"max(pg:ins:conn_usage{job=\"$job\"})","instant":false,"interval":"","legendFormat":"Conn Max","refId":"A"}],
+      "title":"",
       "type":"stat"
     },
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "fieldConfig":{
-        "defaults":{"color":{"mode":"thresholds"},"decimals":1,"links":[],"mappings":[{"options":{"-1":{"color":"gray","index":1,"text":"N/A"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"#3e668f","index":0,"text":"No Clusters"}},"type":"special"}],"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0}]},"unit":"percentunit"},
+        "defaults":{"color":{"mode":"thresholds"},"decimals":1,"mappings":[{"options":{"-1":{"color":"gray","index":1,"text":"N/A"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"#3e668f","index":0,"text":"No Clusters"}},"type":"special"}],"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0}]},"unit":"percentunit"},
         "overrides":[
           {"matcher":{"id":"byFrameRefID","options":"A"},"properties":[{"id":"links","value":[{"title":"PGSQL Cluster ${__field.labels.cls}","url":"/d/pgsql-cluster?var-cls=${__field.labels.cls}&${__url_time_range}"}]},{"id":"color","value":{"fixedColor":"#3e668f","mode":"fixed"}}]},
           {"matcher":{"id":"byFrameRefID","options":"B"},"properties":[{"id":"links","value":[{"title":"Redis Cluster ${__field.labels.cls}","url":"/d/redis-cluster?var-cls=${__field.labels.cls}&${__url_time_range}"}]},{"id":"color","value":{"fixedColor":"#cc4637d9","mode":"fixed"}}]},
@@ -289,7 +291,7 @@
       "gridPos":{"h":14,"w":8,"x":0,"y":7},
       "id":142,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["last"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"cls:pressure1{job=\"pgsql\"}"                                                                                           ,"interval":"","legendFormat":"{{ cls }}","range":true,"refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:cls:xact_commit_rate1m{job=\"pgrds\"}"                                                                               ,"interval":"","legendFormat":"{{ cls }}","range":true,"refId":"R" },
@@ -302,7 +304,7 @@
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"Blue = PostgreSQL\n\nGreen = Pgbouncer\n\nAzure = Patroni\n\nPurple = Postgres Exporter\n\nDeep Purple = Pgbouncer Exporter\n\nGray = Pgbackrest Exporter\n\nOrange = PG VIP",
       "fieldConfig":{
-        "defaults":{"color":{"mode":"thresholds"},"links":[],"mappings":[{"options":{"match":"null+nan","result":{"index":0,"text":"No Instances"}},"type":"special"}],"max":1.1,"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#aaaaaa","value":1}]}},
+        "defaults":{"color":{"mode":"thresholds"},"mappings":[{"options":{"match":"null+nan","result":{"index":0,"text":"No Instances"}},"type":"special"}],"max":1.1,"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#aaaaaa","value":1}]}},
         "overrides":[
           { "matcher":{"id":"byFrameRefID","options":"A"},"properties":[{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"text","value":0},{"color":"#3e668f","value":1}]}},{"id":"links","value":[{"title":"PGSQL Instance: ${__field.labels.ins}","url":"/d/pgsql-instance?var-ins=${__field.labels.ins}&${__url_time_range}"}]}]          },
           { "matcher":{"id":"byFrameRefID","options":"B"},"properties":[{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#13212fd6","value":0},{"color":"#346f36cc","value":1}]}},{"id":"links","value":[{"title":"PGSQL Pgbouncer: ${__field.labels.ins}","url":"/d/pgsql-pgbouncer?var-ins=${__field.labels.ins}&${__url_time_range}"}]}] },
@@ -317,7 +319,7 @@
       "gridPos":{"h":14,"w":16,"x":8,"y":7},
       "id":128,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":" min by (ins) (pg_up{job=\"pgsql\"})"                   ,"instant":true,"interval":"","legendFormat":"{{ ins }}"            ,"refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"min by (ins) (pg_up{job=\"pgrds\"})"                    ,"instant":true,"interval":"","legendFormat":"{{ ins }}"            ,"refId":"R" },
@@ -334,17 +336,18 @@
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "fieldConfig":{
-        "defaults":{"color":{"mode":"thresholds"},"decimals":0,"links":[],"mappings":[],"max":1,"min":0,"noValue":"OK","thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#fcdb72","value":1},{"color":"#f79f64","value":4},{"color":"#b783af","value":8},{"color":"text","value":16}]},"unit":"none"},
+        "defaults":{"color":{"mode":"thresholds"},"decimals":0,"max":1,"min":0,"noValue":"OK","thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#fcdb72","value":1},{"color":"#f79f64","value":4},{"color":"#b783af","value":8},{"color":"text","value":16}]},"unit":"none"},
         "overrides":[{"matcher":{"id":"byFrameRefID","options":"A"},"properties":[{"id":"links","value":[{"targetBlank":true,"title":"Pigsty Alertmanager","url":"/alertmgr/"}]}]},{"matcher":{"id":"byFrameRefID","options":"B"},"properties":[{"id":"links","value":[{"title":"PGSQL Alert","url":"/d/pgsql-alert?${__url_time_range}"}]}]}]
       },
       "gridPos":{"h":6,"w":4,"x":0,"y":21},
       "id":118,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["last"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"auto","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"count(ALERTS{alertstate=\"firing\", job=~\"pgsql|pgrds\"}) or on() vector(0)",            "interval":"","legendFormat":"Firing Alert" ,"range":true,"refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"count(ALERTS{alertstate=\"pending\", job=~\"pgsql|pgrds\"})"                 ,"hide":true,"interval":"","legendFormat":"Pending Alert","range":true,"refId":"B" }
       ],
+      "title":"",
       "type":"stat"
     },
     {
@@ -354,20 +357,19 @@
           "color":{"mode":"thresholds"},
           "decimals":0,
           "links":[{"targetBlank":true,"title":"AlertInfo ${__field.labels.alertname}","url":"/alertmgr/#/alerts?filter=%7Balertname%3D%22${__field.labels.alertname}%22%7D"}],
-          "mappings":[],
           "max":1,
           "min":0,
           "noValue":"OK",
           "thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#fcdb72","value":1},{"color":"#f79f64","value":2},{"color":"#b783af","value":4}]},
           "unit":"none"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":6,"w":4,"x":4,"y":21},
       "id":119,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["last"],"fields":"","values":false},"showPercentChange":false,"text":{"titleSize":12},"textMode":"auto","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"count(ALERTS{alertstate=\"firing\", job=~\"pgsql|pgrds\"}) by (alertname, severity)","interval":"","legendFormat":"{{ alertname }}","range":true,"refId":"A"}],
+      "title":"",
       "type":"stat"
     },
     {
@@ -406,7 +408,6 @@
             { "targetBlank":true,"title":"Silence ${__field.labels.alertname} on Cluster ${__field.labels.cls}"  ,"url":"/alertmgr/#/silences/new?filter=%7Bcls%3D%22${__field.labels.cls}%22%2C%20alertname%3D%22${__field.labels.alertname}%22%7D" },
             {                    "title":"PGSQL Cluster for ${__field.labels.cls} : Alerts"                      ,"url":"/d/pgsql-cluster?var-cls=${__field.labels.cls}&viewPanel=78&${__url_time_range}"                                            }
           ],
-          "mappings":[],
           "min":0,
           "noValue":"No Alert",
           "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0}]},
@@ -416,8 +417,8 @@
       },
       "gridPos":{"h":6,"w":16,"x":8,"y":21},
       "id":90,
-      "options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.4.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum without (ins,instance,datname) (ALERTS{alertstate=\"firing\", job=~\"pgsql|pgrds\"})","interval":"","legendFormat":"[{{ severity }}] {{ alertname }} @ {{ cls }}","range":true,"refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},                    "exemplar":false,"expr":"0"                                                                                       ,"interval":"","legendFormat":"Alert"                                       ,             "refId":"C" }
@@ -459,13 +460,12 @@
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"green","value":0.1},{"color":"yellow","value":0.3},{"color":"orange","value":0.5},{"color":"red","value":0.7},{"color":"purple","value":0.9},{"color":"text","value":1}]},
           "unit":"percentunit"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":6,"w":8,"x":0,"y":27},
       "id":88,
-      "options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
-      "pluginVersion":"12.4.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:cls:load5{job=\"$job\"} != -1","interval":"","legendFormat":"{{ cls }}","range":true,"refId":"A"}],
       "title":"Cluster Std Load5",
       "type":"timeseries"
@@ -499,8 +499,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "links":[],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"short"
@@ -512,8 +510,8 @@
       },
       "gridPos":{"h":6,"w":16,"x":8,"y":27},
       "id":144,
-      "options":{"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true,"sortBy":"Mean","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.4.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true,"sortBy":"Mean","sortDesc":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:ins:xact_total_rate5m{job=~\"pgrds\"}","interval":"","intervalFactor":1,"legendFormat":"{{ ins }}","range":true,"refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:ins:xact_total_rate5m{job=~\"pgsql\"}","interval":"","intervalFactor":1,"legendFormat":"{{ ins }}","range":true,"refId":"B" }
@@ -521,12 +519,12 @@
       "title":"Instance TPS",
       "type":"timeseries"
     },
-    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":33},"id":117,"panels":[],"title":"Instances","type":"row"},
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":33},"id":148,"title":"Instances","type":"row"},
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"All postgresql instances in this pigsty deployment",
       "fieldConfig":{
-        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"footer":{"reducers":[]},"inspect":false},"mappings":[],"max":1.2,"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#e3e3e3e0","value":0}]}},
+        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"footer":{"reducers":[]},"inspect":false},"max":1.2,"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#e3e3e3e0","value":0}]}},
         "overrides":[
           {"matcher":{"id":"byName","options":"Instance"},"properties":[{"id":"links","value":[{"title":"PGSQL Instance ${__data.fields.Instance}","url":"/d/pgsql-instance?var-ins=${__data.fields.Instance}&${__url_time_range}"}]}]},
           {"matcher":{"id":"byName","options":"IP"},"properties":[{"id":"custom.width","value":110},{"id":"links","value":[{"title":"PGSQL Node for ${__data.fields.IP}","url":"/d/node-instance?var-id=${__data.fields.IP}&${__url_time_range}"}]}]},
@@ -576,7 +574,7 @@
             "properties":[
               { "id":"unit"              ,"value":"percentunit"                                                                                                                                                                                                                                        },
               { "id":"custom.width"      ,"value":120                                                                                                                                                                                                                                                  },
-              { "id":"color"                                                                                                                                                                                                                                                                           },
+              { "id":"color"             ,"value":null                                                                                                                                                                                                                                                 },
               { "id":"thresholds"        ,"value":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"#346f36cc","value":0.1},{"color":"#fcdb72","value":0.3},{"color":"#f79f64","value":0.5},{"color":"red","value":0.7},{"color":"#b783af","value":0.9},{"color":"text","value":1}]} },
               { "id":"custom.cellOptions","value":{"mode":"gradient","type":"gauge"}                                                                                                                                                                                                                   }
             ]
@@ -597,7 +595,7 @@
                   { "options":{"pattern":"PostgreSQL.*","result":{"color":"#3E668F","index":9,"text":"PostgreSQL"}}   ,"type":"regex" }
                 ]
               },
-              {"id":"color"},{"id":"custom.cellOptions","value":{"type":"color-background"}}
+              {"id":"color","value":null},{"id":"custom.cellOptions","value":{"type":"color-background"}}
             ]
           },{
             "matcher":{"id":"byName","options":"Mem"},
@@ -627,7 +625,7 @@
       "gridPos":{"h":12,"w":17,"x":0,"y":34},
       "id":70,
       "options":{"cellHeight":"sm","showHeader":true,"sortBy":[{"desc":false,"displayName":"Instance"}]},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"min by (cls,ins,ip) (up{job=\"$job\"})"                                                             ,"format":"table",            "instant":true,"interval":"","legendFormat":"","refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins) (pg:ins:load1{job=\"$job\"})"                                                          ,"format":"table",            "instant":true,"interval":"","legendFormat":"","refId":"B" },
@@ -747,11 +745,12 @@
       "gridPos":{"h":22,"w":7,"x":17,"y":34},
       "id":130,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"text":{},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.4.0",
+      "pluginVersion":"13.0.0",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"ins:pressure1{job=\"$job\"}"         ,               "interval":"","legendFormat":"{{ ins }}","range":true ,"refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"min by (ins) (up{job=\"$job\"}) == 0","instant":true,"interval":"","legendFormat":"{{ ins }}","range":false,"refId":"B" }
       ],
+      "title":"",
       "type":"stat"
     },
     {
@@ -836,12 +835,12 @@
     {
       "collapsed":true,
       "gridPos":{"h":1,"w":24,"x":0,"y":56},
-      "id":121,
+      "id":149,
       "panels":[
         {
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "fieldConfig":{
-            "defaults":{"color":{"mode":"thresholds"},"links":[{"title":"ETCD Overview","url":"/d/etcd-overview?${__url_time_range}"}],"mappings":[],"noValue":"N/A","thresholds":{"mode":"absolute","steps":[{"color":"red"}]},"unit":"none"},
+            "defaults":{"color":{"mode":"thresholds"},"links":[{"title":"ETCD Overview","url":"/d/etcd-overview?${__url_time_range}"}],"noValue":"N/A","thresholds":{"mode":"absolute","steps":[{"color":"red","value":null}]},"unit":"none"},
             "overrides":[
               {
                 "matcher":{"id":"byName","options":"ETCD Health"},
@@ -860,7 +859,7 @@
               {"matcher":{"id":"byName","options":"Failsafe Active"},"properties":[{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#346f36cc"},{"color":"#cc4637d9","value":1}]}},{"id":"mappings","value":[{"options":{"0":{"index":0,"text":"Healthy"}},"type":"value"}]},{"id":"unit","value":"Cluster"}]}
             ]
           },
-          "gridPos":{"h":14,"w":4,"x":0,"y":71},
+          "gridPos":{"h":14,"w":4,"x":0,"y":57},
           "id":126,
           "maxDataPoints":100,
           "options":{"colorMode":"background","graphMode":"none","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["last"],"fields":"","values":false},"showPercentChange":false,"textMode":"auto","wideLayout":true},
@@ -869,16 +868,17 @@
             { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(etcd_server_id{job=\"etcd\", cls=\"etcd\"}) by (cls) /\n count(etcd_server_id{job=\"etcd\", cls=\"etcd\"}) by (cls)\nor on() vector(0)","format":"time_series","instant":true,"intervalFactor":2,"legendFormat":"ETCD Health"    ,"range":false,"refId":"A","step":600 },
             { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum(patroni_failsafe_mode_is_active{})"                                                                                                    ,"format":"time_series","instant":true,"intervalFactor":2,"legendFormat":"Failsafe Active","range":false,"refId":"B","step":600 }
           ],
+          "title":"",
           "type":"stat"
         },
         {
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"etcd is the DCS used by patroni",
           "fieldConfig":{
-            "defaults":{"color":{"mode":"thresholds"},"custom":{"axisPlacement":"auto","fillOpacity":70,"hideFrom":{"legend":false,"tooltip":false,"viz":false},"insertNulls":false,"lineWidth":0,"spanNulls":false},"decimals":0,"mappings":[],"min":-1,"thresholds":{"mode":"absolute","steps":[{"color":"#cc4637d9"},{"color":"#346f36cc","value":1}]}},
+            "defaults":{"color":{"mode":"thresholds"},"custom":{"axisPlacement":"auto","fillOpacity":70,"hideFrom":{"legend":false,"tooltip":false,"viz":false},"insertNulls":false,"lineWidth":0,"spanNulls":false},"decimals":0,"min":-1,"thresholds":{"mode":"absolute","steps":[{"color":"#cc4637d9","value":null},{"color":"#346f36cc","value":1}]}},
             "overrides":[{"matcher":{"id":"byName","options":"ETCD Cluster Healthy"},"properties":[{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#cc4637d9"},{"color":"#3e668f","value":1}]}}]}]
           },
-          "gridPos":{"h":7,"w":13,"x":4,"y":71},
+          "gridPos":{"h":7,"w":13,"x":4,"y":57},
           "id":125,
           "links":[{"title":"ETCD Overview","url":"/d/etcd-overview?${__url_time_range}"}],
           "options":{"alignValue":"left","legend":{"displayMode":"list","placement":"bottom","showLegend":false},"mergeValues":true,"rowHeight":0.96,"showValue":"never","tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
@@ -894,10 +894,10 @@
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"How long since patroni the HA agent successfully connect to DCS:etcd.\nMax amoung cluster\n\nvalue larger than 20s needs extra attention",
           "fieldConfig":{
-            "defaults":{"color":{"mode":"thresholds"},"decimals":1,"links":[{"title":"PGSQL Patroni : ${__field.labels.cls}","url":"/d/pgsql-patroni?var-cls=${__field.labels.cls}&${__url_time_range}"}],"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"}]}},
+            "defaults":{"color":{"mode":"thresholds"},"decimals":1,"links":[{"title":"PGSQL Patroni : ${__field.labels.cls}","url":"/d/pgsql-patroni?var-cls=${__field.labels.cls}&${__url_time_range}"}],"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":null}]}},
             "overrides":[{"matcher":{"id":"byName","options":"Value"},"properties":[{"id":"unit","value":"s"},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#346f36cc"},{"color":"#346f36cc","value":1},{"color":"#f79f64","value":20},{"color":"red","value":30},{"color":"#b783af","value":60},{"color":"text","value":300}]}}]}]
           },
-          "gridPos":{"h":14,"w":7,"x":17,"y":71},
+          "gridPos":{"h":14,"w":7,"x":17,"y":57},
           "id":122,
           "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"showPercentChange":false,"textMode":"auto","wideLayout":true},
           "pluginVersion":"12.0.2",
@@ -933,13 +933,11 @@
                 "stacking":{"group":"A","mode":"none"},
                 "thresholdsStyle":{"mode":"dashed+area"}
               },
-              "mappings":[],
-              "thresholds":{"mode":"absolute","steps":[{"color":"green"},{"color":"orange","value":20},{"color":"red","value":30},{"color":"purple","value":60},{"color":"text","value":300}]},
+              "thresholds":{"mode":"absolute","steps":[{"color":"green","value":null},{"color":"orange","value":20},{"color":"red","value":30},{"color":"purple","value":60},{"color":"text","value":300}]},
               "unit":"s"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":7,"w":13,"x":4,"y":78},
+          "gridPos":{"h":7,"w":13,"x":4,"y":64},
           "id":146,
           "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
           "pluginVersion":"12.0.2",
@@ -954,7 +952,7 @@
     {
       "collapsed":true,
       "gridPos":{"h":1,"w":24,"x":0,"y":57},
-      "id":108,
+      "id":150,
       "panels":[
         {
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
@@ -983,13 +981,13 @@
               },
               "links":[{"title":"PGSQL Service : ${__field.labels.proxy}","url":"/d/pgsql-service?var-svc=${__field.labels.proxy}&${__url_time_range}"}],
               "mappings":[{"options":{"match":"null+nan","result":{"color":"#808080","index":1}},"type":"special"}],
-              "thresholds":{"mode":"absolute","steps":[{"color":"#cc4637d9"},{"color":"#346f36cc","value":1}]}
-            },
-            "overrides":[]
+              "thresholds":{"mode":"absolute","steps":[{"color":"#cc4637d9","value":null},{"color":"#346f36cc","value":1}]}
+            }
           },
-          "gridPos":{"h":6,"w":24,"x":0,"y":188},
+          "gridPos":{"h":6,"w":24,"x":0,"y":58},
           "id":136,
           "options":{"legend":{"calcs":["max","last"],"displayMode":"table","placement":"right","showLegend":true,"sortBy":"Max","sortDesc":true},"tooltip":{"mode":"single","sort":"none"}},
+          "pluginVersion":"",
           "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum by (cls,proxy) (haproxy_backend_current_sessions{proxy!=\"stats\"})","instant":false,"legendFormat":"{{ proxy }}","range":true,"refId":"A"}],
           "title":"Service Session",
           "type":"timeseries"
@@ -1001,13 +999,13 @@
               "custom":{"fillOpacity":60,"hideFrom":{"legend":false,"tooltip":false,"viz":false},"insertNulls":false,"lineWidth":0,"spanNulls":false},
               "links":[{"title":"PGSQL Service : ${__field.labels.proxy}","url":"/d/pgsql-service?var-svc=${__field.labels.proxy}&${__url_time_range}"}],
               "mappings":[{"options":{"match":"null+nan","result":{"color":"#808080","index":1}},"type":"special"}],
-              "thresholds":{"mode":"absolute","steps":[{"color":"#cc4637d9"},{"color":"#346f36cc","value":1}]}
-            },
-            "overrides":[]
+              "thresholds":{"mode":"absolute","steps":[{"color":"#cc4637d9","value":null},{"color":"#346f36cc","value":1}]}
+            }
           },
-          "gridPos":{"h":17,"w":24,"x":0,"y":194},
+          "gridPos":{"h":17,"w":24,"x":0,"y":64},
           "id":135,
           "options":{"alignValue":"left","legend":{"displayMode":"list","placement":"bottom","showLegend":false},"mergeValues":true,"rowHeight":0.9,"showValue":"never","tooltip":{"mode":"single","sort":"none"}},
+          "pluginVersion":"",
           "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum by (cls,proxy) (haproxy_server_status{state=\"UP\"}) > bool 0","instant":false,"legendFormat":"{{ proxy }}","range":true,"refId":"A"}],
           "title":"Service Health",
           "type":"state-timeline"
@@ -1019,17 +1017,16 @@
               "color":{"mode":"thresholds"},
               "decimals":4,
               "links":[{"title":"PGSQL Service : ${__field.labels.proxy}","url":"/d/pgsql-service?var-svc=${__field.labels.proxy}&${__url_time_range}"}],
-              "mappings":[],
-              "thresholds":{"mode":"absolute","steps":[{"color":"text"},{"color":"#7771a4","value":0.9},{"color":"#b783af","value":0.95},{"color":"#cc4637d9","value":0.99},{"color":"#f79f64","value":0.999},{"color":"#fcdb72","value":0.9999},{"color":"#3e668f","value":0.99999},{"color":"#346f36cc","value":1}]},
+              "thresholds":{"mode":"absolute","steps":[{"color":"text","value":null},{"color":"#7771a4","value":0.9},{"color":"#b783af","value":0.95},{"color":"#cc4637d9","value":0.99},{"color":"#f79f64","value":0.999},{"color":"#fcdb72","value":0.9999},{"color":"#3e668f","value":0.99999},{"color":"#346f36cc","value":1}]},
               "unit":"percentunit"
-            },
-            "overrides":[]
+            }
           },
-          "gridPos":{"h":8,"w":24,"x":0,"y":211},
+          "gridPos":{"h":8,"w":24,"x":0,"y":81},
           "id":141,
           "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"auto","reduceOptions":{"calcs":["lastNotNull"],"fields":"","values":false},"textMode":"value_and_name"},
           "pluginVersion":"10.1.5",
           "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"avg_over_time(haproxy:cls:service_up{}[1d])","instant":true,"legendFormat":"{{ proxy }}","range":false,"refId":"A"}],
+          "title":"",
           "type":"stat"
         }
       ],
@@ -1039,13 +1036,13 @@
     {
       "collapsed":true,
       "gridPos":{"h":1,"w":24,"x":0,"y":58},
-      "id":134,
+      "id":151,
       "panels":[
         {
           "datasource":{"type":"prometheus","uid":"ds-prometheus"},
           "description":"Database of this cluster ${cls}",
           "fieldConfig":{
-            "defaults":{"color":{"mode":"fixed"},"custom":{"align":"center","cellOptions":{"type":"auto"},"inspect":false},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"}]}},
+            "defaults":{"color":{"mode":"fixed"},"custom":{"align":"center","cellOptions":{"type":"auto"},"inspect":false},"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":null}]}},
             "overrides":[
               {
                 "matcher":{"id":"byName","options":"Database"},
@@ -1101,7 +1098,7 @@
                 "properties":[
                   { "id":"custom.width"      ,"value":85                                                                                                                                                                                                                                                                                },
                   { "id":"custom.cellOptions","value":{"type":"color-text"}                                                                                                                                                                                                                                                             },
-                  { "id":"color"                                                                                                                                                                                                                                                                                                        },
+                  { "id":"color"             ,"value":null                                                                                                                                                                                                                                                                              },
                   { "id":"mappings"          ,"value":[{"options":{"-1":{"color":"#3e668f","index":1,"text":"NO LIMIT"}},"type":"value"},{"options":{"match":"null+nan","result":{"color":"gray","index":0,"text":"N/A"}},"type":"special"},{"options":{"from":0,"result":{"color":"#f79f64","index":2},"to":99999999},"type":"range"}] }
                 ]
               },
@@ -1110,7 +1107,7 @@
               {"matcher":{"id":"byName","options":"Cluster"},"properties":[{"id":"links","value":[{"title":"PGSQL Databases : ${cls}.${datname}","url":"/d/pgsql-databases?var-cls=${__data.fields.Cluster}&var-datname=${__data.fields.Database}"}]},{"id":"custom.minWidth","value":120},{"id":"custom.filterable","value":true}]}
             ]
           },
-          "gridPos":{"h":11,"w":24,"x":0,"y":191},
+          "gridPos":{"h":11,"w":24,"x":0,"y":59},
           "id":140,
           "options":{"cellHeight":"sm","footer":{"countRows":false,"fields":"","reducer":["sum"],"show":false},"showHeader":true,"sortBy":[{"desc":false,"displayName":"Database"}]},
           "pluginVersion":"10.1.5",
@@ -1121,6 +1118,7 @@
             { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (ins,datname) (pg_db_conn_limit{datname!~\"wal|log|template\\\\d\"})"        ,"format":"table","instant":true,"interval":"","legendFormat":"Conn Limit","refId":"F" },
             { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"sum by (ins,datname) (pg_db_numbackends{datname!~\"wal|log|template\\\\d\"})"       ,"format":"table","instant":true,"interval":"","legendFormat":"Conn Limit","refId":"C" }
           ],
+          "title":"",
           "transformations":[
             {"id":"seriesToColumns","options":{"byField":"datname"}},
             {
@@ -1145,10 +1143,11 @@
   "tags":["Pigsty","PGSQL","Overview","HOME"],
   "templating":{"list":[{"current":{},"description":"Environment identifier (pgsql by default)","hide":2,"label":"Environment","name":"job","query":"pgsql","skipUrlSync":true,"type":"constant"}]},
   "time":{"from":"now-1h","to":"now"},
-  "timepicker":{},
+  "timepicker":{"refresh_intervals":["5s","10s","30s","1m","5m","15m","30m","1h","2h","1d"]},
   "timezone":"browser",
   "title":"PGSQL Overview",
   "uid":"pgsql-overview",
   "version":1,
-  "weekStart":""
+  "author":"Ruohang Feng (rh@vonng.com)",
+  "license":"https://pigsty.io/docs/about/license/"
 }

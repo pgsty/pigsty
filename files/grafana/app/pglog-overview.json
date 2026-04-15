@@ -1,16 +1,15 @@
 {
-  "annotations":{"list":[{"builtIn":1,"datasource":{"type":"datasource","uid":"grafana"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"}]},
-  "author":"Ruohang Feng (rh@vonng.com)",
+  "annotations":{"list":[{"builtIn":1,"datasource":{"type":"grafana","uid":"grafana"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"}]},
   "description":"PostgreSQL CSVLog Sample Analysis",
   "editable":true,
   "fiscalYearStartMonth":0,
   "graphTooltip":0,
   "id":null,
-  "license":"https://pigsty.io/docs/about/license/",
   "links":[
     { "asDropdown":false,"icon":"bolt"         ,"includeVars":false,"keepTime":false,"tags":[]       ,"targetBlank":false,"title":"Auto Zoom","tooltip":"Adjust Time Range to Sample Log Events","type":"link"      ,"url":"/d/pglog-overview?from=${ts_begin}&to=${ts_end}" },
     { "asDropdown":true ,"icon":"external link","includeVars":true ,"keepTime":true ,"tags":["PGLOG"],"targetBlank":false,"title":"PGLOG"    ,"tooltip":""                                      ,"type":"dashboards","url":""                                                }
   ],
+  "liveNow":false,
   "panels":[
     {
       "datasource":{"type":"postgres","uid":"ds-meta"},
@@ -35,12 +34,12 @@
             "pointSize":5,
             "scaleDistribution":{"type":"linear"},
             "showPoints":"never",
+            "showValues":false,
             "spanNulls":true,
             "stacking":{"group":"A","mode":"normal"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
-          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"},{"color":"red","value":80}]},
+          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"red","value":80}]},
           "unit":"none"
         },
         "overrides":[{"matcher":{"id":"byName","options":"ERROR"},"properties":[{"id":"color","value":{"fixedColor":"#cc4637d9","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"FATAL"},"properties":[{"id":"color","value":{"fixedColor":"#b783af","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"LOG"},"properties":[{"id":"color","value":{"fixedColor":"#346f36cc","mode":"fixed"}}]}]
@@ -48,9 +47,22 @@
       "gridPos":{"h":5,"w":24,"x":0,"y":0},
       "id":17,
       "interval":"1m",
-      "options":{"legend":{"calcs":["sum"],"displayMode":"list","placement":"bottom","showLegend":false},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.0.0",
-      "targets":[{"format":"time_series","group":[],"metricColumn":"none","rawQuery":true,"rawSql":"SELECT $__timeGroup(ts, $__interval) AS \"time\", count(*) AS value \nFROM ${log} WHERE $__timeFilter(ts)\nGROUP BY 1 ORDER BY 1;","refId":"A","select":[[{"params":["value"],"type":"column"}]],"timeColumn":"time","where":[{"name":"$__timeFilter","params":[],"type":"macro"}]}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["sum"],"displayMode":"list","placement":"bottom","showLegend":false},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
+      "targets":[
+        {
+          "datasource":{"type":"postgres","uid":"ds-meta"},
+          "format":"time_series",
+          "group":[],
+          "metricColumn":"none",
+          "rawQuery":true,
+          "rawSql":"SELECT $__timeGroup(ts, $__interval) AS \"time\", count(*) AS value \nFROM ${log} WHERE $__timeFilter(ts)\nGROUP BY 1 ORDER BY 1;",
+          "refId":"A",
+          "select":[[{"params":["value"],"type":"column"}]],
+          "timeColumn":"time",
+          "where":[{"name":"$__timeFilter","params":[],"type":"macro"}]
+        }
+      ],
       "title":"Log Events",
       "type":"timeseries"
     },
@@ -77,12 +89,12 @@
             "pointSize":5,
             "scaleDistribution":{"type":"linear"},
             "showPoints":"never",
+            "showValues":false,
             "spanNulls":true,
             "stacking":{"group":"A","mode":"normal"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
-          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"},{"color":"red","value":80}]},
+          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"red","value":80}]},
           "unit":"none"
         },
         "overrides":[{"matcher":{"id":"byName","options":"ERROR"},"properties":[{"id":"color","value":{"fixedColor":"#cc4637d9","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"FATAL"},"properties":[{"id":"color","value":{"fixedColor":"#b783af","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"LOG"},"properties":[{"id":"color","value":{"fixedColor":"#346f36cc","mode":"fixed"}}]}]
@@ -90,9 +102,22 @@
       "gridPos":{"h":6,"w":8,"x":0,"y":5},
       "id":8,
       "interval":"1s",
-      "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
-      "pluginVersion":"12.0.0",
-      "targets":[{"format":"time_series","group":[],"metricColumn":"none","rawQuery":true,"rawSql":"SELECT $__timeGroup(ts, $__interval) AS \"time\", \n       level AS metric, count(*) AS value \nFROM ${log}\nWHERE $__timeFilter(ts)\nGROUP BY 1, 2\nORDER BY 1, 2;","refId":"A","select":[[{"params":["value"],"type":"column"}]],"timeColumn":"time","where":[{"name":"$__timeFilter","params":[],"type":"macro"}]}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"13.0.0",
+      "targets":[
+        {
+          "datasource":{"type":"postgres","uid":"ds-meta"},
+          "format":"time_series",
+          "group":[],
+          "metricColumn":"none",
+          "rawQuery":true,
+          "rawSql":"SELECT $__timeGroup(ts, $__interval) AS \"time\", \n       level AS metric, count(*) AS value \nFROM ${log}\nWHERE $__timeFilter(ts)\nGROUP BY 1, 2\nORDER BY 1, 2;",
+          "refId":"A",
+          "select":[[{"params":["value"],"type":"column"}]],
+          "timeColumn":"time",
+          "where":[{"name":"$__timeFilter","params":[],"type":"macro"}]
+        }
+      ],
       "title":"Log Events by Level",
       "type":"timeseries"
     },
@@ -119,22 +144,34 @@
             "pointSize":5,
             "scaleDistribution":{"type":"linear"},
             "showPoints":"never",
+            "showValues":false,
             "spanNulls":true,
             "stacking":{"group":"A","mode":"normal"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
-          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"},{"color":"red","value":80}]},
+          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"red","value":80}]},
           "unit":"none"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":6,"w":8,"x":8,"y":5},
       "id":2,
       "interval":"1s",
-      "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
-      "pluginVersion":"12.0.0",
-      "targets":[{"format":"time_series","group":[],"metricColumn":"none","rawQuery":true,"rawSql":"SELECT $__timeGroup(ts, $__interval) AS \"time\", \n       code AS metric, count(*) AS value \nFROM ${log}\nWHERE $__timeFilter(ts)\nGROUP BY 1, 2\nORDER BY 1, 2;","refId":"A","select":[[{"params":["value"],"type":"column"}]],"timeColumn":"time","where":[{"name":"$__timeFilter","params":[],"type":"macro"}]}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"13.0.0",
+      "targets":[
+        {
+          "datasource":{"type":"postgres","uid":"ds-meta"},
+          "format":"time_series",
+          "group":[],
+          "metricColumn":"none",
+          "rawQuery":true,
+          "rawSql":"SELECT $__timeGroup(ts, $__interval) AS \"time\", \n       code AS metric, count(*) AS value \nFROM ${log}\nWHERE $__timeFilter(ts)\nGROUP BY 1, 2\nORDER BY 1, 2;",
+          "refId":"A",
+          "select":[[{"params":["value"],"type":"column"}]],
+          "timeColumn":"time",
+          "where":[{"name":"$__timeFilter","params":[],"type":"macro"}]
+        }
+      ],
       "title":"Log Events by Error Code",
       "type":"timeseries"
     },
@@ -161,23 +198,23 @@
             "pointSize":5,
             "scaleDistribution":{"type":"linear"},
             "showPoints":"never",
+            "showValues":false,
             "spanNulls":true,
             "stacking":{"group":"A","mode":"normal"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
-          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"},{"color":"red","value":80}]},
+          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"red","value":80}]},
           "unit":"none"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":6,"w":8,"x":16,"y":5},
       "id":9,
       "interval":"1s",
-      "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
-      "pluginVersion":"12.0.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"13.0.0",
       "targets":[
         {
+          "datasource":{"type":"postgres","uid":"ds-meta"},
           "editorMode":"code",
           "format":"time_series",
           "group":[],
@@ -217,12 +254,12 @@
             "pointSize":5,
             "scaleDistribution":{"type":"linear"},
             "showPoints":"never",
+            "showValues":false,
             "spanNulls":true,
             "stacking":{"group":"A","mode":"normal"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
-          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"},{"color":"red","value":80}]},
+          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"red","value":80}]},
           "unit":"none"
         },
         "overrides":[{"matcher":{"id":"byName","options":"<null>"},"properties":[{"id":"color","value":{"fixedColor":"rgb(182, 182, 182)","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"<n/a>"},"properties":[{"id":"color","value":{"fixedColor":"red","mode":"fixed"}}]},{"matcher":{"id":"byName","options":"<system>"},"properties":[{"id":"color","value":{"fixedColor":"dark-red","mode":"fixed"}}]}]
@@ -230,10 +267,11 @@
       "gridPos":{"h":7,"w":8,"x":0,"y":11},
       "id":5,
       "interval":"1s",
-      "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
-      "pluginVersion":"12.0.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"13.0.0",
       "targets":[
         {
+          "datasource":{"type":"postgres","uid":"ds-meta"},
           "editorMode":"code",
           "format":"time_series",
           "group":[],
@@ -273,12 +311,12 @@
             "pointSize":5,
             "scaleDistribution":{"type":"linear"},
             "showPoints":"never",
+            "showValues":false,
             "spanNulls":true,
             "stacking":{"group":"A","mode":"normal"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
-          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"},{"color":"red","value":80}]},
+          "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"red","value":80}]},
           "unit":"none"
         },
         "overrides":[{"matcher":{"id":"byName","options":"<null>"},"properties":[{"id":"color","value":{"fixedColor":"rgb(182, 182, 182)","mode":"fixed"}}]}]
@@ -286,10 +324,11 @@
       "gridPos":{"h":7,"w":8,"x":8,"y":11},
       "id":6,
       "interval":"1s",
-      "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
-      "pluginVersion":"12.0.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"13.0.0",
       "targets":[
         {
+          "datasource":{"type":"postgres","uid":"ds-meta"},
           "format":"time_series",
           "group":[],
           "metricColumn":"none",
@@ -307,15 +346,16 @@
     {
       "datasource":{"type":"postgres","uid":"ds-meta"},
       "fieldConfig":{
-        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"inspect":false},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"},{"color":"red","value":80}]},"unit":"none"},
-        "overrides":[{"matcher":{"id":"byName","options":"App"},"properties":[{"id":"custom.width"}]},{"matcher":{"id":"byName","options":"Count"},"properties":[{"id":"custom.width","value":80}]}]
+        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"footer":{"reducers":[]},"inspect":false},"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"red","value":80}]},"unit":"none"},
+        "overrides":[{"matcher":{"id":"byName","options":"App"},"properties":[{"id":"custom.width","value":null}]},{"matcher":{"id":"byName","options":"Count"},"properties":[{"id":"custom.width","value":80}]}]
       },
       "gridPos":{"h":7,"w":4,"x":16,"y":11},
       "id":12,
-      "options":{"cellHeight":"sm","footer":{"countRows":false,"fields":"","reducer":["sum"],"show":false},"showHeader":true,"sortBy":[{"desc":true,"displayName":"Count"}]},
-      "pluginVersion":"12.0.0",
+      "options":{"cellHeight":"sm","showHeader":true,"sortBy":[{"desc":true,"displayName":"Count"}]},
+      "pluginVersion":"13.0.0",
       "targets":[
         {
+          "datasource":{"type":"postgres","uid":"ds-meta"},
           "editorMode":"code",
           "format":"table",
           "group":[],
@@ -336,15 +376,16 @@
     {
       "datasource":{"type":"postgres","uid":"ds-meta"},
       "fieldConfig":{
-        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"inspect":false},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"},{"color":"red","value":80}]},"unit":"none"},
-        "overrides":[{"matcher":{"id":"byName","options":"App"},"properties":[{"id":"custom.width"}]},{"matcher":{"id":"byName","options":"Count"},"properties":[{"id":"custom.width","value":80}]}]
+        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"footer":{"reducers":[]},"inspect":false},"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"red","value":80}]},"unit":"none"},
+        "overrides":[{"matcher":{"id":"byName","options":"App"},"properties":[{"id":"custom.width","value":null}]},{"matcher":{"id":"byName","options":"Count"},"properties":[{"id":"custom.width","value":80}]}]
       },
       "gridPos":{"h":7,"w":4,"x":20,"y":11},
       "id":7,
-      "options":{"cellHeight":"sm","footer":{"countRows":false,"fields":"","reducer":["sum"],"show":false},"showHeader":true,"sortBy":[{"desc":true,"displayName":"Count"}]},
-      "pluginVersion":"12.0.0",
+      "options":{"cellHeight":"sm","showHeader":true,"sortBy":[{"desc":true,"displayName":"Count"}]},
+      "pluginVersion":"13.0.0",
       "targets":[
         {
+          "datasource":{"type":"postgres","uid":"ds-meta"},
           "editorMode":"code",
           "format":"table",
           "group":[],
@@ -365,7 +406,7 @@
     {
       "datasource":{"type":"postgres","uid":"ds-meta"},
       "fieldConfig":{
-        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"filterable":false,"inspect":false},"mappings":[],"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc"}]}},
+        "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"filterable":false,"footer":{"reducers":[]},"inspect":false},"thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]}},
         "overrides":[
           {"matcher":{"id":"byName","options":"Time"},"properties":[{"id":"custom.width","value":190}]},{"matcher":{"id":"byName","options":"Conn"},"properties":[{"id":"custom.width","value":140},{"id":"custom.filterable","value":true}]},{"matcher":{"id":"byName","options":"PID"},"properties":[{"id":"custom.width","value":75},{"id":"custom.filterable","value":true}]},
           {"matcher":{"id":"byName","options":"Line"},"properties":[{"id":"custom.width","value":30}]},{"matcher":{"id":"byName","options":"Session"},"properties":[{"id":"custom.width","value":150},{"id":"links","value":[{"title":"PGLOG Session for ${__data.fields.Session}","url":"/d/pglog-session?var-sid=${__data.fields.Session}&${__url_time_range}"}]},{"id":"custom.filterable","value":true}]},
@@ -379,8 +420,10 @@
               { "id":"custom.cellOptions","value":{"mode":"basic","type":"color-background"}                                                                                                                                                                                                                                                                                                                       },
               { "id":"custom.filterable" ,"value":true                                                                                                                                                                                                                                                                                                                                                             }
             ]
+          },{
+            "matcher":{"id":"byName","options":"Code"},
+            "properties":[{"id":"custom.width","value":80},{"id":"unit","value":"string"},{"id":"custom.cellOptions","value":{"type":"color-text"}},{"id":"mappings","value":[{"options":{"00000":{"color":"#346f36cc","index":0}},"type":"value"}]},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#cc4637d9","value":0}]}},{"id":"custom.filterable","value":true}]
           },
-          {"matcher":{"id":"byName","options":"Code"},"properties":[{"id":"custom.width","value":80},{"id":"unit","value":"string"},{"id":"custom.cellOptions","value":{"type":"color-text"}},{"id":"mappings","value":[{"options":{"00000":{"color":"#346f36cc","index":0}},"type":"value"}]},{"id":"thresholds","value":{"mode":"absolute","steps":[{"color":"#cc4637d9"}]}},{"id":"custom.filterable","value":true}]},
           {"matcher":{"id":"byName","options":"Appname"},"properties":[{"id":"custom.width","value":180},{"id":"custom.filterable","value":true}]},{"matcher":{"id":"byName","options":"Backend"},"properties":[{"id":"custom.width","value":112}]},
           {"matcher":{"id":"byName","options":"Query"},"properties":[{"id":"custom.minWidth","value":250},{"id":"custom.align","value":"left"},{"id":"custom.inspect","value":true}]},{"matcher":{"id":"byName","options":"Message"},"properties":[{"id":"custom.cellOptions","value":{"type":"auto"}},{"id":"custom.align","value":"left"},{"id":"custom.inspect","value":true},{"id":"custom.minWidth","value":300}]},
           {"matcher":{"id":"byName","options":"Username"},"properties":[{"id":"custom.width","value":120},{"id":"custom.filterable","value":true}]},{"matcher":{"id":"byName","options":"Database"},"properties":[{"id":"custom.width","value":100},{"id":"custom.filterable","value":true}]},
@@ -389,10 +432,11 @@
       },
       "gridPos":{"h":15,"w":24,"x":0,"y":18},
       "id":11,
-      "options":{"cellHeight":"sm","footer":{"countRows":false,"enablePagination":true,"fields":"","reducer":["sum"],"show":false},"showHeader":true,"sortBy":[{"desc":false,"displayName":"Time"}]},
-      "pluginVersion":"12.0.0",
+      "options":{"cellHeight":"sm","enablePagination":true,"showHeader":true,"sortBy":[{"desc":false,"displayName":"Time"}]},
+      "pluginVersion":"13.0.0",
       "targets":[
         {
+          "datasource":{"type":"postgres","uid":"ds-meta"},
           "editorMode":"code",
           "format":"table",
           "group":[],
@@ -423,10 +467,9 @@
     {
       "collapsed":true,
       "gridPos":{"h":1,"w":24,"x":0,"y":33},
-      "id":21,
+      "id":18,
       "panels":[
         {
-          "fieldConfig":{"defaults":{},"overrides":[]},
           "gridPos":{"h":4,"w":24,"x":0,"y":34},
           "id":16,
           "options":{
@@ -435,6 +478,7 @@
             "mode":"markdown"
           },
           "pluginVersion":"12.0.0",
+          "targets":[],
           "title":"Import Commands",
           "type":"text"
         }
@@ -445,19 +489,58 @@
   ],
   "preload":false,
   "refresh":"",
-  "schemaVersion":41,
+  "schemaVersion":42,
   "tags":["APP","PGLOG","Overview"],
   "templating":{
     "list":[
-      {                                                               "description":"Schema qualified csv log table"    ,                                                              "hide":2,"label":"Log Table","skipUrlSync":true,                   "name":"log"     ,"query":"pglog.sample"                                  ,             "type":"constant"                        },
-      { "current":{},"datasource":{"type":"postgres","uid":"ds-meta"},"description":"First log timestamp of this sample","definition":"SELECT min(ts) - '5min'::INTERVAL FROM ${log};","hide":2,"label":"TimeBegin",                   "includeAll":false,"name":"ts_begin","query":"SELECT min(ts) - '5min'::INTERVAL FROM ${log};","options":[],"type":"query"   ,"refresh":1,"regex":"" },
-      { "current":{},"datasource":{"type":"postgres","uid":"ds-meta"},"description":"Last log timestamp of this sample" ,"definition":"SELECT max(ts) + '5min'::INTERVAL FROM ${log};","hide":2,"label":"Time End" ,                   "includeAll":false,"name":"ts_end"  ,"query":"SELECT max(ts) + '5min'::INTERVAL FROM ${log};","options":[],"type":"query"   ,"refresh":1,"regex":"" }
+      {"current":{},"description":"Schema qualified csv log table","hide":2,"label":"Log Table","name":"log","query":"pglog.sample","skipUrlSync":true,"type":"constant"},
+      {
+        "allowCustomValue":true,
+        "current":{},
+        "datasource":{"type":"postgres","uid":"ds-meta"},
+        "definition":"SELECT min(ts) - '5min'::INTERVAL FROM ${log};",
+        "description":"First log timestamp of this sample",
+        "hide":2,
+        "includeAll":false,
+        "label":"TimeBegin",
+        "multi":false,
+        "name":"ts_begin",
+        "options":[],
+        "query":"SELECT min(ts) - '5min'::INTERVAL FROM ${log};",
+        "refresh":1,
+        "regex":"",
+        "regexApplyTo":"value",
+        "skipUrlSync":false,
+        "sort":0,
+        "type":"query"
+      },{
+        "allowCustomValue":true,
+        "current":{},
+        "datasource":{"type":"postgres","uid":"ds-meta"},
+        "definition":"SELECT max(ts) + '5min'::INTERVAL FROM ${log};",
+        "description":"Last log timestamp of this sample",
+        "hide":2,
+        "includeAll":false,
+        "label":"Time End",
+        "multi":false,
+        "name":"ts_end",
+        "options":[],
+        "query":"SELECT max(ts) + '5min'::INTERVAL FROM ${log};",
+        "refresh":1,
+        "regex":"",
+        "regexApplyTo":"value",
+        "skipUrlSync":false,
+        "sort":0,
+        "type":"query"
+      }
     ]
   },
   "time":{"from":"now-24h","to":"now"},
-  "timepicker":{},
+  "timepicker":{"refresh_intervals":["5s","10s","30s","1m","5m","15m","30m","1h","2h","1d"]},
   "timezone":"browser",
   "title":"PGLOG Overview",
   "uid":"pglog-overview",
-  "version":1
+  "version":1,
+  "author":"Ruohang Feng (rh@vonng.com)",
+  "license":"https://pigsty.io/docs/about/license/"
 }

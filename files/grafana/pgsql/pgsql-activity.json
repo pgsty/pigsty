@@ -1,32 +1,28 @@
 {
-  "annotations":{"list":[{"builtIn":1,"datasource":{"type":"datasource","uid":"grafana"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"}]},
-  "author":"Ruohang Feng (rh@vonng.com)",
+  "annotations":{"list":[{"builtIn":1,"datasource":{"type":"grafana","uid":"grafana"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"}]},
   "description":"PostgreSQL Queries for single Instance",
   "editable":true,
   "fiscalYearStartMonth":0,
   "graphTooltip":0,
   "id":null,
-  "license":"https://pigsty.io/docs/about/license/",
   "links":[
     { "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Overview"],"targetBlank":false,"title":"Overview","tooltip":"","type":"dashboards","url":"" },{ "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Cluster"] ,"targetBlank":false,"title":"Cluster" ,"tooltip":"","type":"dashboards","url":"" },
     { "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Instance"],"targetBlank":false,"title":"Instance","tooltip":"","type":"dashboards","url":"" },{ "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Database"],"targetBlank":false,"title":"Database","tooltip":"","type":"dashboards","url":"" }
   ],
+  "liveNow":false,
   "panels":[
     {
       "datasource":{"type":"marcusolsson-static-datasource","uid":"ds-static"},
-      "description":"",
       "fieldConfig":{
-        "defaults":{"color":{"mode":"thresholds"},"mappings":[],"max":2.5,"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0}]}},
+        "defaults":{"color":{"mode":"thresholds"},"max":2.5,"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0}]}},
         "overrides":[{"matcher":{"id":"byFrameRefID","options":"A"},"properties":[{"id":"links","value":[{"title":"PGSQL Instance : ${primary}","url":"/d/pgsql-instance?var-ins=${primary}&${__url_time_range}"}]}]},{"matcher":{"id":"byFrameRefID","options":"B"},"properties":[{"id":"links","value":[{"title":"PGSQL Cluster : ${cls}","url":"/d/pgsql-cluster?var-cls=${cls}&${__url_time_range}"}]}]}]
       },
       "gridPos":{"h":4,"w":8,"x":0,"y":0},
       "id":156,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"/.*/","values":true},"showPercentChange":false,"text":{"titleSize":16,"valueSize":16},"textMode":"value_and_name","wideLayout":true},
-      "pluginVersion":"12.3.0",
-      "targets":[
-        { "datasource":{"type":"marcusolsson-static-datasource","uid":"ds-static"},"frame":{"fields":[{"config":{},"name":"Cluster","type":"string","values":["${cls}"]}],"meta":{},"name":""} ,"hide":false,"refId":"B" },
-        { "datasource":{"type":"marcusolsson-static-datasource","uid":"ds-static"},"frame":{"fields":[{"config":{},"name":"Leader","type":"string","values":["$primary"]}],"meta":{},"name":""},"hide":false,"refId":"A" }
-      ],
+      "pluginVersion":"13.0.0",
+      "targets":[{"datasource":{"type":"marcusolsson-static-datasource","uid":"ds-static"},"frame":{"fields":[{"config":{},"name":"Cluster","type":"string","values":["${cls}"]}],"meta":{},"name":""},"refId":"B"},{"datasource":{"type":"marcusolsson-static-datasource","uid":"ds-static"},"frame":{"fields":[{"config":{},"name":"Leader","type":"string","values":["$primary"]}],"meta":{},"name":""},"refId":"A"}],
+      "title":"",
       "type":"stat"
     },{
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
@@ -37,17 +33,17 @@
           "links":[{"title":"PGSQL Service : ${__field.labels.proxy}","url":"/d/pgsql-service?var-svc=${__field.labels.proxy}&${__url_time_range}"}],
           "mappings":[{"options":{"match":"null+nan","result":{"color":"#808080","index":1}},"type":"special"}],
           "thresholds":{"mode":"absolute","steps":[{"color":"#cc4637d9","value":0},{"color":"#346f36cc","value":1}]}
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":4,"w":16,"x":8,"y":0},
       "id":152,
-      "options":{"alignValue":"left","legend":{"displayMode":"list","placement":"bottom","showLegend":false},"mergeValues":true,"rowHeight":0.9,"showValue":"never","tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "options":{"alignValue":"left","annotations":{"clustering":-1,"multiLane":false},"legend":{"displayMode":"list","placement":"bottom","showLegend":false},"mergeValues":true,"rowHeight":0.9,"showValue":"never","tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","expr":"sum by (cls,proxy) (haproxy_server_status{proxy=~\"$cls-.*\", state=\"UP\"}) > bool 0","instant":false,"legendFormat":"{{ proxy }}","range":true,"refId":"A"}],
+      "title":"",
       "type":"state-timeline"
     },
-    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":4},"id":140,"panels":[],"title":"Load","type":"row"},
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":4},"id":157,"title":"Load","type":"row"},
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"Overall pressure for this PostgreSQL Node and Instance. \nmax(node:ins:cpu_usage, pg:ins:load, pgbouncer:ins:load)",
@@ -78,8 +74,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"area"}
           },
-          "links":[],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":0.7},{"color":"#b783af","value":1}]},
           "unit":"percentunit"
@@ -92,18 +86,17 @@
       },
       "gridPos":{"h":9,"w":12,"x":0,"y":5},
       "id":127,
-      "options":{"legend":{"calcs":["max","last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["max","last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
       "targets":[
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:cls:load1{cls=\"$cls\"}"                   ,"hide":false,"interval":"","legendFormat":"cluster"               ,"range":true,"refId":"C" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:ins:load1{cls=\"$cls\", ins=\"$primary\"}" ,             "interval":"","legendFormat":"{{ ins }} \u2b50\ufe0f","range":true,"refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:ins:load1{cls=\"$cls\", ins!=\"$primary\"}","hide":false,"interval":"","legendFormat":"{{ ins }}"             ,"range":true,"refId":"B" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:cls:load1{cls=\"$cls\"}"                   ,"interval":"","legendFormat":"cluster"               ,"range":true,"refId":"C" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:ins:load1{cls=\"$cls\", ins=\"$primary\"}" ,"interval":"","legendFormat":"{{ ins }} \u2b50\ufe0f","range":true,"refId":"A" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"pg:ins:load1{cls=\"$cls\", ins!=\"$primary\"}","interval":"","legendFormat":"{{ ins }}"             ,"range":true,"refId":"B" }
       ],
       "title":"Postgres Load 1m",
       "type":"timeseries"
     },{
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "description":"",
       "fieldConfig":{
         "defaults":{
           "color":{"mode":"palette-classic"},
@@ -131,8 +124,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"area"}
           },
-          "links":[],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"green","value":0},{"color":"red","value":0.7},{"color":"#b783af","value":1}]},
           "unit":"percentunit"
@@ -145,12 +136,12 @@
       },
       "gridPos":{"h":9,"w":12,"x":12,"y":5},
       "id":138,
-      "options":{"legend":{"calcs":["max","last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["max","last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
       "targets":[
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:cls:cpu_usage_1m{cls=\"$cls\"}"                   ,"hide":false,"interval":"","legendFormat":"cluster"               ,"refId":"C" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:ins:cpu_usage_1m{cls=\"$cls\", ins=\"$primary\"}" ,             "interval":"","legendFormat":"{{ ins }} \u2b50\ufe0f","refId":"A" },
-        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:ins:cpu_usage_1m{cls=\"$cls\", ins!=\"$primary\"}","hide":false,"interval":"","legendFormat":"{{ ins }}"             ,"refId":"B" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:cls:cpu_usage_1m{cls=\"$cls\"}"                   ,"interval":"","legendFormat":"cluster"               ,"refId":"C" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:ins:cpu_usage_1m{cls=\"$cls\", ins=\"$primary\"}" ,"interval":"","legendFormat":"{{ ins }} \u2b50\ufe0f","refId":"A" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:ins:cpu_usage_1m{cls=\"$cls\", ins!=\"$primary\"}","interval":"","legendFormat":"{{ ins }}"             ,"refId":"B" }
       ],
       "title":"CPU Usage 1m",
       "type":"timeseries"
@@ -184,16 +175,14 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Node : Disk Bandwidth for ${__field.labels.ins}","url":"/d/node-instance?var-id=${__field.labels.ins}&viewPanel=45&${__url_time_range}"}],
-          "mappings":[],
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"red","value":80}]},
           "unit":"Bps"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":9,"w":12,"x":0,"y":14},
       "id":142,
-      "options":{"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
       "targets":[
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg_up{cls=\"$cls\"} * 0 + on(ip) node:ins:disk_read_bytes_rate1m" ,"interval":"","legendFormat":"\u25b2{{ ins }}","refId":"A" },
         { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg_up{cls=\"$cls\"} * 0 - on(ip) node:ins:disk_write_bytes_rate1m","interval":"","legendFormat":"\u25bc{{ ins }}","refId":"B" }
@@ -230,21 +219,19 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Node : Network for ${__field.labels.ins}","url":"/d/node-instance?var-ins=${__field.labels.ins}&viewPanel=178&${__url_time_range}"}],
-          "mappings":[],
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"Bps"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":9,"w":12,"x":12,"y":14},
       "id":144,
-      "options":{"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
       "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"node:ins:network_tx_bytes_rate1m{ip=~\"$members\"}","interval":"","legendFormat":"\u25b2{{ ins }}","refId":"A"},{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"- node:ins:network_rx_bytes_rate1m{ip=~\"$members\"}","interval":"","legendFormat":"\u25bc{{ ins }}","refId":"B"}],
       "title":"Transmit/Receive Bandwidth (Interface)",
       "type":"timeseries"
     },
-    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":23},"id":125,"panels":[],"title":"Sessions","type":"row"},
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":23},"id":158,"title":"Sessions","type":"row"},
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "fieldConfig":{
@@ -276,17 +263,15 @@
           },
           "decimals":1,
           "links":[{"title":"PGSQL Database for ${__field.labels.datname}","url":"/d/pgsql-database?var-ins=$ins&var-datname=${__field.labels.datname}&${__url_time_range}"}],
-          "mappings":[],
           "thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"green","value":0.1},{"color":"#fcdb72","value":0.3},{"color":"#f79f64","value":0.5},{"color":"red","value":0.7},{"color":"#b783af","value":0.9}]},
           "unit":"percentunit"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":7,"w":12,"x":0,"y":24},
       "id":121,
-      "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"pg:db:conn_usage{cls=\"$cls\", datname!~'template\\\\d'}","interval":"","legendFormat":"{{ ins }}.{{ datname }}","refId":"A"}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:db:conn_usage{cls=\"$cls\", datname!~'template\\\\d'}","interval":"","legendFormat":"{{ ins }}.{{ datname }}","refId":"A"}],
       "title":"Postgres Conn Usage",
       "type":"timeseries"
     },{
@@ -320,17 +305,15 @@
           },
           "decimals":1,
           "links":[{"title":"PGSQL Database for ${__field.labels.datname}","url":"/d/pgsql-database?var-ins=$ins&var-datname=${__field.labels.datname}&${__url_time_range}"}],
-          "mappings":[],
           "thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0},{"color":"green","value":0.1},{"color":"#fcdb72","value":0.3},{"color":"#f79f64","value":0.5},{"color":"red","value":0.7},{"color":"#b783af","value":0.9}]},
           "unit":"percentunit"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":7,"w":12,"x":12,"y":24},
       "id":130,
-      "options":{"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"pgbouncer:db:conn_usage{cls=\"$cls\", datname!~'pgbouncer|template\\\\d'}","interval":"","legendFormat":"{{ ins }}.{{ datname }}","refId":"A"}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["max"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:db:conn_usage{cls=\"$cls\", datname!~'pgbouncer|template\\\\d'}","interval":"","legendFormat":"{{ ins }}.{{ datname }}","refId":"A"}],
       "title":"Pgbouncer Conn Usage",
       "type":"timeseries"
     },{
@@ -362,17 +345,15 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Instance for ${__field.labels.ins}","url":"/d/pgsql-instance?var-ins=${__field.labels.ins}&${__url_time_range}"}],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"red","value":80}]}
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":8,"w":12,"x":0,"y":31},
       "id":132,
-      "options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"sum by (ins) (pg_activity_count{cls=\"$cls\"})","interval":"","legendFormat":"{{ ins }}","refId":"A"}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"sum by (ins) (pg_activity_count{cls=\"$cls\"})","interval":"","legendFormat":"{{ ins }}","refId":"A"}],
       "title":"Postgres Backends",
       "type":"timeseries"
     },{
@@ -404,17 +385,15 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Instance for ${__field.labels.ins}","url":"/d/pgsql-instance?var-ins=${__field.labels.ins}&${__url_time_range}"}],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]}
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":8,"w":12,"x":12,"y":31},
       "id":146,
-      "options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"sum by (ins) (pg_activity_count{cls=\"$cls\"})","interval":"","legendFormat":"{{ ins }}","refId":"A"}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"sum by (ins) (pg_activity_count{cls=\"$cls\"})","interval":"","legendFormat":"{{ ins }}","refId":"A"}],
       "title":"Postgres Backends (Stacked)",
       "type":"timeseries"
     },{
@@ -446,17 +425,15 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Instance for ${__field.labels.ins}","url":"/d/pgsql-instance?var-ins=${__field.labels.ins}&${__url_time_range}"}],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]}
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":7,"w":12,"x":0,"y":39},
       "id":133,
-      "options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"pgbouncer:ins:active_clients{cls=\"$cls\"}","interval":"","legendFormat":"{{ ins }}","refId":"A"}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:ins:active_clients{cls=\"$cls\"}","interval":"","legendFormat":"{{ ins }}","refId":"A"}],
       "title":"Pgbouncer Clients",
       "type":"timeseries"
     },{
@@ -488,17 +465,15 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Instance for ${__field.labels.ins}","url":"/d/pgsql-instance?var-ins=${__field.labels.ins}&${__url_time_range}"}],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]}
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":7,"w":12,"x":12,"y":39},
       "id":145,
-      "options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
-      "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"pgbouncer:ins:waiting_clients{cls=\"$cls\"}","interval":"","legendFormat":"{{ ins }}","refId":"A"}],
+      "options":{"annotations":{"clustering":-1,"multiLane":false},"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
+      "pluginVersion":"13.0.0",
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:ins:waiting_clients{cls=\"$cls\"}","interval":"","legendFormat":"{{ ins }}","refId":"A"}],
       "title":"Pgbouncer Waiting Clients",
       "type":"timeseries"
     },{
@@ -530,11 +505,9 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Instance for ${__field.labels.server}","url":"/d/pgsql-instance?var-ins=${__field.labels.server}&${__url_time_range}"}],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"red","value":80}]}
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":8,"w":12,"x":0,"y":46},
       "id":134,
@@ -573,12 +546,10 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Proxy for ${__field.labels.ins}","url":"/d/pgsql-proxy?var-ins=${__field.labels.ins}&${__url_time_range}"},{"title":"PGSQL Instance for ${__field.labels.server}","url":"/d/pgsql-instance?var-ins=${__field.labels.server}&${__url_time_range}"}],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"none"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":16,"w":12,"x":12,"y":46},
       "id":137,
@@ -616,11 +587,9 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Instance for ${__field.labels.server}","url":"/d/pgsql-instance?var-ins=${__field.labels.server}&${__url_time_range}"}],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0},{"color":"red","value":80}]}
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":8,"w":12,"x":0,"y":54},
       "id":135,
@@ -630,7 +599,7 @@
       "title":"HAproxy Frontents (Proxy Instance)",
       "type":"timeseries"
     },
-    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":62},"id":123,"panels":[],"title":"Xacts","type":"row"},
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":62},"id":159,"title":"Xacts","type":"row"},
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"Postgres transactions per second according to last 1m, 5m, 15m",
@@ -660,7 +629,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"short"
@@ -676,8 +644,8 @@
       "options":{"legend":{"calcs":["mean","min","max","last"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
       "targets":[
-        { "exemplar":false,"expr":"pg:cls:xact_commit_rate1m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "exemplar":false,"expr":"pg:cls:xact_commit_rate5m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
-        { "exemplar":false,"expr":"pg:cls:xact_commit_rate15m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:cls:xact_commit_rate1m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:cls:xact_commit_rate5m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:cls:xact_commit_rate15m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
       ],
       "title":"Cluster Xact Commit Rate",
       "type":"timeseries"
@@ -710,7 +678,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"short"
@@ -726,14 +693,13 @@
       "options":{"legend":{"calcs":["mean","min","max","last"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
       "targets":[
-        { "exemplar":false,"expr":"pg:cls:xact_rollback_rate1m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "exemplar":false,"expr":"pg:cls:xact_rollback_rate5m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
-        { "exemplar":false,"expr":"pg:cls:xact_rollback_rate15m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:cls:xact_rollback_rate1m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:cls:xact_rollback_rate5m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pg:cls:xact_rollback_rate15m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
       ],
       "title":"Cluster Xact Rollback",
       "type":"timeseries"
     },{
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "description":"",
       "fieldConfig":{
         "defaults":{
           "color":{"mode":"palette-classic"},
@@ -760,7 +726,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0}]},
           "unit":"s"
@@ -776,7 +741,6 @@
       "type":"timeseries"
     },{
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "description":"",
       "fieldConfig":{
         "defaults":{
           "color":{"mode":"palette-classic"},
@@ -803,12 +767,10 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"s"
-        },
-        "overrides":[]
+        }
       },
       "gridPos":{"h":6,"w":12,"x":12,"y":75},
       "id":154,
@@ -846,7 +808,6 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Xacts for ${__field.labels.ins}","url":"/d/pgsql-xacts?var-ins=${__field.labels.ins}&${__url_time_range}"}],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"short"
@@ -857,7 +818,10 @@
       "id":110,
       "options":{"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"sum by (ins) (pg:ins:xact_commit_rate1m{cls=\"$cls\", ins=\"$primary\"})","hide":false,"interval":"","intervalFactor":1,"legendFormat":"{{ ins }} \u2b50\ufe0f","refId":"B"},{"exemplar":false,"expr":"sum by (ins) (pg:ins:xact_commit_rate1m{cls=\"$cls\", ins!=\"$primary\"})","hide":false,"interval":"","intervalFactor":1,"legendFormat":"{{ ins }}","refId":"A"}],
+      "targets":[
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"sum by (ins) (pg:ins:xact_commit_rate1m{cls=\"$cls\", ins=\"$primary\"})" ,"interval":"","intervalFactor":1,"legendFormat":"{{ ins }} \u2b50\ufe0f","refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"sum by (ins) (pg:ins:xact_commit_rate1m{cls=\"$cls\", ins!=\"$primary\"})","interval":"","intervalFactor":1,"legendFormat":"{{ ins }}"             ,"refId":"A" }
+      ],
       "title":"Transaction Commit by Instances",
       "type":"timeseries"
     },{
@@ -889,7 +853,6 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Database for ${__field.labels.datname}","url":"/d/pgsql-database?var-ins=${ins}&var-cls=${cls}&var-datname=${__field.labels.datname}&${__url_time_range}"}],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"short"
@@ -900,7 +863,7 @@
       "id":108,
       "options":{"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"sum by (datname) (pg:db:xact_commit_rate1m{cls=\"$cls\"})","hide":false,"interval":"","intervalFactor":1,"legendFormat":"{{ datname }}","refId":"B"}],
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"sum by (datname) (pg:db:xact_commit_rate1m{cls=\"$cls\"})","interval":"","intervalFactor":1,"legendFormat":"{{ datname }}","refId":"B"}],
       "title":"Transaction Commit by Database",
       "type":"timeseries"
     },{
@@ -932,7 +895,6 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Xacts for ${__field.labels.ins}","url":"/d/pgsql-xacts?var-ins=${__field.labels.ins}&${__url_time_range}"}],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"short"
@@ -943,7 +905,7 @@
       "id":111,
       "options":{"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"sum by (ins) (pg:db:xact_commit_rate1m{cls=\"$cls\"})","hide":false,"interval":"","intervalFactor":1,"legendFormat":"{{ ins }}","refId":"B"}],
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"sum by (ins) (pg:db:xact_commit_rate1m{cls=\"$cls\"})","interval":"","intervalFactor":1,"legendFormat":"{{ ins }}","refId":"B"}],
       "title":"Transaction Commit by Instances (Stacked)",
       "type":"timeseries"
     },{
@@ -975,7 +937,6 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Database for ${__field.labels.datname}","url":"/d/pgsql-database?var-ins=${ins}&var-cls=${cls}&var-datname=${__field.labels.datname}&${__url_time_range}"}],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"short"
@@ -986,7 +947,7 @@
       "id":109,
       "options":{"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"sum by (datname) (pg:db:xact_commit_rate1m{cls=\"$cls\"})","hide":false,"interval":"","intervalFactor":1,"legendFormat":"{{ datname }}","refId":"B"}],
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"sum by (datname) (pg:db:xact_commit_rate1m{cls=\"$cls\"})","interval":"","intervalFactor":1,"legendFormat":"{{ datname }}","refId":"B"}],
       "title":"Transaction Commit by Database (Stacked)",
       "type":"timeseries"
     },{
@@ -1018,7 +979,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"short"
@@ -1034,8 +994,8 @@
       "options":{"legend":{"calcs":["mean","min","max","last"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
       "targets":[
-        { "exemplar":false,"expr":"pgbouncer:cls:xact_rate1m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "exemplar":false,"expr":"pgbouncer:cls:xact_rate5m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
-        { "exemplar":false,"expr":"pgbouncer:cls:xact_rate15m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:xact_rate1m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:xact_rate5m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:xact_rate15m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
       ],
       "title":"Cluster TPS (Pgbouncer)",
       "type":"timeseries"
@@ -1068,7 +1028,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"s"
@@ -1084,13 +1043,13 @@
       "options":{"legend":{"calcs":["mean","min","max","last"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
       "targets":[
-        { "exemplar":false,"expr":"pgbouncer:cls:xact_rt_1m{cls=\"$cls\"}" ,             "interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "exemplar":false,"expr":"pgbouncer:cls:xact_rt_5m{cls=\"$cls\"}" ,"hide":false,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
-        { "exemplar":false,"expr":"pgbouncer:cls:xact_rt_15m{cls=\"$cls\"}","hide":false,"interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:xact_rt_1m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:xact_rt_5m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:xact_rt_15m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
       ],
       "title":"Cluster Xact RT (Pgbouncer)",
       "type":"timeseries"
     },
-    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":109},"id":129,"panels":[],"title":"Queries","type":"row"},
+    {"collapsed":false,"gridPos":{"h":1,"w":24,"x":0,"y":109},"id":160,"title":"Queries","type":"row"},
     {
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
       "description":"Pgbouncer Queries per second according to last 1m, 5m, 15m",
@@ -1120,7 +1079,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"short"
@@ -1136,8 +1094,8 @@
       "options":{"legend":{"calcs":["mean","min","max","last"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
       "targets":[
-        { "exemplar":false,"expr":"pgbouncer:cls:query_rate1m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "exemplar":false,"expr":"pgbouncer:cls:query_rate5m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
-        { "exemplar":false,"expr":"pgbouncer:cls:query_rate15m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:query_rate1m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:query_rate5m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:query_rate15m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
       ],
       "title":"Cluster QPS",
       "type":"timeseries"
@@ -1170,7 +1128,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"s"
@@ -1186,8 +1143,8 @@
       "options":{"legend":{"calcs":["mean","min","max","last"],"displayMode":"table","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
       "targets":[
-        { "exemplar":false,"expr":"pgbouncer:cls:query_rt_1m{cls=\"$cls\"}" ,             "interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "exemplar":false,"expr":"pgbouncer:cls:query_rt_5m{cls=\"$cls\"}" ,"hide":false,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
-        { "exemplar":false,"expr":"pgbouncer:cls:query_rt_15m{cls=\"$cls\"}","hide":false,"interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:query_rt_1m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:query_rt_5m{cls=\"$cls\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:query_rt_15m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
       ],
       "title":"Cluster Query RT",
       "type":"timeseries"
@@ -1220,7 +1177,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"short"
@@ -1236,8 +1192,8 @@
       "options":{"legend":{"calcs":["max","last"],"displayMode":"list","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
       "targets":[
-        { "exemplar":false,"expr":"pgbouncer:ins:query_rate1m{ins=\"$primary\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "exemplar":false,"expr":"pgbouncer:ins:query_rate5m{ins=\"$primary\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
-        { "exemplar":false,"expr":"pgbouncer:ins:query_rate15m{ins=\"$primary\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:ins:query_rate1m{ins=\"$primary\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:ins:query_rate5m{ins=\"$primary\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:ins:query_rate15m{ins=\"$primary\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
       ],
       "title":"Leader ${primary} QPS",
       "type":"timeseries"
@@ -1270,7 +1226,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"s"
@@ -1286,8 +1241,8 @@
       "options":{"legend":{"calcs":["max","last"],"displayMode":"list","placement":"bottom","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
       "targets":[
-        { "exemplar":false,"expr":"pgbouncer:ins:query_rt_1m{ins=\"$primary\"}" ,             "interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "exemplar":false,"expr":"pgbouncer:ins:query_rt_5m{ins=\"$primary\"}" ,"hide":false,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
-        { "exemplar":false,"expr":"pgbouncer:ins:query_rt_15m{ins=\"$primary\"}","hide":false,"interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:ins:query_rt_1m{ins=\"$primary\"}" ,"interval":"","intervalFactor":1,"legendFormat":"1m" ,"refId":"A" },{ "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:ins:query_rt_5m{ins=\"$primary\"}" ,"interval":"","intervalFactor":1,"legendFormat":"5m" ,"refId":"B" },
+        { "datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:ins:query_rt_15m{ins=\"$primary\"}","interval":"","intervalFactor":1,"legendFormat":"15m","refId":"C" }
       ],
       "title":"Leader ${primary} Query RT",
       "type":"timeseries"
@@ -1320,7 +1275,6 @@
             "thresholdsStyle":{"mode":"off"}
           },
           "links":[{"title":"PGSQL Instance for ${__field.labels.ins}","url":"/d/pgsql-instance?var-ins=${__field.labels.ins}&var-cls=${__field.labels.cls}&${__url_time_range}"}],
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"short"
@@ -1331,12 +1285,11 @@
       "id":119,
       "options":{"legend":{"calcs":["mean"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"pgbouncer:cls:query_rate5m{cls=\"$cls\"}","hide":false,"interval":"","intervalFactor":1,"legendFormat":"Cluster","refId":"B"},{"exemplar":false,"expr":"pgbouncer:ins:query_rate5m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"{{ ins }}","refId":"A"}],
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:query_rate5m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"Cluster","refId":"B"},{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:ins:query_rate5m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"{{ ins }}","refId":"A"}],
       "title":"QPS by Instance",
       "type":"timeseries"
     },{
       "datasource":{"type":"prometheus","uid":"ds-prometheus"},
-      "description":"",
       "fieldConfig":{
         "defaults":{
           "color":{"mode":"palette-classic"},
@@ -1363,7 +1316,6 @@
             "stacking":{"group":"A","mode":"none"},
             "thresholdsStyle":{"mode":"off"}
           },
-          "mappings":[],
           "min":0,
           "thresholds":{"mode":"absolute","steps":[{"color":"#346f36cc","value":0}]},
           "unit":"s"
@@ -1377,7 +1329,7 @@
       "id":117,
       "options":{"legend":{"calcs":["last"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"multi","sort":"none"}},
       "pluginVersion":"12.3.0",
-      "targets":[{"exemplar":false,"expr":"pgbouncer:cls:query_rt_1m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"Cluster","refId":"A"},{"exemplar":false,"expr":"pgbouncer:ins:query_rt_1m{cls=\"$cls\"}","hide":false,"interval":"","intervalFactor":1,"legendFormat":"{{ ins }}","refId":"B"}],
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:cls:query_rt_1m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"Cluster","refId":"A"},{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"exemplar":false,"expr":"pgbouncer:ins:query_rt_1m{cls=\"$cls\"}","interval":"","intervalFactor":1,"legendFormat":"{{ ins }}","refId":"B"}],
       "title":"Query RT by Instance",
       "type":"timeseries"
     }
@@ -1389,20 +1341,26 @@
   "templating":{
     "list":[
       {
+        "allowCustomValue":true,
         "current":{},
         "datasource":{"type":"prometheus","uid":"ds-prometheus"},
         "definition":"label_values(pg_up, cls)",
         "description":"Cluster identifier for this postgres instance, cls should be unique among entire environment. such as pg-meta, pg-test",
+        "hide":0,
         "includeAll":false,
         "label":"Cluster",
+        "multi":false,
         "name":"cls",
         "options":[],
         "query":{"query":"label_values(pg_up, cls)","refId":"StandardVariableQuery"},
         "refresh":2,
         "regex":"",
+        "regexApplyTo":"value",
+        "skipUrlSync":false,
         "sort":1,
         "type":"query"
       },{
+        "allowCustomValue":true,
         "current":{},
         "datasource":{"type":"prometheus","uid":"ds-prometheus"},
         "definition":"label_values(pg:cls:leader{cls=\"$cls\"}, ins)",
@@ -1410,14 +1368,18 @@
         "hide":2,
         "includeAll":false,
         "label":"Primary",
+        "multi":false,
         "name":"primary",
         "options":[],
         "query":{"query":"label_values(pg:cls:leader{cls=\"$cls\"}, ins)","refId":"StandardVariableQuery"},
         "refresh":2,
         "regex":"",
+        "regexApplyTo":"value",
+        "skipUrlSync":false,
         "sort":1,
         "type":"query"
       },{
+        "allowCustomValue":true,
         "current":{},
         "datasource":{"type":"prometheus","uid":"ds-prometheus"},
         "definition":"label_values(pg_up{cls=\"$cls\"}, ip)",
@@ -1431,16 +1393,19 @@
         "query":{"query":"label_values(pg_up{cls=\"$cls\"}, ip)","refId":"StandardVariableQuery"},
         "refresh":2,
         "regex":"",
+        "regexApplyTo":"value",
+        "skipUrlSync":false,
         "sort":1,
         "type":"query"
       }
     ]
   },
   "time":{"from":"now-1h","to":"now"},
-  "timepicker":{},
+  "timepicker":{"refresh_intervals":["5s","10s","30s","1m","5m","15m","30m","1h","2h","1d"]},
   "timezone":"browser",
   "title":"PGSQL Activity",
   "uid":"pgsql-activity",
   "version":1,
-  "weekStart":""
+  "author":"Ruohang Feng (rh@vonng.com)",
+  "license":"https://pigsty.io/docs/about/license/"
 }
