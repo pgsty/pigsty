@@ -13,7 +13,7 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 # use different kernels
 ./configure -c pgsql            # Vanilla PostgreSQL kernel with basic features (14~18)
 ./configure -c mssql            # Babelfish kernel with SQL Server wire-compatibility (17)
-./configure -c polar            # PolarDB PG kernel for Aurora / RAC flavor postgres (15)
+./configure -c polar            # PolarDB PG kernel for Aurora / RAC flavor postgres (17)
 ./configure -c ivory            # IvorySQL Kernel for Oracle grammar compatibility (18)
 ./configure -c mysql            # OpenHalo Kernel for MySQL Compatibility (14)
 ./configure -c pgtde            # Percona PostgreSQL Server with TDE (18)
@@ -57,7 +57,7 @@ These are 1-node config template, which can be used to install pigsty on a singl
 
 * [pgsql.yml](pgsql.yml) : Vanilla PostgreSQL kernel with basic features (14~18)
 * [mssql.yml](mssql.yml) : Babelfish kernel with SQL Server wire-compatibility (17)
-* [polar.yml](polar.yml) : PolarDB PG kernel for Aurora / RAC flavor postgres (15)
+* [polar.yml](polar.yml) : PolarDB PG kernel for Aurora / RAC flavor postgres (17)
 * [ivory.yml](ivory.yml) : IvorySQL Kernel for Oracle grammar compatibility (18)
 * [mysql.yml](mysql.yml) : OpenHalo Kernel for MySQL Compatibility (14)
 * [pgtde.yml](pgtde.yml) : Percona PostgreSQL Server with TDE (18)
