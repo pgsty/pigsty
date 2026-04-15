@@ -15,6 +15,7 @@ ENDPOINT = os.environ.get("GRAFANA_ENDPOINT", 'http://i.pigsty/ui')
 USERNAME = os.environ.get("GRAFANA_USERNAME", 'admin')
 PASSWORD = os.environ.get("GRAFANA_PASSWORD", 'pigsty')
 CREATE_FOLDERS = True
+IGNORED_DIRS = {'__pycache__'}
 
 METADB_PASSWORD = 'DBUser.Viewer'
 DEFAULT_DATASOURCES = {
@@ -23,6 +24,14 @@ DEFAULT_DATASOURCES = {
     'ds-meta': {'uid': 'ds-meta', 'orgId': 1, 'name': 'Meta', 'type': 'postgres', 'typeName': 'PostgreSQL', 'access': 'proxy', 'url': '127.0.0.1:5432', 'user': 'dbuser_view', 'database': 'meta', 'basicAuth': False, 'isDefault': False, 'readOnly': True,
      'jsonData': {'connMaxLifetime': 14400, 'maxIdleConns': 10, 'maxOpenConns': 64,  'postgresVersion': 1500, 'sslmode': 'require', 'tlsAuth': False, 'tlsAuthWithCACert': False}, 'secureJsonData': { 'password': METADB_PASSWORD }},
     'ds-vlogs': {'uid': 'ds-vlogs', 'orgId': 1, 'name': 'Loki', 'type': 'loki', 'typeName': 'Loki', 'access': 'proxy', 'url': 'http://127.0.0.1:3100', 'basicAuth': False, 'isDefault': False, 'jsonData': {}, 'readOnly': False}}
+
+
+def is_ignored_dir(name):
+    return name in IGNORED_DIRS
+
+
+def list_dashboard_dir(path):
+    return [name for name in os.listdir(path) if not is_ignored_dir(name)]
 
 
 
@@ -266,7 +275,7 @@ def init_all(dashboard_dir):
 
     # load home dashboards
     folders = []
-    for f in os.listdir(dashboard_dir):
+    for f in list_dashboard_dir(dashboard_dir):
         abs_path = os.path.join(dashboard_dir, f)
         if os.path.isfile(abs_path) and f.endswith('.json')  and not f.startswith('.'):
             print("init dashboard : %s" % f)
@@ -284,7 +293,7 @@ def init_all(dashboard_dir):
         print("init folder %s" % folder_name)
         add_folder(folder_name, folder_name.upper())
 
-        for f in os.listdir(folder_path):
+        for f in list_dashboard_dir(folder_path):
             abs_path = os.path.join(dashboard_dir, folder_name, f)
             if os.path.isfile(abs_path) and f.endswith('.json') and not f.startswith('.'):
                 print("init dashboard: %s / %s" % (folder_name, f))
@@ -294,7 +303,7 @@ def init_all(dashboard_dir):
 def load_all(dashboard_dir):
     """load dashboards and folders"""
     folders = []
-    for f in os.listdir(dashboard_dir):
+    for f in list_dashboard_dir(dashboard_dir):
         abs_path = os.path.join(dashboard_dir, f)
         if os.path.isfile(abs_path) and f.endswith('.json') and not f.startswith('.'):
             print("load dashboard : %s" % f)
@@ -306,7 +315,7 @@ def load_all(dashboard_dir):
         print("add folder %s" % folder_name)
         add_folder(folder_name, folder_name.upper())
 
-        for f in os.listdir(folder_path):
+        for f in list_dashboard_dir(folder_path):
             abs_path = os.path.join(dashboard_dir, folder_name, f)
             if os.path.isfile(abs_path) and f.endswith('.json') and not f.startswith('.'):
                 print("load dashboard: %s / %s" % (folder_name, f))
@@ -319,8 +328,8 @@ def dump_all(dashboard_dir):
         print("dump: create dashboard dir %s" % dashboard_dir)
         os.mkdir(dashboard_dir)
     dbmeta = list_dashboards()
-    folders = set([i.get('folderUid') for i in dbmeta if 'folderUid' in i and i.get('type') != 'dash-folder'])
-    dashdbs = [(i.get('uid'), i.get('folderUid', '.')) for i in dbmeta if i.get('type') != 'dash-folder']
+    folders = set([i.get('folderUid') for i in dbmeta if 'folderUid' in i and i.get('type') != 'dash-folder' and not is_ignored_dir(i.get('folderUid'))])
+    dashdbs = [(i.get('uid'), i.get('folderUid', '.')) for i in dbmeta if i.get('type') != 'dash-folder' and not is_ignored_dir(i.get('folderUid', '.'))]
     for d in folders:
         abs_path = os.path.join(dashboard_dir, d)
         if os.path.isfile(abs_path):
