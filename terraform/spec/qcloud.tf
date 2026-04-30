@@ -2,7 +2,7 @@
 # File      :   qcloud.tf
 # Desc      :   1-node pigsty meta for QCloud / Tencent Cloud (Debian 12/13)
 # Ctime     :   2025-01-07
-# Mtime     :   2025-01-18
+# Mtime     :   2026-04-30
 # Path      :   terraform/spec/qcloud.tf
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -69,7 +69,9 @@ locals {
     arm64 = "SR1.MEDIUM4"   # 2 vCPU, 4 GiB (ARM)
   }
 
-  # Image names for Debian on QCloud
+  # Image names for Debian on QCloud.
+  # TencentCloud exposes major-release OS names; the data source resolves the
+  # current public image for that major version (Pigsty baseline: Debian 12.13 / 13.4).
   image_name_map = {
     amd64 = {
       d12 = "Debian Server 12"

@@ -2,7 +2,7 @@
 # File      :   aws-cn.yml
 # Desc      :   1-node sandbox env on AWS China
 # Ctime     :   2020-05-12
-# Mtime     :   2024-11-19
+# Mtime     :   2026-04-30
 # Path      :   terraform/spec/aws-cn.yml
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -190,6 +190,9 @@ resource "aws_security_group_rule" "public_in" {
 #===============================#
 # https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/instance
 resource "aws_instance" "pigsty-meta" {
+  # Legacy AWS China AMI. Debian's official AWS AMI catalog does not cover China
+  # regions, so do not replace this with a Debian 12/13 AMI without verifying a
+  # regional image ID in the target AWS China account/region first.
   ami                         = "ami-01cb2ecea35798f3f"
   instance_type               = "t2.micro"
   key_name                    = "pigsty-key"

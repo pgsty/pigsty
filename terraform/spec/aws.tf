@@ -2,7 +2,7 @@
 # File      :   aws.tf
 # Desc      :   1-node pigsty meta for AWS Global (Debian 12/13)
 # Ctime     :   2025-01-07
-# Mtime     :   2025-01-07
+# Mtime     :   2026-04-30
 # Path      :   terraform/spec/aws.tf
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -48,7 +48,8 @@ locals {
   }
 
   # Debian AMI owner: 136693071363 (Debian official)
-  # Use data source to find latest Debian AMI
+  # Debian AMI names are rolling per major release; select the latest official
+  # image for the major version (Pigsty baseline: Debian 12.13 / 13.4).
   ami_name_map = {
     amd64 = {
       d12 = "debian-12-amd64-*"

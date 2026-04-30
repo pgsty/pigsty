@@ -2,7 +2,7 @@
 # File      :   aliyun-full.yml
 # Desc      :   4-node full sandbox env for x86_64/aarch64
 # Ctime     :   2020-05-12
-# Mtime     :   2025-01-07
+# Mtime     :   2026-04-30
 # Path      :   terraform/spec/aliyun-full.yml
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -55,7 +55,7 @@ locals {
       el10  = "^rockylinux_10_1_x64"
       d11   = "^debian_11_11_x64"
       d12   = "^debian_12_13_x64"
-      d13   = "^debian_13_3_x64"
+      d13   = "^debian_13_4_x64"
       u20   = "^ubuntu_20_04_x64"
       u22   = "^ubuntu_22_04_x64_20G"
       u24   = "^ubuntu_24_04_x64_20G"
@@ -67,7 +67,7 @@ locals {
       el9   = "^rockylinux_9_7_arm64"
       el10   = "^rockylinux_10_1_arm64"
       d12   = "^debian_12_13_arm64"
-      d13   = "^debian_13_3_arm64"
+      d13   = "^debian_13_4_arm64"
       u22   = "^ubuntu_22_04_arm64_20G"
       u24   = "^ubuntu_24_04_arm64_20G"
     }
@@ -76,9 +76,23 @@ locals {
   selected_instype = local.instance_type_map[var.architecture]
 }
 
+#===========================================================#
+# Terraform Provider
+#===========================================================#
+terraform {
+  required_version = ">= 1.0"
+  required_providers {
+    alicloud = {
+      source  = "aliyun/alicloud"
+      version = "~> 1.250.0"
+    }
+  }
+}
+
 data "alicloud_images" "pigsty_img" {
-  owners     = "system"
-  name_regex = local.selected_images[var.distro]
+  owners      = "system"
+  name_regex  = local.selected_images[var.distro]
+  most_recent = true
 }
 
 #===========================================================#

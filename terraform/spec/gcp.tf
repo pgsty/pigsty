@@ -2,7 +2,7 @@
 # File      :   gcp.tf
 # Desc      :   1-node pigsty meta for Google Cloud (Debian 12/13)
 # Ctime     :   2025-01-07
-# Mtime     :   2025-01-07
+# Mtime     :   2026-04-30
 # Path      :   terraform/spec/gcp.tf
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -53,8 +53,8 @@ locals {
     arm64 = "t2a-standard-2"   # 2 vCPU, 8 GiB (Tau T2A Arm)
   }
 
-  # Debian image families
-  # Project: debian-cloud
+  # Debian image families in project debian-cloud.
+  # Families are rolling per major release (Pigsty baseline: Debian 12.13 / 13.4).
   image_family_map = {
     amd64 = {
       d12 = "debian-12"

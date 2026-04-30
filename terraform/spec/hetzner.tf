@@ -2,7 +2,7 @@
 # File      :   hetzner.tf
 # Desc      :   1-node pigsty meta for Hetzner Cloud (Debian 12/13)
 # Ctime     :   2025-01-07
-# Mtime     :   2025-01-07
+# Mtime     :   2026-04-30
 # Path      :   terraform/spec/hetzner.tf
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -48,7 +48,8 @@ locals {
     arm64 = "cax21"   # 4 vCPU ARM, 8GB RAM, 80GB SSD
   }
 
-  # Hetzner image names
+  # Hetzner image names are rolling per major release
+  # (Pigsty baseline: Debian 12.13 / 13.4).
   image_map = {
     d12 = "debian-12"
     d13 = "debian-13"

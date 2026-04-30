@@ -2,7 +2,7 @@
 # File      :   aliyun-pro.yml
 # Desc      :   5-node building env for x86_64/aarch64
 # Ctime     :   2024-12-12
-# Mtime     :   2026-01-07
+# Mtime     :   2026-04-30
 # Path      :   terraform/spec/aliyun-pro.yml
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -49,7 +49,7 @@ locals {
       el10  = "^rockylinux_10_1_x64"
       d11   = "^debian_11_11_x64"
       d12   = "^debian_12_13_x64"
-      d13   = "^debian_13_3_x64"
+      d13   = "^debian_13_4_x64"
       u20   = "^ubuntu_20_04_x64"
       u22   = "^ubuntu_22_04_x64_20G"
       u24   = "^ubuntu_24_04_x64_20G"
@@ -61,7 +61,7 @@ locals {
       el9   = "^rockylinux_9_7_arm64"
       el10   = "^rockylinux_10_1_arm64"
       d12   = "^debian_12_13_arm64"
-      d13   = "^debian_13_3_arm64"
+      d13   = "^debian_13_4_arm64"
       u22   = "^ubuntu_22_04_arm64_20G"
       u24   = "^ubuntu_24_04_arm64_20G"
     }
@@ -70,6 +70,19 @@ locals {
   selected_instype = local.instance_type_map[var.architecture]
 }
 
+
+#===========================================================#
+# Terraform Provider
+#===========================================================#
+terraform {
+  required_version = ">= 1.0"
+  required_providers {
+    alicloud = {
+      source  = "aliyun/alicloud"
+      version = "~> 1.250.0"
+    }
+  }
+}
 
 
 #===========================================================#
@@ -157,8 +170,9 @@ resource "alicloud_security_group_rule" "allow_all_tcp" {
 # EL9 AMD64 / ARM64
 #======================================#
 data "alicloud_images" "el9_img" {
-  owners     = "system"
-  name_regex = local.selected_images.el9
+  owners      = "system"
+  name_regex  = local.selected_images.el9
+  most_recent = true
 }
 
 resource "alicloud_instance" "pg-el9" {
@@ -190,8 +204,9 @@ output "el9_ip" {
 # EL10 AMD64 / ARM64
 #======================================#
 data "alicloud_images" "el10_img" {
-  owners     = "system"
-  name_regex = local.selected_images.el10
+  owners      = "system"
+  name_regex  = local.selected_images.el10
+  most_recent = true
 }
 
 resource "alicloud_instance" "pg-el10" {
@@ -223,8 +238,9 @@ output "el10_ip" {
 # D12 AMD64 / ARM64
 #======================================#
 data "alicloud_images" "d12_img" {
-  owners     = "system"
-  name_regex = local.selected_images.d12
+  owners      = "system"
+  name_regex  = local.selected_images.d12
+  most_recent = true
 }
 
 resource "alicloud_instance" "pg-d12" {
@@ -256,8 +272,9 @@ output "d12_ip" {
 # D13 AMD64 / ARM64
 #======================================#
 data "alicloud_images" "d13_img" {
-  owners     = "system"
-  name_regex = local.selected_images.d13
+  owners      = "system"
+  name_regex  = local.selected_images.d13
+  most_recent = true
 }
 
 resource "alicloud_instance" "pg-d13" {
@@ -288,10 +305,11 @@ output "d13_ip" {
 #======================================#
 # U22 ARM64
 #======================================#
-# ubuntu_22_04_arm64_20G_alibase_20230712.vhd
+# ubuntu_22_04_arm64_20G_alibase_20260413.vhd
 data "alicloud_images" "u22_img" {
-  owners     = "system"
-  name_regex = local.selected_images.u22
+  owners      = "system"
+  name_regex  = local.selected_images.u22
+  most_recent = true
 }
 
 resource "alicloud_instance" "pg-u22" {
@@ -323,8 +341,9 @@ output "u22_ip" {
 # U24 AMD64 / ARM64
 #======================================#
 data "alicloud_images" "u24_img" {
-  owners     = "system"
-  name_regex = local.selected_images.u24
+  owners      = "system"
+  name_regex  = local.selected_images.u24
+  most_recent = true
 }
 
 resource "alicloud_instance" "pg-u24" {

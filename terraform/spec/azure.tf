@@ -2,7 +2,7 @@
 # File      :   azure.tf
 # Desc      :   1-node pigsty meta for Azure (Debian 12/13)
 # Ctime     :   2025-01-07
-# Mtime     :   2025-01-07
+# Mtime     :   2026-04-30
 # Path      :   terraform/spec/azure.tf
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -47,8 +47,9 @@ locals {
     arm64 = "Standard_B2ps_v2"   # 2 vCPU, 4 GiB (Arm-based)
   }
 
-  # Debian image references
-  # Publisher: Debian, Offer: debian-12 / debian-13
+  # Debian image references.
+  # Azure Marketplace versions are selected with "latest" for each major release
+  # (Pigsty baseline: Debian 12.13 / 13.4).
   image_map = {
     amd64 = {
       d12 = {

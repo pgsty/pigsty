@@ -22,7 +22,7 @@ There are lots of cloud providers out there. Choose one that fits your needs.
 | **AWS**          | [aws.tf](spec/aws.tf)                   | t3.medium / t4g.medium          | ~$30         | Yes         |
 | **Azure**        | [azure.tf](spec/azure.tf)               | Standard_B2s / Standard_B2ps_v2 | ~$30         | Yes         |
 | **GCP**          | [gcp.tf](spec/gcp.tf)                   | e2-medium / t2a-standard-2      | ~$25         | Yes         |
-| **Qcloud**         | [qcloud.tf](spec/qcloud.tf)             | S5.MEDIUM4 / SR1.MEDIUM4        | ~$20         | Yes         |
+| **Qcloud**       | [qcloud.tf](spec/qcloud.tf)             | S5.MEDIUM4 / SR1.MEDIUM4        | ~$20         | Yes         |
 | **Hetzner**      | [hetzner.tf](spec/hetzner.tf)           | cx22 / cax21                    | **~$4.5**    | Yes         |
 | **Vultr**        | [vultr.tf](spec/vultr.tf)               | vc2-2c-4gb                      | ~$20         | No          |
 | **DigitalOcean** | [digitalocean.tf](spec/digitalocean.tf) | s-2vcpu-4gb                     | ~$24         | No          |
@@ -113,12 +113,36 @@ terraform destroy   # Remove all resources (type 'yes' to confirm)
 
 Most templates support these variables:
 
-| Variable       | Description                                            | Default |
-|----------------|--------------------------------------------------------|---------|
-| `distro`       | OS distribution (`d12` = Debian 12, `el10` = EL 10, etc.)  | `d12`   |
-| `architecture` | CPU architecture (`amd64` or `arm64`)                  | `amd64` |
-| `region`       | Cloud region/location                                  | Varies  |
-| `zone`         | Availability zone / subnet zone (provider-specific)    | Varies  |
+| Variable       | Description                                               | Default |
+|----------------|-----------------------------------------------------------|---------|
+| `distro`       | OS distribution (`d12` = Debian 12, `el10` = EL 10, etc.) | `d12`   |
+| `architecture` | CPU architecture (`amd64` or `arm64`)                     | `amd64` |
+| `region`       | Cloud region/location                                     | Varies  |
+| `zone`         | Availability zone / subnet zone (provider-specific)       | Varies  |
+
+Current Aliyun public base image versions used by the templates:
+
+| Code  | Distro           | Latest base image version |
+|-------|------------------|---------------------------|
+| `d12` | Debian 12        | 12.13                     |
+| `d13` | Debian 13        | 13.4                      |
+| `u22` | Ubuntu 22.04 LTS | 22.04.5                   |
+| `u24` | Ubuntu 24.04 LTS | 24.04.4                   |
+
+Aliyun Ubuntu image IDs only include the LTS release (`22_04` / `24_04`), so templates use `most_recent = true` to select the latest point-release image.
+
+Other cloud templates use provider-native rolling image selectors for Debian 12/13:
+
+| Provider | Selector style |
+|----------|----------------|
+| AWS Global | Debian official AMI owner with `debian-12-*` / `debian-13-*` name filters and `most_recent = true` |
+| Azure | Debian Marketplace image references with `version = "latest"` |
+| GCP | `debian-cloud` image families (`debian-12`, `debian-13`, and ARM64 variants) |
+| Tencent Cloud | Public image lookup by `Debian Server 12` / `Debian Server 13` OS name |
+| DigitalOcean / Hetzner / Linode | Provider image slugs for Debian 12/13 major releases |
+| Vultr | Provider OS labels for Debian 12/13 major releases |
+
+These providers generally do not expose stable point-release image IDs such as `12.13` or `13.4`; templates therefore select the latest published image for the major release. The AWS China legacy template keeps its hardcoded regional AMI because Debian's official AWS AMI catalog does not cover China regions.
 
 Override via command line:
 ```bash
