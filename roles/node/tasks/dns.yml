@@ -41,10 +41,17 @@
   block:
 
     # add new nameservers to existing nameservers
+    # read the nameserver field as a token so IPv6 addresses stay intact
     - name: get existing etc resolv
       when: node_dns_method == 'add'
-      shell: grep -E '^nameserver' /etc/resolv.conf  | grep -Eo '[0-9\.]+' | head -n3
-      args: { executable: /bin/bash }
+      changed_when: false
+      check_mode: false
+      failed_when: false
+      command:
+        argv:
+          - awk
+          - '$1 == "nameserver" && $2 != "" && $2 !~ /^[#;]/ { print $2; if (++n == 3) exit }'
+          - /etc/resolv.conf
       register: old_nameservers
 
     - name: generate etc resolv conf
@@ -60,7 +67,7 @@
           nameserver {{ item | replace('${admin_ip}', admin_ip ) }}
           {% endfor %}
           {% if node_dns_method == 'add' %}
-          {% for item in old_nameservers.stdout_lines %}
+          {% for item in old_nameservers.stdout_lines | default([]) %}
           {% if item not in node_dns_servers and item != admin_ip %}
           nameserver {{ item | replace('${admin_ip}', admin_ip ) }}
           {% endif %}
