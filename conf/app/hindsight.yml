@@ -1,0 +1,136 @@
+---
+#==============================================================#
+# File      :   hindsight.yml
+# Desc      :   pigsty config for running 1-node hindsight app
+# Ctime     :   2026-04-09
+# Mtime     :   2026-04-09
+# Docs      :   https://pigsty.io/docs/app/hindsight
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# Hindsight: Agent memory that learns, backed by PostgreSQL
+# GitHub: https://github.com/vectorize-io/hindsight
+# Last Verified upstream deployment files: main branch on 2026-04-09
+#
+# how to use this template:
+#
+#  curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty
+# ./bootstrap                  # prepare local repo & ansible
+# ./configure -c app/hindsight # use this hindsight config template
+# vi pigsty.yml                # IMPORTANT: CHANGE CREDENTIALS / LLM SETTINGS!!
+# ./deploy.yml                 # install pigsty & pgsql
+# ./docker.yml                 # install docker & docker-compose
+# ./app.yml                    # install hindsight with docker-compose
+#
+# To replace domain names:
+#   sed -ie 's/hs.pigsty/hs.yourdomain.com/g; s/hs-api.pigsty/hs-api.yourdomain.com/g' pigsty.yml
+
+
+all:
+  children:
+
+    # the hindsight application
+    hindsight:
+      hosts: { 10.10.10.10: {} }
+      vars:
+        app: hindsight   # specify app name to be installed (in the apps)
+        apps:            # define all applications
+          hindsight:     # app name, should have corresponding ~/pigsty/app/hindsight folder
+            file:
+              - { path: /data/hindsight ,state: directory ,mode: 0755 }
+            conf:
+              # image / published ports
+              HINDSIGHT_VERSION: latest
+              HINDSIGHT_API_PUBLISH_PORT: 8888
+              HINDSIGHT_UI_PUBLISH_PORT: 9999
+              HINDSIGHT_MODEL_CACHE: /data/hindsight
+
+              # database credentials (must match pg_users below)
+              HINDSIGHT_DB_HOST: 10.10.10.10
+              HINDSIGHT_DB_PORT: 5432
+              HINDSIGHT_DB_NAME: hindsight
+              HINDSIGHT_DB_USER: hindsight
+              HINDSIGHT_DB_PASSWORD: DBUser.Hindsight
+              HINDSIGHT_DB_SCHEMA: public
+
+              # default search backend: safest first deployment
+              HINDSIGHT_API_VECTOR_EXTENSION: pgvector
+              HINDSIGHT_API_TEXT_SEARCH_EXTENSION: native
+
+              # default to `none` so the stack boots without an external LLM
+              HINDSIGHT_API_LLM_PROVIDER: none
+              HINDSIGHT_API_LLM_MODEL: gpt-5-mini
+              HINDSIGHT_API_LLM_API_KEY: ''
+
+              # optional: local Ollama on the same host
+              #HINDSIGHT_API_LLM_PROVIDER: ollama
+              #HINDSIGHT_API_LLM_BASE_URL: http://host.docker.internal:11434/v1
+              #HINDSIGHT_API_LLM_MODEL: qwen3:8b
+
+              # optional: multilingual / Chinese retrieval
+              # requires Pigsty extensions vchord + vchord_bm25
+              #HINDSIGHT_API_VECTOR_EXTENSION: vchord
+              #HINDSIGHT_API_TEXT_SEARCH_EXTENSION: vchord
+
+    pg-meta:
+      hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
+      vars:
+        pg_cluster: pg-meta
+        pg_extensions: [ pgvector ]
+        pg_users:
+          - { name: hindsight ,password: DBUser.Hindsight ,pgbouncer: true ,pool_mode: session ,roles: [ dbrole_readwrite ] ,comment: hindsight service user }
+        pg_databases:
+          - { name: hindsight ,owner: hindsight ,extensions: [ vector ] ,comment: Hindsight agent memory database }
+        pg_hba_rules:
+          - { user: hindsight ,db: all ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow hindsight access from local docker network' }
+        pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
+
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
+
+  vars:                               # global variables
+    version: v4.3.0                   # pigsty version string
+    admin_ip: 10.10.10.10             # admin node ip address
+    region: default                   # upstream mirror region: default|china|europe
+    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
+    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+
+    docker_enabled: true              # enable docker on app group
+    #docker_registry_mirrors: ["https://docker.1panel.live","https://docker.1ms.run","https://docker.xuanyuan.me","https://registry-1.docker.io"]
+
+    proxy_env:                        # global proxy env when downloading packages & pull docker images
+      no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.tsinghua.edu.cn"
+      #http_proxy:  127.0.0.1:12345 # add your proxy env here for downloading packages or pull images
+      #https_proxy: 127.0.0.1:12345 # usually the proxy is format as http://user:pass@proxy.xxx.com
+      #all_proxy:   127.0.0.1:12345
+
+    infra_portal:                     # domain names and upstream servers
+      home         : { domain: i.pigsty }
+      hindsight:
+        domain: hs.pigsty
+        endpoint: "10.10.10.10:9999"
+        websocket: false
+        certbot: hs.pigsty
+      hindsight-api:
+        domain: hs-api.pigsty
+        endpoint: "10.10.10.10:8888"
+        websocket: false
+        certbot: hs-api.pigsty
+
+    repo_enabled: false
+    node_repo_modules: node,infra,pgsql
+    pg_version: 18
+
+    #----------------------------------------------#
+    # PASSWORD : https://pigsty.io/docs/setup/security/
+    #----------------------------------------------#
+    grafana_admin_password: pigsty
+    grafana_view_password: DBUser.Viewer
+    pg_admin_password: DBUser.DBA
+    pg_monitor_password: DBUser.Monitor
+    pg_replication_password: DBUser.Replicator
+    patroni_password: Patroni.API
+    haproxy_admin_password: pigsty
+    minio_secret_key: S3User.MinIO
+    etcd_root_password: Etcd.Root
+...
