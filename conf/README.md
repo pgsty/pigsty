@@ -19,7 +19,7 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c pgtde            # Percona PostgreSQL Server with TDE (18)
 ./configure -c oriole           # OrioleDB Kernel for OLTP Enhancement (17)
 ./configure -c agens            # AgensGraph kernel for Graph DB workloads (16)
-./configure -c pgedge           # pgEdge kernel for distributed PostgreSQL workloads (17)
+./configure -c pgedge           # pgEdge kernel for distributed PostgreSQL workloads (18)
 ./configure -c supabase         # PostgreSQL configured for Supabase self-hosting (15~18)
 
 # use multi-node HA templates
@@ -63,7 +63,7 @@ These are 1-node config template, which can be used to install pigsty on a singl
 * [pgtde.yml](pgtde.yml) : Percona PostgreSQL Server with TDE (18)
 * [oriole.yml](oriole.yml) : OrioleDB Kernel for OLTP Enhancement (17)
 * [agens.yml](agens.yml) : AgensGraph kernel for Graph DB workloads (16)
-* [pgedge.yml](pgedge.yml) : pgEdge kernel for distributed PostgreSQL workloads (17)
+* [pgedge.yml](pgedge.yml) : pgEdge kernel for distributed PostgreSQL workloads (18)
 * [supabase.yml](supabase.yml) : PostgreSQL configured for Supabase self-hosting (15~18)
 
 You can add more nodes later, or use [HA config templates](#ha-templates) to plan it at the beginning.
