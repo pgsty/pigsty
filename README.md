@@ -5,10 +5,10 @@
 [![Version: v4.3.0](https://img.shields.io/badge/version-v4.3.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases)
 [![License: Apache-2.0](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://pigsty.io/docs/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
-[![Extensions: 504](https://img.shields.io/badge/extensions-504-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pigsty.io/ext/list)
+[![Extensions: 510](https://img.shields.io/badge/extensions-510-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pigsty.io/ext/list)
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/pgsty/pigsty)
 
-Enterprise-Grade Open-Source **PostgreSQL** Distribution with HA, PITR, IaC, Monitor, and 504 PG extensions.
+Enterprise-Grade Open-Source **PostgreSQL** Distribution with HA, PITR, IaC, Monitor, and 510 PG extensions.
 
 > "**P**ostgreSQL **I**n **G**reat **STY**le": **P**ostgres, **I**nfras, **G**raphics, **S**ervice, **T**oolbox, it's all **Y**ours.
 
@@ -25,7 +25,7 @@ curl -fsSL https://repo.pigsty.io/get | bash -s v4.3.0
 
 ## Features
 
-- **Extensible**:   **504** [**PG Extensions**](https://pigsty.io/ext/list) & **12** [**PG Kernels**](https://pigsty.io/docs/pgsql/kernel) available, Packed for [**14 Linux Platforms**](https://pigsty.io/docs/ref/linux), Battery-Included.
+- **Extensible**:   **510** [**PG Extensions**](https://pigsty.io/ext/list) & **12** [**PG Kernels**](https://pigsty.io/docs/pgsql/kernel) available, Packed for [**14 Linux Platforms**](https://pigsty.io/docs/ref/linux), Battery-Included.
 - **Reliable**:     Self-healing [**HA**](https://pigsty.io/docs/concept/ha) clusters with pre-configured [**PITR**](https://pigsty.io/docs/pgsql/backup) and built-in [**ACL**](https://pigsty.io/docs/pgsql/config/acl), [**CA & SSL**](https://pigsty.io/docs/infra/admin/cert) secure best practice.
 - **Observable**:   SOTA monitoring for [**PG**](https://demo.pigsty.io/ui/d/pgrds-instance/pgrds-instance) / [**Infra**](https://pigsty.io/docs/infra) / [**Node**](https://pigsty.io/docs/node) based on the **Victoria** & **Grafana** stack: [**Demo**](https://demo.pigsty.io) & [**Gallery**](https://github.com/pgsty/pigsty/wiki/Gallery).
 - **Scalable**:     Auto-routed & pooled customizable database [**Services**](https://pigsty.io/docs/pgsql/service) [**Access**](https://pigsty.io/docs/pgsql/service#access-service) with **haproxy**, **pgbouncer**, and **VIP**.
@@ -54,7 +54,7 @@ You can even use many exotic [**PG Kernel Forks**](https://pigsty.io/docs/pgsql/
 
 |                            Kernel                            |           Key Feature            | Description                                       |
 |:------------------------------------------------------------:|:--------------------------------:|:--------------------------------------------------|
-|  [PostgreSQL](https://pigsty.io/docs/pgsql/kernel/postgres)  |       **Battery-Included**       | Original PGDG PostgreSQL with 504 extensions      |
+|  [PostgreSQL](https://pigsty.io/docs/pgsql/kernel/postgres)  |       **Battery-Included**       | Original PGDG PostgreSQL with 510 extensions      |
 |       [Supabase](https://pigsty.io/docs/app/supabase)        |      **Backend as Service**      | BaaS over PostgreSQL, Firebase alternative        |
 |      [Citus](https://pigsty.io/docs/pgsql/kernel/citus)      |      **Horizontal Scaling**      | Distributive PostgreSQL via native extension      |
 |  [Babelfish](https://pigsty.io/docs/pgsql/kernel/babelfish)  |    **SQL Server Simulation**     | Microsoft SQL Server wire-compatibility           |
@@ -68,7 +68,7 @@ You can even use many exotic [**PG Kernel Forks**](https://pigsty.io/docs/pgsql/
 |     [pgEdge](https://pigsty.io/docs/pgsql/kernel/pgedge)     |  **Multi-Master Distributive**   | Geo-Distributive multi-writer Postgres            |
 | [Cloudberry](https://pigsty.io/docs/pgsql/kernel/cloudberry) |      **MPP Data Warehouse**      | Greenplum 7 Apache OSS Fork                       |
 
-And gather the synergistic superpowers of all [**504 PostgreSQL Extensions**](https://pigsty.io/ext/list) all together:
+And gather the synergistic superpowers of all [**510 PostgreSQL Extensions**](https://pigsty.io/ext/list) all together:
 
 [![ecosystem](https://github.com/user-attachments/assets/c952441e-5ff7-4acb-aace-dd3021d28622)](https://pigsty.io/ext)
 
@@ -80,7 +80,7 @@ And gather the synergistic superpowers of all [**504 PostgreSQL Extensions**](ht
 [![Linux](https://img.shields.io/badge/Linux-ARM64-%23FCC624?style=flat&logo=linux&labelColor=FCC624&logoColor=black)](https://pigsty.io/docs/node)
 [![EL Support: 8/9/10](https://img.shields.io/badge/EL-8/9/10-red?style=flat&logo=redhat&logoColor=red)](https://pigsty.io/docs/ref/linux#el)
 [![Debian Support: 12/13](https://img.shields.io/badge/Debian-12/13-%23A81D33?style=flat&logo=debian&logoColor=%23A81D33)](https://pigsty.io/docs/ref/linux#debian)
-[![Ubuntu Support: 22/24](https://img.shields.io/badge/Ubuntu-22/24-%23E95420?style=flat&logo=ubuntu&logoColor=%23E95420)](https://pigsty.io/docs/ref/linux#ubuntu)
+[![Ubuntu Support: 22/24/26](https://img.shields.io/badge/Ubuntu-22/24/26-%23E95420?style=flat&logo=ubuntu&logoColor=%23E95420)](https://pigsty.io/docs/ref/linux#ubuntu)
 [![Docker Image](https://img.shields.io/badge/Docker-v4.3.0-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/setup/docker)
 
 [**Prepare**](https://pigsty.io/docs/deploy/prepare) a fresh `x86_64` / `aarch64` node runs any [**compatible**](https://pigsty.io/docs/ref/linux) **Linux** OS Distros, then [**Install**](https://pigsty.io/docs/setup/install#install) **Pigsty** with:
@@ -534,7 +534,7 @@ pg-citus: # citus group
 
 
 You can deploy different kinds of PostgreSQL instance such as [`primary`](https://pigsty.io/docs/pgsql/config/cluster#primary), [`replica`](https://pigsty.io/docs/pgsql/config/cluster#replica), [`offline`](https://pigsty.io/docs/pgsql/config/cluster#offline), [`delayed`](https://pigsty.io/docs/pgsql/config/cluster#delayed), [`sync standby`](https://pigsty.io/docs/pgsql/config/cluster#sync-standby), etc.,
-and customize with scene-optimize [**config templates**](https://pigsty.io/docs/concept/iac/template) and all **504** [**extensions**](https://pigsty.io/ext/list) out-of-the-box.
+and customize with scene-optimize [**config templates**](https://pigsty.io/docs/concept/iac/template) and all **510** [**extensions**](https://pigsty.io/ext/list) out-of-the-box.
 
 You can define [**Users**](https://pigsty.io/docs/pgsql/config/user), [**Databases**](https://pigsty.io/docs/pgsql/config/db), [**Service**](https://pigsty.io/docs/pgsql/service), [**HBAs**](https://pigsty.io/docs/pgsql/config/hba) and other entities with code and provision them in one pass.
 
@@ -628,18 +628,19 @@ There are other pro, beta, or pilot modules, and there will be more coming in th
 
 ## Compatibility
 
-We recommend using RockyLinux 10.1 / 9.7, Debian 13.4 / 12.13, and Ubuntu 24.04.4 / 22.04.5 for production use.
+We recommend using RockyLinux 10.1 / 9.7, Debian 13.4 / 12.13, and Ubuntu 26.04.0 / 24.04.4 / 22.04.5 for production use.
 
 Pigsty runs directly on bare Linux, and focuses on actively maintained mainstream LTS [**Linux Distributions**](https://pigsty.io/docs/ref/linux):
 
-|   Code   | Distro                 | Minor   |                      `x86_64`                       | Status |                       `aarch64`                       | Status |
-|:--------:|------------------------|---------|:---------------------------------------------------:|:------:|:-----------------------------------------------------:|:------:|
-| **EL10** | RHEL / Rocky / Alma 10 | 10.1    | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) |  🌐📦  | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) |  🌐📦  |
-| **EL9**  | RHEL / Rocky / Alma 9  | 9.7     |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  |  🌐📦  |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  |  🌐📦  |
-| **U24**  | Ubuntu 24.04 (noble)   | 24.04.4 |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  |  🌐📦  |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  |  🌐📦  |
-| **U22**  | Ubuntu 22.04 (jammy)   | 22.04.5 |  [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml)  |  🌐📦  |  [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml)  |  🌐📦  |
-| **D13**  | Debian 13 (trixie)     | 13.4    |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  |  🌐📦  |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |  🌐📦  |
-| **D12**  | Debian 12 (bookworm)   | 12.13   |  [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml)  |  🌐📦  |  [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml)  |  🌐📦  |
+|   Code   | Distro                  | Minor   |                      `x86_64`                       | Status |                       `aarch64`                       | Status |
+|:--------:|-------------------------|---------|:---------------------------------------------------:|:------:|:-----------------------------------------------------:|:------:|
+| **EL10** | RHEL / Rocky / Alma 10  | 10.1    | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) |  🌐📦  | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) |  🌐📦  |
+| **EL9**  | RHEL / Rocky / Alma 9   | 9.7     |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  |  🌐📦  |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  |  🌐📦  |
+| **U26**  | Ubuntu 26.04 (resolute) | 26.04.0 |  [`u26.x86_64`](roles/node_id/vars/u26.x86_64.yml)  |  🌐📦  |  [`u26.aarch64`](roles/node_id/vars/u26.aarch64.yml)  |  🌐📦  |
+| **U24**  | Ubuntu 24.04 (noble)    | 24.04.4 |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  |  🌐📦  |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  |  🌐📦  |
+| **U22**  | Ubuntu 22.04 (jammy)    | 22.04.5 |  [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml)  |  🌐📦  |  [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml)  |  🌐📦  |
+| **D13**  | Debian 13 (trixie)      | 13.4    |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  |  🌐📦  |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |  🌐📦  |
+| **D12**  | Debian 12 (bookworm)    | 12.13   |  [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml)  |  🌐📦  |  [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml)  |  🌐📦  |
 
 
 ## Sponsors

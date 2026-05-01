@@ -33,6 +33,7 @@ D12_PKG=pigsty-pkg-$(VERSION).d12.${ARCH}.tgz
 D13_PKG=pigsty-pkg-$(VERSION).d13.${ARCH}.tgz
 U22_PKG=pigsty-pkg-$(VERSION).u22.${ARCH}.tgz
 U24_PKG=pigsty-pkg-$(VERSION).u24.${ARCH}.tgz
+U26_PKG=pigsty-pkg-$(VERSION).u26.${ARCH}.tgz
 META?=10.10.10.10
 OS?=el9
 PKG?=""
@@ -387,7 +388,7 @@ cc: release copy-src copy-pkg use-src use-pkg
 copy-src:
 	scp "dist/${VERSION}/${SRC_PKG}" $(META):~/pigsty.tgz
 
-# copy offline packages (set OS=el8/el9/el10/d12/d13/u22/u24)
+# copy offline packages (set OS=el8/el9/el10/d12/d13/u22/u24/u26)
 copy-pkg:
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.${OS}.${ARCH}.tgz $(META):/tmp/pkg.tgz
 copy-el8:
@@ -404,6 +405,8 @@ copy-u22:
 	scp dist/${VERSION}/$(PKG)${U22_PKG} $(META):/tmp/pkg.tgz
 copy-u24:
 	scp dist/${VERSION}/$(PKG)${U24_PKG} $(META):/tmp/pkg.tgz
+copy-u26:
+	scp dist/${VERSION}/$(PKG)${U26_PKG} $(META):/tmp/pkg.tgz
 copy-app:
 	scp dist/${VERSION}/${APP_PKG} $(META):~/app.tgz
 	ssh -t $(META) 'rm -rf ~/app; tar -xf app.tgz; rm -rf app.tgz'
@@ -430,9 +433,11 @@ copy-src-oss:
 	scp "dist/${VERSION}/${SRC_PKG}" el9:~/pigsty.tgz
 	scp "dist/${VERSION}/${SRC_PKG}" d12:~/pigsty.tgz
 	scp "dist/${VERSION}/${SRC_PKG}" u24:~/pigsty.tgz
+	scp "dist/${VERSION}/${SRC_PKG}" u26:~/pigsty.tgz
 	ssh -t el9 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 	ssh -t d12 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 	ssh -t u24 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
+	ssh -t u26 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 copy-src-pro: copy-src-oss
 	scp "dist/${VERSION}/${SRC_PKG}" el8:~/pigsty.tgz
 	scp "dist/${VERSION}/${SRC_PKG}" u22:~/pigsty.tgz
@@ -451,12 +456,15 @@ copy-src-deb:
 	scp "dist/${VERSION}/${SRC_PKG}" d12:~/pigsty.tgz
 	scp "dist/${VERSION}/${SRC_PKG}" u22:~/pigsty.tgz
 	scp "dist/${VERSION}/${SRC_PKG}" u24:~/pigsty.tgz
+	scp "dist/${VERSION}/${SRC_PKG}" u26:~/pigsty.tgz
 	ssh -t  d12 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 	ssh -t  u22 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 	ssh -t  u24 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
+	ssh -t  u26 'rm -rf ~/pigsty; tar -xf pigsty.tgz; rm -rf pigsty.tgz'
 	ssh -t  d12 'cd ~/pigsty && ./configure -i 10.10.10.12'
 	ssh -t  u22 'cd ~/pigsty && ./configure -i 10.10.10.22'
 	ssh -t  u24 'cd ~/pigsty && ./configure -i 10.10.10.24'
+	ssh -t  u26 'cd ~/pigsty && ./configure -i 10.10.10.26'
 
 
 #------------------------------#
@@ -579,6 +587,7 @@ meta12: cmeta del vmeta12 up ssh #copy-d12 use-pkg
 meta13: cmeta del vmeta13 up ssh #copy-d13 use-pkg
 meta22: cmeta del vmeta22 up ssh #copy-u22 use-pkg
 meta24: cmeta del vmeta24 up ssh #use-pkg
+meta26: cmeta del vmeta26 up ssh #copy-u26 use-pkg
 
 vm: vmeta
 vmeta:
@@ -597,6 +606,8 @@ vmeta22:
 	vagrant/config meta u22
 vmeta24:
 	vagrant/config meta u24
+vmeta26:
+	vagrant/config meta u26
 
 #------------------------------#
 # full, four nodes, the sandbox
@@ -611,6 +622,7 @@ full12: cfull del vfull12 up ssh #copy-d12 use-pkg
 full13: cfull del vfull13 up ssh #copy-d13 use-pkg
 full22: cfull del vfull22 up ssh #copy-u22 use-pkg
 full24: cfull del vfull24 up ssh #copy-u24 use-pkg
+full26: cfull del vfull26 up ssh #copy-u26 use-pkg
 
 vf: vfull
 vfull:
@@ -629,6 +641,8 @@ vfull22:
 	vagrant/config full u22
 vfull24:
 	vagrant/config full u24
+vfull26:
+	vagrant/config full u26
 
 #------------------------------#
 # simu, 20 nodes, the simubox
@@ -652,6 +666,8 @@ vsimu22:
 	vagrant/config simu u22
 vsimu24:
 	vagrant/config simu u24
+vsimu26:
+	vagrant/config simu u26
 
 vs: simu
 simu: simu9
@@ -669,6 +685,8 @@ simu22: csimu del vsimu22 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.u22.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 simu24: csimu del vsimu24 new ssh
 	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.u24.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
+simu26: csimu del vsimu26 new ssh
+	scp dist/${VERSION}/$(PKG)pigsty-pkg-${VERSION}.u26.${ARCH}.tgz 10.10.10.10:/tmp/pkg.tgz ; ssh 10.10.10.10 'sudo mkdir -p /www; sudo tar -xf /tmp/pkg.tgz -C /www'
 rs:
 	rsync -avz --exclude=vagrant ./ ai:~/pigsty/
 ###############################################################
@@ -692,7 +710,7 @@ rs:
         st status suspend resume \
         ri rc rw ro rh test-ri test-rc test-rw test-ro test-rw2 test-ro2 test-rh test-st test-rb1 test-rb2 test-rb3 \
         di dd dc du dashboard-init dashboard-dump dashboard-clean \
-        copy cc copy-src copy-pkg copy-el8 copy-el9 copy-el10 copy-d12 copy-d13 copy-u22 copy-u24 copy-app copy-all \
+        copy cc copy-src copy-pkg copy-el8 copy-el9 copy-el10 copy-d12 copy-d13 copy-u22 copy-u24 copy-u26 copy-app copy-all \
         use-src use-pkg use-all cmdb \
         cso copy-src-oss copy-src-pro csr copy-src-rpm csd copy-src-deb \
         push pull ss gsync gpull grestore gpush \
@@ -700,12 +718,12 @@ rs:
         tu td ts to \
         cmeta cdual ctrio cfull csimu coss cpro \
         oss pro all vo vp vr vd va boot-pkg \
-        meta meta8 meta9 meta10 meta12 meta13 meta22 meta24 \
-        vm vmeta vmeta8 vmeta9 vmeta10 vmeta12 vmeta13 vmeta22 vmeta24 \
-        full full8 full9 full10 full12 full13 full22 full24 \
-        vf vfull vfull8 vfull9 vfull10 vfull12 vfull13 vfull22 vfull24 \
-        simu-conf vsimu vsimu8 vsimu9 vsimu10 vsimu12 vsimu13 vsimu22 vsimu24 \
-        vs simu simu8 simu9 simu10 simu12 simu13 simu22 simu24 rs \
+        meta meta8 meta9 meta10 meta12 meta13 meta22 meta24 meta26 \
+        vm vmeta vmeta8 vmeta9 vmeta10 vmeta12 vmeta13 vmeta22 vmeta24 vmeta26 \
+        full full8 full9 full10 full12 full13 full22 full24 full26 \
+        vf vfull vfull8 vfull9 vfull10 vfull12 vfull13 vfull22 vfull24 vfull26 \
+        simu-conf vsimu vsimu8 vsimu9 vsimu10 vsimu12 vsimu13 vsimu22 vsimu24 vsimu26 \
+        vs simu simu8 simu9 simu10 simu12 simu13 simu22 simu24 simu26 rs \
         rd release-dba gd get-dba ud upload-dba
 
 ###############################################################

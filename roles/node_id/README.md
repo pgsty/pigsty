@@ -60,7 +60,9 @@ roles/node_id/
     ├── u22.x86_64.yml        # Ubuntu 22 x86_64
     ├── u22.aarch64.yml       # Ubuntu 22 ARM64
     ├── u24.x86_64.yml        # Ubuntu 24 x86_64
-    └── u24.aarch64.yml       # Ubuntu 24 ARM64
+    ├── u24.aarch64.yml       # Ubuntu 24 ARM64
+    ├── u26.x86_64.yml        # Ubuntu 26 x86_64
+    └── u26.aarch64.yml       # Ubuntu 26 ARM64
 ```
 
 
@@ -77,14 +79,14 @@ The role runs with `tags: [always, node-id]`, ensuring it executes regardless of
 
 ### Operating System
 
-| Variable          | Example  | Description                     |
-|-------------------|----------|---------------------------------|
-| `os_vendor`       | `ubuntu` | OS distribution                 |
-| `os_version`      | `22`     | Major version number            |
-| `os_version_full` | `22.04`  | Full version string             |
-| `os_codename`     | `jammy`  | Debian/Ubuntu codename or `el9` |
-| `os_arch`         | `x86_64` | CPU architecture                |
-| `os_package`      | `deb`    | Package manager type (deb/rpm)  |
+| Variable          | Example    | Description                     |
+|-------------------|------------|---------------------------------|
+| `os_vendor`       | `ubuntu`   | OS distribution                 |
+| `os_version`      | `26`       | Major version number            |
+| `os_version_full` | `26.04`    | Full version string             |
+| `os_codename`     | `resolute` | Debian/Ubuntu codename or `el9` |
+| `os_arch`         | `x86_64`   | CPU architecture                |
+| `os_package`      | `deb`      | Package manager type (deb/rpm)  |
 
 ### Node Resources
 
@@ -102,7 +104,7 @@ The role runs with `tags: [always, node-id]`, ensuring it executes regardless of
 | `nodename`      | `pg-test-1`  | Node name         |
 | `node_cluster`  | `pg-test`    | Node cluster name |
 | `node_hostname` | `node-1`     | Original hostname |
-| `node_os_code`  | `el9`, `u22` | Short OS code     |
+| `node_os_code`  | `el9`, `u26` | Short OS code     |
 
 
 ## Input Variables
@@ -161,6 +163,7 @@ the role falls back to: `el10` (rpm), `u24` (ubuntu), `d12` (debian).
 | Debian 13       | `d13`  | deb     | |
 | Ubuntu 22.04    | `u22`  | deb     | |
 | Ubuntu 24.04    | `u24`  | deb     | |
+| Ubuntu 26.04    | `u26`  | deb     | |
 
 
 ## See Also

@@ -27,15 +27,16 @@ You can use variant alias to create environment with different base image:
 ```bash
 make meta9      # create singleton-meta node with EL9 base image
 make full22     # create 4-node sandbox with Ubuntu 22.04 base image
+make full26     # create 4-node sandbox with Ubuntu 26.04 base image
 make simu12     # create 20-node simulation env with Debian 12 base image
-...             # available suffix: 8,9,10,11,12,13,20,22,24,26
+...             # available suffix: 8,9,10,12,13,22,24,26
 ```
 
 You can also launch pigsty building env with these alias, base image will not be substituted:
 
 ```bash
-make oss        # 3-node oss building environment 
-make pro        # 5-node pro building environment
+make oss        # 4-node oss building environment
+make pro        # 6-node pro building environment
 make rpm        # 2-node el9/el10 building env
 make deb        # 5-node debian12/13 + ubuntu22/24/26 building env
 make all        # 7-node building env with all base images
@@ -54,10 +55,6 @@ make all        # 7-node building env with all base images
 | [trio.rb](spec/trio.rb) | 3 node  |    1c2G x 3     |       Three Nodes       |         |
 | [full.rb](spec/full.rb) | 4 node  | 2c4g + 1c2g x 3 |  Full-Featured 4 Node   | Sandbox |
 | [simu.rb](spec/simu.rb) | 20 node |      misc       |   Prod Env Simulation   | Simubox |
-|  [oss.rb](spec/oss.rb)  | 3 node  |    2c2g x 3     | 3-Node OSS Building Env |         |
-|  [pro.rb](spec/pro.rb)  | 5 node  |    2c2g x 5     | 5-Node PRO Building Env |         |
-|  [rpm.rb](spec/rpm.rb)  | 2 node  |    2c2g x 2     | 2-Node EL Building Env  |         |
-|  [deb.rb](spec/deb.rb)  | 5 node  |    2c2g x 5     | 5-Node Deb Building Env |         |
 |  [all.rb](spec/all.rb)  | 7 node  |    2c2g x 7     | 7-Node All Building Env |         |
 
 Each spec file contains a `Specs` variable describe VM nodes. For example, the [`full.rb`](spec/full.rb) contains:
@@ -81,10 +78,11 @@ You can use specs with the [`config`](config) script, it will render the final `
 	vagrant/config [spec] [image] [scale] [provider]
 
 	vagrant/config meta u24            # use the 1-node spec, use Ubuntu 24.04 base image
+	vagrant/config meta u26            # use the 1-node spec, use Ubuntu 26.04 base image
 	vagrant/config dual el9            # use the 2-node spec, use el9 image instead 
 	vagrant/config trio d12 2          # use the 3-node spec, use debian12 image, double the cpu/mem resource
 	vagrant/config full u22 4          # use the 4-node spec, use ubuntu22 image instead, use 4x cpu/mem resource         
-	vagrant/config simu u24 1 libvirt  # use the 20-node spec, use ubuntu24 image instead, use libvirt as provider instead of virtualbox 
+	vagrant/config simu u24 1 libvirt  # use the 20-node spec, use ubuntu24 image instead, use libvirt as provider instead of virtualbox
 ```
 
 You can scale the resource unit with environment variable `VM_SCALE`, the default value is `1`.
@@ -136,14 +134,14 @@ Default `VM_IMAGE` aliases (major-only):
 el8  -> cloud-image/rocky-8
 el9  -> cloud-image/rocky-9
 el10 -> cloud-image/rocky-10
-d11  -> cloud-image/debian-11
 d12  -> cloud-image/debian-12
 d13  -> cloud-image/debian-13
-u20  -> cloud-image/ubuntu-20.04
 u22  -> cloud-image/ubuntu-22.04
 u24  -> cloud-image/ubuntu-24.04
 u26  -> cloud-image/ubuntu-26.04
 ```
+
+Ubuntu 20.04 and Debian 11 shortcuts are intentionally not provided; use an explicit Vagrant box name only for legacy experiments.
 
 
 --------

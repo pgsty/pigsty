@@ -121,6 +121,5 @@ In addition to the main templates, Pigsty provides a set of demo templates for d
 
 These config templates are used for development and testing purposes.
 
-* [build/oss.yml](build/oss.yml) : building config for EL 9, 10 ,Debian 12/13, and Ubuntu 22.04/24.04 OSS.
+* [build/oss.yml](build/oss.yml) : building config for EL 9, 10, Debian 12/13, and Ubuntu 22.04/24.04/26.04 OSS.
 * [build/dev.yml](build/dev.yml) : 3-node local build development config.
-* [build/pro.yml](build/pro.yml) : 6-node production build matrix config.

@@ -1,4 +1,4 @@
-# pro: pigsty 5-node PRO building environment templates
+# oss: pigsty OSS building environment templates
 
 Specs = [
 
@@ -10,5 +10,8 @@ Specs = [
 
   # Ubuntu 24.04.2
   { "name" => "u24",    "ip" => "10.10.10.24",  "cpu" => "2",  "mem" => "2048",  "image" =>  "cloud-image/ubuntu-24.04" },
+
+  # Ubuntu 26.04
+  { "name" => "u26",    "ip" => "10.10.10.26",  "cpu" => "2",  "mem" => "2048",  "image" =>  "cloud-image/ubuntu-26.04" },
 
 ]

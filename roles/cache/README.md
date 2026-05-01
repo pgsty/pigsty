@@ -111,7 +111,7 @@ The `cache_pkg_name` supports these placeholders:
 | Placeholder  | Example     | Description                |
 |--------------|-------------|----------------------------|
 | `${version}` | `v4.3.0`    | Pigsty version             |
-| `${os}`      | `el9`, `u22`, `d12` | OS code from node_id |
+| `${os}`      | `el9`, `u26`, `d12` | OS code from node_id |
 | `${arch}`    | `x86_64`, `aarch64` | CPU architecture     |
 
 
@@ -133,6 +133,7 @@ dist/<version>/pigsty-pkg-<version>.<os>.<arch>.tgz
 | EL8 aarch64  | `dist/v4.3.0/pigsty-pkg-v4.3.0.el8.aarch64.tgz` |
 | Ubuntu 22.04 | `dist/v4.3.0/pigsty-pkg-v4.3.0.u22.x86_64.tgz`  |
 | Ubuntu 24.04 | `dist/v4.3.0/pigsty-pkg-v4.3.0.u24.x86_64.tgz`  |
+| Ubuntu 26.04 | `dist/v4.3.0/pigsty-pkg-v4.3.0.u26.x86_64.tgz`  |
 | Debian 12    | `dist/v4.3.0/pigsty-pkg-v4.3.0.d12.x86_64.tgz`  |
 
 ### Tarball Contents
