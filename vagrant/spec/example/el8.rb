@@ -2,7 +2,7 @@
 
 Specs = [
   { "name" => "meta"   , "ip" => "10.10.10.10" , "cpu" => "2" , "mem" => "4096", "image" =>  "generic/rhel8"       },
-  { "name" => "node-1" , "ip" => "10.10.10.11" , "cpu" => "2" , "mem" => "4096", "image" =>  "bento/rockylinux-8"  },
+  { "name" => "node-1" , "ip" => "10.10.10.11" , "cpu" => "2" , "mem" => "4096", "image" =>  "cloud-image/rocky-8"  },
   { "name" => "node-2" , "ip" => "10.10.10.12" , "cpu" => "2" , "mem" => "4096", "image" =>  "generic/alma8"       },
 ]
 

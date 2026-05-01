@@ -13,9 +13,9 @@
 Create pre-configured environment with `make` shortcuts:
 
 ```bash
-make meta       # 1-node devbox for quick start, dev, test & playground
-make full       # 4-node sandbox for HA-testing & feature demonstration
-make simu       # 20-node simubox for production environment simulation
+make meta       # 1-node Ubuntu 24.04 devbox for quick start, dev, test & playground
+make full       # 4-node Ubuntu 24.04 sandbox for HA-testing & feature demonstration
+make simu       # 20-node Ubuntu 24.04 simubox for production environment simulation
 
 # seldom used templates:
 make dual       # 2-node env
@@ -28,7 +28,7 @@ You can use variant alias to create environment with different base image:
 make meta9      # create singleton-meta node with EL9 base image
 make full22     # create 4-node sandbox with Ubuntu 22.04 base image
 make simu12     # create 20-node simulation env with Debian 12 base image
-...             # available suffix: 8,9,10,12,13,22,24
+...             # available suffix: 8,9,10,11,12,13,20,22,24,26
 ```
 
 You can also launch pigsty building env with these alias, base image will not be substituted:
@@ -36,8 +36,8 @@ You can also launch pigsty building env with these alias, base image will not be
 ```bash
 make oss        # 3-node oss building environment 
 make pro        # 5-node pro building environment
-make rpm        # 3-node el8/el9/el10 building env
-make deb        # 4-node debian12/13 + ubuntu22/24 building env
+make rpm        # 2-node el9/el10 building env
+make deb        # 5-node debian12/13 + ubuntu22/24/26 building env
 make all        # 7-node building env with all base images
 ```
 
@@ -45,7 +45,7 @@ make all        # 7-node building env with all base images
 
 ## Specifications
 
-`Vagranfile` is a ruby script file describing VM nodes. Here are some default specs of Pigsty.
+`Vagrantfile` is a ruby script file describing VM nodes. Here are some default specs of Pigsty.
 
 |        Templates        |  Nodes  |      Spec       |         Comment         |  Alias  |
 |:-----------------------:|:-------:|:---------------:|:-----------------------:|:-------:|
@@ -54,11 +54,11 @@ make all        # 7-node building env with all base images
 | [trio.rb](spec/trio.rb) | 3 node  |    1c2G x 3     |       Three Nodes       |         |
 | [full.rb](spec/full.rb) | 4 node  | 2c4g + 1c2g x 3 |  Full-Featured 4 Node   | Sandbox |
 | [simu.rb](spec/simu.rb) | 20 node |      misc       |   Prod Env Simulation   | Simubox |
-|  [oss.rb](spec/oss.rb)  | 3 node  |    1c2g x 3     | 3-Node OSS Building Env |         |
-|  [pro.rb](spec/pro.rb)  | 5 node  |    1c2g x 5     | 5-Node PRO Building Env |         |
-|  [rpm.rb](spec/rpm.rb)  | 3 node  |    1c2G x 3     | 3-Node EL Building Env  |         |
-|  [deb.rb](spec/deb.rb)  | 4 node  |    1c2G x 4     | 4-Node Deb Building Env |         |
-|  [all.rb](spec/all.rb)  | 7 node  |    1c2G x 7     | 7-Node All Building Env |         |
+|  [oss.rb](spec/oss.rb)  | 3 node  |    2c2g x 3     | 3-Node OSS Building Env |         |
+|  [pro.rb](spec/pro.rb)  | 5 node  |    2c2g x 5     | 5-Node PRO Building Env |         |
+|  [rpm.rb](spec/rpm.rb)  | 2 node  |    2c2g x 2     | 2-Node EL Building Env  |         |
+|  [deb.rb](spec/deb.rb)  | 5 node  |    2c2g x 5     | 5-Node Deb Building Env |         |
+|  [all.rb](spec/all.rb)  | 7 node  |    2c2g x 7     | 7-Node All Building Env |         |
 
 Each spec file contains a `Specs` variable describe VM nodes. For example, the [`full.rb`](spec/full.rb) contains:
 
@@ -66,10 +66,10 @@ Each spec file contains a `Specs` variable describe VM nodes. For example, the [
 # full: pigsty full-featured 4-node sandbox for HA-testing & tutorial & practices
 
 Specs = [
-  { "name" => "meta"   , "ip" => "10.10.10.10" ,  "cpu" => "2" ,  "mem" => "4096" ,  "image" => "bento/rockylinux-9"  },
-  { "name" => "node-1" , "ip" => "10.10.10.11" ,  "cpu" => "1" ,  "mem" => "2048" ,  "image" => "bento/rockylinux-9"  },
-  { "name" => "node-2" , "ip" => "10.10.10.12" ,  "cpu" => "1" ,  "mem" => "2048" ,  "image" => "bento/rockylinux-9"  },
-  { "name" => "node-3" , "ip" => "10.10.10.13" ,  "cpu" => "1" ,  "mem" => "2048" ,  "image" => "bento/rockylinux-9"  },
+  { "name" => "meta"   , "ip" => "10.10.10.10" ,  "cpu" => "2" ,  "mem" => "4096" ,  "image" => "cloud-image/ubuntu-24.04" },
+  { "name" => "node-1" , "ip" => "10.10.10.11" ,  "cpu" => "1" ,  "mem" => "2048" ,  "image" => "cloud-image/ubuntu-24.04" },
+  { "name" => "node-2" , "ip" => "10.10.10.12" ,  "cpu" => "1" ,  "mem" => "2048" ,  "image" => "cloud-image/ubuntu-24.04" },
+  { "name" => "node-3" , "ip" => "10.10.10.13" ,  "cpu" => "1" ,  "mem" => "2048" ,  "image" => "cloud-image/ubuntu-24.04" },
 ]
 
 ```
@@ -80,7 +80,7 @@ You can use specs with the [`config`](config) script, it will render the final `
 	cd ~/pigsty
 	vagrant/config [spec] [image] [scale] [provider]
 
-	vagrant/config meta el9            # use the 1-node spec, use EL9 base image
+	vagrant/config meta u24            # use the 1-node spec, use Ubuntu 24.04 base image
 	vagrant/config dual el9            # use the 2-node spec, use el9 image instead 
 	vagrant/config trio d12 2          # use the 3-node spec, use debian12 image, double the cpu/mem resource
 	vagrant/config full u22 4          # use the 4-node spec, use ubuntu22 image instead, use 4x cpu/mem resource         
@@ -89,14 +89,14 @@ You can use specs with the [`config`](config) script, it will render the final `
 
 You can scale the resource unit with environment variable `VM_SCALE`, the default value is `1`.
 
-For example, if you use `VM_SCALE=2` with `vagrant/config meta el9`, it will double the cpu / mem resources of the meta
+For example, if you use `VM_SCALE=2` with `vagrant/config meta u24`, it will double the cpu / mem resources of the meta
 node.
 
 ```bash
 Specs = [
-  { "name" => "meta" , "ip" => "10.10.10.10", "cpu" => "8" , "mem" => "16384" , "image" => "cloud-image/almalinux-9" },
+  { "name" => "meta" , "ip" => "10.10.10.10", "cpu" => "8" , "mem" => "16384" , "image" => "cloud-image/ubuntu-24.04" },
 ]
-````
+```
 
 --------
 
@@ -133,18 +133,16 @@ make nuke    # destroy all vm & volumes with virsh (if using libvirt)
 Default `VM_IMAGE` aliases (major-only):
 
 ```bash
-el8  -> cloud-image/almalinux-8
-el9  -> cloud-image/almalinux-9  (arm64) / bento/rockylinux-9 (amd64 override)
-el10 -> cloud-image/almalinux-10
+el8  -> cloud-image/rocky-8
+el9  -> cloud-image/rocky-9
+el10 -> cloud-image/rocky-10
+d11  -> cloud-image/debian-11
 d12  -> cloud-image/debian-12
 d13  -> cloud-image/debian-13
+u20  -> cloud-image/ubuntu-20.04
 u22  -> cloud-image/ubuntu-22.04
-u24  -> cloud-image/ubuntu-24.04 (arm64) / bento/ubuntu-24.04 (amd64 override)
-
-# optional direct aliases (virtualbox-focused):
-# b10 -> bento/rockylinux-10
-# b12 -> bento/debian-12
-# b13 -> bento/debian-13
+u24  -> cloud-image/ubuntu-24.04
+u26  -> cloud-image/ubuntu-26.04
 ```
 
 

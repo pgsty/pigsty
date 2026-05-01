@@ -2,19 +2,19 @@
 
 Specs = [
 
-  # RockyLinux 8.10
-  { "name" => "el8",    "ip" => "10.10.10.8" ,  "cpu" => "1",  "mem" => "2048",  "image" =>  "bento/rockylinux-8"     },
+  # Rocky Linux 8
+  { "name" => "el8",    "ip" => "10.10.10.8" ,  "cpu" => "2",  "mem" => "2048",  "image" =>  "cloud-image/rocky-8"     },
 
-  # RockyLinux 9.5
-  { "name" => "el9",    "ip" => "10.10.10.9" ,  "cpu" => "1",  "mem" => "2048",  "image" =>  "bento/rockylinux-9"     },
+  # Rocky Linux 9
+  { "name" => "el9",    "ip" => "10.10.10.9" ,  "cpu" => "2",  "mem" => "2048",  "image" =>  "cloud-image/rocky-9"     },
 
   # Debian 12.9
-  { "name" => "d12",    "ip" => "10.10.10.12",  "cpu" => "1",  "mem" => "2048",  "image" =>  "generic/debian12"       },
+  { "name" => "d12",    "ip" => "10.10.10.12",  "cpu" => "2",  "mem" => "2048",  "image" =>  "cloud-image/debian-12"  },
 
   # Ubuntu 22.04.3
-  { "name" => "u22",    "ip" => "10.10.10.22",  "cpu" => "1",  "mem" => "2048",  "image" =>  "generic/ubuntu2204"     },
+  { "name" => "u22",    "ip" => "10.10.10.22",  "cpu" => "2",  "mem" => "2048",  "image" =>  "cloud-image/ubuntu-22.04" },
 
   # Ubuntu 24.04.2
-  { "name" => "u24",    "ip" => "10.10.10.24",  "cpu" => "1",  "mem" => "2048",  "image" =>  "bento/ubuntu-24.04"     },
+  { "name" => "u24",    "ip" => "10.10.10.24",  "cpu" => "2",  "mem" => "2048",  "image" =>  "cloud-image/ubuntu-24.04" },
 
 ]

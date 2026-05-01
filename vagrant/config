@@ -18,46 +18,37 @@ import platform
 # Box selection matrix:
 #   BOXES[arch][provider][key] = "org/box"
 # Key set is intentionally "major-only":
-#   el8/el9/el10, d12/d13, u22/u24
+#   el8/el9/el10, d11/d12/d13, u20/u22/u24/u26
 BASE_BOXES = {
-    "el8":  "cloud-image/almalinux-8",
-    "el9":  "cloud-image/almalinux-9",
-    "el10": "cloud-image/almalinux-10",
+    "el8":  "cloud-image/rocky-8",
+    "el9":  "cloud-image/rocky-9",
+    "el10": "cloud-image/rocky-10",
+    "d11":  "cloud-image/debian-11",
     "d12":  "cloud-image/debian-12",
     "d13":  "cloud-image/debian-13",
+    "u20":  "cloud-image/ubuntu-20.04",
     "u22":  "cloud-image/ubuntu-22.04",
     "u24":  "cloud-image/ubuntu-24.04",
+    "u26":  "cloud-image/ubuntu-26.04",
 }
 BOXES = {
     arch: {provider: dict(BASE_BOXES) for provider in ("virtualbox", "libvirt")}
     for arch in ("amd64", "arm64")
 }
 
-# amd64 overrides: keep legacy boxes for better compatibility (e.g. eth1 naming)
-for _provider in ("virtualbox", "libvirt"):
-    BOXES["amd64"][_provider].update({
-        "el9": "bento/rockylinux-9",
-        "u24": "bento/ubuntu-24.04",
-    })
-    BOXES["arm64"][_provider].update({
-        "el9": "bento/rockylinux-9",
-        "u24": "bento/ubuntu-24.04",
-    })
-
 # Direct aliases: explicitly choose a box by name (bypass BOXES matrix).
 DIRECT_BOX_ALIASES = {
-    # Debian/Ubuntu shortcuts
-    "b12": "bento/debian-12",
-    "b13": "bento/debian-13",
-    "k12": "koalephant/debian12",
-    "b10": "bento/rockylinux-10",
+    # Cloud Image shortcuts
+    "r8": "cloud-image/rocky-8",
+    "r9": "cloud-image/rocky-9",
+    "r10": "cloud-image/rocky-10",
 
     # EL vendor-specific
     "rhel8": "generic/rhel8",
     "rhel9": "generic/rhel9",
-    "alma8": "generic/alma8",
-    "alma9": "generic/alma9",
-    "alma10": "almalinux/10",
+    "alma8": "cloud-image/almalinux-8",
+    "alma9": "cloud-image/almalinux-9",
+    "alma10": "cloud-image/almalinux-10",
     "oracle8": "generic/oracle8",
     "oracle9": "generic/oracle9",
 }
@@ -65,10 +56,14 @@ DIRECT_BOX_ALIASES = {
 # Alias -> canonical image key (for BOXES matrix lookup).
 IMAGE_ALIASES = {
     # Ubuntu
-    "ubuntu2204": "u22", "ubuntu22": "u22", "u22": "u22", "ubuntu": "u22",
+    "ubuntu2004": "u20", "ubuntu20": "u20", "u20": "u20",
+    "ubuntu2204": "u22", "ubuntu22": "u22", "u22": "u22",
     "ubuntu2404": "u24", "ubuntu24": "u24", "u24": "u24",
+    "ubuntu": "u24",
+    "ubuntu2604": "u26", "ubuntu26": "u26", "u26": "u26",
 
     # Debian
+    "debian11": "d11", "deb11": "d11", "d11": "d11",
     "debian12": "d12", "deb12": "d12", "d12": "d12",
     "debian13": "d13", "deb13": "d13", "d13": "d13",
 
@@ -118,7 +113,7 @@ def resolve_box(image, provider, arch):
     if not img:
         return img
 
-    # Explicit box name always wins (e.g. "bento/rockylinux-9")
+    # Explicit box name always wins (e.g. "cloud-image/rocky-9")
     if "/" in img:
         return img
 
@@ -143,7 +138,7 @@ def resolve_box(image, provider, arch):
 def usage():
     print("Usage: %s [spec] [image] [scale] [provider]" % sys.argv[0])
     print("  [VM_SPEC]     spec:    meta, full, simu, dual, trio, oss, pro, rpm, deb, all...")
-    print("  [VM_IMAGE]    image:   el8, el9, el10, d12, d13, u22, u24 (or an explicit box name)")
+    print("  [VM_IMAGE]    image:   el8, el9, el10, d11, d12, d13, u20, u22, u24, u26 (or an explicit box name)")
     print("  [VM_SCALE]    scale:   1, 2, 3, ...")
     print("  [VM_PROVIDER] provider: virtualbox, libvirt")
     print("  [VM_ARCH]     arch:    amd64, arm64 (optional, default = host arch)")

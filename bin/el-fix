@@ -1,0 +1,136 @@
+#!/bin/bash
+set -euo pipefail
+#==============================================================#
+# File      :   el-fix
+# Desc      :   Fix EL guest network for Vagrant-style NAT/private NICs
+# Ctime     :   2026-05-01
+# Mtime     :   2026-05-01
+# Path      :   bin/el-fix
+# Deps      :   ssh, sudo, nmcli
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+APP_NAME="$(basename "$0")"
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+# bin/el-fix [ssh-alias]
+# Example:
+#    bin/el-fix             # fix host 10.10.10.10
+#    bin/el-fix el10        # fix host via ssh alias el10
+#    bin/el-fix node-1      # fix host via ssh alias node-1
+
+
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+if [[ -t 1 ]]; then
+    __CN='\033[0m';__CR='\033[0;31m';__CG='\033[0;32m';
+    __CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';
+else
+    __CN='';__CR='';__CG='';__CY='';__CB='';__CM='';
+fi
+function log_info()  { printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n"; }
+function log_warn()  { printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n"; }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n"; }
+function log_hint()  { printf "${__CB}$*${__CN}\n"; }
+function log_line()  { printf "${__CM}[$*] ===========================================${__CN}\n"; }
+
+
+#--------------------------------------------------------------#
+# Param
+#--------------------------------------------------------------#
+TARGET="${1:-10.10.10.10}"
+if (($# > 1)); then
+    log_error "too many arguments"
+    log_hint "Usage: ${APP_NAME} [ssh-alias]"
+    exit 1
+fi
+
+
+#--------------------------------------------------------------#
+# Execute
+#--------------------------------------------------------------#
+log_line "EL FIX"
+log_warn "fix EL network via ssh target: ${TARGET}"
+
+ssh "${TARGET}" 'if [ "$(id -u)" -eq 0 ]; then bash -s; else sudo bash -s; fi' <<'REMOTE'
+set -euo pipefail
+
+log() { printf '[el-fix] %s\n' "$*"; }
+fail() { printf '[el-fix] FAIL: %s\n' "$*" >&2; exit 1; }
+
+[ -r /etc/os-release ] || fail "/etc/os-release not found"
+. /etc/os-release
+
+case "${ID:-}:${ID_LIKE:-}" in
+  *rhel*|rocky:*|almalinux:*|centos:*|ol:*|fedora:*) ;;
+  *) fail "not an EL-like system: ${PRETTY_NAME:-unknown}" ;;
+esac
+
+command -v nmcli >/dev/null 2>&1 || fail "nmcli not found"
+command -v ip >/dev/null 2>&1 || fail "ip command not found"
+
+NAT_IF=$(ip -o -4 addr show scope global | awk '$4 ~ "^10[.]0[.]2[.]" { print $2; exit }')
+[ -n "${NAT_IF}" ] || fail "cannot find VirtualBox NAT interface with 10.0.2.x address"
+
+PRIVATE_IF=$(ip route show default | awk -v nat="${NAT_IF}" '$1 == "default" && $5 != nat { print $5; exit }')
+if [ -z "${PRIVATE_IF}" ]; then
+  PRIVATE_IF=$(ip -o -4 addr show scope global | awk -v nat="${NAT_IF}" '$2 != nat && $4 ~ "^10[.]10[.]10[.]" { print $2; exit }')
+fi
+if [ -z "${PRIVATE_IF}" ]; then
+  PRIVATE_IF=$(ip -o -4 addr show scope global | awk -v nat="${NAT_IF}" '$2 != nat && $2 != "lo" { print $2; exit }')
+fi
+[ -n "${PRIVATE_IF}" ] || fail "cannot find private interface"
+
+NAT_CON=$(nmcli -t -f NAME,DEVICE con show --active | awk -F: -v dev="${NAT_IF}" '$2 == dev { print $1; exit }')
+PRIVATE_CON=$(nmcli -t -f NAME,DEVICE con show --active | awk -F: -v dev="${PRIVATE_IF}" '$2 == dev { print $1; exit }')
+[ -n "${NAT_CON}" ] || fail "cannot find active NetworkManager connection for ${NAT_IF}"
+[ -n "${PRIVATE_CON}" ] || fail "cannot find active NetworkManager connection for ${PRIVATE_IF}"
+
+NAT_GW=$(ip route show default dev "${NAT_IF}" | awk '$1 == "default" { print $3; exit }')
+[ -n "${NAT_GW}" ] || NAT_GW="10.0.2.2"
+
+log "os=${PRETTY_NAME:-unknown}"
+log "nat=${NAT_IF}/${NAT_CON} gw=${NAT_GW}"
+log "private=${PRIVATE_IF}/${PRIVATE_CON}"
+
+command -v restorecon >/dev/null 2>&1 && restorecon -R /etc/NetworkManager/system-connections || true
+
+nmcli con mod "${PRIVATE_CON}" \
+  ipv4.never-default yes \
+  ipv6.never-default yes \
+  ipv4.ignore-auto-dns yes \
+  ipv6.ignore-auto-dns yes
+
+nmcli con mod "${NAT_CON}" \
+  ipv4.never-default no \
+  ipv4.route-metric 50 \
+  ipv6.route-metric 50 \
+  ipv4.ignore-auto-dns yes \
+  ipv6.ignore-auto-dns yes \
+  ipv4.dns "10.0.2.3"
+
+while ip route show default dev "${PRIVATE_IF}" | grep -q '^default '; do
+  PRIVATE_GW=$(ip route show default dev "${PRIVATE_IF}" | awk '$1 == "default" { print $3; exit }')
+  if [ -n "${PRIVATE_GW}" ]; then
+    ip route del default via "${PRIVATE_GW}" dev "${PRIVATE_IF}" 2>/dev/null || ip route del default dev "${PRIVATE_IF}" 2>/dev/null || true
+  else
+    ip route del default dev "${PRIVATE_IF}" 2>/dev/null || true
+  fi
+done
+
+ip route replace default via "${NAT_GW}" dev "${NAT_IF}" metric 50 || true
+nmcli dev reapply "${PRIVATE_IF}" >/dev/null 2>&1 || true
+nmcli dev reapply "${NAT_IF}" >/dev/null 2>&1 || true
+
+log "default route:"
+ip route show default
+log "resolv.conf:"
+sed -n '1,8p' /etc/resolv.conf
+REMOTE
+
+log_line "SUMMARY"
+log_info "EL network fix complete on ${TARGET}"

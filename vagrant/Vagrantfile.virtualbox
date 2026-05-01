@@ -58,8 +58,17 @@ Vagrant.configure("2") do |config|
                 node.vm.provision "shell" do |s|
                   s.inline = <<-SHELL
                     # find unformatted disks (exclude the root disk)
-                    ROOT_DISK=$(lsblk -no PKNAME $(findmnt -n -o SOURCE /) | head -1)
-                    DISKS=($(lsblk -dpno NAME | grep -v "/dev/${ROOT_DISK}" | sort))
+                    ROOT_SOURCE=$(readlink -f "$(findmnt -n -o SOURCE /)")
+                    ROOT_DISK=$(lsblk -no PKNAME "${ROOT_SOURCE}" 2>/dev/null | head -1)
+                    if [ -n "${ROOT_DISK}" ]; then
+                      ROOT_DISK="/dev/${ROOT_DISK}"
+                    elif [ "$(lsblk -ndo TYPE "${ROOT_SOURCE}" 2>/dev/null)" = "disk" ]; then
+                      ROOT_DISK="${ROOT_SOURCE}"
+                    else
+                      echo "[WARN] cannot resolve root disk, skip disk provisioning"
+                      exit 0
+                    fi
+                    DISKS=($(lsblk -dpno NAME,TYPE | awk -v root="${ROOT_DISK}" '$2 == "disk" && $1 != root {print $1}' | sort))
                     if [ ${#DISKS[@]} -lt 4 ]; then
                       echo "Warning: Expected 4 data disks, found ${#DISKS[@]}"
                       exit 0
@@ -88,8 +97,17 @@ Vagrant.configure("2") do |config|
                 node.vm.provision "shell" do |s|
                   s.inline = <<-SHELL
                     # find the first non-root disk
-                    ROOT_DISK=$(lsblk -no PKNAME $(findmnt -n -o SOURCE /) | head -1)
-                    DATA_DISK=$(lsblk -dpno NAME | grep -v "/dev/${ROOT_DISK}" | head -1)
+                    ROOT_SOURCE=$(readlink -f "$(findmnt -n -o SOURCE /)")
+                    ROOT_DISK=$(lsblk -no PKNAME "${ROOT_SOURCE}" 2>/dev/null | head -1)
+                    if [ -n "${ROOT_DISK}" ]; then
+                      ROOT_DISK="/dev/${ROOT_DISK}"
+                    elif [ "$(lsblk -ndo TYPE "${ROOT_SOURCE}" 2>/dev/null)" = "disk" ]; then
+                      ROOT_DISK="${ROOT_SOURCE}"
+                    else
+                      echo "[WARN] cannot resolve root disk, skip disk provisioning"
+                      exit 0
+                    fi
+                    DATA_DISK=$(lsblk -dpno NAME,TYPE | awk -v root="${ROOT_DISK}" '$2 == "disk" && $1 != root {print $1}' | head -1)
                     if [ -z "${DATA_DISK}" ]; then
                       echo "No additional data disk found, skipping..."
                       exit 0

@@ -457,12 +457,7 @@ copy-src-deb:
 	ssh -t  d12 'cd ~/pigsty && ./configure -i 10.10.10.12'
 	ssh -t  u22 'cd ~/pigsty && ./configure -i 10.10.10.22'
 	ssh -t  u24 'cd ~/pigsty && ./configure -i 10.10.10.24'
-dfx: deb-fix
-deb-fix:
-	scp /etc/resolv.conf d12:/tmp/resolv.conf;
-	ssh -t d12 'sudo mv /tmp/resolv.conf /etc/resolv.conf'
-	scp /etc/resolv.conf u24:/tmp/resolv.conf;
-	ssh -t u24 'sudo mv /tmp/resolv.conf /etc/resolv.conf'
+
 
 #------------------------------#
 # push / pull
@@ -555,9 +550,9 @@ cpro:
 #------------------------------#
 #     Building Environment     #
 #------------------------------#
-oss: coss del vo new ssh copy-src-oss dfx
-pro: cpro del vp new ssh dfx
-all: del va new ssh dfx
+oss: coss del vo new ssh copy-src-oss
+pro: cpro del vp new ssh
+all: del va new ssh
 vo: # oss building environment
 	vagrant/config oss
 vp: # pro building environment
@@ -699,7 +694,7 @@ rs:
         di dd dc du dashboard-init dashboard-dump dashboard-clean \
         copy cc copy-src copy-pkg copy-el8 copy-el9 copy-el10 copy-d12 copy-d13 copy-u22 copy-u24 copy-app copy-all \
         use-src use-pkg use-all cmdb \
-        cso copy-src-oss copy-src-pro csr copy-src-rpm csd copy-src-deb dfx deb-fix \
+        cso copy-src-oss copy-src-pro csr copy-src-rpm csd copy-src-deb \
         push pull ss gsync gpull grestore gpush \
         r release u upload-src \
         tu td ts to \
