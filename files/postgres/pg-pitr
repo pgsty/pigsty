@@ -4,7 +4,7 @@ set -uo pipefail
 # File      :   pg-pitr
 # Desc      :   Point-in-time recovery with pgbackrest
 # Ctime     :   2022-12-31
-# Mtime     :   2026-01-19
+# Mtime     :   2026-06-10
 # Path      :   /pg/bin/pg-pitr
 # Deps      :   pgbackrest, /etc/pgbackrest/pgbackrest.conf
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -31,7 +31,7 @@ NAME
     pg-pitr   -- Point-in-time recovery with pgbackrest
 
 SYNOPSIS
-    pg-pitr [options] [--time=<time>|--lsn=<lsn>|--xid=<xid>|--name=<name>]
+    pg-pitr [options] [--time=<time>|--lsn=<lsn>|--xid=<xid>|--name=<name>] [--set=<backup>] [-- <pgbackrest-options>]
 
 RECOVERY TARGET (choose one):
     -d, --default              Recover to end of WAL archive stream (latest status)
@@ -40,13 +40,16 @@ RECOVERY TARGET (choose one):
     -n, --name  <restore_point> Recover to named restore point
     -l, --lsn   <lsn>          Recover to specific LSN (e.g., "0/7C82CB8")
     -x, --xid   <xid>          Recover to specific transaction ID
-    -b, --backup <label>       Recover to specific backup set (check: pgbackrest info)
 
 OPTIONS:
     -D, --data   <path>        Data directory to restore (default: /pg/data)
     -s, --stanza <name>        pgbackrest stanza name (auto-detect from config)
+    -S, --set    <label>       Restore from specific backup set (can combine with target)
+    -b, --backup <label>       Alias for --set (backward compatible)
     -X, --exclusive            Stop RIGHT BEFORE target (exclusive), not at it
     -P, --promote              Promote after reaching target (default: pause)
+    -T, --timeline <timeline>  Recover along a specific timeline: latest, current, or N
+    -v, --verbose              Show pgBackRest info-level console output
     -c, --check                Dry-run mode: print command without executing
     -y, --yes                  Skip confirmation and countdown
     -h, --help                 Show this help message
@@ -59,13 +62,18 @@ EXAMPLES:
     pg-pitr -n my-savepoint                     # Restore to named restore point
     pg-pitr -l "0/7C82CB8"                      # Restore to specific LSN
     pg-pitr -x 12345678 -X                      # Restore to right before transaction
-    pg-pitr -b 20251225-120000F                 # Restore to specific backup
+    pg-pitr -S 20251225-120000F -i              # Restore specific backup, stop when consistent
+    pg-pitr -S 20251225-120000F -t "2025-01-01 12:00:00+08"
     pg-pitr -D /tmp/data2 -c                    # Dry run to custom directory
+    pg-pitr -t "2025-01-01 12:00:00+08" -T latest -v -c
+    pg-pitr -t "2025-01-01 12:00:00+08" -c -- --repo=2
 
 NOTES:
-    - Run as postgres (dbsu) user
+    - Run as postgres (dbsu) user, never as root
     - PostgreSQL must be stopped before restore
     - Time format: YYYY-MM-DD HH:MM:SS[.ssssss][+/-TZ]
+    - Time without timezone is interpreted in the SERVER's timezone
+    - In non-interactive mode (no tty), restore starts WITHOUT countdown
     - After restore, manually start PG, validate, then promote
 
 EOF
@@ -82,14 +90,96 @@ if [[ -t 1 ]]; then
 else
     __CN='';__CK='';__CR='';__CG='';__CY='';__CB='';__CM='';__CC='';__CW='';
 fi
-function log_info()  { printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n"; }
-function log_warn()  { printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n"; }
-function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n"; }
-function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n"; }
-function log_title() { printf "[${__CG}$1${__CN}] ${__CG}$2${__CN}\n";   }
-function log_hint()  { printf "${__CB}$*${__CN}\n"; }
-function log_line()  { printf "${__CM}===== $* =====${__CN}\n"; }
+function log_info()  { printf "[${__CG} OK ${__CN}] ${__CG}%s${__CN}\n" "$*"; }
+function log_warn()  { printf "[${__CY}WARN${__CN}] ${__CY}%s${__CN}\n" "$*"; }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}%s${__CN}\n" "$*"; }
+function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}%s${__CN}\n" "$*"; }
+function log_title() { printf "[${__CG}%s${__CN}] ${__CG}%s${__CN}\n" "$1" "$2"; }
+function log_hint()  { printf "${__CB}%s${__CN}\n" "$*"; }
+function log_line()  { printf "${__CM}===== %s =====${__CN}\n" "$*"; }
 
+
+#--------------------------------------------------------------#
+# Shell Command Formatting
+#--------------------------------------------------------------#
+shell_quote() {
+    local value="${1-}"
+    printf "'"
+    while [[ "$value" == *"'"* ]]; do
+        printf "%s'\\\\''" "${value%%\'*}"
+        value="${value#*\'}"
+    done
+    printf "%s'" "$value"
+}
+
+shell_quote_arg() {
+    local arg="$1"
+    local key value
+
+    if [[ "$arg" == --*=* ]]; then
+        key="${arg%%=*}"
+        value="${arg#*=}"
+        if [[ "$value" =~ ^[A-Za-z0-9_./:@%+,-]+$ ]]; then
+            printf "%s=%s" "$key" "$value"
+        else
+            printf "%s=%s" "$key" "$(shell_quote "$value")"
+        fi
+        return
+    fi
+
+    if [[ "$arg" =~ ^[A-Za-z0-9_./:@%+,-]+$ ]]; then
+        printf "%s" "$arg"
+    else
+        shell_quote "$arg"
+    fi
+}
+
+format_command() {
+    local rendered="" quoted arg
+    for arg in "$@"; do
+        quoted="$(shell_quote_arg "$arg")"
+        if [[ -z "$rendered" ]]; then
+            rendered="$quoted"
+        else
+            rendered+=" $quoted"
+        fi
+    done
+    printf "%s" "$rendered"
+}
+
+# Record which flag explicitly chose the recovery target, so a second
+# choice (including -d, whose value equals the initial METHOD) is rejected
+# instead of silently overriding the previous one.
+METHOD_SET=""
+set_method() {
+    if [[ -n "$METHOD_SET" ]]; then
+        log_error "Multiple recovery targets specified: $METHOD_SET and $1"
+        exit 1
+    fi
+    METHOD_SET="$1"
+    METHOD="$1"
+}
+
+OPTION_VALUE=""
+require_option_value() {
+    local option="$1"
+    local label="$2"
+    local value="${3-}"
+    local inline=false
+
+    if [[ "$option" == *=* ]]; then
+        value="${option#*=}"
+        option="${option%%=*}"
+        inline=true
+    fi
+
+    if [[ -z "$value" ]] || [[ "$inline" != true && "$value" == -* ]]; then
+        log_error "Missing $label for $option"
+        exit 1
+    fi
+
+    OPTION_VALUE="$value"
+}
 
 
 
@@ -98,12 +188,16 @@ function log_line()  { printf "${__CM}===== $* =====${__CN}\n"; }
 #--------------------------------------------------------------#
 METHOD="default"
 TARGET=""
+BACKUP_SET=""
 DATA_DIR="/pg/data"
 STANZA=""
 TARGET_ACTION="pause"
 TARGET_EXCLUSIVE=false
 DRY_RUN=false
 SKIP_CONFIRM=false
+TARGET_TIMELINE=""
+VERBOSE=false
+EXTRA_ARGS=()
 
 
 #--------------------------------------------------------------#
@@ -117,48 +211,88 @@ while [[ $# -gt 0 ]]; do
         -h|--help)
             usage 0 ;;
         -D|--data|--data=*)
-            if [[ "$1" == *=* ]]; then DATA_DIR="${1#*=}"; else DATA_DIR="$2"; shift; fi ;;
+            if [[ "$1" == *=* ]]; then
+                require_option_value "$1" "data directory"
+            else
+                require_option_value "$1" "data directory" "${2-}"; shift
+            fi
+            DATA_DIR="$OPTION_VALUE" ;;
         -s|--stanza|--stanza=*)
-            if [[ "$1" == *=* ]]; then STANZA="${1#*=}"; else STANZA="$2"; shift; fi ;;
+            if [[ "$1" == *=* ]]; then
+                require_option_value "$1" "stanza name"
+            else
+                require_option_value "$1" "stanza name" "${2-}"; shift
+            fi
+            STANZA="$OPTION_VALUE" ;;
         -d|--default)
-            METHOD="default" ;;
+            set_method "default" ;;
         -i|--immediate)
-            [[ "$METHOD" != "default" ]] && { log_error "Multiple recovery targets specified"; exit 1; }
-            METHOD="immediate" ;;
+            set_method "immediate" ;;
         -t|--time|--time=*)
-            [[ "$METHOD" != "default" ]] && { log_error "Multiple recovery targets specified"; exit 1; }
-            METHOD="time"
-            if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
+            set_method "time"
+            if [[ "$1" == *=* ]]; then
+                require_option_value "$1" "timestamp"
+            else
+                require_option_value "$1" "timestamp" "${2-}"; shift
+            fi
+            TARGET="$OPTION_VALUE" ;;
         -n|--name|--name=*)
-            [[ "$METHOD" != "default" ]] && { log_error "Multiple recovery targets specified"; exit 1; }
-            METHOD="name"
-            if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
+            set_method "name"
+            if [[ "$1" == *=* ]]; then
+                require_option_value "$1" "restore point name"
+            else
+                require_option_value "$1" "restore point name" "${2-}"; shift
+            fi
+            TARGET="$OPTION_VALUE" ;;
         -l|--lsn|--lsn=*)
-            [[ "$METHOD" != "default" ]] && { log_error "Multiple recovery targets specified"; exit 1; }
-            METHOD="lsn"
-            if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
+            set_method "lsn"
+            if [[ "$1" == *=* ]]; then
+                require_option_value "$1" "LSN"
+            else
+                require_option_value "$1" "LSN" "${2-}"; shift
+            fi
+            TARGET="$OPTION_VALUE" ;;
         -x|--xid|--xid=*)
-            [[ "$METHOD" != "default" ]] && { log_error "Multiple recovery targets specified"; exit 1; }
-            METHOD="xid"
-            if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
-        -b|--backup|--backup=*)
-            [[ "$METHOD" != "default" ]] && { log_error "Multiple recovery targets specified"; exit 1; }
-            METHOD="set"
-            if [[ "$1" == *=* ]]; then TARGET="${1#*=}"; else TARGET="$2"; shift; fi ;;
+            set_method "xid"
+            if [[ "$1" == *=* ]]; then
+                require_option_value "$1" "XID"
+            else
+                require_option_value "$1" "XID" "${2-}"; shift
+            fi
+            TARGET="$OPTION_VALUE" ;;
+        -S|--set|-b|--backup|-S=*|--set=*|-b=*|--backup=*)
+            if [[ "$1" == *=* ]]; then
+                require_option_value "$1" "backup set label"
+            else
+                require_option_value "$1" "backup set label" "${2-}"; shift
+            fi
+            [[ -n "$BACKUP_SET" ]] && { log_error "Multiple backup sets specified"; exit 1; }
+            BACKUP_SET="$OPTION_VALUE" ;;
         -X|--exclusive|--target-exclusive)
             TARGET_EXCLUSIVE=true ;;
         -P|--promote|--target-action=promote)
             TARGET_ACTION="promote" ;;
+        -T|--timeline)
+            require_option_value "$1" "timeline" "${2-}"; shift
+            TARGET_TIMELINE="$OPTION_VALUE" ;;
+        --timeline=*|-T=*)
+            require_option_value "$1" "timeline"
+            TARGET_TIMELINE="$OPTION_VALUE" ;;
+        -v|--verbose)
+            VERBOSE=true ;;
         -c|--check|--dry-run)
             DRY_RUN=true ;;
         -y|--yes)
             SKIP_CONFIRM=true ;;
         --)
+            EXTRA_ARGS+=("${@:2}")
             shift; break ;;
         -*)
             log_error "Unknown option: $1"; exit 1 ;;
         *)
-            break ;;
+            log_error "Unexpected argument: $1"
+            log_hint "Use -- to pass additional pgBackRest options"
+            exit 1 ;;
     esac
     shift
 done
@@ -182,9 +316,9 @@ fi
 
 # Auto-detect stanza if not specified
 if [[ -z "$STANZA" ]]; then
-    STANZA=$(grep -oP '^\[\K[^\]:]+(?=\])' "$PGBACKREST_CONF" | head -n1)
+    STANZA=$(sed -n 's/^\[\([^]:][^]:]*\)\].*/\1/p' "$PGBACKREST_CONF" | grep -vx 'global' | head -n1)
     if [[ -z "$STANZA" ]]; then
-        log_error "Cannot auto-detect stanza from config"
+        log_error "Cannot auto-detect stanza from config: $PGBACKREST_CONF"
         exit 1
     fi
 fi
@@ -205,6 +339,9 @@ case "$METHOD" in
             log_hint "Expected: YYYY-MM-DD HH:MM:SS[.usec][+/-TZ]"
             log_hint "Examples: 2025-01-01 12:00:00+08, 2025-01-01 04:00:00+00"
             exit 1
+        fi
+        if [[ ! "$TARGET" =~ [+-][0-9]{2}(:[0-9]{2})?$ ]]; then
+            log_warn "No timezone in target time, will be interpreted in server timezone"
         fi
         ;;
     lsn)
@@ -230,16 +367,31 @@ case "$METHOD" in
             exit 1
         fi
         ;;
-    set)
-        # Backup label: 'latest' or YYYYMMDD-HHMMSSF format
-        if [[ "$TARGET" != "latest" ]] && [[ ! "$TARGET" =~ ^[0-9]{8}-[0-9]{6}F(_[0-9]{8}-[0-9]{6}(D|I))?$ ]]; then
-            log_error "Invalid backup label: $TARGET"
-            log_hint "Expected: 'latest' or backup label like 20251225-120000F"
-            log_hint "Check available backups with: pgbackrest info --stanza=$STANZA"
-            exit 1
-        fi
-        ;;
 esac
+
+# Validate backup set selection, independent from recovery target.
+if [[ -n "$BACKUP_SET" ]]; then
+    if [[ "$BACKUP_SET" != "latest" ]] && [[ ! "$BACKUP_SET" =~ ^[0-9]{8}-[0-9]{6}F(_[0-9]{8}-[0-9]{6}(D|I))?$ ]]; then
+        log_error "Invalid backup set label: $BACKUP_SET"
+        log_hint "Expected: 'latest' or backup label like 20251225-120000F"
+        log_hint "Check available backups with: pgbackrest info --stanza=$STANZA"
+        exit 1
+    fi
+fi
+
+# Validate timeline syntax early. pgBackRest accepts "latest", "current", or a numeric timeline.
+if [[ -n "$TARGET_TIMELINE" ]]; then
+    if [[ "$TARGET_TIMELINE" != "latest" ]] && [[ "$TARGET_TIMELINE" != "current" ]] && [[ ! "$TARGET_TIMELINE" =~ ^[1-9][0-9]*$ ]]; then
+        log_error "Invalid timeline: $TARGET_TIMELINE"
+        log_hint "Expected: 'latest', 'current', or a positive integer"
+        exit 1
+    fi
+fi
+
+if [[ -n "$BACKUP_SET" ]] && [[ "$METHOD" == "default" ]]; then
+    log_hint "--set without recovery target still replays WAL to the end of stream"
+    log_hint "Combine with -i to stop right after this backup becomes consistent"
+fi
 
 
 #--------------------------------------------------------------#
@@ -250,6 +402,11 @@ CMD_ARGS=("--stanza=$STANZA" "--delta" "--force")
 # Add data directory if not default
 if [[ "$DATA_DIR" != "/pg/data" ]]; then
     CMD_ARGS+=("--pg1-path=$DATA_DIR")
+fi
+
+# Add backup set selection if specified.
+if [[ -n "$BACKUP_SET" ]]; then
+    CMD_ARGS+=("--set=$BACKUP_SET")
 fi
 
 # Add recovery target
@@ -271,9 +428,6 @@ case "$METHOD" in
     xid)
         CMD_ARGS+=("--type=xid" "--target=$TARGET")
         ;;
-    set)
-        CMD_ARGS+=("--set=$TARGET")
-        ;;
 esac
 
 # Add exclusive option
@@ -286,14 +440,28 @@ if [[ "$TARGET_ACTION" == "promote" ]] && [[ "$METHOD" =~ ^(time|name|lsn|xid|im
     CMD_ARGS+=("--target-action=promote")
 fi
 
+# Add timeline / verbosity options
+if [[ -n "$TARGET_TIMELINE" ]]; then
+    CMD_ARGS+=("--target-timeline=$TARGET_TIMELINE")
+fi
+
+if [[ "$VERBOSE" == true ]]; then
+    CMD_ARGS+=("--log-level-console=info")
+fi
+
 # Final command
-FULL_CMD="pgbackrest ${CMD_ARGS[*]} restore"
+if [[ ${#EXTRA_ARGS[@]} -gt 0 ]]; then
+    FULL_CMD="$(format_command pgbackrest "${CMD_ARGS[@]}" "${EXTRA_ARGS[@]}" restore)"
+else
+    FULL_CMD="$(format_command pgbackrest "${CMD_ARGS[@]}" restore)"
+fi
 
 
 #--------------------------------------------------------------#
 # Pre-flight Checks
 #--------------------------------------------------------------#
 log_info "Recovery Target: $METHOD${TARGET:+ ($TARGET)}"
+[[ -n "$BACKUP_SET" ]] && log_info "Backup Set:      $BACKUP_SET"
 log_info "Data Directory:  $DATA_DIR"
 log_info "Stanza:          $STANZA"
 log_info "Options:         exclusive=$TARGET_EXCLUSIVE action=$TARGET_ACTION"
@@ -308,6 +476,12 @@ if [[ "$DRY_RUN" == true ]]; then
     exit 0
 fi
 
+if [[ "$(id -u)" -eq 0 ]]; then
+    log_error "Do not run restore as root, run as the database superuser instead"
+    log_hint "sudo -iu postgres $PROG_NAME ..."
+    exit 1
+fi
+
 # Check if current user is in postgres group
 if ! id -nG | grep -qw postgres; then
     log_warn "Current user $(whoami) is not in postgres group"
@@ -317,9 +491,18 @@ fi
 if [[ -f "$DATA_DIR/postmaster.pid" ]]; then
     PG_PID=$(head -1 "$DATA_DIR/postmaster.pid" 2>/dev/null)
     if [[ -n "$PG_PID" ]] && kill -0 "$PG_PID" 2>/dev/null; then
-        log_error "PostgreSQL is still running (PID: $PG_PID)
-Stop PostgreSQL before restore: pg_ctl -D $DATA_DIR stop -m fast"
+        log_error "PostgreSQL is still running in $DATA_DIR (PID: $PG_PID)"
+        log_hint "Stop it before restore: pg_ctl -D $DATA_DIR stop -m fast"
+        exit 1
     fi
+    if [[ -n "$PG_PID" ]]; then
+        log_error "Stale postmaster.pid found in $DATA_DIR (process $PG_PID not running)"
+    else
+        log_error "postmaster.pid found in $DATA_DIR (PID is empty)"
+    fi
+    log_hint "pgBackRest refuses to restore while postmaster.pid exists"
+    log_hint "Remove it only after verifying PostgreSQL is stopped"
+    exit 1
 fi
 
 
@@ -339,7 +522,7 @@ countdown() {
     local seconds=${1:-5}
     if [ -t 0 ] && [ -t 1 ]; then
         for ((i=seconds; i>0; i--)); do
-            printf "\r${__CY}Starting in $i seconds... (Ctrl+C to abort)${__CN}"
+            printf "\r${__CY}Starting in %d seconds... (Ctrl+C to abort)${__CN}" "$i"
             sleep 1
         done
         printf "\n"
@@ -354,10 +537,14 @@ if [[ "$SKIP_CONFIRM" != true ]] && [ -t 0 ] && [ -t 1 ]; then
 fi
 
 log_info "Starting restore..."
-log_hint "$ pgbackrest ${CMD_ARGS[*]} restore"
+log_hint "$ $FULL_CMD"
 
 # Execute the restore command (using array to avoid eval security risks)
-pgbackrest "${CMD_ARGS[@]}" restore
+if [[ ${#EXTRA_ARGS[@]} -gt 0 ]]; then
+    pgbackrest "${CMD_ARGS[@]}" "${EXTRA_ARGS[@]}" restore
+else
+    pgbackrest "${CMD_ARGS[@]}" restore
+fi
 RC=$?
 
 if [[ $RC -eq 0 ]]; then
@@ -373,6 +560,7 @@ if [[ $RC -eq 0 ]]; then
     log_hint "  5. Restart PostgreSQL:   pg_ctl -D $DATA_DIR restart"
 else
     log_error "Restore failed with exit code: $RC"
+    log_hint "Check pgbackrest logs (log-path in $PGBACKREST_CONF) for details"
 fi
 
 exit $RC
