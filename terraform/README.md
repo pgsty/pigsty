@@ -124,10 +124,12 @@ Current Aliyun public base image versions used by the templates:
 
 | Code  | Distro           | Latest base image version |
 |-------|------------------|---------------------------|
-| `d12` | Debian 12        | 12.13                     |
-| `d13` | Debian 13        | 13.4                      |
+| `d12` | Debian 12        | 12.14                     |
+| `d13` | Debian 13        | 13.5                      |
 | `u22` | Ubuntu 22.04 LTS | 22.04.5                   |
 | `u24` | Ubuntu 24.04 LTS | 24.04.4                   |
+| `an8` | Anolis OS 8      | 8.10                      |
+| `al3` | Alibaba Cloud Linux 3 | 3 (20260513 alibase) |
 
 Aliyun Ubuntu image IDs only include the LTS release (`22_04` / `24_04`), so templates use `most_recent = true` to select the latest point-release image.
 
