@@ -21,6 +21,7 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c agens            # AgensGraph kernel for Graph DB workloads (16)
 ./configure -c pgedge           # pgEdge kernel for distributed PostgreSQL workloads (18)
 ./configure -c supabase         # PostgreSQL configured for Supabase self-hosting (15~18)
+./configure -c pg19             # PostgreSQL 19 beta with PGDG testing repo and minimal runtime packages
 
 # use multi-node HA templates
 ./configure -c ha/dual          # use the 2-node HA template
@@ -65,6 +66,7 @@ These are 1-node config template, which can be used to install pigsty on a singl
 * [agens.yml](agens.yml) : AgensGraph kernel for Graph DB workloads (16)
 * [pgedge.yml](pgedge.yml) : pgEdge kernel for distributed PostgreSQL workloads (18)
 * [supabase.yml](supabase.yml) : PostgreSQL configured for Supabase self-hosting (15~18)
+* [pg19.yml](pg19.yml) : PostgreSQL 19 beta with PGDG testing repo and minimal runtime packages
 
 You can add more nodes later, or use [HA config templates](#ha-templates) to plan it at the beginning.
 

@@ -3,7 +3,7 @@
 # File      :   configure
 # Desc      :   generate pigsty.yml config according to env
 # Ctime     :   2021-05-17
-# Mtime     :   2026-03-05
+# Mtime     :   2026-06-11
 # Path      :   configure
 # Docs      :   https://pigsty.io/docs/concept/iac/configure
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -17,7 +17,7 @@ PIGSTY_VERSION=v4.3.0
 #./configure
 #    [-c|--conf <confname>   # [meta|dual|trio|full|app/supa|...]
 #    [-i|--ip <ip>]          # primary IP address (skip with -s)
-#    [-v|--version <pgver>   # [18|17|16|15|14|13]
+#    [-v|--version <pgver>   # [18|17|16|15|14]
 #    [-r|--region <region>   # [default|china|europe]
 #    [-o|--output <file>]    # output config file (default: pigsty.yml)
 #    [-s|--skip]             # skip IP address probing
@@ -30,7 +30,7 @@ INTERACTIVE=true                  # run configure with interactive mode
 OUTPUT=pigsty.yml                 # output config file path
 PRIMARY_IP=""                     # primary IP address (do not use public IP)
 MODE=""                           # config template (meta|dual|trio|full|prod)
-PGVER=""                          # pg major version (18|17|16|15|14|13)
+PGVER=""                          # pg major version (18|17|16|15|14)
 REGION=""                         # default region (default|china|europe)
 USE_PROXY=false                   # use global env http_proxy, https_proxy, all_proxy, no_proxy
 SKIP=false                        # skip ip probe (convenient if using fixed templates)
@@ -52,7 +52,7 @@ function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n";   }
 function log_input() { printf "[${__CM} IN ${__CN}] ${__CM}$*\n=> ${__CN}"; }
 function log_hint()  { printf "${__CB}$*${__CN}"; }
 ipv4_regexp='(([0-9]|[0-9]{2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9]{2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])'
-VALID_VERSIONS="13 14 15 16 17 18"
+VALID_VERSIONS="14 15 16 17 18 19"
 
 #--------------------------------------------------------------#
 # Param
@@ -653,7 +653,7 @@ function check_config(){
     fi  # end of USE_PROXY
 
     # if PGVER is non-empty, upsert pg_version accordingly
-    if [[ -n "${PGVER}" && "${mode}" != "mssql" && "${mode}" != "polar"  ]]; then
+    if [[ -n "${PGVER}" && "${mode}" != "mssql" && "${mode}" != "polar" && "${mode}" != "pg19" ]]; then
         # upsert pg_version to given PGVER
         if grep -q 'pg_version:' "${config_dst}"; then
             sed -ie "s/pg_version:.*$/pg_version: ${PGVER}                      # configured pg major version/g" "${config_dst}"

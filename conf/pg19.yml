@@ -1,0 +1,191 @@
+---
+#==============================================================#
+# File      :   pg19.yml
+# Desc      :   Pigsty 1-node PostgreSQL 19 beta config
+# Ctime     :   2026-06-11
+# Mtime     :   2026-06-11
+# Docs      :   https://pigsty.io/docs/conf/pg19
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+# This is the PostgreSQL 19 beta variant of meta.yml.
+# It enables the PGDG beta repository and installs a minimal PG19 runtime.
+#
+# Usage:
+#   curl https://repo.pigsty.io/get | bash
+#   ./configure -c pg19
+#   ./deploy.yml
+
+all:
+
+  #==============================================================#
+  # Clusters, Nodes, and Modules
+  #==============================================================#
+  children:
+
+    #----------------------------------------------#
+    # PGSQL : https://pigsty.io/docs/pgsql
+    #----------------------------------------------#
+    pg-meta:
+      hosts:
+        10.10.10.10: { pg_seq: 1, pg_role: primary }
+        #x.xx.xx.xx: { pg_seq: 2, pg_role: replica }
+        #x.xx.xx.xy: { pg_seq: 3, pg_role: offline }
+      vars:
+        pg_cluster: pg-meta
+
+        # PG19 is beta; extension packages are intentionally not installed here.
+        pg_extensions: []
+
+        # define business users/roles : https://pigsty.io/docs/pgsql/config/user
+        pg_users:
+          - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin   ] ,comment: pigsty admin user }
+          - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
+
+        # define business databases : https://pigsty.io/docs/pgsql/config/db
+        pg_databases:
+          - { name: meta, baseline: cmdb.sql, comment: "pigsty meta database", schemas: [pigsty] }
+
+        pg_hba_rules:   # https://pigsty.io/docs/pgsql/config/hba
+          - { user: all ,db: all ,addr: intra ,auth: pwd ,title: 'everyone intranet access with password' ,order: 800 }
+        pg_crontab: []  # pgBackRest is disabled during PG19 beta trial
+
+        # define (OPTIONAL) L2 VIP that bind to primary
+        #pg_vip_enabled: true
+        #pg_vip_address: 10.10.10.2/24
+        #pg_vip_interface: eth1
+
+
+    #----------------------------------------------#
+    # INFRA : https://pigsty.io/docs/infra
+    #----------------------------------------------#
+    infra:
+      hosts:
+        10.10.10.10: { infra_seq: 1 }
+      vars:
+        repo_enabled: false   # disable local repo in 1-node mode
+        #repo_extra_packages: [ pgsql-core ]  # if local repo is enabled, mirror PG19 beta core packages
+
+    #----------------------------------------------#
+    # ETCD : https://pigsty.io/docs/etcd
+    #----------------------------------------------#
+    etcd:
+      hosts:
+        10.10.10.10: { etcd_seq: 1 }
+      vars:
+        etcd_cluster: etcd
+        etcd_safeguard: false
+
+    #----------------------------------------------#
+    # MINIO : https://pigsty.io/docs/minio
+    #----------------------------------------------#
+    #minio:
+    #  hosts:
+    #    10.10.10.10: { minio_seq: 1 }
+    #  vars:
+    #    minio_cluster: minio
+    #    minio_users:
+    #      - { access_key: pgbackrest  ,secret_key: S3User.Backup ,policy: pgsql }
+    #      - { access_key: s3user_meta ,secret_key: S3User.Meta   ,policy: meta  }
+    #      - { access_key: s3user_data ,secret_key: S3User.Data   ,policy: data  }
+
+    #----------------------------------------------#
+    # DOCKER : https://pigsty.io/docs/docker
+    # APP    : https://pigsty.io/docs/app
+    #----------------------------------------------#
+    app:
+      hosts: { 10.10.10.10: {} }
+      vars:
+        docker_enabled: true
+        #docker_registry_mirrors: ["https://docker.1panel.live","https://docker.1ms.run","https://docker.xuanyuan.me","https://registry-1.docker.io"]
+        app: pgadmin
+        apps:
+          pgadmin:
+            conf:
+              PGADMIN_DEFAULT_EMAIL: admin@pigsty.cc
+              PGADMIN_DEFAULT_PASSWORD: pigsty
+
+
+  #==============================================================#
+  # Global Parameters
+  #==============================================================#
+  vars:
+
+    #----------------------------------------------#
+    # INFRA : https://pigsty.io/docs/infra
+    #----------------------------------------------#
+    version: v4.3.0                   # pigsty version string
+    admin_ip: 10.10.10.10             # admin node ip address
+    region: default                   # upstream mirror region: default|china|europe
+    proxy_env:
+      no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.myqcloud.com,*.tsinghua.edu.cn"
+      # http_proxy:  # set your proxy here: e.g http://user:pass@proxy.xxx.com
+      # https_proxy: # set your proxy here: e.g http://user:pass@proxy.xxx.com
+      # all_proxy:   # set your proxy here: e.g http://user:pass@proxy.xxx.com
+    infra_portal:
+      home : { domain: i.pigsty }
+      pgadmin : { domain: adm.pigsty ,endpoint: "${admin_ip}:8885" }
+      #minio  : { domain: m.pigsty ,endpoint: "${admin_ip}:9001" ,scheme: https ,websocket: true }
+
+    #----------------------------------------------#
+    # NODE : https://pigsty.io/docs/node/param
+    #----------------------------------------------#
+    nodename_overwrite: false             # do not overwrite node hostname on single node mode
+    node_tune: oltp                       # node tuning specs: oltp,olap,tiny,crit
+    node_etc_hosts: [ '${admin_ip} i.pigsty sss.pigsty' ]
+    node_repo_modules: 'node,infra,pgsql,beta' # PG19 beta packages come from PGDG testing repo
+    #node_repo_modules: local             # use this if you want to build & use local repo
+    node_repo_remove: true                # remove existing node repo for node managed by pigsty
+    node_firewall_public_port: [22, 80, 443, 5432]
+
+    #----------------------------------------------#
+    # PGSQL : https://pigsty.io/docs/pgsql/param
+    #----------------------------------------------#
+    pg_version: 19                      # PostgreSQL 19 beta
+    pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+    pg_safeguard: false                 # prevent purging running postgres instance?
+    pg_packages: [ pgsql-core, patroni, pgbouncer, pg_exporter, vip-manager ] # PG19 beta minimal runtime packages
+    pg_extensions: []                   # do not install extension packages during PG19 beta trial
+    repo_modules: node,infra,pgsql,beta # add PGDG testing repo when building a local repo
+    repo_extra_packages: [ pgsql-core ] # only mirror PG19 beta core packages
+
+    #----------------------------------------------#
+    # BACKUP : https://pigsty.io/docs/pgsql/backup
+    #----------------------------------------------#
+    pgbackrest_enabled: false           # pgBackRest 2.58 does not support PG19 beta1 control/catalog yet
+    pgbackrest_exporter_enabled: false  # disabled with pgBackRest during PG19 beta trial
+    #pgbackrest_method: minio
+    #pgbackrest_repo:
+    #  minio:
+    #    type: s3
+    #    s3_endpoint: sss.pigsty
+    #    s3_region: us-east-1
+    #    s3_bucket: pgsql
+    #    s3_key: pgbackrest
+    #    s3_key_secret: S3User.Backup
+    #    s3_uri_style: path
+    #    path: /pgbackrest
+    #    storage_port: 9000
+    #    storage_ca_file: /etc/pki/ca.crt
+    #    bundle: y
+    #    bundle_limit: 20MiB
+    #    bundle_size: 128MiB
+    #    cipher_type: aes-256-cbc
+    #    cipher_pass: pgBackRest
+    #    retention_full_type: time
+    #    retention_full: 14
+
+    #----------------------------------------------#
+    # PASSWORD : https://pigsty.io/docs/setup/security/
+    #----------------------------------------------#
+    grafana_admin_password: pigsty
+    grafana_view_password: DBUser.Viewer
+    pg_admin_password: DBUser.DBA
+    pg_monitor_password: DBUser.Monitor
+    pg_replication_password: DBUser.Replicator
+    patroni_password: Patroni.API
+    haproxy_admin_password: pigsty
+    minio_secret_key: S3User.MinIO
+    etcd_root_password: Etcd.Root
+...
