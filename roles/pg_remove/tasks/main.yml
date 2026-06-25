@@ -122,7 +122,11 @@
   ignore_errors: true
   block:
     - name: remove pgsql vector logging config
-      file: path=/etc/vector/pgsql.yaml state=absent
+      file: path={{ item }} state=absent
+      with_items:
+        - /etc/vector/postgres.yaml
+        - /etc/vector/pgbackrest.yaml
+        - /etc/vector/pgsql.yaml
     - name: reload vector to discard pgsql log
       systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
 

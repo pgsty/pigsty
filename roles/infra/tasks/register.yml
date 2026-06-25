@@ -19,7 +19,13 @@
   block:
     - name: render infra vector logging config
       template: src=vector/nginx.yaml dest=/etc/vector/nginx.yaml mode=0600
+    - name: check vector service status
+      command: systemctl is-active vector
+      register: vector_service_status
+      changed_when: false
+      failed_when: false
     - name: reload vector to consume infra log
+      when: vector_service_status.rc | default(1) == 0
       systemd: name=vector state=reloaded enabled=yes daemon_reload=yes
 
 
