@@ -17,7 +17,7 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c ivory            # IvorySQL Kernel for Oracle grammar compatibility (18)
 ./configure -c mysql            # OpenHalo Kernel for MySQL Compatibility (14)
 ./configure -c pgtde            # Percona PostgreSQL Server with TDE (18)
-./configure -c oriole           # OrioleDB Kernel for OLTP Enhancement (17)
+./configure -c oriole           # OrioleDB Kernel for OLTP Enhancement (16/17/18)
 ./configure -c agens            # AgensGraph kernel for Graph DB workloads (16)
 ./configure -c pgedge           # pgEdge kernel for distributed PostgreSQL workloads (18)
 ./configure -c supabase         # PostgreSQL configured for Supabase self-hosting (15~18)
