@@ -42,6 +42,27 @@ Vagrant.configure("2") do |config|
                 v.customize ["guestproperty", "set", :id, "/VirtualBox/GuestAdd/VBoxService/--timesync-set-threshold", 1000]
             end
 
+            # Keep the private NIC internal; default route/DNS stay on the NAT NIC.
+            node.vm.provision "shell", run: "always" do |s|
+              s.inline = <<-SHELL
+                PRIVATE_IP="#{spec["ip"]}"
+                PRIVATE_IFACE=$(ip -o -4 addr show | awk -v cidr="${PRIVATE_IP}/24" '$4 == cidr {print $2; exit}')
+                [ -z "${PRIVATE_IFACE}" ] && exit 0
+
+                if command -v nmcli >/dev/null 2>&1; then
+                  PRIVATE_CONN=$(nmcli -t -f NAME,DEVICE connection show --active | awk -F: -v dev="${PRIVATE_IFACE}" '$2 == dev {print $1; exit}')
+                  if [ -n "${PRIVATE_CONN}" ]; then
+                    restorecon /etc/NetworkManager/system-connections/*.nmconnection 2>/dev/null || true
+                    nmcli connection modify "${PRIVATE_CONN}" ipv4.never-default yes ipv4.gateway "" ipv4.ignore-auto-dns yes ipv6.never-default yes || true
+                    nmcli device reapply "${PRIVATE_IFACE}" >/dev/null 2>&1 || true
+                  fi
+                fi
+
+                ip route del default dev "${PRIVATE_IFACE}" 2>/dev/null || true
+                ip -6 route del default dev "${PRIVATE_IFACE}" 2>/dev/null || true
+              SHELL
+            end
+
             # provision additional disks using vagrant experimental disk feature
             # requires: VAGRANT_EXPERIMENTAL="disks"
             if spec["name"].start_with?("minio")
