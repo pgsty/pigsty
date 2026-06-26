@@ -144,7 +144,6 @@ all:
 
         pg_vip_enabled: true
         pg_vip_address: 10.10.10.2/24
-        pg_vip_interface: eth1
 
         pg_crontab:  # make a full backup 1 am everyday
           - '00 01 * * * /pg/bin/pg-backup full'
@@ -166,7 +165,6 @@ all:
         pg_conf: tiny.yml
         pg_vip_enabled: true
         pg_vip_address: 10.10.10.3/24
-        pg_vip_interface: eth1
         pg_crontab:  # make a full backup on monday 1am, and an incremental backup during weekdays
           - '00 01 * * 1 /pg/bin/pg-backup full'
           - '00 01 * * 2,3,4,5,6,7 /pg/bin/pg-backup'
@@ -469,7 +467,7 @@ all:
     # vip_vrid:            [IDENTITY] # required, integer, 1-254, should be unique among same VLAN
     vip_role: backup                  # optional, `master|backup`, backup by default, use as init role
     vip_preempt: false                # optional, `true/false`, false by default, enable vip preemption
-    vip_interface: eth0               # node vip network interface to listen, `eth0` by default
+    vip_interface: auto               # node vip network interface to listen, `auto` by default
     vip_dns_suffix: ''                # node vip dns name suffix, empty string by default
     vip_exporter_port: 9650           # keepalived exporter listen port, 9650 by default
 
@@ -799,7 +797,7 @@ all:
       - { name: offline ,port: 5438 ,dest: postgres ,check: /replica   ,selector: "[? pg_role == `offline` || pg_offline_query ]" , backup: "[? pg_role == `replica` && !pg_offline_query]"}
     pg_vip_enabled: false             # enable a l2 vip for pgsql primary? false by default
     pg_vip_address: 127.0.0.1/24      # vip address in `<ipv4>/<mask>` format, require if vip is enabled
-    pg_vip_interface: eth0            # vip network interface to listen, eth0 by default
+    pg_vip_interface: auto            # vip network interface to listen, auto by default
     pg_dns_suffix: ''                 # pgsql dns suffix, '' by default
     pg_dns_target: auto               # auto, primary, vip, none, or ad hoc ip
 

@@ -254,6 +254,7 @@ pg_rto_plan:  # [ttl, loop, retry, start, margin, inter, fastinter, downinter, r
 | `pgbouncer_poolmode` | `transaction`  | Pooling mode     |
 | `pg_vip_enabled`     | `false`        | Enable L2 VIP    |
 | `pg_vip_address`     | `127.0.0.1/24` | VIP address      |
+| `pg_vip_interface`   | `auto`         | VIP interface    |
 
 ### Business Objects
 

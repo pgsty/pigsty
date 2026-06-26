@@ -355,7 +355,6 @@ pg-meta:
       - {user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes'}
     pg_vip_enabled: true
     pg_vip_address: 10.10.10.2/24
-    pg_vip_interface: eth1
     pg_crontab:  # make a full backup 1 am everyday
       - '00 01 * * * /pg/bin/pg-backup full'
 
@@ -402,7 +401,6 @@ pg-meta:
       - {user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes'}
     pg_vip_enabled: true
     pg_vip_address: 10.10.10.2/24
-    pg_vip_interface: eth1
 
 # pgsql 3 node ha cluster: pg-test
 pg-test:
@@ -416,7 +414,6 @@ pg-test:
     pg_databases: [{ name: test }]
     pg_vip_enabled: true
     pg_vip_address: 10.10.10.3/24
-    pg_vip_interface: eth1
 ```
 
 You can even deploy PostgreSQL with different major versions and kernel forks in the same deployment:
@@ -448,7 +445,6 @@ pg-meta:      # 3 instance postgres cluster `pg-meta`
       - { name: standby ,src_ip: "*" ,port: 5435 , dest: default ,selector: "[]" , backup: "[? pg_role == `primary`]" }
     pg_vip_enabled: true
     pg_vip_address: 10.10.10.2/24
-    pg_vip_interface: eth1
     pg_listen: '${ip},${vip},${lo}'
     patroni_ssl_enabled: true
     pgbouncer_sslmode: require
@@ -518,7 +514,6 @@ pg-citus: # citus group
     pg_primary_db: test               # primary database used by citus
     pg_dbsu_password: DBUser.Postgres # all dbsu password access for citus cluster
     pg_vip_enabled: true
-    pg_vip_interface: eth1
     pg_extensions: [ 'citus postgis timescaledb pgvector' ]
     pg_libs: 'citus, timescaledb, pg_stat_statements, auto_explain' # citus will be added by patroni automatically
     pg_users: [ { name: test ,password: test ,pgbouncer: true ,roles: [ dbrole_admin ] } ]

@@ -193,7 +193,7 @@ node (full role)
 | `vip_vrid`      | (none)   | VRRP router ID (1-254)                   |
 | `vip_role`      | `backup` | Initial role                             |
 | `vip_preempt`   | `false`  | Enable VIP preemption                    |
-| `vip_interface` | `eth0`   | Network interface                        |
+| `vip_interface` | `auto`   | Network interface                        |
 | `vip_auth_pass` | `''`     | VRRP auth password (empty for auto)      |
 
 > **Note**: VIP requires `vip_address` and `vip_vrid` to be set. Multiple nodes

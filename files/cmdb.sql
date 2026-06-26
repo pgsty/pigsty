@@ -1416,7 +1416,7 @@ INSERT INTO pigsty.default_var VALUES
 (272, 'vip_vrid', 'null', 'NODE', 'NODE_VIP', 'int', 'C', 'required, integer, 1-254, should be unique among same VLAN', NULL),
 (273, 'vip_role', '"backup"', 'NODE', 'NODE_VIP', 'enum', 'I', 'optional, `master/backup`, backup by default, use as init role', NULL),
 (274, 'vip_preempt', 'false', 'NODE', 'NODE_VIP', 'bool', 'C/I', 'optional, `true/false`, false by default, enable vip preemption', NULL),
-(275, 'vip_interface', '"eth0"', 'NODE', 'NODE_VIP', 'string', 'C/I', 'node vip network interface to listen, `eth0` by default', NULL),
+(275, 'vip_interface', '"auto"', 'NODE', 'NODE_VIP', 'string', 'C/I', 'node vip network interface to listen, `auto` by default', NULL),
 (276, 'vip_dns_suffix', '""', 'NODE', 'NODE_VIP', 'string', 'C', 'node vip dns name suffix, empty string by default', NULL),
 (277, 'vip_auth_pass', '""', 'NODE', 'NODE_VIP', 'password', 'C', 'vrrp authentication password, empty to use `<cls>-<vrid>` as default', NULL),
 (278, 'vip_exporter_port', '9650', 'NODE', 'NODE_VIP', 'port', 'C', 'keepalived exporter listen port, 9650 by default', NULL),
@@ -1616,7 +1616,7 @@ INSERT INTO pigsty.default_var VALUES
 (930, 'pg_default_services', '[{"dest": "default", "name": "primary", "port": 5433, "check": "/primary", "selector": "[]"}, {"dest": "default", "name": "replica", "port": 5434, "check": "/read-only", "backup": "[? pg_role == `primary` || pg_role == `offline` ]", "selector": "[]"}, {"dest": "postgres", "name": "default", "port": 5436, "check": "/primary", "selector": "[]"}, {"dest": "postgres", "name": "offline", "port": 5438, "check": "/replica", "backup": "[? pg_role == `replica` && !pg_offline_query]", "selector": "[? pg_role == `offline` || pg_offline_query ]"}]', 'PGSQL', 'PG_ACCESS', 'service[]', 'G/C', 'postgres default service definitions', NULL),
 (931, 'pg_vip_enabled', 'false', 'PGSQL', 'PG_ACCESS', 'bool', 'C', 'enable a l2 vip for pgsql primary? false by default', NULL),
 (932, 'pg_vip_address', '"127.0.0.1/24"', 'PGSQL', 'PG_ACCESS', 'cidr4', 'C', 'vip address in `<ipv4>/<mask>` format, require if vip is enabled', NULL),
-(933, 'pg_vip_interface', '"eth0"', 'PGSQL', 'PG_ACCESS', 'string', 'C/I', 'vip network interface to listen, eth0 by default', NULL),
+(933, 'pg_vip_interface', '"auto"', 'PGSQL', 'PG_ACCESS', 'string', 'C/I', 'vip network interface to listen, auto by default', NULL),
 (934, 'pg_dns_suffix', '""', 'PGSQL', 'PG_ACCESS', 'string', 'C', 'pgsql dns suffix, '''' by default', NULL),
 (935, 'pg_dns_target', '"auto"', 'PGSQL', 'PG_ACCESS', 'enum', 'C', 'auto, primary, vip, none, or ad hoc ip', NULL),
 

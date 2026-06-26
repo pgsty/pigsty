@@ -18,6 +18,28 @@
       - vip_role|upper == 'MASTER' or vip_role|upper == 'BACKUP'
     fail_msg: vip_address & vip_vrid is required for keepalived
 
+- name: resolve node vip interface
+  tags: [ node_vip, vip_check, vip_config, vip_refresh ]
+  when: (vip_interface | default('auto', true) | string | trim | lower) in ['', 'auto']
+  environment:
+    PIGSTY_NODE_IP: "{{ inventory_hostname }}"
+  shell: |
+    ip -o -4 addr show | awk -v ip="$PIGSTY_NODE_IP" '
+      $3 == "inet" {
+        split($4, cidr, "/")
+        if (cidr[1] == ip) {
+          sub(/@.*/, "", $2)
+          print $2
+          found = 1
+          exit
+        }
+      }
+      END { exit found ? 0 : 1 }
+    '
+  args: { executable: /bin/bash }
+  register: _node_interface_result
+  changed_when: false
+
 #--------------------------------------------------------------#
 # Config keepalived                                 [vip_config]
 #--------------------------------------------------------------#
@@ -28,6 +50,8 @@
     dest: /etc/keepalived/keepalived.conf
     mode: 0644
   vars:
+    node_interface: >-
+      {% if (vip_interface | default('auto', true) | string | trim | lower) in ['', 'auto'] %}{{ _node_interface_result.stdout | trim }}{% else %}{{ vip_interface | string | trim }}{% endif %}
     # JMESPath query to find all hosts with same vip_address:
     # [@.*] - flatten hostvars dict to array, [0] - unwrap outer array, [?...] - filter by vip_address
     vip_cluster_members_query: "[@.*][0][?vip_address=='{{ vip_address }}']"

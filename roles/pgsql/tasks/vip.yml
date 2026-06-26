@@ -1,15 +1,45 @@
 ---
 #--------------------------------------------------------------#
+# Resolve vip-manager interface                 [pg_vip_config]
+#--------------------------------------------------------------#
+- name: resolve pg vip interface
+  tags: pg_vip_config
+  when:
+    - pg_vip_enabled|bool
+    - (pg_vip_interface | default('auto', true) | string | trim | lower) in ['', 'auto']
+  environment:
+    PIGSTY_NODE_IP: "{{ inventory_hostname }}"
+  shell: |
+    ip -o -4 addr show | awk -v ip="$PIGSTY_NODE_IP" '
+      $3 == "inet" {
+        split($4, cidr, "/")
+        if (cidr[1] == ip) {
+          sub(/@.*/, "", $2)
+          print $2
+          found = 1
+          exit
+        }
+      }
+      END { exit found ? 0 : 1 }
+    '
+  args: { executable: /bin/bash }
+  register: _node_interface_result
+  changed_when: false
+
+#--------------------------------------------------------------#
 # Config vip-manager                             [pg_vip_config]
 #--------------------------------------------------------------#
 - name: config vip-manager
   tags: pg_vip_config
+  when: pg_vip_enabled|bool
   template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
   with_items:
     - { src: "vip-manager.yml" ,dest: "/etc/default/vip-manager.yml" ,owner: root ,group: postgres ,mode: "0600" }
     - { src: "vip-manager.svc" ,dest: "{{ systemd_svc_path }}"       ,owner: root ,group: root     ,mode: "0644" }
   vars:
     systemd_svc_path: "{{ systemd_dir|default('/usr/lib/systemd/system') }}/vip-manager.service"
+    node_interface: >-
+      {% if pg_vip_enabled|bool and (pg_vip_interface | default('auto', true) | string | trim | lower) in ['', 'auto'] %}{{ _node_interface_result.stdout | trim }}{% else %}{{ pg_vip_interface | default('auto', true) | string | trim }}{% endif %}
 
 #--------------------------------------------------------------#
 #  Launch vip-manager                            [pg_vip_launch]
