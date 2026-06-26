@@ -39,8 +39,8 @@
           {% if os_version|int in repo.releases and repo.module == module_name and os_arch in repo.arch %}
           {% if os_package == 'rpm' %}
           {% set target_version = '$releasever' %}
-          {% if (os_version|int >= 10) and (repo.name | lower | regex_search('^epel')) %}{% set target_version = os_version_full|string %}{% endif %}
-          {% if (repo.name | lower | regex_search('^pgdg')) and ((os_version|int >= 10) or (os_version_full in ['9.6','9.7'])) %}{% set target_version = os_version_full|string %}{% endif %}
+          {% if (os_version|int >= 10) and (repo.name | lower | regex_search('^epel')) %}{% set target_version = os_version|string ~ 'z' %}{% endif %}
+          {% if (repo.name | lower | regex_search('^pgdg')) and ((os_version|int >= 10) or ((os_version|int == 9) and (os_version_full|string | regex_search('^9\\.([6-9]|[1-9][0-9]+)(\\..*)?$')))) %}{% set target_version = os_version_full|string | regex_replace('^(9\\.([6-9]|[1-9][0-9]+)).*$', '\\1') %}{% endif %}
           {% if repo.minor is defined and repo.minor|bool %}{% set target_version = os_version_full|string %}{% endif %}
           [{{ repo.name }}]
           name = {{ repo.description }} $releasever - $basearch

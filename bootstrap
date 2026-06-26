@@ -3,7 +3,7 @@
 # File      :   bootstrap
 # Desc      :   setup local repo & install boot utils
 # Ctime     :   2022-10-16
-# Mtime     :   2025-11-23
+# Mtime     :   2026-06-26
 # Path      :   bootstrap
 # Docs      :   https://pigsty.io/docs/setup/offline
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -466,11 +466,11 @@ EOF
 
 # Usage: add_el10_repo [region] (default|china|europe)
 # add pigsty repo to fill some missing ansible packages
-# NOTE: EL10+ EPEL uses minor version (10.0, 10.1, etc.) instead of major version
+# Pigsty targets stable EL10 variants here; EPEL serves those via 10z, not minor paths.
 function add_el10_repo(){
     local region=${1-"default"}
     local releasever=${OS_VERSION}
-    local releasever_full=${OS_VERSION_FULL}
+    local epel_release=${PIGSTY_EPEL_RELEASE:-"${releasever}z"}
     local suffix=""
     if [ "${region}" = "china" ]; then
       pigstyrepo="https://repo.pigsty.cc"
@@ -516,8 +516,8 @@ enabled = 1
 skip_if_unavailable = 1
 module_hotfixes=1
 [epel-default]
-name = EL ${releasever} EPEL ${releasever_full} - \$basearch
-baseurl = ${epelbase}/${releasever_full}/Everything/\$basearch/
+name = EL ${releasever} EPEL ${epel_release} - \$basearch
+baseurl = ${epelbase}/${epel_release}/Everything/\$basearch/
 gpgcheck = 0
 enabled = 1
 skip_if_unavailable = 1
@@ -736,7 +736,7 @@ function check_utils(){
         elif [[ $OS_VERSION == "10" ]]; then
             log_info "install el10 utils"
             sudo dnf install -y createrepo_c unzip wget dnf-utils sshpass
-            sudo dnf install -y ansible
+            sudo dnf install -y ansible python3-jmespath
         fi
     fi
 
