@@ -41,7 +41,7 @@ Use [`conf/vibe.yml`](../../conf/vibe.yml) for a complete AI coding sandbox:
 
 ```
 vibe
-├── vibe_dir          # Create workspace, render CLAUDE.md
+├── vibe_dir          # Create workspace, render AGENTS.md
 ├── code              # VS Code Server
 │   ├── code_install
 │   ├── code_dir
