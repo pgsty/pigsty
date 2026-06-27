@@ -124,6 +124,8 @@ Current Aliyun public base image versions used by the templates:
 
 | Code  | Distro           | Latest base image version |
 |-------|------------------|---------------------------|
+| `el9` | Rocky Linux 9    | 9.8                       |
+| `el10` | Rocky Linux 10  | 10.2                      |
 | `d12` | Debian 12        | 12.14                     |
 | `d13` | Debian 13        | 13.5                      |
 | `u22` | Ubuntu 22.04 LTS | 22.04.5                   |
