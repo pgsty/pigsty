@@ -321,11 +321,17 @@ function check_repo(){
     local nginx_home=$(dirname ${repo_dir})
     local repo_name=$(basename ${repo_dir})
 
-    # setup directories: /data, /data/nginx, /www -> /data/nginx
-    sudo mkdir -p /data "/data/nginx/${repo_name}"
-    [[ -d /www ]] && [[ ! -L /www ]] && sudo mv /www /tmp/www.bak
-    sudo rm -rf /www
-    sudo ln -sf /data/nginx /www
+    # setup repo home, but keep an existing /www directory intact
+    if [[ -e ${nginx_home} && ! -d ${nginx_home} && ! -L ${nginx_home} ]]; then
+        log_error "nginx home = ${nginx_home} exists but is not a directory or symlink"
+        return 1
+    fi
+    if [[ ! -e ${nginx_home} ]]; then
+        sudo mkdir -p /data /data/nginx
+        sudo ln -sf /data/nginx ${nginx_home}
+    else
+        sudo mkdir -p ${nginx_home}
+    fi
 
     # if there's a repo with repo_complete flag, it means repo is ready, skip
     if [[ -f ${repo_dir}/repo_complete ]]; then

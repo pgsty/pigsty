@@ -13,14 +13,15 @@
     NGINX_HOME="{{ nginx_home }}"
     REPO_NAME="{{ repo_name }}"
     [[ "${NGINX_DATA}" == "${NODE_DATA}"* ]] && mkdir -p "${NODE_DATA}"
-    mkdir -p "${NGINX_DATA}"
-    if [ -d "${NGINX_HOME}" ] && [ ! -L "${NGINX_HOME}" ]; then
-      mv -f "${NGINX_HOME}"/* "${NGINX_DATA}/" 2>/dev/null || true
-      rm -rf "${NGINX_HOME}"
+    if [ ! -e "${NGINX_HOME}" ]; then
+      mkdir -p "${NGINX_DATA}"
+      ln -snf "${NGINX_DATA}" "${NGINX_HOME}"
+    elif [ ! -d "${NGINX_HOME}" ] && [ ! -L "${NGINX_HOME}" ]; then
+      echo "[ERROR] ${NGINX_HOME} exists but is not a directory or symlink"
+      exit 1
     fi
-    ln -snf "${NGINX_DATA}" "${NGINX_HOME}"
-    mkdir -p "${NGINX_DATA}/${REPO_NAME}" "${NGINX_DATA}/acme"
-    chown -R root:nginx "${NGINX_DATA}";
+    mkdir -p "${NGINX_HOME}/${REPO_NAME}" "${NGINX_HOME}/acme"
+    chown -R root:nginx "${NGINX_HOME}/${REPO_NAME}" "${NGINX_HOME}/acme" 2>/dev/null || true
     /bin/true
   args: { executable: /bin/bash }
 
