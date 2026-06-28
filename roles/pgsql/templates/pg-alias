@@ -21,16 +21,6 @@ alias pg-stop='pg_ctl -D {{ pg_data|default('/pg/data') }} stop'
 alias pg-restart='pg_ctl -D {{ pg_data|default('/pg/data') }} restart'
 alias pg-reload='pg_ctl -D {{ pg_data|default('/pg/data') }} reload'
 alias pg-promote='pg_ctl -D {{ pg_data|default('/pg/data') }} promote'
-function pg-promote(){
-  rm -rf {{ pg_data|default('/pg/data') }}/standby.signal;
-  pg_ctl -D {{ pg_data|default('/pg/data') }} promote;
-}
-function pg-demote(){
-  touch {{ pg_data|default('/pg/data') }}/standby.signal;
-  chown postgres:postgres {{ pg_data|default('/pg/data') }}/standby.signal;
-  psql postgres -c 'CHECKPOINT;';
-  pg_ctl -D {{ pg_data|default('/pg/data') }} restart;
-}
 alias pg-up='sudo systemctl start patroni'
 alias pg-dw='sudo systemctl stop patroni'
 alias pg-rc='sudo systemctl reload patroni'
@@ -56,17 +46,17 @@ alias pg-kk="while true; do psql -wc \"SELECT pg_terminate_backend(pid) AS kille
 alias pg-cancel="psql -wc \"SELECT pg_cancel_backend(pid) AS canceled, NOW()-state_change AS time, datname, usename, application_name AS appname, client_addr,state FROM pg_stat_activity WHERE backend_type = 'client backend' and pid <> pg_backend_pid();\""
 alias pg-cc="while true; do psql -wc \"SELECT pg_cancel_backend(pid) AS canceled, NOW()-state_change AS time, datname, usename, application_name AS appname, client_addr,state FROM pg_stat_activity WHERE backend_type = 'client backend' and pid <> pg_backend_pid();\"; sleep 0.1; done"
 
-function pg() {
-    local patroni_conf="/infra/conf/patronictl.yml"
-    if [ ! -r ${patroni_conf} ]; then
+pg() (
+    patroni_conf="/infra/conf/patronictl.yml"
+    if [ ! -r "${patroni_conf}" ]; then
         patroni_conf="/etc/patroni/patroni.yml"
-        if [ ! -r ${patroni_conf} ]; then
-        	echo "error: patronictl config not found"
+        if [ ! -r "${patroni_conf}" ]; then
+            echo "error: patronictl config not found"
             return 1
         fi
     fi
-    patronictl -c ${patroni_conf} "$@"
-}
+    patronictl -c "${patroni_conf}" "$@"
+)
 
 #--------------------------------------------------------------#
 # pgbouncer (pgb)
@@ -88,6 +78,40 @@ alias pgb-user="cat /etc/pgbouncer/database.txt"
 alias pgb-db="cat /etc/pgbouncer/userlist.txt"
 alias pgb-mt="curl -sL http://localhost:9631/metrics | grep -v '#' | grep pgbouncer_"
 
+#--------------------------------------------------------------#
+# pgbackrest (pb)
+#--------------------------------------------------------------#
+alias pb-mt="curl -sL localhost:9854/metrics | grep -v '#' | grep pgbackrest"
+
+pb() (
+    stanza=$(grep -o '\[[^][]*]' /etc/pgbackrest/pgbackrest.conf | head -n1 | sed 's/.*\[\([^]]*\)].*/\1/')
+    pgbackrest --stanza="${stanza}" "$@"
+)
+
+
+# /etc/profile sources this file with the user's login shell; the shebang is ignored.
+# Keep POSIX-compatible aliases/functions above, and skip bash-only functions for sh/dash/bash-posix.
+if [ -z "${BASH_VERSION:-}" ]; then
+  return 0 2>/dev/null || exit 0
+fi
+case ":${SHELLOPTS:-}:" in
+  *:posix:*) return 0 2>/dev/null || exit 0 ;;
+esac
+
+#--------------------------------------------------------------#
+# bash-only functions
+#--------------------------------------------------------------#
+function pg-promote(){
+  rm -rf {{ pg_data|default('/pg/data') }}/standby.signal;
+  pg_ctl -D {{ pg_data|default('/pg/data') }} promote;
+}
+function pg-demote(){
+  touch {{ pg_data|default('/pg/data') }}/standby.signal;
+  chown postgres:postgres {{ pg_data|default('/pg/data') }}/standby.signal;
+  psql postgres -c 'CHECKPOINT;';
+  pg_ctl -D {{ pg_data|default('/pg/data') }} restart;
+}
+
 # route pgbouncer traffic to another cluster member
 function pgb-route(){
   local ip=${1-'\/var\/run\/postgresql'}
@@ -95,24 +119,11 @@ function pgb-route(){
   cat /etc/pgbouncer/pgbouncer.ini
 }
 
-#--------------------------------------------------------------#
-# pgbackrest (pb)
-#--------------------------------------------------------------#
-alias pb-mt="curl -sL localhost:9854/metrics | grep -v '#' | grep pgbackrest"
-function pb() {
-    local stanza=$(grep -o '\[[^][]*]' /etc/pgbackrest/pgbackrest.conf | head -n1 | sed 's/.*\[\([^]]*\)].*/\1/')
-    pgbackrest --stanza=$stanza "$@"
-}
 function pb-init() {
     local stanza=$(grep -o '\[[^][]*]' /etc/pgbackrest/pgbackrest.conf | head -n1 | sed 's/.*\[\([^]]*\)].*/\1/')
-    pgbackrest --stanza=${stanza} --no-online stanza-create
+    pgbackrest --stanza="${stanza}" --no-online stanza-create
 }
 
-
-
-#--------------------------------------------------------------#
-# log
-#--------------------------------------------------------------#
 function pg-log() {
     local logdir=$(grep 'log_directory' {{ pg_data|default('/pg/data') }}/postgresql.conf | awk '{print $3}' | tr -d "'")
     [[ -f "${logdir}/postgresql-$(date '+%Y-%m-%d').csv" ]] && tail -f "${logdir}/postgresql-$(date '+%Y-%m-%d').csv"

@@ -5,15 +5,20 @@ export EDITOR="vi"
 export PAGER="less"
 #--------------------------------------------------------------#
 # if bash is used, set shopt and prompt
-if [ -n "$BASH_VERSION" ]; then
-  shopt -s nocaseglob # case-insensitive globbing
-  shopt -s cdspell    # auto-correct typos in cd
-  set -o pipefail     # pipe fail when component fail
-  shopt -s histappend # append to history rather than overwrite
-  for option in autocd globstar; do
-    shopt -s "$option" 2>/dev/null
-  done
-  export PS1="\[\033]0;\w\007\]\[\]\n\[\e[1;36m\][\D{%m-%d %T}] \[\e[1;31m\]\u\[\e[1;33m\]@\H\[\e[1;32m\]:\w \n\[\e[1;35m\]\$ \[\e[0m\]"
+if [ -n "${BASH_VERSION:-}" ]; then
+  case ":${SHELLOPTS:-}:" in
+    *:posix:*) ;;
+    *)
+      shopt -s nocaseglob # case-insensitive globbing
+      shopt -s cdspell    # auto-correct typos in cd
+      set -o pipefail     # pipe fail when component fail
+      shopt -s histappend # append to history rather than overwrite
+      for option in autocd globstar; do
+        shopt -s "$option" 2>/dev/null
+      done
+      export PS1="\[\033]0;\w\007\]\[\]\n\[\e[1;36m\][\D{%m-%d %T}] \[\e[1;31m\]\u\[\e[1;33m\]@\H\[\e[1;32m\]:\w \n\[\e[1;35m\]\$ \[\e[0m\]"
+      ;;
+  esac
 fi
 #--------------------------------------------------------------#
 # Bash settings
@@ -44,6 +49,9 @@ fi
 if [ -z "${BASH_VERSION:-}" ]; then
   return 0 2>/dev/null || exit 0
 fi
+case ":${SHELLOPTS:-}:" in
+  *:posix:*) return 0 2>/dev/null || exit 0 ;;
+esac
 
 #--------------------------------------------------------------#
 # aliases & functions
