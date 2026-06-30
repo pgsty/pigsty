@@ -2,7 +2,7 @@
 -- # File      :   supabase.sql
 -- # Desc      :   Pigsty self-hosting supabase baseline schema
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2026-04-10
+-- # Mtime     :   2026-06-30
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -2065,6 +2065,85 @@ BEGIN
     END IF;
 END
 $$;
+
+-- migrate:down
+
+
+----------------------------------------------------
+-- 20260413000000_fix-authenticator-session-preload-libraries.sql
+----------------------------------------------------
+-- migrate:up
+
+-- The original fix in 20220224211803 checked pg_available_extensions for
+-- supautils, but supautils is a preload library without a .control file,
+-- so it never appears in pg_available_extensions. That migration was a no-op.
+ALTER ROLE authenticator SET session_preload_libraries = supautils, safeupdate;
+
+-- migrate:down
+
+
+----------------------------------------------------
+-- 20260421000000_pg_graphql-off-by-default.sql
+----------------------------------------------------
+-- migrate:up
+DROP EXTENSION IF EXISTS pg_graphql;
+
+-- migrate:down
+
+
+----------------------------------------------------
+-- 20260421000001_rescope_pg_graphql_access_trigger.sql
+----------------------------------------------------
+-- migrate:up
+
+CREATE OR REPLACE FUNCTION extensions.grant_pg_graphql_access()
+    RETURNS event_trigger
+    LANGUAGE plpgsql
+AS $func$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1
+        FROM pg_event_trigger_ddl_commands() ev
+        JOIN pg_catalog.pg_extension e ON ev.objid = e.oid
+        WHERE e.extname = 'pg_graphql'
+    ) THEN
+        RETURN;
+    END IF;
+
+    DROP FUNCTION IF EXISTS graphql_public.graphql;
+    CREATE OR REPLACE FUNCTION graphql_public.graphql(
+        "operationName" text DEFAULT NULL,
+        query text DEFAULT NULL,
+        variables jsonb DEFAULT NULL,
+        extensions jsonb DEFAULT NULL
+    )
+        RETURNS jsonb
+        LANGUAGE sql
+    AS $$
+        SELECT graphql.resolve(
+            query := query,
+            variables := COALESCE(variables, '{}'),
+            "operationName" := "operationName",
+            extensions := extensions
+        );
+    $$;
+
+    -- Attach the wrapper to the extension so DROP EXTENSION cascades to it,
+    -- which in turn triggers set_graphql_placeholder to reinstall the "not enabled" stub.
+    ALTER EXTENSION pg_graphql ADD FUNCTION graphql_public.graphql(text, text, jsonb, jsonb);
+
+    GRANT USAGE ON SCHEMA graphql TO postgres, anon, authenticated, service_role;
+    GRANT EXECUTE ON FUNCTION graphql.resolve TO postgres, anon, authenticated, service_role;
+    GRANT USAGE ON SCHEMA graphql TO postgres WITH GRANT OPTION;
+    GRANT USAGE ON SCHEMA graphql_public TO postgres WITH GRANT OPTION;
+END;
+$func$;
+
+DROP EVENT TRIGGER IF EXISTS issue_pg_graphql_access;
+CREATE EVENT TRIGGER issue_pg_graphql_access
+    ON ddl_command_end
+    WHEN TAG IN ('CREATE EXTENSION')
+    EXECUTE PROCEDURE extensions.grant_pg_graphql_access();
 
 -- migrate:down
 

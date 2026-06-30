@@ -86,6 +86,7 @@ services:
           - /sso/saml/acs
     plugins:
       - name: cors
+
   - name: auth-v1-open-sso-metadata
     url: "http://auth:9999/sso/saml/metadata"
     routes:
@@ -213,6 +214,39 @@ services:
           allow:
             - admin
             - anon
+
+  # Block access to /realtime/v1/api/openapi
+  - name: realtime-v1-rest-openapi
+    _comment: 'Realtime: /realtime/v1/api/openapi/* -> http://realtime:4000/api/openapi/* (blocked)'
+    url: http://realtime-dev.supabase-realtime:4000/api/openapi
+    protocol: http
+    routes:
+      - name: realtime-v1-rest-openapi
+        strip_path: true
+        paths:
+          - /realtime/v1/api/openapi
+    plugins:
+      - name: request-termination
+        config:
+          status_code: 403
+          message: "Access is forbidden."
+
+  # Block access to /realtime/v1/api/tenants
+  - name: realtime-v1-rest-tenants
+    _comment: 'Realtime: /realtime/v1/api/tenants/* -> http://realtime:4000/api/tenants/* (blocked)'
+    url: http://realtime-dev.supabase-realtime:4000/api/tenants
+    protocol: http
+    routes:
+      - name: realtime-v1-rest-tenants
+        strip_path: true
+        paths:
+          - /realtime/v1/api/tenants
+    plugins:
+      - name: request-termination
+        config:
+          status_code: 403
+          message: "Access is forbidden."
+
   - name: realtime-v1-rest
     _comment: 'Realtime: /realtime/v1/api/* -> http://realtime:4000/api/*'
     url: http://realtime-dev.supabase-realtime:4000/api
@@ -242,7 +276,15 @@ services:
             - admin
             - anon
 
-  ## Storage API endpoint. No key-auth to preserve S3 protocol compatibility.
+  ## Storage API endpoint (with Authorization header transformation).
+  ## No key-auth - S3 protocol requests don't carry an apikey header.
+  ##
+  ## The request-transformer translates opaque API keys to asymmetric JWTs
+  ## and passes through existing Authorization headers (user JWTs, AWS SigV4).
+  ## When no Authorization or apikey header is present (S3 presigned URLs),
+  ## the Lua expression evaluates to nil which Kong renders as empty string.
+  ## The post-function strips this empty header so Storage's S3 signature
+  ## verification falls through to query-parameter parsing.
   - name: storage-v1
     _comment: 'Storage: /storage/v1/* -> http://storage:5000/*'
     url: http://storage:5000/
@@ -297,7 +339,7 @@ services:
 
   ## Secure Database routes
   - name: meta
-    _comment: 'pg-meta: /pg/* -> http://meta:8080/*'
+    _comment: 'pg-meta: /pg/* -> http://pg-meta:8080/*'
     url: http://meta:8080/
     routes:
       - name: meta-all
@@ -324,6 +366,7 @@ services:
         paths:
           - /api/mcp
     plugins:
+      # Block access to /mcp by default
       - name: request-termination
         config:
           status_code: 403

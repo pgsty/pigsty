@@ -4,7 +4,7 @@
 # File      :   docker-compose.yml
 # Desc      :   modified supabase docker compose for pigsty pg
 # Ctime     :   2023-09-19
-# Mtime     :   2026-04-10
+# Mtime     :   2026-06-30
 # Path      :   app/supabase/docker-compose.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -23,24 +23,26 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#studio-dashboard
   studio:
     container_name: supabase-studio
-    image: supabase/studio:2026.04.08-sha-205cbe7
+    image: supabase/studio:2026.06.03-sha-0bca601
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "node", "-e", "fetch('http://studio:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})" ]
+      test: [ "CMD-SHELL", "node -e \"fetch('http://localhost:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})\"" ]
       timeout: 10s
       interval: 5s
       retries: 3
+      start_period: 20s
     depends_on:
       analytics:
         condition: service_healthy
     environment:
-      # Binds nestjs listener to both IPv4 and IPv6 network interfaces
-      HOSTNAME: "::"
+      # Binds nestjs listener to all IPv4 network interfaces
+      HOSTNAME: "0.0.0.0"
       STUDIO_PG_META_URL: http://meta:8080
       POSTGRES_PORT: ${POSTGRES_PORT}
       POSTGRES_HOST: ${POSTGRES_HOST}
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_USER_READ_WRITE: supabase_admin
       PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
       PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,storage,graphql_public}
       PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
@@ -53,18 +55,17 @@ services:
       SUPABASE_ANON_KEY: ${ANON_KEY}
       SUPABASE_SERVICE_KEY: ${SERVICE_ROLE_KEY}
       AUTH_JWT_SECRET: ${JWT_SECRET}
-      # LOGFLARE_API_KEY is deprecated
-      LOGFLARE_API_KEY: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
+      SUPABASE_PUBLISHABLE_KEY: ${SUPABASE_PUBLISHABLE_KEY:-}
+      SUPABASE_SECRET_KEY: ${SUPABASE_SECRET_KEY:-}
       LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
       LOGFLARE_PRIVATE_ACCESS_TOKEN: ${LOGFLARE_PRIVATE_ACCESS_TOKEN}
       LOGFLARE_URL: http://analytics:4000
-      NEXT_PUBLIC_ENABLE_LOGS: true
-      NEXT_ANALYTICS_BACKEND_PROVIDER: postgres
+      ENABLED_FEATURES_LOGS_ALL: "true"
       SNIPPETS_MANAGEMENT_FOLDER: /app/snippets
       EDGE_FUNCTIONS_MANAGEMENT_FOLDER: /app/edge-functions
     volumes:
-      - ./volumes/snippets:/app/snippets:Z
-      - ./volumes/functions:/app/edge-functions:Z
+      - ./volumes/snippets:/app/snippets:z
+      - ./volumes/functions:/app/edge-functions:ro,z
     extra_hosts:
       - "${POSTGRES_DOMAIN}:${POSTGRES_HOST}"
 
@@ -120,7 +121,7 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#gotrue-auth
   auth:
     container_name: supabase-auth
-    image: supabase/gotrue:v2.186.0
+    image: supabase/gotrue:v2.189.0
     restart: unless-stopped
     depends_on:
       analytics:
@@ -147,6 +148,7 @@ services:
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
       # JSON array of signing JWKs (EC private + legacy symmetric)
       # GOTRUE_JWT_KEYS: ${JWT_KEYS:-[]}
+      GOTRUE_JWT_ISSUER: ${API_EXTERNAL_URL}/auth/v1
       GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP}
       GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: ${ENABLE_ANONYMOUS_USERS}
       GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM}
@@ -190,17 +192,24 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#postgrest-api
   rest:
     container_name: supabase-rest
-    image: postgrest/postgrest:v14.8
+    image: postgrest/postgrest:v14.12
     restart: unless-stopped
     depends_on:
       analytics:
         condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "postgrest", "--ready" ]
+      interval: 5s
+      timeout: 5s
+      retries: 3
     environment:
       PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,storage,graphql_public}
       PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
       PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
       PGRST_DB_ANON_ROLE: anon
+      PGRST_ADMIN_SERVER_PORT: 3001
+      PGRST_ADMIN_SERVER_HOST: localhost
       # PostgREST accepts a plain-text symmetric secret, a single JWK, or a JWKS
       PGRST_JWT_SECRET: ${JWT_JWKS:-${JWT_SECRET}}
       PGRST_DB_USE_LEGACY_GUCS: "false"
@@ -217,7 +226,7 @@ services:
   realtime:
     # This container name looks inconsistent but is correct because realtime constructs tenant id by parsing the subdomain
     container_name: realtime-dev.supabase-realtime
-    image: supabase/realtime:v2.76.5
+    image: supabase/realtime:v2.102.3
     restart: unless-stopped
     depends_on:
       analytics:
@@ -259,7 +268,7 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#storage-api-large-file-storage
   storage:
     container_name: supabase-storage
-    image: supabase/storage-api:v1.48.26
+    image: supabase/storage-api:v1.60.4
     restart: unless-stopped
     depends_on:
       rest:
@@ -285,15 +294,15 @@ services:
       REQUEST_ALLOW_X_FORWARDED_PATH: "true"
       FILE_SIZE_LIMIT: 52428800
       STORAGE_BACKEND: s3
-      GLOBAL_S3_BUCKET: ${S3_BUCKET}
+      GLOBAL_S3_BUCKET: ${GLOBAL_S3_BUCKET}
       GLOBAL_S3_ENDPOINT: ${S3_ENDPOINT}
       GLOBAL_S3_PROTOCOL: ${S3_PROTOCOL}
       GLOBAL_S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE}
       AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
       AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
-      AWS_DEFAULT_REGION: ${S3_REGION}
-      TENANT_ID: ${STORAGE_TENANT_ID:-stub}
-      REGION: ${S3_REGION}
+      AWS_DEFAULT_REGION: ${REGION}
+      TENANT_ID: ${STORAGE_TENANT_ID}
+      REGION: ${REGION}
       ENABLE_IMAGE_TRANSFORMATION: "true"
       IMGPROXY_URL: http://imgproxy:5001
       # S3 protocol endpoint configuration
@@ -334,7 +343,7 @@ services:
   #--------------------------------------------------------------#
   meta:
     container_name: supabase-meta
-    image: supabase/postgres-meta:v0.96.3
+    image: supabase/postgres-meta:v0.96.6
     restart: unless-stopped
     depends_on:
       analytics:
@@ -354,14 +363,19 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#deno-edge-functions
   functions:
     container_name: supabase-edge-functions
-    image: supabase/edge-runtime:v1.71.2
+    image: supabase/edge-runtime:v1.74.0
     restart: unless-stopped
     volumes:
-      - ./volumes/functions:/home/deno/functions:Z
+      - ./volumes/functions:/home/deno/functions:z
       - deno-cache:/root/.cache/deno
     depends_on:
       kong:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 1 bash -c '</dev/tcp/127.0.0.1/9000'"]
+      interval: 5s
+      timeout: 5s
+      retries: 3
     environment:
       # Legacy symmetric HS256 key
       JWT_SECRET: ${JWT_SECRET}
@@ -374,7 +388,7 @@ services:
       SUPABASE_PUBLISHABLE_KEYS: "{\"default\":\"${SUPABASE_PUBLISHABLE_KEY:-}\"}"
       SUPABASE_SECRET_KEYS: "{\"default\":\"${SUPABASE_SECRET_KEY:-}\"}"
       SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-      VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT:-false}"
+      VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
     command: [ "start", "--main-service", "/home/deno/functions/main" ]
     extra_hosts:
       - "${POSTGRES_DOMAIN}:${POSTGRES_HOST}"
@@ -385,13 +399,14 @@ services:
   # https://docs.logflare.app/self-hosting/
   analytics:
     container_name: supabase-analytics
-    image: supabase/logflare:1.36.1
+    image: supabase/logflare:1.43.1
     restart: unless-stopped
     healthcheck:
-      test: [ "CMD", "curl", "http://localhost:4000/health" ]
+      test: [ "CMD-SHELL", "curl -sSfL -o /dev/null http://localhost:4000/health" ]
       timeout: 5s
       interval: 5s
       retries: 10
+      start_period: 30s
     environment:
       LOGFLARE_NODE_HOST: 127.0.0.1
       DB_USERNAME: supabase_admin
@@ -426,6 +441,9 @@ services:
       timeout: 5s
       interval: 5s
       retries: 3
+    depends_on:
+      analytics:
+        condition: service_healthy
     environment:
       LOGFLARE_PUBLIC_ACCESS_TOKEN: ${LOGFLARE_PUBLIC_ACCESS_TOKEN}
     command: [ "--config", "/etc/vector/vector.yml" ]
