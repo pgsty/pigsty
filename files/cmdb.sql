@@ -1656,8 +1656,10 @@ INSERT INTO pigsty.default_var VALUES
 (1022, 'jupyter_data', '"/data/jupyter"', 'VIBE', 'JUPYTER', 'path', 'C', 'jupyter lab data directory', NULL),
 (1023, 'jupyter_password', '"Vibe.Coding"', 'VIBE', 'JUPYTER', 'password', 'C', 'jupyter lab access token', NULL),
 (1024, 'jupyter_venv', '"/data/venv"', 'VIBE', 'JUPYTER', 'path', 'C', 'python venv path with jupyter', NULL),
-(1030, 'claude_enabled', 'true', 'VIBE', 'CLAUDE', 'bool', 'C', 'enable claude code configuration', NULL),
-(1031, 'claude_env', '{}', 'VIBE', 'CLAUDE', 'dict', 'C', 'extra env vars to merge with defaults', NULL),
-(1040, 'nodejs_enabled', 'true', 'VIBE', 'NODEJS', 'bool', 'C', 'enable nodejs installation', NULL),
-(1041, 'nodejs_registry', '""', 'VIBE', 'NODEJS', 'url', 'C', 'npm registry, auto china mirror if empty', NULL),
-(1042, 'npm_packages', '[]', 'VIBE', 'NODEJS', 'string[]', 'C', 'list of global npm packages to install', NULL);
+(1030, 'codex_enabled', 'true', 'VIBE', 'CODEX', 'bool', 'C', 'install codex cli package only', NULL),
+(1040, 'claude_enabled', 'true', 'VIBE', 'CLAUDE', 'bool', 'C', 'install and configure claude code cli', NULL),
+(1041, 'claude_package', '"@anthropic-ai/claude-code"', 'VIBE', 'CLAUDE', 'string', 'C', 'npm package used to install claude code', NULL),
+(1042, 'claude_env', '{}', 'VIBE', 'CLAUDE', 'dict', 'C', 'extra env vars to merge with otel defaults', NULL),
+(1050, 'nodejs_enabled', 'true', 'VIBE', 'NODEJS', 'bool', 'C', 'install standalone nodejs runtime task', NULL),
+(1051, 'nodejs_registry', '""', 'VIBE', 'NODEJS', 'url', 'C', 'npm registry, auto china mirror if empty', NULL),
+(1052, 'npm_packages', '[]', 'VIBE', 'NODEJS', 'string[]', 'C', 'list of extra global npm packages to install', NULL);

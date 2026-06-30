@@ -44,8 +44,20 @@
 # NODEJS - Node.js Runtime
 #--------------------------------------------------------------#
 - import_tasks: nodejs.yml
-  when: nodejs_enabled|bool
-  tags: nodejs
+  when: nodejs_enabled|bool or codex_enabled|bool or claude_enabled|bool
+  tags: [nodejs, codex, claude]
+
+
+#--------------------------------------------------------------#
+# CODEX - Codex CLI Installation
+#--------------------------------------------------------------#
+- name: install codex cli
+  tags: [codex, codex_install]
+  when: codex_enabled|bool
+  shell: npm install -g @openai/codex
+  args:
+    executable: /bin/bash
+  environment: "{{ proxy_env | default({}) | combine({'PATH': '/usr/local/node/bin:/usr/local/bin:/usr/bin:/bin'}) }}"
 
 
 #--------------------------------------------------------------#

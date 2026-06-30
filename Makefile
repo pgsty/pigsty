@@ -202,7 +202,9 @@ app:
 
 # claude
 claude:
-	./vibe.yml -t nodejs,claude
+	./vibe.yml -t claude
+codex:
+	./vibe.yml -t codex
 
 # install & uninstall pgsql (dangerous!!)
 pgsql-add:

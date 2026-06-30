@@ -3,7 +3,15 @@
 # CLAUDE - Claude Code CLI Installation & Configuration
 #--------------------------------------------------------------#
 
-# claude-code is now installed via npm_packages in nodejs task
+#--------------------------------------------------------------#
+# claude_install - install claude code package
+#--------------------------------------------------------------#
+- name: install claude code cli
+  tags: claude_install
+  shell: npm install -g {{ claude_package | quote }}
+  args:
+    executable: /bin/bash
+  environment: "{{ proxy_env | default({}) | combine({'PATH': '/usr/local/node/bin:/usr/local/bin:/usr/bin:/bin'}) }}"
 
 #--------------------------------------------------------------#
 # claude_config - create claude configuration directory
@@ -41,14 +49,12 @@
   become: false
   vars:
     claude_env_default:
-      CLAUDE_CODE_ENABLE_TELEMETRY: 1               # write opentelemetry metrics/logs to victoria
-      CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS: 1       # enable agent teams feature
-      CLAUDE_CODE_ATTRIBUTION_HEADER: 0             # disable shit-injection when using other models
-      OTEL_LOG_USER_PROMPTS: 1
+      CLAUDE_CODE_ENABLE_TELEMETRY: "1"             # write opentelemetry metrics/logs to victoria
       OTEL_METRICS_EXPORTER: otlp
       OTEL_LOGS_EXPORTER: otlp
-      OTEL_EXPORTER_OTLP_PROTOCOL: http/protobuf
-      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://127.0.0.1:{{ vmagent_port | default(8428) }}/opentelemetry/v1/metrics"
+      OTEL_EXPORTER_OTLP_METRICS_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_LOGS_PROTOCOL: http/protobuf
+      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://127.0.0.1:{{ vmetrics_port | default(8428) }}/opentelemetry/v1/metrics"
       OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: "http://127.0.0.1:{{ vlogs_port | default(9428) }}/insert/opentelemetry/v1/logs"
       OTEL_RESOURCE_ATTRIBUTES: "ip={{ inventory_hostname }},job=claude"
   copy:

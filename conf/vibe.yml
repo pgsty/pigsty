@@ -3,7 +3,7 @@
 # File      :   vibe.yml
 # Desc      :   Pigsty ai vibe coding sandbox
 # Ctime     :   2026-01-19
-# Mtime     :   2026-02-28
+# Mtime     :   2026-06-28
 # Docs      :   https://pigsty.io/docs/conf/vibe
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -11,14 +11,14 @@
 
 # VIBE CODING SANDBOX
 # PostgreSQL with related extensions
-# Code-Server, Jupyter, Claude Code
+# Code-Server, Jupyter, Claude Code, optional Codex CLI
 #
 # Usage:
 #   curl https://repo.pigsty.io/get | bash
 #   ./configure -c vibe
 #   ./deploy.yml
 #   ./juice.yml     # pgfs: juicefs on pgsql, mount on /fs
-#   ./vibe.yml      # code-server, jupyter, and claude-code
+#   ./vibe.yml      # code-server, jupyter, claude-code, and codex cli
 
 all:
   children:
@@ -112,20 +112,18 @@ all:
         data  : --storage postgres --bucket 10.10.10.10:5432/meta --access-key dbuser_meta --secret-key DBUser.Meta
         port  : 9567
 
-    # install npm packages : ./vibe.yml -t nodejs_pkg
-    npm_packages:
-      - '@anthropic-ai/claude-code'     # claude code
-      - '@openai/codex'                 # openai codex
-      - 'happy-coder'                   # remote control
-      #- 'openclaw@latest'               # in-case you need one
-
-    # setup claude code environment: ./vibe.yml -t claude
-    #claude_env:
+    # Claude Code is the default coding agent. Node.js is installed on demand when agents are enabled.
+    nodejs_enabled: true              # standalone nodejs runtime
+    npm_packages: []                  # extra global npm packages
+    codex_enabled: true
+    claude_enabled: true
+    #claude_env:                      # use 3rd party Anthropic-compatible API service
     #  ANTHROPIC_BASE_URL: https://open.bigmodel.cn/api/anthropic
     #  ANTHROPIC_API_URL: https://open.bigmodel.cn/api/anthropic
     #  ANTHROPIC_AUTH_TOKEN: your_api_service_token
-    #  ANTHROPIC_DEFAULT_OPUS_MODEL: "glm-5"
-    #  ANTHROPIC_DEFAULT_SONNET_MODEL: "glm-5"
-    #  ANTHROPIC_DEFAULT_HAIKU_MODEL: "glm-4.7-flash"
+    #  ANTHROPIC_DEFAULT_OPUS_MODEL: "glm-5.2[1m]"
+    #  ANTHROPIC_DEFAULT_SONNET_MODEL: "glm-5.2[1m]"
+    #  ANTHROPIC_DEFAULT_HAIKU_MODEL: "glm-4.7"
+    #  CLAUDE_CODE_AUTO_COMPACT_WINDOW: "1000000"
 
 ...

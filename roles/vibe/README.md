@@ -1,6 +1,6 @@
 # Role: vibe
 
-> Deploy Development Tools (Code Server, JupyterLab, Claude Code)
+> Deploy Development Tools (Code Server, JupyterLab, Claude Code, optional Codex)
 
 | **Module**        | [VIBE](https://pigsty.io/docs/vibe)    |
 |-------------------|----------------------------------------|
@@ -14,8 +14,9 @@ The `vibe` role deploys an integrated development environment:
 
 - **Code Server**: VS Code in browser
 - **JupyterLab**: Interactive computing notebooks
-- **Claude Code**: AI coding assistant with observability
-- **Node.js**: JavaScript runtime with npm
+- **Claude Code**: default AI coding assistant with observability
+- **Codex**: optional CLI package install only
+- **Node.js**: JavaScript runtime used by AI CLI installers when needed
 
 
 ## Quick Start
@@ -52,12 +53,15 @@ vibe
 │   ├── jupyter_dir
 │   ├── jupyter_config
 │   └── jupyter_launch
-├── nodejs            # Node.js Runtime (claude-code installed here via npm)
+├── nodejs            # Node.js runtime
 │   ├── nodejs_install
 │   ├── nodejs_config
 │   └── nodejs_pkg
-└── claude            # Claude Code CLI Config
-    └── claude_config
+├── claude            # Claude Code CLI
+│   ├── claude_install
+│   └── claude_config
+└── codex             # Codex CLI
+    └── codex_install
 ```
 
 
@@ -91,28 +95,38 @@ vibe
 
 ### Claude Code
 
-| Variable         | Default | Description                         |
-|------------------|---------|-------------------------------------|
-| `claude_enabled` | `true`  | Enable Claude Code                  |
-| `claude_env`     | `{}`    | Extra env vars merged with defaults |
+| Variable         | Default                     | Description                         |
+|------------------|-----------------------------|-------------------------------------|
+| `claude_enabled` | `true`                      | Install and configure Claude Code   |
+| `claude_package` | `@anthropic-ai/claude-code` | npm package used to install Claude  |
+| `claude_env`     | `{}`                        | Extra env vars merged with defaults |
 
-Claude Code is pre-configured with OpenTelemetry, sending metrics and logs to VictoriaMetrics/VictoriaLogs for observability.
+Claude Code is pre-configured with OpenTelemetry, sending metrics and logs to VictoriaMetrics/VictoriaLogs. Prompt content is not collected by default; opt in through `claude_env` only when appropriate.
+
+### Codex
+
+| Variable        | Default | Description                     |
+|-----------------|---------|---------------------------------|
+| `codex_enabled` | `true`  | Install the Codex CLI package   |
+
+Codex has no managed config file and no VIBE observability integration. When enabled, the role only runs `npm install -g @openai/codex`.
 
 ### Node.js
 
 | Variable          | Default | Description                                      |
 |-------------------|---------|--------------------------------------------------|
-| `nodejs_enabled`  | `true`  | Enable Node.js installation                      |
+| `nodejs_enabled`  | `true`  | Enable standalone Node.js installation task      |
 | `nodejs_registry` | `''`    | npm registry URL, auto china mirror if empty     |
-| `npm_packages`    | `['@anthropic-ai/claude-code', 'happy-coder']` | List of global npm packages to install |
+| `npm_packages`    | `[]`    | Extra global npm packages to install             |
+
+The Codex and Claude tasks also enable the Node.js runtime task on demand.
 
 When `nodejs_registry` is empty and `region=china`, npm is automatically configured to use `https://registry.npmmirror.com`.
 
-Claude Code is installed by default via `npm_packages`. You can add more packages as needed:
+Claude and Codex install their own CLI packages when their tasks run. `npm_packages` is only for extra global packages:
 
 ```yaml
 npm_packages:
-  - '@anthropic-ai/claude-code'
   - 'happy-coder'
   - typescript
   - pnpm
@@ -125,7 +139,8 @@ npm_packages:
 ./vibe.yml -l <host>              # Full deployment
 ./vibe.yml -l <host> -t code      # Code Server only
 ./vibe.yml -l <host> -t jupyter   # JupyterLab only
-./vibe.yml -l <host> -t claude    # Claude Code only
+./vibe.yml -l <host> -t claude    # Install/configure Claude Code
+./vibe.yml -l <host> -t codex     # Install Codex package only
 ./vibe.yml -l <host> -t nodejs    # Node.js only
 ```
 
@@ -135,6 +150,7 @@ Disable components:
 ./vibe.yml -l <host> -e code_enabled=false
 ./vibe.yml -l <host> -e jupyter_enabled=false
 ./vibe.yml -l <host> -e claude_enabled=false
+./vibe.yml -l <host> -e codex_enabled=false
 ./vibe.yml -l <host> -e nodejs_enabled=false
 ```
 
@@ -147,17 +163,18 @@ Disable components:
 | JupyterLab  | `https://<host>/jupyter/`  | `http://<host>:8888/` |
 
 
-## Using Alternative Models
+## Authentication
 
-To use other models with Claude Code, configure `claude_env`, take GLM as example:
+Codex is intentionally package-only in VIBE. Custom Codex providers, config rendering, and telemetry are not exposed as VIBE variables.
+
+For **Claude Code**, alternative models use Anthropic-compatible endpoints via env vars:
 
 ```yaml
+claude_enabled: true
 claude_env:
-  ANTHROPIC_BASE_URL: https://open.bigmodel.cn/api/anthropic
-  ANTHROPIC_API_URL: https://open.bigmodel.cn/api/anthropic
-  ANTHROPIC_AUTH_TOKEN: <your_api_key>
-  ANTHROPIC_MODEL: glm-4.7
-  ANTHROPIC_SMALL_FAST_MODEL: glm-4.5-air
+  ANTHROPIC_BASE_URL: https://api.z.ai/api/anthropic
+  ANTHROPIC_AUTH_TOKEN: <your_zai_api_key>
+  API_TIMEOUT_MS: "3000000"
 ```
 
 

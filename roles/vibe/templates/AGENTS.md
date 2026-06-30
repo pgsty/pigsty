@@ -8,9 +8,9 @@ What you have:
 - **PostgreSQL** — store data, create tables, run queries
 - **Nginx** — serve static/dynamic content at http://{{ inventory_hostname }}/
 - **Observability** — metrics (VictoriaMetrics), logs (VictoriaLogs), dashboards (Grafana)
+- **AI CLI** — Claude Code is the default coding agent when the VIBE role is enabled; `codex` is optional
 - **Python** — `/data/venv/bin/python`, install packages with `uv pip install` (DO NOT TOUCH SYSTEM python! always use the venv)
 - **Hugo** — for static sites (available in repo, `yum/apt install hugo`)
-- Node.js can be installed with `yum/apt install nodejs`
 - Golang can be installed with `yum/apt install golang`
 
 Need more? Pigsty provides Redis, MinIO, etcd, Docker—install on demand.
@@ -100,6 +100,7 @@ curl -X POST 'http://127.0.0.1:9428/insert/opentelemetry/v1/logs' -d  # push log
 
 Grafana dashboards: PGSQL, NODE, INFRA at http://{{ inventory_hostname }}:3000
 
+Claude Code emits OTEL logs and metrics to the local Victoria stack as `job=claude`.
 
 ## Web Publishing
 
