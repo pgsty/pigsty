@@ -59,6 +59,7 @@ roles/pg_monitor/
     ├── pgbackrest_exporter.env   # pgbackrest_exporter environment
     ├── pgbackrest_exporter.svc   # pgbackrest_exporter systemd service
     ├── postgres.yaml             # Vector postgres log config
+    ├── patroni.yaml              # Vector patroni log config
     └── pgbackrest.yaml           # Vector pgbackrest log config
 ```
 
@@ -190,8 +191,8 @@ Creates target files at `/infra/targets/pgsql/<cluster>.yml`:
 
 Configures Vector to collect logs from:
 - PostgreSQL: `/pg/log/postgres/*.csv`
+- Patroni: `/pg/log/patroni/patroni.log`
 - pgBackRest: `/pg/log/pgbackrest/*.log`
-- Patroni: syslog
 - pgBouncer: syslog
 
 ### Grafana Datasources

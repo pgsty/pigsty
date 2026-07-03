@@ -1,0 +1,47 @@
+---
+# patroni logging collector for vector
+# "2024-01-01 12:00:00 +0800 INFO: message" (tracebacks merged into previous event)
+# label schema aligned with postgres/pgbackrest: job,ip,ins,cls,topic,level,message
+# VRL is fully infallible: malformed lines fall back to raw message, never error/drop
+
+sources:
+  patroni_raw:
+    type: file
+    read_from: end
+    include:
+      - {{ patroni_log_dir }}/patroni.log
+    fingerprint:
+      strategy: device_and_inode
+    multiline:
+      start_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4} '
+      mode: halt_before
+      condition_pattern: '^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4} '
+      timeout_ms: 1000
+
+transforms:
+  patroni_logs:
+    type: remap
+    inputs: [patroni_raw]
+    source: |
+
+      original = to_string(.message) ?? ""
+      .job = "patroni"
+      .topic = "main"
+      .ip = "{{ inventory_hostname }}"
+      .ins = "{{ pg_cluster }}-{{ pg_seq }}"
+      .cls = "{{ pg_cluster }}"
+
+      m = parse_regex(original, r'(?s)^(?P<ts>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2} [+-]\d{4}) (?P<level>\w+): (?P<msg>.*)$') ?? {}
+      if exists(m.ts) {
+        ._time = format_timestamp(parse_timestamp(to_string(m.ts), "%Y-%m-%d %H:%M:%S %z") ?? .timestamp, "%Y-%m-%dT%H:%M:%S%.fZ") ?? ""
+        lv = downcase(m.level) ?? ""
+        .level = if lv == "critical" { "crit" } else if lv == "error" { "err" } else if lv == "warning" || lv == "warn" { "warning" } else if lv == "debug" { "debug" } else { "info" }
+        .message = truncate(to_string(m.msg), 8192)
+      } else {
+        ._time = format_timestamp(.timestamp, "%Y-%m-%dT%H:%M:%S%.fZ") ?? ""
+        .level = "info"
+        .message = truncate(original, 8192)
+      }
+      del(.source_type); del(.host); del(.file)
+
+...
