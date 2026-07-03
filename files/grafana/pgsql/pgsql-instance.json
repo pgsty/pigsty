@@ -1,10 +1,12 @@
 {
   "annotations":{"list":[{"builtIn":1,"datasource":{"type":"grafana","uid":"grafana"},"enable":true,"hide":true,"iconColor":"rgba(0, 211, 255, 1)","name":"Annotations & Alerts","target":{"limit":100,"matchAny":false,"tags":[],"type":"dashboard"},"type":"dashboard"}]},
+  "author":"Ruohang Feng (rh@vonng.com)",
   "description":"PostgreSQL Instance Dashboard",
   "editable":true,
   "fiscalYearStartMonth":0,
   "graphTooltip":0,
   "id":null,
+  "license":"https://pigsty.io/docs/about/license/",
   "links":[
     { "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Overview"],"targetBlank":false,"title":"Overview","tooltip":"","type":"dashboards","url":"" },{ "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Cluster"] ,"targetBlank":false,"title":"Cluster" ,"tooltip":"","type":"dashboards","url":"" },
     { "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Instance"],"targetBlank":false,"title":"Instance","tooltip":"","type":"dashboards","url":"" },{ "asDropdown":true,"icon":"external link","includeVars":true,"keepTime":true,"tags":["Pigsty","PGSQL","Database"],"targetBlank":false,"title":"Database","tooltip":"","type":"dashboards","url":"" }
@@ -1512,7 +1514,7 @@
         "overrides":[
           { "matcher":{"id":"byName","options":"postgres"}           ,"properties":[{"id":"color","value":{"fixedColor":"#3e668f","mode":"fixed"}},{"id":"links","value":[{"title":"PostgreSQL Logs for ${ins}","url":"/d/logs-instance?var-ins=$ins&var-job=postgres&${__url_time_range}"}]}] },
           { "matcher":{"id":"byName","options":"pgbackrest"}         ,"properties":[{"id":"links","value":[{"title":"pgBackRest Logs for ${ins}","url":"/d/logs-instance?var-ins=$ins&var-job=pgbackrest&${__url_time_range}"}]}]                                                              },
-          { "matcher":{"id":"byName","options":"patroni"}            ,"properties":[{"id":"links","value":[{"title":"Patroni Logs for ${ins}","url":"/d/logs-instance?var-ins=$ins&var-job=syslog&var-search=app:patroni&${__url_time_range}"}]}]                                              },
+          { "matcher":{"id":"byName","options":"patroni"}            ,"properties":[{"id":"links","value":[{"title":"Patroni Logs for ${ins}","url":"/d/logs-instance?var-ins=$ins&var-job=patroni&${__url_time_range}"}]}]                                                                    },
           { "matcher":{"id":"byName","options":"pgbouncer"}          ,"properties":[{"id":"links","value":[{"title":"Pgbouncer Logs for ${ins}","url":"/d/logs-instance?var-ins=$ins&var-job=syslog&var-search=app:pgbouncer&${__url_time_range}"}]}]                                          },
           { "matcher":{"id":"byName","options":"pg_exporter"}        ,"properties":[{"id":"links","value":[{"title":"PG Exporter Logs for ${ins}","url":"/d/logs-instance?var-ins=$ins&var-job=syslog&var-search=app:pg_exporter&${__url_time_range}"}]}]                                      },
           { "matcher":{"id":"byName","options":"pgbouncer_exporter"} ,"properties":[{"id":"links","value":[{"title":"Pgbouncer Exporter Logs for ${ins}","url":"/d/logs-instance?var-ins=$ins&var-job=syslog&var-search=app:pgbouncer_exporter&${__url_time_range}"}]}]                        },
@@ -1526,9 +1528,10 @@
       "options":{"legend":{"calcs":["sum"],"displayMode":"table","placement":"right","showLegend":true},"tooltip":{"hideZeros":false,"mode":"single","sort":"none"}},
       "pluginVersion":"12.4.0",
       "targets":[
-        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"ins:$ins job:postgres | stats count() as count"                                                                                                                                            ,"legendFormat":"postgres"  ,"queryType":"statsRange","refId":"A" },
-        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"job:pgbackrest ins:$ins\n| stats count() as count"                                                                                                                                         ,"legendFormat":"pgbackrest","queryType":"statsRange","refId":"B" },
-        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"job:syslog ip:$ip\napp:in(\"postgres\", \"patroni\", \"pgbouncer\", \"pg_exporter\", \"pgbouncer_exporter\", \"pgbackrest_exporter\", \"vip-manager\") \n| stats by (app) count() as count","legendFormat":"{{ app }}" ,"queryType":"statsRange","refId":"C" }
+        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"ins:$ins job:postgres | stats count() as count"                                                                                                                               ,"legendFormat":"postgres"  ,"queryType":"statsRange","refId":"A" },
+        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"job:pgbackrest ins:$ins\n| stats count() as count"                                                                                                                            ,"legendFormat":"pgbackrest","queryType":"statsRange","refId":"B" },
+        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"ins:$ins job:patroni\n| stats count() as count"                                                                                                                               ,"legendFormat":"patroni"   ,"queryType":"statsRange","refId":"C" },
+        { "datasource":{"type":"victoriametrics-logs-datasource","uid":"ds-vlogs"},"editorMode":"code","expr":"job:syslog ip:$ip\napp:in(\"postgres\", \"pgbouncer\", \"pg_exporter\", \"pgbouncer_exporter\", \"pgbackrest_exporter\", \"vip-manager\") \n| stats by (app) count() as count","legendFormat":"{{ app }}" ,"queryType":"statsRange","refId":"D" }
       ],
       "title":"PG Logs",
       "type":"timeseries"
@@ -1692,7 +1695,5 @@
   "timezone":"browser",
   "title":"PGSQL Instance",
   "uid":"pgsql-instance",
-  "version":1,
-  "author":"Ruohang Feng (rh@vonng.com)",
-  "license":"https://pigsty.io/docs/about/license/"
+  "version":1
 }
