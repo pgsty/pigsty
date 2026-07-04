@@ -1,8 +1,8 @@
 #==============================================================#
 # File      :   aliyun-pro.yml
-# Desc      :   5-node building env for x86_64/aarch64
+# Desc      :   7-node building env for x86_64/aarch64
 # Ctime     :   2024-12-12
-# Mtime     :   2026-04-30
+# Mtime     :   2026-07-04
 # Path      :   terraform/spec/aliyun-pro.yml
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -16,7 +16,7 @@
 variable "architecture" {
   description = "The architecture type (amd64 or arm64), choose one from them"
   type        = string
-  default     = "amd64"    # comment this to use arm64
+  default     = "amd64" # comment this to use arm64
   #default     = "arm64"   # uncomment this to use arm64
 }
 
@@ -33,42 +33,44 @@ variable "zone" {
 }
 
 locals {
-  bandwidth = 100                       # internet bandwidth in Mbps (100Mbps)
-  disk_size = 100                       # system disk size in GB (100GB)
-  spot_policy = "SpotWithPriceLimit"    # NoSpot, SpotWithPriceLimit, SpotAsPriceGo
-  spot_price_limit = 5                  # only valid when spot_policy is SpotWithPriceLimit
+  bandwidth        = 100                  # internet bandwidth in Mbps (100Mbps)
+  disk_size        = 100                  # system disk size in GB (100GB)
+  spot_policy      = "SpotWithPriceLimit" # NoSpot, SpotWithPriceLimit, SpotAsPriceGo
+  spot_price_limit = 5                    # only valid when spot_policy is SpotWithPriceLimit
   instance_type_map = {
     amd64 = "ecs.c9i.large"
     arm64 = "ecs.c8y.large"
   }
   image_regex_map = {
     amd64 = {
-      el7   = "^centos_7_9_x64"
-      el8   = "^rockylinux_8_10_x64"
-      el9   = "^rockylinux_9_8_x64"
-      el10  = "^rockylinux_10_2_x64"
-      d11   = "^debian_11_11_x64"
-      d12   = "^debian_12_14_x64"
-      d13   = "^debian_13_5_x64"
-      u20   = "^ubuntu_20_04_x64"
-      u22   = "^ubuntu_22_04_x64_20G"
-      u24   = "^ubuntu_24_04_x64_20G"
-      an8   = "^anolisos_8_10_x64"
-      al3   = "^aliyun_3_x64_20G_alibase_[0-9]+"
+      el7  = "^centos_7_9_x64"
+      el8  = "^rockylinux_8_10_x64"
+      el9  = "^rockylinux_9_8_x64"
+      el10 = "^rockylinux_10_2_x64"
+      d11  = "^debian_11_11_x64"
+      d12  = "^debian_12_14_x64"
+      d13  = "^debian_13_5_x64"
+      u20  = "^ubuntu_20_04_x64"
+      u22  = "^ubuntu_22_04_x64_20G"
+      u24  = "^ubuntu_24_04_x64_20G"
+      u26  = "^ubuntu_26_04_x64_20G"
+      an8  = "^anolisos_8_10_x64"
+      al3  = "^aliyun_3_x64_20G_alibase_[0-9]+"
     }
     arm64 = {
-      el8   = "^rockylinux_8_10_arm64"
-      el9   = "^rockylinux_9_8_arm64"
-      el10   = "^rockylinux_10_2_arm64"
-      d12   = "^debian_12_14_arm64"
-      d13   = "^debian_13_5_arm64"
-      u22   = "^ubuntu_22_04_arm64_20G"
-      u24   = "^ubuntu_24_04_arm64_20G"
-      an8   = "^anolisos_8_10_arm64"
-      al3   = "^aliyun_3_arm64_20G_alibase_[0-9]+"
+      el8  = "^rockylinux_8_10_arm64"
+      el9  = "^rockylinux_9_8_arm64"
+      el10 = "^rockylinux_10_2_arm64"
+      d12  = "^debian_12_14_arm64"
+      d13  = "^debian_13_5_arm64"
+      u22  = "^ubuntu_22_04_arm64_20G"
+      u24  = "^ubuntu_24_04_arm64_20G"
+      u26  = "^ubuntu_26_04_arm64_20G"
+      an8  = "^anolisos_8_10_arm64"
+      al3  = "^aliyun_3_arm64_20G_alibase_[0-9]+"
     }
   }
-  selected_images = local.image_regex_map[var.architecture]
+  selected_images  = local.image_regex_map[var.architecture]
   selected_instype = local.instance_type_map[var.architecture]
 }
 
@@ -112,7 +114,7 @@ resource "alicloud_vpc" "vpc" {
 
 # add virtual switch for pigsty demo network
 resource "alicloud_vswitch" "vsw" {
-  vpc_id     = "${alicloud_vpc.vpc.id}"
+  vpc_id     = alicloud_vpc.vpc.id
   cidr_block = "10.10.10.0/24"
   zone_id    = var.zone
 }
@@ -120,7 +122,7 @@ resource "alicloud_vswitch" "vsw" {
 # add default security group and allow all tcp traffic
 resource "alicloud_security_group" "default" {
   security_group_name = "default"
-  vpc_id = "${alicloud_vpc.vpc.id}"
+  vpc_id              = alicloud_vpc.vpc.id
 }
 resource "alicloud_security_group_rule" "allow_all_tcp" {
   ip_protocol       = "tcp"
@@ -129,7 +131,7 @@ resource "alicloud_security_group_rule" "allow_all_tcp" {
   policy            = "accept"
   port_range        = "1/65535"
   priority          = 1
-  security_group_id = "${alicloud_security_group.default.id}"
+  security_group_id = alicloud_security_group.default.id
   cidr_ip           = "0.0.0.0/0"
 }
 
@@ -182,8 +184,8 @@ resource "alicloud_instance" "pg-el9" {
   host_name                     = "pg-el9"
   private_ip                    = "10.10.10.9"
   instance_type                 = local.selected_instype
-  image_id                      = "${data.alicloud_images.el9_img.images.0.id}"
-  vswitch_id                    = "${alicloud_vswitch.vsw.id}"
+  image_id                      = data.alicloud_images.el9_img.images.0.id
+  vswitch_id                    = alicloud_vswitch.vsw.id
   security_groups               = ["${alicloud_security_group.default.id}"]
   password                      = "PigstyDemo4"
   instance_charge_type          = "PostPaid"
@@ -197,7 +199,7 @@ resource "alicloud_instance" "pg-el9" {
 }
 
 output "el9_ip" {
-  value = "${alicloud_instance.pg-el9.public_ip}"
+  value = alicloud_instance.pg-el9.public_ip
 }
 
 
@@ -216,8 +218,8 @@ resource "alicloud_instance" "pg-el10" {
   host_name                     = "pg-el10"
   private_ip                    = "10.10.10.10"
   instance_type                 = local.selected_instype
-  image_id                      = "${data.alicloud_images.el10_img.images.0.id}"
-  vswitch_id                    = "${alicloud_vswitch.vsw.id}"
+  image_id                      = data.alicloud_images.el10_img.images.0.id
+  vswitch_id                    = alicloud_vswitch.vsw.id
   security_groups               = ["${alicloud_security_group.default.id}"]
   password                      = "PigstyDemo4"
   instance_charge_type          = "PostPaid"
@@ -231,7 +233,7 @@ resource "alicloud_instance" "pg-el10" {
 }
 
 output "el10_ip" {
-  value = "${alicloud_instance.pg-el10.public_ip}"
+  value = alicloud_instance.pg-el10.public_ip
 }
 
 
@@ -250,8 +252,8 @@ resource "alicloud_instance" "pg-d12" {
   host_name                     = "pg-d12"
   private_ip                    = "10.10.10.12"
   instance_type                 = local.selected_instype
-  image_id                      = "${data.alicloud_images.d12_img.images.0.id}"
-  vswitch_id                    = "${alicloud_vswitch.vsw.id}"
+  image_id                      = data.alicloud_images.d12_img.images.0.id
+  vswitch_id                    = alicloud_vswitch.vsw.id
   security_groups               = ["${alicloud_security_group.default.id}"]
   password                      = "PigstyDemo4"
   instance_charge_type          = "PostPaid"
@@ -265,7 +267,7 @@ resource "alicloud_instance" "pg-d12" {
 }
 
 output "d12_ip" {
-  value = "${alicloud_instance.pg-d12.public_ip}"
+  value = alicloud_instance.pg-d12.public_ip
 }
 
 
@@ -284,8 +286,8 @@ resource "alicloud_instance" "pg-d13" {
   host_name                     = "pg-d13"
   private_ip                    = "10.10.10.13"
   instance_type                 = local.selected_instype
-  image_id                      = "${data.alicloud_images.d13_img.images.0.id}"
-  vswitch_id                    = "${alicloud_vswitch.vsw.id}"
+  image_id                      = data.alicloud_images.d13_img.images.0.id
+  vswitch_id                    = alicloud_vswitch.vsw.id
   security_groups               = ["${alicloud_security_group.default.id}"]
   password                      = "PigstyDemo4"
   instance_charge_type          = "PostPaid"
@@ -299,7 +301,7 @@ resource "alicloud_instance" "pg-d13" {
 }
 
 output "d13_ip" {
-  value = "${alicloud_instance.pg-d13.public_ip}"
+  value = alicloud_instance.pg-d13.public_ip
 }
 
 
@@ -319,8 +321,8 @@ resource "alicloud_instance" "pg-u22" {
   host_name                     = "pg-u22"
   private_ip                    = "10.10.10.22"
   instance_type                 = local.selected_instype
-  image_id                      = "${data.alicloud_images.u22_img.images.0.id}"
-  vswitch_id                    = "${alicloud_vswitch.vsw.id}"
+  image_id                      = data.alicloud_images.u22_img.images.0.id
+  vswitch_id                    = alicloud_vswitch.vsw.id
   security_groups               = ["${alicloud_security_group.default.id}"]
   password                      = "PigstyDemo4"
   instance_charge_type          = "PostPaid"
@@ -334,7 +336,7 @@ resource "alicloud_instance" "pg-u22" {
 }
 
 output "u22_ip" {
-  value = "${alicloud_instance.pg-u22.public_ip}"
+  value = alicloud_instance.pg-u22.public_ip
 }
 
 
@@ -353,8 +355,8 @@ resource "alicloud_instance" "pg-u24" {
   host_name                     = "pg-u24"
   private_ip                    = "10.10.10.24"
   instance_type                 = local.selected_instype
-  image_id                      = "${data.alicloud_images.u24_img.images.0.id}"
-  vswitch_id                    = "${alicloud_vswitch.vsw.id}"
+  image_id                      = data.alicloud_images.u24_img.images.0.id
+  vswitch_id                    = alicloud_vswitch.vsw.id
   security_groups               = ["${alicloud_security_group.default.id}"]
   password                      = "PigstyDemo4"
   instance_charge_type          = "PostPaid"
@@ -368,7 +370,41 @@ resource "alicloud_instance" "pg-u24" {
 }
 
 output "u24_ip" {
-  value = "${alicloud_instance.pg-u24.public_ip}"
+  value = alicloud_instance.pg-u24.public_ip
+}
+
+
+
+#======================================#
+# U26 AMD64 / ARM64
+#======================================#
+data "alicloud_images" "u26_img" {
+  owners      = "system"
+  name_regex  = local.selected_images.u26
+  most_recent = true
+}
+
+resource "alicloud_instance" "pg-u26" {
+  instance_name                 = "pg-u26"
+  host_name                     = "pg-u26"
+  private_ip                    = "10.10.10.26"
+  instance_type                 = local.selected_instype
+  image_id                      = data.alicloud_images.u26_img.images.0.id
+  vswitch_id                    = alicloud_vswitch.vsw.id
+  security_groups               = ["${alicloud_security_group.default.id}"]
+  password                      = "PigstyDemo4"
+  instance_charge_type          = "PostPaid"
+  internet_charge_type          = "PayByTraffic"
+  spot_strategy                 = local.spot_policy
+  spot_price_limit              = local.spot_price_limit
+  internet_max_bandwidth_out    = local.bandwidth
+  system_disk_category          = "cloud_essd"
+  system_disk_performance_level = "PL1"
+  system_disk_size              = local.disk_size
+}
+
+output "u26_ip" {
+  value = alicloud_instance.pg-u26.public_ip
 }
 
 # sshpass -p PigstyDemo4 ssh-copy-id el8
@@ -378,3 +414,4 @@ output "u24_ip" {
 # sshpass -p PigstyDemo4 ssh-copy-id d13
 # sshpass -p PigstyDemo4 ssh-copy-id u22
 # sshpass -p PigstyDemo4 ssh-copy-id u24
+# sshpass -p PigstyDemo4 ssh-copy-id u26
