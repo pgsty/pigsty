@@ -15,6 +15,7 @@ Here are some docker compose templates for popular applications that works well 
 * [NocoDB](nocodb/) : Open source airtable alternative
 * [Odoo](odoo/) : Open Source ERP
 * [Dify](dify/) : Open Source AI Workflow Platform for GenAI Apps.
+* [Immich](immich/) : High performance self-hosted photo and video management
 * [Metabase](metabase/) : Fast analytics with the friendly UX and integrated tooling
 * [Jupyter](jupyter/) : Run jupyter notebook, the data analysis IDE with docker
 * etc....
@@ -47,6 +48,7 @@ noco      : { domain: noco.pigsty ,endpoint: "127.0.0.1:9003"   }
 odoo      : { domain: odoo.pigsty ,endpoint: "127.0.0.1:8069" ,websocket: true }
 supa      : { domain: supa.pigsty ,endpoint: "127.0.0.1:8000" ,websocket: true }
 dify      : { domain: dify.pigsty ,endpoint: "127.0.0.1:8001" ,websocket: true }
+immich    : { domain: photo.pigsty ,endpoint: "127.0.0.1:2283" ,websocket: true }
 ```
 
 **Pull Image**
@@ -67,6 +69,9 @@ docker pull gitea/gitea
 docker pull kong
 docker pull odoo
 docker pull quay.io/ferretdb/ferretdb
+docker pull ghcr.io/immich-app/immich-server:v3
+docker pull ghcr.io/immich-app/immich-machine-learning:v3
+docker pull docker.io/valkey/valkey:9
 ```
 
 
@@ -89,6 +94,9 @@ docker save kong                             | gzip -9 -c > /tmp/docker/kong.tgz
 docker save odoo                             | gzip -9 -c > /tmp/docker/odoo.tgz
 docker save quay.io/ferretdb/ferretdb        | gzip -9 -c > /tmp/docker/ferretdb.tgz
 docker save nocodb/nocodb                    | gzip -9 -c > /tmp/docker/nocodb.tgz
+docker save ghcr.io/immich-app/immich-server:v3           | gzip -9 -c > /tmp/docker/immich-server.tgz
+docker save ghcr.io/immich-app/immich-machine-learning:v3 | gzip -9 -c > /tmp/docker/immich-machine-learning.tgz
+docker save docker.io/valkey/valkey:9                     | gzip -9 -c > /tmp/docker/valkey.tgz
 ```
 
 
@@ -109,6 +117,9 @@ cat /tmp/docker/alpine.tgz       | gzip -d -c - | docker load;
 cat /tmp/docker/registry.tgz     | gzip -d -c - | docker load;
 cat /tmp/docker/schemaspy.tgz    | gzip -d -c - | docker load;
 cat /tmp/docker/nocodb.tgz       | gzip -d -c - | docker load;
+cat /tmp/docker/immich-server.tgz           | gzip -d -c - | docker load;
+cat /tmp/docker/immich-machine-learning.tgz | gzip -d -c - | docker load;
+cat /tmp/docker/valkey.tgz                  | gzip -d -c - | docker load;
 ```
 
 

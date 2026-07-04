@@ -1,0 +1,119 @@
+---
+#==============================================================#
+# File      :   immich.yml
+# Desc      :   pigsty config for running 1-node immich app
+# Ctime     :   2026-07-04
+# Mtime     :   2026-07-04
+# Docs      :   https://pigsty.io/docs/app/immich
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# Immich: high performance self-hosted photo and video management
+# GitHub: https://github.com/immich-app/immich
+# Last Verified Immich Version: v3.0.1 on 2026-07-04
+#
+# how to use this template:
+#
+#  curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty
+# ./bootstrap               # prepare local repo & ansible
+# ./configure -c app/immich # use this immich config template
+# vi pigsty.yml             # IMPORTANT: CHANGE CREDENTIALS / DOMAIN / STORAGE PATH!
+# ./deploy.yml              # install pigsty & pgsql
+# ./docker.yml              # install docker & docker-compose
+# ./app.yml                 # install immich with docker-compose
+#
+# To replace domain name:
+#   sed -ie 's/photo.pigsty/photo.yourdomain.com/g' pigsty.yml
+
+
+all:
+  children:
+
+    # the immich application
+    immich:
+      hosts: { 10.10.10.10: {} }
+      vars:
+        app: immich   # specify app name to be installed (in the apps)
+        apps:         # define all applications
+          immich:     # app name, should have corresponding ~/pigsty/app/immich folder
+            file:     # media directory to be created
+              - { path: /data/immich         ,state: directory ,mode: 0755 }
+              - { path: /data/immich/library ,state: directory ,mode: 0755 }
+            conf:     # override /opt/immich/.env config file
+
+              # image / published port
+              IMMICH_VERSION: v3
+              IMMICH_HOST_PORT: 2283
+              TZ: Asia/Shanghai
+
+              # media files: photos, videos, thumbnails, encoded video, avatars
+              UPLOAD_LOCATION: /data/immich/library
+
+              # database credentials (must match pg_users below)
+              DB_URL: 'postgresql://dbuser_immich:DBUser.Immich@10.10.10.10:5432/immich'
+              DB_VECTOR_EXTENSION: vectorchord
+
+              # local Valkey service in app/immich/docker-compose.yml
+              REDIS_HOSTNAME: redis
+              REDIS_PORT: 6379
+
+    # the immich database
+    pg-immich:
+      hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
+      vars:
+        pg_cluster: pg-immich
+        pg_extensions: [ pgvector, vchord ]
+        pg_libs: 'vchord.so, pg_stat_statements, auto_explain'
+        pg_users:
+          - { name: dbuser_immich ,password: DBUser.Immich ,pgbouncer: true ,pool_mode: session ,roles: [ dbrole_admin ] ,comment: immich service user }
+        pg_databases:
+          - { name: immich ,owner: dbuser_immich ,revokeconn: true ,extensions: [ vchord, earthdistance ] ,comment: immich metadata database }
+        pg_hba_rules:
+          - { user: dbuser_immich ,db: immich ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow immich access from local docker network' }
+        pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
+
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
+    #minio: { hosts: { 10.10.10.10: { minio_seq: 1 } }, vars: { minio_cluster: minio } }
+
+  vars:                               # global variables
+    version: v4.4.0                   # pigsty version string
+    admin_ip: 10.10.10.10             # admin node ip address
+    region: default                   # upstream mirror region: default|china|europe
+    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
+    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+
+    docker_enabled: true              # enable docker on app group
+    #docker_registry_mirrors: ["https://docker.1panel.live","https://docker.1ms.run","https://docker.xuanyuan.me","https://registry-1.docker.io"]
+
+    proxy_env:                        # global proxy env when downloading packages & pull docker images
+      no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.tsinghua.edu.cn"
+      #http_proxy:  127.0.0.1:12345 # add your proxy env here for downloading packages or pull images
+      #https_proxy: 127.0.0.1:12345 # usually the proxy is format as http://user:pass@proxy.xxx.com
+      #all_proxy:   127.0.0.1:12345
+
+    infra_portal:                     # domain names and upstream servers
+      home  : { domain: i.pigsty }
+      immich:                          # nginx server config for immich
+        domain: photo.pigsty           # REPLACE WITH YOUR OWN DOMAIN!
+        endpoint: "10.10.10.10:2283"   # immich service endpoint: IP:PORT
+        websocket: true                # add websocket support
+        certbot: photo.pigsty          # certbot cert name, apply with `make cert`
+
+    repo_enabled: false
+    node_repo_modules: node,infra,pgsql
+    pg_version: 18
+
+    #----------------------------------------------#
+    # PASSWORD : https://pigsty.io/docs/setup/security/
+    #----------------------------------------------#
+    grafana_admin_password: pigsty
+    grafana_view_password: DBUser.Viewer
+    pg_admin_password: DBUser.DBA
+    pg_monitor_password: DBUser.Monitor
+    pg_replication_password: DBUser.Replicator
+    patroni_password: Patroni.API
+    haproxy_admin_password: pigsty
+    minio_secret_key: S3User.MinIO
+    etcd_root_password: Etcd.Root
+...

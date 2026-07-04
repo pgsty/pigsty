@@ -1,0 +1,65 @@
+#!/usr/bin/env docker compose
+---
+#==============================================================#
+# File      :   docker-compose.yml
+# Desc      :   Immich docker compose with Pigsty PostgreSQL
+# Ctime     :   2026-07-04
+# Mtime     :   2026-07-04
+# Path      :   app/immich/docker-compose.yml
+# Docs      :   https://pigsty.io/docs/app/immich
+# Source    :   https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+name: immich
+
+services:
+
+  #--------------------------------------------------------------#
+  # Immich server: API, web UI, and background jobs
+  #--------------------------------------------------------------#
+  immich-server:
+    container_name: immich_server
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-v3}
+    volumes:
+      - ${UPLOAD_LOCATION}:/data
+      - /etc/localtime:/etc/localtime:ro
+    env_file:
+      - .env
+    ports:
+      - '${IMMICH_HOST_PORT:-2283}:2283'
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: always
+    healthcheck:
+      disable: false
+
+  #--------------------------------------------------------------#
+  # Immich machine learning service
+  #--------------------------------------------------------------#
+  immich-machine-learning:
+    container_name: immich_machine_learning
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-v3}
+    volumes:
+      - model-cache:/cache
+    env_file:
+      - .env
+    restart: always
+    healthcheck:
+      disable: false
+
+  #--------------------------------------------------------------#
+  # Local Valkey queue/cache for Immich background jobs
+  #--------------------------------------------------------------#
+  redis:
+    container_name: immich_redis
+    image: docker.io/valkey/valkey:9@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9
+    healthcheck:
+      test: redis-cli ping || exit 1
+    restart: always
+
+volumes:
+  model-cache:
+...
