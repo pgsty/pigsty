@@ -3,7 +3,7 @@
 # File      :   kernel.yml
 # Desc      :   Pigsty 10-node kernel matrix demo
 # Ctime     :   2025-03-25
-# Mtime     :   2026-02-26
+# Mtime     :   2026-07-05
 # Docs      :   https://pigsty.io/docs/conf
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -27,7 +27,7 @@ all:
           - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin]    ,comment: pigsty admin user }
           - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
         pg_databases:
-          - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [citus, postgis, timescaledb, vector] }
+          - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [citus, postgis, vector] }
         pg_extensions: [ citus, postgis, timescaledb, pgvector ]
         pg_libs: 'citus, pg_stat_statements, auto_explain'
 
@@ -70,10 +70,10 @@ all:
           - { user: dbuser_mssql ,db: mssql ,addr: intra ,auth: md5 ,title: 'allow mssql dbsu intranet access'      ,order: 525 }
           - { user: all          ,db: all   ,addr: intra ,auth: md5 ,title: 'everyone intranet access with md5 pwd' ,order: 800 }
         pg_default_services:
-          - { name: primary ,port: 5433 ,dest: 1433      ,check: /primary   ,selector: "[]" }
-          - { name: replica ,port: 5434 ,dest: 1433      ,check: /read-only ,selector: "[]" ,backup: "[? pg_role == `primary` || pg_role == `offline` ]" }
-          - { name: default ,port: 5436 ,dest: postgres  ,check: /primary   ,selector: "[]" }
-          - { name: offline ,port: 5438 ,dest: postgres  ,check: /replica   ,selector: "[? pg_role == `offline` || pg_offline_query ]" ,backup: "[? pg_role == `replica` && !pg_offline_query]" }
+          - { name: primary ,port: 5433 ,dest: 1433     ,check: /primary   ,selector: "[]" }
+          - { name: replica ,port: 5434 ,dest: 1433     ,check: /read-only ,selector: "[]" ,backup: "[? pg_role == `primary` || pg_role == `offline` ]" }
+          - { name: default ,port: 5436 ,dest: postgres ,check: /primary   ,selector: "[]" }
+          - { name: offline ,port: 5438 ,dest: postgres ,check: /replica   ,selector: "[? pg_role == `offline` || pg_offline_query ]" ,backup: "[? pg_role == `replica` && !pg_offline_query]" }
 
     # 4. PolarDB kernel
     pg-polar:
@@ -122,7 +122,7 @@ all:
       vars:
         pg_mode: oriole
         pg_cluster: pg-oriole
-        pg_version: 17
+        pg_version: 18
         pg_packages: [ oriole, pgsql-common ]
         pg_libs: 'orioledb, pg_stat_statements, auto_explain'
         pg_users:
