@@ -122,30 +122,32 @@ Most templates support these variables:
 
 Current Aliyun public base image versions used by the templates:
 
-| Code   | Distro                | Latest base image version |
-|--------|-----------------------|---------------------------|
-| `el9`  | Rocky Linux 9         | 9.8                       |
-| `el10` | Rocky Linux 10        | 10.2                      |
-| `d12`  | Debian 12             | 12.14                     |
-| `d13`  | Debian 13             | 13.5                      |
-| `u22`  | Ubuntu 22.04 LTS      | 22.04.5                   |
-| `u24`  | Ubuntu 24.04 LTS      | 24.04.4                   |
-| `u26`  | Ubuntu 26.04 LTS      | 26.04                     |
-| `an8`  | Anolis OS 8           | 8.10                      |
-| `al3`  | Alibaba Cloud Linux 3 | 3 (20260513 alibase)      |
+| Code   | Distro                | amd64 | arm64 |
+|--------|-----------------------|-------|-------|
+| `el9`  | Rocky Linux 9         | 9.8   | 9.7   |
+| `el10` | Rocky Linux 10        | 10.2  | 10.1  |
+| `d12`  | Debian 12             | 12.14 | 12.14 |
+| `d13`  | Debian 13             | 13.5  | 13.5  |
+| `u22`  | Ubuntu 22.04 LTS      | 22.04.5 | 22.04.5 |
+| `u24`  | Ubuntu 24.04 LTS      | 24.04.4 | 24.04.4 |
+| `u26`  | Ubuntu 26.04 LTS      | 26.04.0 | 26.04.0 |
+| `an8`  | Anolis OS 8           | 8.10  | 8.10  |
+| `al3`  | Alibaba Cloud Linux 3 | 3 (20260513 alibase) | 3 (20260513 alibase) |
+
+EL9/EL10 arm64 images are pinned to 9.7/10.1 because the current 9.8/10.2 arm64 images are missing dependencies (PGDG postgis) required by Pigsty packages.
 
 Aliyun Ubuntu image IDs only include the LTS release (`22_04` / `24_04` / `26_04`), so templates use `most_recent = true` to select the latest point-release image.
 
 Other cloud templates use provider-native rolling image selectors for Debian 12/13:
 
-| Provider | Selector style |
-|----------|----------------|
-| AWS Global | Debian official AMI owner with `debian-12-*` / `debian-13-*` name filters and `most_recent = true` |
-| Azure | Debian Marketplace image references with `version = "latest"` |
-| GCP | `debian-cloud` image families (`debian-12`, `debian-13`, and ARM64 variants) |
-| Tencent Cloud | Public image lookup by `Debian Server 12` / `Debian Server 13` OS name |
-| DigitalOcean / Hetzner / Linode | Provider image slugs for Debian 12/13 major releases |
-| Vultr | Provider OS labels for Debian 12/13 major releases |
+| Provider                        | Selector style                                                                                     |
+|---------------------------------|----------------------------------------------------------------------------------------------------|
+| AWS Global                      | Debian official AMI owner with `debian-12-*` / `debian-13-*` name filters and `most_recent = true` |
+| Azure                           | Debian Marketplace image references with `version = "latest"`                                      |
+| GCP                             | `debian-cloud` image families (`debian-12`, `debian-13`, and ARM64 variants)                       |
+| Tencent Cloud                   | Public image lookup by `Debian Server 12` / `Debian Server 13` OS name                             |
+| DigitalOcean / Hetzner / Linode | Provider image slugs for Debian 12/13 major releases                                               |
+| Vultr                           | Provider OS labels for Debian 12/13 major releases                                                 |
 
 These providers generally do not expose stable point-release image IDs such as `12.13` or `13.4`; templates therefore select the latest published image for the major release. The AWS China legacy template keeps its hardcoded regional AMI because Debian's official AWS AMI catalog does not cover China regions.
 

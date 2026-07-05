@@ -59,8 +59,8 @@ locals {
     }
     arm64 = {
       el8  = "^rockylinux_8_10_arm64"
-      el9  = "^rockylinux_9_8_arm64"
-      el10 = "^rockylinux_10_2_arm64"
+      el9  = "^rockylinux_9_7_arm64"
+      el10 = "^rockylinux_10_1_arm64"
       d12  = "^debian_12_14_arm64"
       d13  = "^debian_13_5_arm64"
       u22  = "^ubuntu_22_04_arm64_20G"
