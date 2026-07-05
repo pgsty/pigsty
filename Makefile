@@ -555,7 +555,7 @@ csimu:
 coss:
 	cp conf/build/oss.yml pigsty.yml
 cpro:
-	cp conf/build/pro.yml pigsty.yml
+	cp conf/build/oss.yml pigsty.yml
 
 #------------------------------#
 #     Building Environment     #
