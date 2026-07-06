@@ -18,7 +18,7 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c mysql            # OpenHalo Kernel for MySQL Compatibility (14)
 ./configure -c pgtde            # Percona PostgreSQL Server with TDE (18)
 ./configure -c oriole           # OrioleDB Kernel for OLTP Enhancement (16/17/18)
-./configure -c agens            # AgensGraph kernel for Graph DB workloads (16)
+./configure -c agens            # AgensGraph kernel for Graph DB workloads (17)
 ./configure -c pgedge           # pgEdge kernel for distributed PostgreSQL workloads (18)
 ./configure -c supabase         # PostgreSQL configured for Supabase self-hosting (15~18)
 ./configure -c pg19             # PostgreSQL 19 beta with PGDG testing repo and minimal runtime packages
@@ -63,7 +63,7 @@ These are 1-node config template, which can be used to install pigsty on a singl
 * [mysql.yml](mysql.yml) : OpenHalo Kernel for MySQL Compatibility (14)
 * [pgtde.yml](pgtde.yml) : Percona PostgreSQL Server with TDE (18)
 * [oriole.yml](oriole.yml) : OrioleDB Kernel for OLTP Enhancement (17)
-* [agens.yml](agens.yml) : AgensGraph kernel for Graph DB workloads (16)
+* [agens.yml](agens.yml) : AgensGraph kernel for Graph DB workloads (17)
 * [pgedge.yml](pgedge.yml) : pgEdge kernel for distributed PostgreSQL workloads (18)
 * [supabase.yml](supabase.yml) : PostgreSQL configured for Supabase self-hosting (15~18)
 * [pg19.yml](pg19.yml) : PostgreSQL 19 beta with PGDG testing repo and minimal runtime packages
