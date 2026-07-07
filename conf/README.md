@@ -19,6 +19,7 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c pgtde            # Percona PostgreSQL Server with TDE (18)
 ./configure -c oriole           # OrioleDB Kernel for OLTP Enhancement (16/17/18)
 ./configure -c agens            # AgensGraph kernel for Graph DB workloads (17)
+./configure -c mongo            # 1-node MongoDB-compatible stack (FerretDB/DocumentDB)
 ./configure -c pgedge           # pgEdge kernel for distributed PostgreSQL workloads (18)
 ./configure -c supabase         # PostgreSQL configured for Supabase self-hosting (15~18)
 ./configure -c pg19             # PostgreSQL 19 beta with PGDG testing repo and minimal runtime packages
@@ -32,7 +33,7 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 
 # special configuration
 ./configure -c vibe             # 1-node vibe coding devbox
-./configure -c mongo            # 1-node MongoDB-compatible stack (FerretDB/DocumentDB)
+./configure -c infra            # 1-node Infra only config template
 ./configure -c docker           # 1-node docker coding environment
 ```
 

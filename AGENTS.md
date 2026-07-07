@@ -373,10 +373,7 @@ PostgreSQL kernel variants and forks supported by Pigsty.
 - `percona.md` - Percona Distribution for PostgreSQL with enterprise features
 - `orioledb.md` - OrioleDB with cloud-native storage engine
 - `polardb.md` - Alibaba PolarDB for PostgreSQL
-- `polardb-o.md` - PolarDB with Oracle compatibility
-- `pgml.md` - PostgresML for machine learning workloads
 - `supabase.md` - Supabase PostgreSQL configuration
-- `greenplum.md` - Greenplum massively parallel processing database
 - `cloudberry.md` - Cloudberry Database (Greenplum fork)
 - `neon.md` - Neon serverless PostgreSQL
 

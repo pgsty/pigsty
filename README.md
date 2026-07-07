@@ -3,7 +3,6 @@
 [![Website: pigsty.io](https://img.shields.io/badge/website-pigsty.io-slategray?style=flat&logo=cilium&logoColor=white)](https://pigsty.io)
 [![CN: pigsty.cc](https://img.shields.io/badge/CN-pigsty.cc-slategray?style=flat&logo=cilium&logoColor=white)](https://pigsty.cc)
 [![Version: v4.3.0](https://img.shields.io/badge/version-v4.3.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases)
-[![PIG: v1.4.2](https://img.shields.io/badge/pig-v1.4.2-slategray?style=flat&logo=postgresql&logoColor=white)](https://github.com/pgsty/pig/releases)
 [![License: Apache-2.0](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://pigsty.io/docs/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
 [![Extensions: 531](https://img.shields.io/badge/extensions-531-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pigsty.io/ext/list)
@@ -43,13 +42,13 @@ You can even use many exotic [**PG Kernel Forks**](https://pigsty.io/docs/pgsql/
 [![BABELFISH](https://img.shields.io/badge/BABELFISH-88A3CA?style=flat&logo=postgresql&labelColor=88A3CA&logoColor=black)](https://pigsty.io/docs/pgsql/kernel/babelfish)
 [![IVORYSQL](https://img.shields.io/badge/IVORYSQL-E8AC52?style=flat&logo=postgresql&labelColor=E8AC52&logoColor=black)](https://pigsty.io/docs/pgsql/kernel/ivorysql)
 [![OPENHALO](https://img.shields.io/badge/OPENHALO-66D9C6?style=flat&logo=mysql&labelColor=66D9C6&logoColor=black)](https://pigsty.io/docs/pgsql/kernel/openhalo)
-[![FERRETDB](https://img.shields.io/badge/FERRETDB_/_DOCUMENTDB-042133?style=flat&logo=ferretdb&labelColor=042133&logoColor=white)](https://pigsty.io/docs/ferret)
+[![FERRETDB](https://img.shields.io/badge/FERRETDB-042133?style=flat&logo=ferretdb&labelColor=042133&logoColor=white)](https://pigsty.io/docs/ferret)
+
 [![PERCONA](https://img.shields.io/badge/PERCONA_TDE-1A93E8?style=flat&logo=postgresql&labelColor=1A93E8&logoColor=white)](https://pigsty.io/docs/pgsql/kernel/percona)
 [![ORIOLEDB](https://img.shields.io/badge/ORIOLEDB-2F6FED?style=flat&logo=postgresql&labelColor=2F6FED&logoColor=white)](https://pigsty.io/docs/pgsql/kernel/orioledb)
 [![AGENSGRAPH](https://img.shields.io/badge/AGENSGRAPH-8A6DE9?style=flat&logo=postgresql&labelColor=8A6DE9&logoColor=white)](https://pigsty.io/docs/pgsql/kernel/agensgraph)
 [![PGEDGE](https://img.shields.io/badge/PGEDGE-0E7C86?style=flat&logo=postgresql&labelColor=0E7C86&logoColor=white)](https://pigsty.io/docs/pgsql/kernel/pgedge)
 [![POLARDB](https://img.shields.io/badge/POLARDB_PG-DF6F2E?style=flat&logo=postgresql&labelColor=DF6F2E&logoColor=black)](https://pigsty.io/docs/pgsql/kernel/polardb)
-[![POLAR Oracle](https://img.shields.io/badge/POLARDB_ORACLE-DF6F2E?style=flat&logo=postgresql&labelColor=DF6F2E&logoColor=black)](https://pigsty.io/docs/pgsql/kernel/polardb-o)
 [![CLOUDBERRY](https://img.shields.io/badge/CLOUDBERRY-FF8C00?style=flat&logo=postgresql&labelColor=FF8C00&logoColor=black)](https://pigsty.io/docs/pgsql/kernel/cloudberry)
 
 
@@ -76,7 +75,7 @@ And gather the synergistic superpowers of all [**531 PostgreSQL Extensions**](ht
 
 ## Get Started
 
-[![Postgres: 18.3](https://img.shields.io/badge/PostgreSQL-18.3-%233E668F?style=flat&logo=postgresql&labelColor=3E668F&logoColor=white)](https://pigsty.io/docs/pgsql)
+[![Postgres: 18.4](https://img.shields.io/badge/PostgreSQL-18.4-%233E668F?style=flat&logo=postgresql&labelColor=3E668F&logoColor=white)](https://pigsty.io/docs/pgsql)
 [![Linux](https://img.shields.io/badge/Linux-AMD64-%23FCC624?style=flat&logo=linux&labelColor=FCC624&logoColor=black)](https://pigsty.io/docs/node)
 [![Linux](https://img.shields.io/badge/Linux-ARM64-%23FCC624?style=flat&logo=linux&labelColor=FCC624&logoColor=black)](https://pigsty.io/docs/node)
 [![EL Support: 8/9/10](https://img.shields.io/badge/EL-8/9/10-red?style=flat&logo=redhat&logoColor=red)](https://pigsty.io/docs/ref/linux#el)
@@ -624,27 +623,30 @@ There are other pro, beta, or pilot modules, and there will be more coming in th
 
 ## Compatibility
 
-We recommend using RockyLinux 10.1 / 9.7, Debian 13.4 / 12.13, and Ubuntu 26.04.0 / 24.04.4 / 22.04.5 for production use.
+We recommend using RockyLinux 10.2 / 9.8, Debian 13.5 / 12.14, and Ubuntu 26.04.0 / 24.04.4 / 22.04.5 for production use.
 
 Pigsty runs directly on bare Linux, and focuses on actively maintained mainstream LTS [**Linux Distributions**](https://pigsty.io/docs/ref/linux):
 
-|   Code   | Distro                  | Minor   |                      `x86_64`                       | Status |                       `aarch64`                       | Status |
-|:--------:|-------------------------|---------|:---------------------------------------------------:|:------:|:-----------------------------------------------------:|:------:|
-| **EL10** | RHEL / Rocky / Alma 10  | 10.1    | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) |  🌐📦  | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) |  🌐📦  |
-| **EL9**  | RHEL / Rocky / Alma 9   | 9.7     |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  |  🌐📦  |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  |  🌐📦  |
-| **U26**  | Ubuntu 26.04 (resolute) | 26.04.0 |  [`u26.x86_64`](roles/node_id/vars/u26.x86_64.yml)  |  🌐📦  |  [`u26.aarch64`](roles/node_id/vars/u26.aarch64.yml)  |  🌐📦  |
-| **U24**  | Ubuntu 24.04 (noble)    | 24.04.4 |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  |  🌐📦  |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  |  🌐📦  |
-| **U22**  | Ubuntu 22.04 (jammy)    | 22.04.5 |  [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml)  |  🌐📦  |  [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml)  |  🌐📦  |
-| **D13**  | Debian 13 (trixie)      | 13.4    |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  |  🌐📦  |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |  🌐📦  |
-| **D12**  | Debian 12 (bookworm)    | 12.13   |  [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml)  |  🌐📦  |  [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml)  |  🌐📦  |
+|   Code   | Distro                  |                      `x86_64`                       | Minor   | Status |                       `aarch64`                       | Status |
+|:--------:|-------------------------|:---------------------------------------------------:|---------|:------:|:-----------------------------------------------------:|-------:|
+| **EL10** | RHEL / Rocky / Alma 10  | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) | 10.2 ⚠️ |  🌐📦  | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) |   🌐📦 |
+| **EL9**  | RHEL / Rocky / Alma 9   |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  | 9.8 ⚠️  |  🌐📦  |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  |   🌐📦 |
+| **U26**  | Ubuntu 26.04 (resolute) |  [`u26.x86_64`](roles/node_id/vars/u26.x86_64.yml)  | 26.04.0 |  🌐📦  |  [`u26.aarch64`](roles/node_id/vars/u26.aarch64.yml)  |   🌐📦 |
+| **U24**  | Ubuntu 24.04 (noble)    |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  | 24.04.4 |  🌐📦  |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  |   🌐📦 |
+| **U22**  | Ubuntu 22.04 (jammy)    |  [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml)  | 22.04.5 |  🌐📦  |  [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml)  |   🌐📦 |
+| **D13**  | Debian 13 (trixie)      |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  | 13.5    |  🌐📦  |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |   🌐📦 |
+| **D12**  | Debian 12 (bookworm)    |  [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml)  | 12.14   |  🌐📦  |  [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml)  |   🌐📦 |
+
+> ⚠️ el9 (9.8) & el10 (10.2) aarch64 upstream is broken, build for 9.7 & 10.1 instead
 
 
-## Sponsors
+## Sponsor
 
-Many thanks to our contributors and sponsors for making Pigsty possible.
-Special thanks to MiraclePlus for funding, to Cloudflare for hosting the Pigsty repo, and to Vercel for hosting the Pigsty website.
+Many thanks to our contributors and [sponsors](https://pigsty.io/docs/about/sponsor/) for making Pigsty possible. Special thanks to MiraclePlus for funding, to Cloudflare for hosting the Pigsty repo, Jetbrains for the dev tools, and to Vercel for hosting the Pigsty website.
 
-[![Vercel OSS Program](https://vercel.com/oss/program-badge.svg)](https://vercel.com/oss)
+|                                Vercel                                |                             JetBrains                             |
+|:--------------------------------------------------------------------:|:-----------------------------------------------------------------:|
+| [![](https://pigsty.io/img/icon/vercel.svg)](https://vercel.com/oss) | [![](https://pigsty.io/img/icon/jetbrains.svg)](jb.gg/OpenSource) |
 
 
 ## License
