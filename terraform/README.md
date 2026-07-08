@@ -124,8 +124,8 @@ Current Aliyun public base image versions used by the templates:
 
 | Code   | Distro                | amd64 | arm64 |
 |--------|-----------------------|-------|-------|
-| `el9`  | Rocky Linux 9         | 9.8   | 9.7   |
-| `el10` | Rocky Linux 10        | 10.2  | 10.1  |
+| `el9`  | Rocky Linux 9         | 9.7   | 9.7   |
+| `el10` | Rocky Linux 10        | 10.1  | 10.1  |
 | `d12`  | Debian 12             | 12.14 | 12.14 |
 | `d13`  | Debian 13             | 13.5  | 13.5  |
 | `u22`  | Ubuntu 22.04 LTS      | 22.04.5 | 22.04.5 |
@@ -134,7 +134,7 @@ Current Aliyun public base image versions used by the templates:
 | `an8`  | Anolis OS 8           | 8.10  | 8.10  |
 | `al3`  | Alibaba Cloud Linux 3 | 3 (20260513 alibase) | 3 (20260513 alibase) |
 
-EL9/EL10 arm64 images are pinned to 9.7/10.1 because the current 9.8/10.2 arm64 images are missing dependencies (PGDG postgis) required by Pigsty packages.
+EL9/EL10 images are pinned to 9.7/10.1 for both amd64 and arm64 until Pigsty package validation matures.
 
 Aliyun Ubuntu image IDs only include the LTS release (`22_04` / `24_04` / `26_04`), so templates use `most_recent = true` to select the latest point-release image.
 

@@ -31,6 +31,14 @@ BASE_BOXES = {
     "u24":  "cloud-image/ubuntu-24.04",
     "u26":  "cloud-image/ubuntu-26.04",
 }
+
+BOX_VERSION_PINS = {
+    "cloud-image/rocky-9": "9.7.20251123.2",
+    "cloud-image/rocky-10": "10.1.20251116.0",
+    "cloud-image/almalinux-9": "9.7.20260518",
+    "cloud-image/almalinux-10": "10.1.20260518.0",
+}
+
 BOXES = {
     arch: {provider: dict(BASE_BOXES) for provider in ("virtualbox", "libvirt")}
     for arch in ("amd64", "arm64")
@@ -144,6 +152,18 @@ def resolve_box(image, provider, arch):
     print("[WARN] unknown image alias: %s (arch=%s provider=%s)" % (img, arch, provider))
     return img
 
+def apply_box_version_pin(line):
+    image_matches = re.findall('"image"\\s*=>\\s*"([^"]+)"', line)
+    if not image_matches:
+        return line
+
+    box_version = BOX_VERSION_PINS.get(image_matches[0])
+    line = re.sub('\\s*,\\s*"box_version"\\s*=>\\s*"[^"]+"', '', line)
+    if not box_version:
+        return line
+
+    return re.sub('\\s*}\\s*,?\\s*$', ', "box_version" => "%s" },\n' % box_version, line)
+
 def usage():
     print("Usage: %s [spec] [image] [scale] [provider]" % sys.argv[0])
     print("  [VM_SPEC]     spec:    meta, full, simu, dual, trio, oss, pro, rpm, deb, all...")
@@ -229,6 +249,7 @@ def get_spec(spec_name):
             line = re.sub('"mem"\\s*=>\\s*"([^"]+)"', '"mem" => "%d"' % new_mem, line)
             if ARGS['spec'] not in BUILD_SPECS and 'image' in ARGS:
                 line = re.sub('"image"\\s*=>\\s*"([^"]+)"', '"image" => "%s"' % ARGS['image'], line)
+            line = apply_box_version_pin(line)
         modified_specs.append(line)
 
     if scale_factor != 1:

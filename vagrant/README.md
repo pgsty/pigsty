@@ -141,7 +141,7 @@ u24  -> cloud-image/ubuntu-24.04
 u26  -> cloud-image/ubuntu-26.04
 ```
 
-On arm64, `cloud-image/rocky-9` and `cloud-image/rocky-10` are pinned to box versions `9.7.20251123.2` and `10.1.20251116.0` because the current 9.8/10.2 arm64 boxes are missing dependencies required by Pigsty packages. amd64 keeps using the latest EL9/EL10 boxes.
+`cloud-image/rocky-9` and `cloud-image/rocky-10` are pinned to box versions `9.7.20251123.2` and `10.1.20251116.0` on both amd64 and arm64 until Pigsty package validation matures.
 
 Ubuntu 20.04 and Debian 11 shortcuts are intentionally not provided; use an explicit Vagrant box name only for legacy experiments.
 

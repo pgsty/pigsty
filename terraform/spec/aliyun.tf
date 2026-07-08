@@ -51,8 +51,8 @@ locals {
     amd64 = {
       el7  = "^centos_7_9_x64"
       el8  = "^rockylinux_8_10_x64"
-      el9  = "^rockylinux_9_8_x64"
-      el10 = "^rockylinux_10_2_x64"
+      el9  = "^rockylinux_9_7_x64"
+      el10 = "^rockylinux_10_1_x64"
       d11  = "^debian_11_11_x64"
       d12  = "^debian_12_14_x64"
       d13  = "^debian_13_5_x64"
