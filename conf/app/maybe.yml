@@ -3,22 +3,28 @@
 # File      :   maybe.yml
 # Desc      :   pigsty config for running 1-node maybe app
 # Ctime     :   2025-09-08
-# Mtime     :   2025-12-12
+# Mtime     :   2026-07-09
 # Docs      :   https://pigsty.io/docs/app/maybe
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
+# Maybe: self-hosted personal finance app
+# GitHub: https://github.com/maybe-finance/maybe
+# Last Verified Maybe Version: stable image / v0.6.0 release on 2026-07-09
 
 # tutorial: https://pigsty.io/docs/app/maybe
 # how to use this template:
 #
 #  curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty
 # ./bootstrap               # prepare local repo & ansible
-# ./configure -c app/maybe  # Use this maybe config template
+# ./configure -c app/maybe  # use this maybe config template
 # vi pigsty.yml             # IMPORTANT: CHANGE CREDENTIALS!!
 # ./deploy.yml              # install pigsty & pgsql
 # ./docker.yml              # install docker & docker-compose
 # ./app.yml                 # install maybe
+#
+# To replace domain name:
+#   sed -ie 's/maybe.pigsty/yourdomain.com/g' pigsty.yml
 
 all:
   children:
@@ -32,24 +38,29 @@ all:
           maybe:     # app name, should have corresponding ~/pigsty/app/maybe folder
             file:    # optional directory to be created
               - { path: /data/maybe             ,state: directory ,mode: 0755 }
-              - { path: /data/maybe/storage     ,state: directory ,mode: 0755 }
+              - { path: /data/maybe/storage     ,state: directory ,owner: 1000 ,group: 1000 ,mode: 0755 }
+              - { path: /data/maybe/redis       ,state: directory ,mode: 0755 }
             conf:    # override /opt/<app>/.env config file
               # Core Configuration
-              MAYBE_VERSION: latest                    # Maybe image version
+              MAYBE_IMAGE: ghcr.io/maybe-finance/maybe # Maybe image repository
+              MAYBE_VERSION: stable                    # Maybe image version: stable = latest release
               MAYBE_PORT: 5002                         # Port to expose Maybe service
               MAYBE_DATA: /data/maybe                  # Data directory for Maybe
               APP_DOMAIN: maybe.pigsty                 # Domain name for Maybe
               
               # REQUIRED: Generate with: openssl rand -hex 64
-              SECRET_KEY_BASE: sk-somerandomkey        # Secret key for maybe
+              SECRET_KEY_BASE: 2f1e4c3d5b6a79808796a5b4c3d2e1f00123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef01234567
               
               # Database Configuration
               DB_HOST: 10.10.10.10                    # PostgreSQL host
               DB_PORT: 5432                           # PostgreSQL port
-              DB_USERNAME: maybe                      # PostgreSQL username
-              DB_PASSWORD: MaybeFinance2025           # PostgreSQL password (CHANGE THIS!)
-              DB_DATABASE: maybe_production           # PostgreSQL database name
-              
+              POSTGRES_USER: maybe                    # PostgreSQL username
+              POSTGRES_PASSWORD: MaybeFinance2026     # PostgreSQL password (CHANGE THIS!)
+              POSTGRES_DB: maybe_production           # PostgreSQL database name
+
+              # Local Redis queue/cache
+              REDIS_VERSION: 7-alpine
+
               # Optional: API Integration
               #SYNTH_API_KEY:                         # Get from synthfinance.com
 
@@ -59,14 +70,11 @@ all:
       vars:
         pg_cluster: pg-maybe
         pg_users:
-          - { name: maybe    ,password: MaybeFinance2025 ,pgbouncer: true ,roles: [ dbrole_admin ] ,createdb: true ,comment: admin user for maybe service }
-          - { name: maybe_ro ,password: MaybeFinance2025 ,pgbouncer: true ,roles: [ dbrole_readonly ]  ,comment: read only user for maybe service  }
-          - { name: maybe_rw ,password: MaybeFinance2025 ,pgbouncer: true ,roles: [ dbrole_readwrite ] ,comment: read write user for maybe service }
+          - { name: maybe ,password: MaybeFinance2026 ,pgbouncer: true ,roles: [ dbrole_admin ] ,comment: admin user for maybe service }
         pg_databases:
           - { name: maybe_production ,owner: maybe ,revokeconn: true ,comment: maybe main database  }
         pg_hba_rules:
-          - { user: maybe ,db: all ,addr: 172.17.0.0/16  ,auth: pwd ,title: 'allow maybe access from local docker network' }
-          - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
+          - { user: maybe ,db: maybe_production ,addr: 172.16.0.0/12 ,auth: pwd ,title: 'allow maybe access from local docker network' }
         pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
 
     infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
@@ -90,7 +98,6 @@ all:
 
     infra_portal:                     # infra services exposed via portal
       home  : { domain: i.pigsty }    # default domain name
-      minio : { domain: m.pigsty ,endpoint: "${admin_ip}:9001" ,scheme: https ,websocket: true }
       maybe:                          # nginx server config for maybe
         domain: maybe.pigsty          # REPLACE WITH YOUR OWN DOMAIN!
         endpoint: "10.10.10.10:5002"  # maybe service endpoint: IP:PORT

@@ -1,0 +1,87 @@
+#!/usr/bin/env docker compose
+---
+#==============================================================#
+# File      :   docker-compose.yml
+# Desc      :   Maybe docker compose with Pigsty PostgreSQL
+# Ctime     :   2025-09-08
+# Mtime     :   2026-07-09
+# Path      :   app/maybe/docker-compose.yml
+# Docs      :   https://pigsty.io/docs/app/maybe
+# Source    :   https://github.com/maybe-finance/maybe/blob/main/compose.example.yml
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+name: maybe
+
+x-rails-env: &rails-env
+  SELF_HOSTED: ${SELF_HOSTED:-true}
+  RAILS_FORCE_SSL: ${RAILS_FORCE_SSL:-false}
+  RAILS_ASSUME_SSL: ${RAILS_ASSUME_SSL:-false}
+  SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+  DB_HOST: ${DB_HOST:-10.10.10.10}
+  DB_PORT: ${DB_PORT:-5432}
+  POSTGRES_USER: ${POSTGRES_USER:-maybe}
+  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+  POSTGRES_DB: ${POSTGRES_DB:-maybe_production}
+  REDIS_URL: redis://redis:6379/1
+  OPENAI_ACCESS_TOKEN: ${OPENAI_ACCESS_TOKEN:-}
+  SYNTH_API_KEY: ${SYNTH_API_KEY:-}
+
+services:
+
+  #--------------------------------------------------------------#
+  # Maybe web: Rails UI/API, auto-runs db:prepare on startup
+  #--------------------------------------------------------------#
+  web:
+    container_name: maybe-web
+    image: ${MAYBE_IMAGE:-ghcr.io/maybe-finance/maybe}:${MAYBE_VERSION:-stable}
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    ports:
+      - "${MAYBE_PORT:-5002}:3000"
+    environment:
+      <<: *rails-env
+    volumes:
+      - ${MAYBE_DATA:-/data/maybe}/storage:/rails/storage
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000/up >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  #--------------------------------------------------------------#
+  # Maybe worker: Sidekiq background jobs
+  #--------------------------------------------------------------#
+  worker:
+    container_name: maybe-worker
+    image: ${MAYBE_IMAGE:-ghcr.io/maybe-finance/maybe}:${MAYBE_VERSION:-stable}
+    restart: unless-stopped
+    depends_on:
+      redis:
+        condition: service_healthy
+    command: bundle exec sidekiq
+    environment:
+      <<: *rails-env
+    volumes:
+      - ${MAYBE_DATA:-/data/maybe}/storage:/rails/storage
+
+  #--------------------------------------------------------------#
+  # Local Redis queue/cache for Maybe background jobs
+  #--------------------------------------------------------------#
+  redis:
+    container_name: maybe-redis
+    image: redis:${REDIS_VERSION:-7-alpine}
+    restart: unless-stopped
+    volumes:
+      - ${MAYBE_DATA:-/data/maybe}/redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+...
