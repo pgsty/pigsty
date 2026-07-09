@@ -48,7 +48,7 @@ wiki      : { domain: wiki.pigsty ,endpoint: "127.0.0.1:9002"   }
 noco      : { domain: noco.pigsty ,endpoint: "127.0.0.1:9003"   }
 odoo      : { domain: odoo.pigsty ,endpoint: "127.0.0.1:8069" ,websocket: true }
 supa      : { domain: supa.pigsty ,endpoint: "127.0.0.1:8000" ,websocket: true }
-dify      : { domain: dify.pigsty ,endpoint: "127.0.0.1:8001" ,websocket: true }
+dify      : { domain: dify.pigsty ,endpoint: "127.0.0.1:5001" ,websocket: true }
 immich    : { domain: photo.pigsty ,endpoint: "127.0.0.1:2283" ,websocket: true }
 maybe     : { domain: maybe.pigsty ,endpoint: "127.0.0.1:5002" ,websocket: true }
 jumpserver: { domain: jump.pigsty  ,endpoint: "127.0.0.1:8080" ,websocket: true }

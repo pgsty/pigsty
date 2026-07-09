@@ -3,12 +3,12 @@
 # File      :   dify.yml
 # Desc      :   pigsty config for running 1-node dify app
 # Ctime     :   2025-02-24
-# Mtime     :   2026-01-18
+# Mtime     :   2026-07-09
 # Docs      :   https://pigsty.io/docs/app/dify
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
-# Last Verified Dify Version: v1.8.1 on 2025-09-08
+# Last Verified Dify Version: v1.15.0 on 2026-07-09
 # tutorial: https://pigsty.io/docs/app/dify
 # how to use this template:
 #
@@ -16,7 +16,7 @@
 # ./bootstrap               # prepare local repo & ansible
 # ./configure -c app/dify   # use this dify config template
 # vi pigsty.yml             # IMPORTANT: CHANGE CREDENTIALS!!
-# ./deploy.yml              # install pigsty & pgsql & minio
+# ./deploy.yml              # install pigsty & pgsql
 # ./docker.yml              # install docker & docker-compose
 # ./app.yml                 # install dify with docker-compose
 #
@@ -46,6 +46,11 @@ all:
               DIFY_PORT: 5001
               # where to store dify files? the default is ./volume, we'll use another volume created above
               DIFY_DATA: /data/dify
+              # enable the upstream websocket sidecar, while keeping PostgreSQL/pgvector external
+              COMPOSE_PROFILES: collaboration
+              NEXT_PUBLIC_SOCKET_URL: ws://dify.pigsty
+              TRIGGER_URL: http://dify.pigsty
+              ENDPOINT_URL_TEMPLATE: http://dify.pigsty/e/{hook_id}
 
               # proxy and mirror settings
               #PIP_MIRROR_URL: https://pypi.tuna.tsinghua.edu.cn/simple
@@ -53,11 +58,13 @@ all:
               #SANDBOX_HTTPS_PROXY: http://10.10.10.10:12345
 
               # database credentials
+              DB_TYPE: postgresql
               DB_USERNAME: dify
               DB_PASSWORD: difyai123456
               DB_HOST: 10.10.10.10
               DB_PORT: 5432
               DB_DATABASE: dify
+              DB_SSL_MODE: disable
               VECTOR_STORE: pgvector
               PGVECTOR_HOST: 10.10.10.10
               PGVECTOR_PORT: 5432
@@ -67,17 +74,27 @@ all:
               PGVECTOR_MIN_CONNECTION: 2
               PGVECTOR_MAX_CONNECTION: 10
 
+              # optional MinIO/S3 storage, disabled by default to avoid touching backup MinIO
+              #STORAGE_TYPE: s3
+              #S3_ENDPOINT: http://10.10.10.10:9000
+              #S3_BUCKET_NAME: dify
+              #S3_ACCESS_KEY: dify
+              #S3_SECRET_KEY: S3User.Dify
+              #S3_REGION: us-east-1
+              #S3_ADDRESS_STYLE: path
+
     pg-meta:
       hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
       vars:
         pg_cluster: pg-meta
+        pg_extensions: [ pgvector ]
         pg_users:
           - { name: dify ,password: difyai123456 ,pgbouncer: true ,roles: [ dbrole_admin ] ,superuser: true ,comment: dify superuser }
         pg_databases:
-          - { name: dify        ,owner: dify ,comment: dify main database  }
+          - { name: dify        ,owner: dify ,extensions: [ { name: vector } ] ,comment: dify main database  }
           - { name: dify_plugin ,owner: dify ,comment: dify plugin daemon database }
         pg_hba_rules:
-          - { user: dify ,db: all ,addr: 172.17.0.0/16  ,auth: pwd ,title: 'allow dify access from local docker network' }
+          - { user: dify ,db: all ,addr: 172.16.0.0/12  ,auth: pwd ,title: 'allow dify access from local docker networks' }
         pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
 
     infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
@@ -111,6 +128,7 @@ all:
 
     repo_enabled: false
     node_repo_modules: node,infra,pgsql
+    # Dify v1.15.0 is patched in app/dify/patches for PostgreSQL 18's built-in uuidv7().
     pg_version: 18
 
     #----------------------------------------------#

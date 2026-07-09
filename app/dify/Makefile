@@ -1,6 +1,18 @@
 default: up view
 
 DOCKER_IMAGE_DIR=/tmp/docker/dify
+DIFY_VERSION?=1.15.0
+DIFY_SANDBOX_VERSION?=0.2.15
+DIFY_PLUGIN_DAEMON_VERSION?=0.6.3-local
+DIFY_IMAGES= \
+	langgenius/dify-api:$(DIFY_VERSION) \
+	langgenius/dify-web:$(DIFY_VERSION) \
+	langgenius/dify-sandbox:$(DIFY_SANDBOX_VERSION) \
+	langgenius/dify-plugin-daemon:$(DIFY_PLUGIN_DAEMON_VERSION) \
+	redis:6-alpine \
+	ubuntu/squid:latest \
+	nginx:latest \
+	busybox:latest
 
 up: view
 	docker compose up -d
@@ -28,12 +40,15 @@ pull:
 
 save:
 	mkdir -p $(DOCKER_IMAGE_DIR)
-	docker save langgenius/dify-api:1.0.0 | gzip -c -9 > $(DOCKER_IMAGE_DIR)/dify-api.tgz
-    docker save langgenius/dify-web:1.0.0 | gzip -c -9 > $(DOCKER_IMAGE_DIR)/dify-web.tgz
+	for image in $(DIFY_IMAGES); do \
+		file=$$(echo $$image | tr '/:' '__'); \
+		docker save $$image | gzip -c -9 > $(DOCKER_IMAGE_DIR)/$$file.tgz; \
+	done
 
 tarball: save
 	tar -cvf /tmp/dify.tgz -C /tmp/docker dify
 
 load:
-	cat $(DOCKER_IMAGE_DIR)/dify-api.tgz       | gzip -d -c - | docker load
-	cat $(DOCKER_IMAGE_DIR)/dify-web.tgz       | gzip -d -c - | docker load
+	for image in $(DOCKER_IMAGE_DIR)/*.tgz; do \
+		gzip -d -c $$image | docker load; \
+	done
