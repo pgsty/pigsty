@@ -22,17 +22,20 @@ and [531](https://pigsty.io/ext/list) PostgreSQL extensions ready to use, and ca
 
 ## Quick Start
 
-First, download & [install](https://pigsty.io/docs/setup/install) pigsty as usual, with the `supa` config template:
+First, download & [install](https://pigsty.io/docs/setup/install) pigsty as usual, with the `supabase` config template:
 
 ```bash
  curl -fsSL https://repo.pigsty.io/get | bash
  cd pigsty
-./configure -c supabase  # use app/supa config template (IMPORTANT: CHANGE PASSWORDS!)
+./configure -c supabase  # use the supabase config template (IMPORTANT: CHANGE PASSWORDS!)
 ./deploy.yml             # install pigsty, create ha postgres & minio clusters 
 ```
 
 Please change the `pigsty.yml` config file according to your need before deploying Supabase. (Credentials)
 Make sure `API_EXTERNAL_URL` points to the Auth endpoint with the `/auth/v1` suffix, for example `https://supa.pigsty/auth/v1`.
+The default PostgREST schema list is `public,graphql_public`; the `storage` schema is used by the Storage API and is not exposed through PostgREST by default.
+Analytics data is stored in the internal `_supabase` database under the `_analytics` schema, controlled by `LOGFLARE_DB` and `LOGFLARE_SCHEMA`.
+Supabase Studio Query Performance is supported through `extensions.pg_stat_statements` compatibility wrappers while Pigsty keeps the actual `pg_stat_statements` extension in the `monitor` schema for pg_exporter.
 
 Then, run the [`docker.yml`](https://github.com/pgsty/pigsty/blob/main/docker.yml) and [`app.yml`](https://github.com/pgsty/pigsty/blob/main/app.yml) to install supabase with docker.
 
