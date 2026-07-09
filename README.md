@@ -191,6 +191,24 @@ git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v4.3.0
 
 </details>
 
+<details><summary>Verify release signatures</summary><br>
+
+Release assets are signed with Sigstore/cosign keyless signatures. Download the
+asset with its `.sig` and `.pem` files, then verify the asset before use:
+
+```bash
+gh release download v4.3.0 --repo pgsty/pigsty --pattern 'pigsty-v4.3.0.tgz*'
+
+cosign verify-blob \
+  --certificate pigsty-v4.3.0.tgz.pem \
+  --signature pigsty-v4.3.0.tgz.sig \
+  --certificate-identity 'https://github.com/pgsty/pigsty/.github/workflows/release-sign.yml@refs/heads/main' \
+  --certificate-oidc-issuer 'https://token.actions.githubusercontent.com' \
+  pigsty-v4.3.0.tgz
+```
+
+</details>
+
 
 
 
