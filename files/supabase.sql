@@ -2358,4 +2358,30 @@ ALTER function supabase_functions.http_request() SECURITY DEFINER;
 ALTER function supabase_functions.http_request() SET search_path = supabase_functions;
 REVOKE ALL ON FUNCTION supabase_functions.http_request() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION supabase_functions.http_request() TO postgres, anon, authenticated, service_role;
+
+----------------------------------------------------
+-- Pigsty custom migration: Supabase Studio query performance
+-- 20260709000000_pigsty_pg_stat_statements_extensions_compat.sql
+--
+-- Supabase Studio sets search_path to public, extensions when loading query
+-- performance data. Pigsty keeps pg_stat_statements in monitor for pg_exporter,
+-- so expose compatibility wrappers in extensions without moving the extension.
+----------------------------------------------------
+-- migrate:up
+CREATE OR REPLACE VIEW extensions.pg_stat_statements AS
+SELECT * FROM monitor.pg_stat_statements;
+
+CREATE OR REPLACE VIEW extensions.pg_stat_statements_info AS
+SELECT * FROM monitor.pg_stat_statements_info;
+
+CREATE OR REPLACE FUNCTION extensions.pg_stat_statements(showtext boolean)
+RETURNS SETOF monitor.pg_stat_statements
+LANGUAGE sql STABLE
+AS $$ SELECT * FROM monitor.pg_stat_statements(showtext); $$;
+
+ALTER VIEW extensions.pg_stat_statements OWNER TO supabase_admin;
+ALTER VIEW extensions.pg_stat_statements_info OWNER TO supabase_admin;
+ALTER FUNCTION extensions.pg_stat_statements(boolean) OWNER TO supabase_admin;
+
+-- migrate:down
 COMMIT;
