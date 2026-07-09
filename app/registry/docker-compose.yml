@@ -5,15 +5,17 @@
 services:
   registry:
     container_name: registry
-    image: registry:2.8
+    image: ${REGISTRY_IMAGE:-registry:3.1.1}
     restart: always
     environment:
       REGISTRY_STORAGE_FILESYSTEM_ROOTDIRECTORY: /var/lib/registry
       REGISTRY_HTTP_ADDR: 0.0.0.0:5000
-      REGISTRY_LOG_LEVEL: info
-      REGISTRY_STORAGE_DELETE_ENABLED: true
+      REGISTRY_LOG_LEVEL: ${REGISTRY_LOG_LEVEL:-info}
+      REGISTRY_STORAGE_DELETE_ENABLED: ${REGISTRY_STORAGE_DELETE_ENABLED:-true}
+      REGISTRY_PROXY_REMOTEURL: ${REGISTRY_PROXY_REMOTEURL:-https://registry-1.docker.io}
+      REGISTRY_PROXY_TTL: ${REGISTRY_PROXY_TTL:-168h}
     ports:
-      - "5000:5000"
+      - "${REGISTRY_PORT:-5000}:5000"
     volumes:
       - ${REGISTRY_DATA:-/data/registry}:/var/lib/registry
       - ./config.yml:/etc/docker/registry/config.yml:ro
@@ -22,7 +24,7 @@ services:
   # Optional: Registry UI for management
   registry-ui:
     container_name: registry-ui
-    image: joxit/docker-registry-ui:2.5.7
+    image: ${REGISTRY_UI_IMAGE:-joxit/docker-registry-ui:2.6.0}
     restart: always
     environment:
       SINGLE_REGISTRY: true
@@ -37,6 +39,6 @@ services:
       REGISTRY_SECURED: false
       CATALOG_ELEMENTS_LIMIT: 1000
     ports:
-      - "5080:80"
+      - "${REGISTRY_UI_PORT:-5080}:80"
     depends_on:
       - registry

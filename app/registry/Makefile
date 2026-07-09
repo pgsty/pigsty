@@ -15,6 +15,11 @@ default: up
 dir:
 	mkdir -p $(DATA_DIR)
 
+# show effective registry configuration
+conf:
+	@touch .env
+	@grep -E '^(REGISTRY_IMAGE|REGISTRY_UI_IMAGE|REGISTRY_DATA|REGISTRY_PORT|REGISTRY_UI_PORT|REGISTRY_STORAGE_DELETE_ENABLED|REGISTRY_LOG_LEVEL|REGISTRY_PROXY_REMOTEURL|REGISTRY_PROXY_TTL)=' .env || true
+
 
 # launch the registry service
 up: dir conf

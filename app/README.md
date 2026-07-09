@@ -65,7 +65,8 @@ docker pull bytebase/bytebase
 docker pull jupyter/minimal-notebook
 #docker pull jupyter/scipy-notebook:latest 
 docker pull alpine
-docker pull registry
+docker pull registry:3.1.1
+docker pull joxit/docker-registry-ui:2.6.0
 docker pull andrewjones/schemaspy-postgres
 docker pull requarks/wiki
 docker pull gitea/gitea
@@ -97,7 +98,8 @@ docker save postgrest/postgrest              | gzip -9 -c > /tmp/docker/postgres
 docker save bytebase/bytebase                | gzip -9 -c > /tmp/docker/bytebase.tgz
 docker save jupyter/minimal-notebook         | gzip -9 -c > /tmp/docker/jupyter.tgz
 docker save alpine                           | gzip -9 -c > /tmp/docker/alpine.tgz
-docker save registry                         | gzip -9 -c > /tmp/docker/registry.tgz
+docker save registry:3.1.1                   | gzip -9 -c > /tmp/docker/registry.tgz
+docker save joxit/docker-registry-ui:2.6.0   | gzip -9 -c > /tmp/docker/registry-ui.tgz
 docker save andrewjones/schemaspy-postgres   | gzip -9 -c > /tmp/docker/schemaspy.tgz
 docker save requarks/wiki                    | gzip -9 -c > /tmp/docker/wiki.tgz
 docker save gitea/gitea                      | gzip -9 -c > /tmp/docker/gitea.tgz

@@ -2,6 +2,11 @@
 
 This is a Docker Registry mirror service for caching Docker images, particularly useful for users in China or regions with slow Docker Hub access.
 
+Default images:
+
+- `registry:3.1.1`
+- `joxit/docker-registry-ui:2.6.0`
+
 ## Features
 
 - **Registry Mirror**: Cache Docker images from Docker Hub and other registries
@@ -105,6 +110,12 @@ curl http://your-domain.com:5000/v2/nginx/tags/list
 - `REGISTRY_DATA`: Data storage path (default: `/data/registry`)
 - `REGISTRY_PORT`: Registry service port (default: `5000`)
 - `REGISTRY_UI_PORT`: Web UI port (default: `5080`)
+- `REGISTRY_IMAGE`: Registry image (default: `registry:3.1.1`)
+- `REGISTRY_UI_IMAGE`: Web UI image (default: `joxit/docker-registry-ui:2.6.0`)
+- `REGISTRY_PROXY_REMOTEURL`: Upstream registry (default: `https://registry-1.docker.io`)
+- `REGISTRY_PROXY_TTL`: Proxy cache TTL (default: `168h`)
+- `REGISTRY_STORAGE_DELETE_ENABLED`: Enable image deletion (default: `true`)
+- `REGISTRY_LOG_LEVEL`: Registry log level (default: `info`)
 
 ### Advanced Configuration
 
