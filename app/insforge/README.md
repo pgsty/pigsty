@@ -3,10 +3,10 @@
 > [InsForge](https://github.com/InsForge/InsForge) -- Open-source Backend-as-a-Service for AI coding agents
 
 Pigsty allows you to self-host **InsForge** with an existing managed HA PostgreSQL cluster, and launch the stateless services with docker-compose.
-This template targets the prebuilt `v2.0.1` InsForge OSS image with external PostgreSQL managed by Pigsty.
+This template targets the prebuilt `v2.2.6` InsForge OSS image with external PostgreSQL managed by Pigsty.
 
-InsForge is a Supabase-alternative BaaS platform built upon PostgreSQL.
-It provides authentication, REST API (PostgREST), edge functions (Deno), real-time subscriptions, and an LLM gateway out of the box.
+InsForge is an agent-oriented BaaS platform built upon PostgreSQL.
+It provides authentication, database APIs, storage, model gateway, edge functions, compute, and site deployment features.
 Design your database schema and frontend, and skip backend development entirely.
 
 Self-hosted InsForge with Pigsty enjoys full PostgreSQL monitoring, IaC, PITR, and high availability,
@@ -56,7 +56,7 @@ Visit `http://<your-ip>:7130` for the InsForge dashboard.
                     └──────────────────────────────────────────────┘
 ```
 
-- **InsForge App** (`ghcr.io/insforge/insforge-oss:v2.0.1`): Main application server with dashboard UI and API (port 7130)
+- **InsForge App** (`ghcr.io/insforge/insforge-oss:v2.2.6`): Main application server with dashboard UI and API (port 7130)
 - **PostgREST** (`postgrest/postgrest:v12.2.12`): Auto-generated REST API from PostgreSQL schema (port 5430)
 - **Deno Runtime** (`ghcr.io/insforge/deno-runtime:latest`): Serverless edge functions runtime (port 7133)
 - **PostgreSQL**: Managed externally by Pigsty with HA, PITR, monitoring
@@ -87,13 +87,17 @@ Edit `pigsty.yml` before deploying:
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `JWT_SECRET` | `your-secret-key...` | **MUST CHANGE!** JWT signing key (32+ chars) |
-| `ADMIN_EMAIL` | `admin@example.com` | Admin login email |
-| `ADMIN_PASSWORD` | `pigsty` | Admin login password |
+| `ENCRYPTION_KEY` | `your-encryption-key...` | **MUST CHANGE!** Separate secret for encrypted runtime credentials |
+| `ROOT_ADMIN_USERNAME` | `admin@example.com` | Root admin login |
+| `ROOT_ADMIN_PASSWORD` | `pigsty` | Root admin password |
 | `POSTGRES_PASSWORD` | `DBUser.Insforge` | Database user password |
+| `INSFORGE_IMAGE` | empty | Optional app image override when `ghcr.io` is slow or blocked |
+| `DENO_RUNTIME_IMAGE` | empty | Optional Deno runtime image override |
 | `infra_portal.insforge.domain` | `isf.pigsty` | Nginx domain name |
 | `ACCESS_API_KEY` | empty | Optional MCP / API key override |
+| `ACCESS_ANON_KEY` | empty | Optional public anon key override |
 | `AWS_S3_BUCKET` | empty | Optional S3 bucket for object storage |
-| `DENO_SUBHOSTING_TOKEN` | empty | Optional Deno Deploy subhosting token |
+| `DENO_DEPLOY_TOKEN` | empty | Optional Deno Deploy token |
 
 ### Domain Name
 
@@ -117,14 +121,16 @@ InsForge requires these PostgreSQL components:
 | `dbuser_insforge` | Yes (superuser) | InsForge application user |
 | `anon` | No | PostgREST anonymous role |
 | `authenticated` | No | PostgREST authenticated role |
-| `project_admin` | No | PostgREST admin with RLS bypass |
+| `project_admin` | No | PostgREST admin role with `BYPASSRLS` |
 
 ### Database
 
 - **Name**: `insforge`
 - **Owner**: `dbuser_insforge`
-- **Baseline**: `insforge.sql` (grants, default privileges, RLS event triggers)
+- **Baseline**: `insforge.sql` (grants, default privileges, project admin ACLs)
 - **Extensions**: `pgcrypto`, `http`, `pg_cron`
+
+Recent upstream InsForge PostgreSQL images preload `insforge_pg_utils`. Pigsty does not ship that extension package yet, so this template keeps the database on stock Pigsty extensions and relies on the InsForge application migrations for runtime schemas.
 
 ### Shared Libraries
 
@@ -132,7 +138,11 @@ InsForge requires these PostgreSQL components:
 
 ```yaml
 pg_libs: 'pg_cron, pg_stat_statements, auto_explain'
-pg_parameters: { cron.database_name: insforge }
+pg_parameters:
+  cron.database_name: insforge
+  app.encryption_key: your-encryption-key-here-must-be-32-char-or-above
+  insforge.policy_grant_role: project_admin
+  insforge.internal_schemas: 'ai,auth,compute,deployments,email,functions,memory,payments,realtime,schedules,storage,system'
 ```
 
 ### HBA Rules
@@ -141,7 +151,7 @@ Allow Docker containers to access PostgreSQL:
 
 ```yaml
 pg_hba_rules:
-  - { user: dbuser_insforge, db: all, addr: 172.17.0.0/16, auth: pwd, title: 'allow insforge from docker' }
+  - { user: dbuser_insforge, db: all, addr: 172.16.0.0/12, auth: pwd, title: 'allow insforge from docker' }
 ```
 
 
@@ -154,7 +164,6 @@ pg_hba_rules:
 | Service | Port | Description |
 |---------|------|-------------|
 | InsForge Dashboard + API | 7130 | Main application (dashboard & API) |
-| InsForge Auth | 7132 | Authentication service |
 | PostgREST | 5430 | REST API auto-generated from schema |
 | Deno Runtime | 7133 | Edge functions runtime |
 
@@ -173,8 +182,13 @@ All configuration is in `/opt/insforge/.env`. Key variables:
 ```bash
 # Secrets (MUST CHANGE)
 JWT_SECRET=your-secret-key-here-must-be-32-char-or-above
-ADMIN_EMAIL=admin@example.com
-ADMIN_PASSWORD=pigsty
+ENCRYPTION_KEY=your-encryption-key-here-must-be-32-char-or-above
+ROOT_ADMIN_USERNAME=admin@example.com
+ROOT_ADMIN_PASSWORD=pigsty
+
+# Optional image overrides when ghcr.io is slow or blocked
+#INSFORGE_IMAGE=ghcr.io/insforge/insforge-oss:v2.2.6
+#DENO_RUNTIME_IMAGE=ghcr.io/insforge/deno-runtime:latest
 
 # Database (must match pigsty.yml pg_users)
 POSTGRES_HOST=10.10.10.10
@@ -188,6 +202,7 @@ OPENROUTER_API_KEY=
 
 # Optional: MCP / Cloud API access
 ACCESS_API_KEY=
+ACCESS_ANON_KEY=
 CLOUD_API_HOST=
 
 # Optional: object storage / CDN
@@ -198,14 +213,22 @@ AWS_S3_BUCKET=
 S3_ACCESS_KEY_ID=
 S3_SECRET_ACCESS_KEY=
 S3_ENDPOINT_URL=
+S3_FORCE_PATH_STYLE=true
 AWS_CLOUDFRONT_URL=
 AWS_CLOUDFRONT_KEY_PAIR_ID=
 AWS_CLOUDFRONT_PRIVATE_KEY=
 MAX_FILE_SIZE=
 
-# Optional: edge function subhosting
-DENO_SUBHOSTING_TOKEN=
-DENO_SUBHOSTING_ORG_ID=
+# Optional: edge functions
+DENO_DEPLOY_TOKEN=
+DENO_DEPLOY_ORG_ID=
+
+# Optional: site deployment / compute / payments
+VERCEL_TOKEN=
+FLY_API_TOKEN=
+FLY_ORG=
+STRIPE_TEST_SECRET_KEY=
+STRIPE_LIVE_SECRET_KEY=
 
 # Optional: OAuth Providers
 GITHUB_CLIENT_ID=
@@ -307,7 +330,7 @@ Verify PostgreSQL is accessible from Docker:
 sudo docker exec insforge-postgrest bash -c '</dev/tcp/10.10.10.10/5432'
 ```
 
-Check HBA rules allow Docker network (172.17.0.0/16):
+Check HBA rules allow Docker networks (172.16.0.0/12):
 
 ```bash
 sudo -iu postgres psql -c "TABLE pg_hba_file_rules;" insforge
@@ -326,5 +349,5 @@ sudo -iu postgres psql -d insforge -c "SELECT rolname, rolcanlogin FROM pg_roles
 Check if ports are available:
 
 ```bash
-ss -tlnp | grep -E '7130|7131|7132|7133|5430'
+ss -tlnp | grep -E '7130|7133|5430'
 ```

@@ -1,3 +1,9 @@
+INSFORGE_VERSION ?= v2.2.6
+POSTGREST_VERSION ?= v12.2.12
+DENO_RUNTIME_VERSION ?= latest
+INSFORGE_IMAGE ?= ghcr.io/insforge/insforge-oss:$(INSFORGE_VERSION)
+DENO_RUNTIME_IMAGE ?= ghcr.io/insforge/deno-runtime:$(DENO_RUNTIME_VERSION)
+
 default: up view
 
 up:
@@ -31,9 +37,9 @@ pull:
 
 save:
 	mkdir -p /tmp/docker/insforge
-	docker save postgrest/postgrest:v12.2.12          | gzip -c -9 > /tmp/docker/insforge/postgrest.tgz
-	docker save ghcr.io/insforge/insforge-oss:v2.0.1  | gzip -c -9 > /tmp/docker/insforge/insforge.tgz
-	docker save ghcr.io/insforge/deno-runtime:latest   | gzip -c -9 > /tmp/docker/insforge/deno.tgz
+	docker save postgrest/postgrest:$(POSTGREST_VERSION)                    | gzip -c -9 > /tmp/docker/insforge/postgrest.tgz
+	docker save $(INSFORGE_IMAGE)                                           | gzip -c -9 > /tmp/docker/insforge/insforge.tgz
+	docker save $(DENO_RUNTIME_IMAGE)                                       | gzip -c -9 > /tmp/docker/insforge/deno.tgz
 
 tarball: save
 	tar -cvf /tmp/insforge.tgz -C /tmp/docker insforge

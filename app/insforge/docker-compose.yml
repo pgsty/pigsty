@@ -2,7 +2,7 @@
 # File      :   docker-compose.yml
 # Desc      :   InsForge docker compose file (external PostgreSQL)
 # Ctime     :   2026-03-10
-# Mtime     :   2026-03-14
+# Mtime     :   2026-07-09
 # Path      :   app/insforge/docker-compose.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -10,6 +10,8 @@
 # PostgreSQL is managed by Pigsty (external), not included here.
 # Only stateless services: postgrest, insforge, deno
 # https://github.com/InsForge/InsForge
+
+name: insforge
 
 services:
 
@@ -20,7 +22,8 @@ services:
     environment:
       PGRST_DB_URI: postgres://${POSTGRES_USER:-dbuser_insforge}:${POSTGRES_PASSWORD:-DBUser.Insforge}@${POSTGRES_HOST:-10.10.10.10}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-insforge}
       PGRST_OPENAPI_SERVER_PROXY_URI: http://localhost:3000
-      PGRST_DB_SCHEMA: public
+      PGRST_DB_SCHEMA: ${PGRST_DB_SCHEMAS:-public}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public}
       PGRST_DB_ANON_ROLE: anon
       PGRST_JWT_SECRET: ${JWT_SECRET:-your-secret-key-here-must-be-32-char-or-above}
       PGRST_DB_CHANNEL_ENABLED: "true"
@@ -35,31 +38,35 @@ services:
       start_period: 10s
     networks:
       - insforge-network
+    security_opt:
+      - no-new-privileges:true
 
   insforge:
-    image: ghcr.io/insforge/insforge-oss:v2.0.1
+    image: ${INSFORGE_IMAGE:-ghcr.io/insforge/insforge-oss:${INSFORGE_VERSION:-v2.2.6}}
     container_name: insforge
     depends_on:
       postgrest:
         condition: service_healthy
     ports:
-      - "${INSFORGE_API_PORT:-7130}:7130"
-      - "${INSFORGE_WEB_PORT:-7131}:7131"
-      - "${INSFORGE_AUTH_PORT:-7132}:7132"
+      - "${APP_PORT:-${INSFORGE_API_PORT:-7130}}:7130"
     environment:
       - PORT=7130
       - PROJECT_ROOT=/app
       - API_BASE_URL=${API_BASE_URL:-}
       - VITE_API_BASE_URL=${VITE_API_BASE_URL:-}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-here-must-be-32-char-or-above}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-${JWT_SECRET:-your-secret-key-here-must-be-32-char-or-above}}
-      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@example.com}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-pigsty}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
+      - ROOT_ADMIN_USERNAME=${ROOT_ADMIN_USERNAME:-${ADMIN_EMAIL:-admin@example.com}}
+      - ROOT_ADMIN_PASSWORD=${ROOT_ADMIN_PASSWORD:-${ADMIN_PASSWORD:-pigsty}}
+      - ADMIN_EMAIL=${ROOT_ADMIN_USERNAME:-${ADMIN_EMAIL:-admin@example.com}}
+      - ADMIN_PASSWORD=${ROOT_ADMIN_PASSWORD:-${ADMIN_PASSWORD:-pigsty}}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
       - S3_ACCESS_KEY_ID=${S3_ACCESS_KEY_ID:-}
       - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY:-}
       - MAX_FILE_SIZE=${MAX_FILE_SIZE:-}
+      - MAX_JSON_BODY_SIZE=${MAX_JSON_BODY_SIZE:-}
+      - MAX_URLENCODED_BODY_SIZE=${MAX_URLENCODED_BODY_SIZE:-}
       # PostgreSQL connection (external Pigsty managed)
       - POSTGRES_HOST=${POSTGRES_HOST:-10.10.10.10}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
@@ -70,27 +77,50 @@ services:
       - POSTGREST_BASE_URL=http://postgrest:3000
       # Deno runtime
       - DENO_RUNTIME_URL=http://deno:7133
-      - DENO_SUBHOSTING_TOKEN=${DENO_SUBHOSTING_TOKEN:-}
-      - DENO_SUBHOSTING_ORG_ID=${DENO_SUBHOSTING_ORG_ID:-}
+      - DENO_DEPLOY_TOKEN=${DENO_DEPLOY_TOKEN:-${DENO_SUBHOSTING_TOKEN:-}}
+      - DENO_DEPLOY_ORG_ID=${DENO_DEPLOY_ORG_ID:-${DENO_SUBHOSTING_ORG_ID:-}}
+      - FUNCTIONS_DOMAIN=${FUNCTIONS_DOMAIN:-}
       # Storage & CDN
       - AWS_S3_BUCKET=${AWS_S3_BUCKET:-}
       - AWS_REGION=${AWS_REGION:-}
+      - AWS_CONFIG_BUCKET=${AWS_CONFIG_BUCKET:-}
+      - AWS_CONFIG_REGION=${AWS_CONFIG_REGION:-}
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
+      - S3_FORCE_PATH_STYLE=${S3_FORCE_PATH_STYLE:-}
       - AWS_CLOUDFRONT_URL=${AWS_CLOUDFRONT_URL:-}
       - AWS_CLOUDFRONT_KEY_PAIR_ID=${AWS_CLOUDFRONT_KEY_PAIR_ID:-}
       - AWS_CLOUDFRONT_PRIVATE_KEY=${AWS_CLOUDFRONT_PRIVATE_KEY:-}
+      # Site deployment
+      - VERCEL_TOKEN=${VERCEL_TOKEN:-}
+      - VERCEL_TEAM_ID=${VERCEL_TEAM_ID:-}
+      - VERCEL_PROJECT_ID=${VERCEL_PROJECT_ID:-}
       # Cloud / multi-tenant integration
       - DEPLOYMENT_ID=${DEPLOYMENT_ID:-}
       - PROJECT_ID=${PROJECT_ID:-}
       - APP_KEY=${APP_KEY:-}
       - ACCESS_API_KEY=${ACCESS_API_KEY:-}
+      - ACCESS_ANON_KEY=${ACCESS_ANON_KEY:-}
       - CLOUD_API_HOST=${CLOUD_API_HOST:-}
       # LLM
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - MAX_COMPLETION_TOKENS=${MAX_COMPLETION_TOKENS:-}
+      # Payments
+      - STRIPE_TEST_SECRET_KEY=${STRIPE_TEST_SECRET_KEY:-}
+      - STRIPE_LIVE_SECRET_KEY=${STRIPE_LIVE_SECRET_KEY:-}
+      - RAZORPAY_TEST_KEY_ID=${RAZORPAY_TEST_KEY_ID:-}
+      - RAZORPAY_TEST_KEY_SECRET=${RAZORPAY_TEST_KEY_SECRET:-}
+      - RAZORPAY_LIVE_KEY_ID=${RAZORPAY_LIVE_KEY_ID:-}
+      - RAZORPAY_LIVE_KEY_SECRET=${RAZORPAY_LIVE_KEY_SECRET:-}
+      # Compute services
+      - FLY_API_TOKEN=${FLY_API_TOKEN:-}
+      - FLY_ORG=${FLY_ORG:-}
+      - COMPUTE_DOMAIN=${COMPUTE_DOMAIN:-}
       # Logs & Storage
       - LOGS_DIR=/insforge-logs
       - STORAGE_DIR=/insforge-storage
-      - AUTH_APP_URL=${AUTH_APP_URL:-http://localhost:7132}
+      - LOG_LEVEL=${LOG_LEVEL:-}
+      - TRUST_PROXY=${TRUST_PROXY:-}
+      - INSFORGE_TELEMETRY_DISABLED=${INSFORGE_TELEMETRY_DISABLED:-}
       # OAuth (all optional)
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
@@ -112,9 +142,11 @@ services:
     restart: unless-stopped
     networks:
       - insforge-network
+    security_opt:
+      - no-new-privileges:true
 
   deno:
-    image: ghcr.io/insforge/deno-runtime:latest
+    image: ${DENO_RUNTIME_IMAGE:-ghcr.io/insforge/deno-runtime:${DENO_RUNTIME_VERSION:-latest}}
     container_name: insforge-deno
     working_dir: /app
     depends_on:
@@ -133,7 +165,7 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-DBUser.Insforge}
       - POSTGREST_BASE_URL=http://postgrest:3000
       - WORKER_TIMEOUT_MS=${WORKER_TIMEOUT_MS:-60000}
-      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-${JWT_SECRET:-your-secret-key-here-must-be-32-char-or-above}}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-here-must-be-32-char-or-above}
     volumes:
       - deno_cache:/deno-dir
@@ -146,6 +178,8 @@ services:
     restart: unless-stopped
     networks:
       - insforge-network
+    security_opt:
+      - no-new-privileges:true
 
 volumes:
   deno_cache:

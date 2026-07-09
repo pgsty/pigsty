@@ -3,13 +3,14 @@
 # File      :   insforge.yml
 # Desc      :   pigsty config for running 1-node insforge app
 # Ctime     :   2026-03-10
-# Mtime     :   2026-03-14
+# Mtime     :   2026-07-09
 # Docs      :   https://pigsty.io/docs/app/insforge
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 # InsForge: Open-source Backend-as-a-Service for AI coding agents
 # GitHub: https://github.com/InsForge/InsForge
+# Last Verified InsForge Version: v2.2.6 on 2026-07-09
 #
 # how to use this template:
 #
@@ -39,6 +40,10 @@ all:
 
               # secrets (CHANGE THESE!)
               JWT_SECRET: your-secret-key-here-must-be-32-char-or-above
+              ENCRYPTION_KEY: your-encryption-key-here-must-be-32-char-or-above
+              ROOT_ADMIN_USERNAME: admin@example.com
+              ROOT_ADMIN_PASSWORD: pigsty
+              # legacy aliases for older InsForge images
               ADMIN_EMAIL: admin@example.com
               ADMIN_PASSWORD: pigsty
 
@@ -49,11 +54,17 @@ all:
               POSTGRES_USER: dbuser_insforge
               POSTGRES_PASSWORD: DBUser.Insforge
 
+              # optional: image overrides, useful when ghcr.io is slow or blocked
+              #INSFORGE_IMAGE: ghcr.io/insforge/insforge-oss:v2.2.6
+              #DENO_RUNTIME_IMAGE: ghcr.io/insforge/deno-runtime:latest
+
               # optional: LLM model gateway via OpenRouter
               #OPENROUTER_API_KEY: sk-or-xxxxx
+              #MAX_COMPLETION_TOKENS: 16384
 
               # optional: MCP / Cloud API access
               #ACCESS_API_KEY: ik_xxxxx
+              #ACCESS_ANON_KEY: anon_xxxxx
               #CLOUD_API_HOST: https://api.insforge.dev
 
               # optional: object storage / CDN
@@ -64,19 +75,45 @@ all:
               #S3_ACCESS_KEY_ID:
               #S3_SECRET_ACCESS_KEY:
               #S3_ENDPOINT_URL:
+              #S3_FORCE_PATH_STYLE: true
+              #AWS_CONFIG_BUCKET:
+              #AWS_CONFIG_REGION:
               #AWS_CLOUDFRONT_URL:
               #AWS_CLOUDFRONT_KEY_PAIR_ID:
               #AWS_CLOUDFRONT_PRIVATE_KEY:
               #MAX_FILE_SIZE:
+              #MAX_JSON_BODY_SIZE: 100mb
+              #MAX_URLENCODED_BODY_SIZE: 10mb
 
-              # optional: Deno edge function subhosting
+              # optional: Deno edge functions
+              #DENO_DEPLOY_TOKEN:
+              #DENO_DEPLOY_ORG_ID:
+              #FUNCTIONS_DOMAIN:
+              # legacy aliases for older InsForge images
               #DENO_SUBHOSTING_TOKEN:
               #DENO_SUBHOSTING_ORG_ID:
+
+              # optional: site deployment / compute
+              #VERCEL_TOKEN:
+              #VERCEL_TEAM_ID:
+              #VERCEL_PROJECT_ID:
+              #FLY_API_TOKEN:
+              #FLY_ORG:
+              #COMPUTE_DOMAIN:
+
+              # optional: payments
+              #STRIPE_TEST_SECRET_KEY:
+              #STRIPE_LIVE_SECRET_KEY:
+              #RAZORPAY_TEST_KEY_ID:
+              #RAZORPAY_TEST_KEY_SECRET:
+              #RAZORPAY_LIVE_KEY_ID:
+              #RAZORPAY_LIVE_KEY_SECRET:
 
               # optional: managed / hybrid cloud metadata
               #DEPLOYMENT_ID:
               #PROJECT_ID:
               #APP_KEY:
+              #INSFORGE_TELEMETRY_DISABLED: 1
 
               # optional: OAuth providers
               #GOOGLE_CLIENT_ID:
@@ -92,7 +129,7 @@ all:
           - { name: dbuser_insforge ,password: DBUser.Insforge ,pgbouncer: true ,roles: [dbrole_admin] ,superuser: true ,comment: 'insforge superuser' }
           - { name: anon            ,login: false ,comment: 'insforge anonymous role for PostgREST' }
           - { name: authenticated   ,login: false ,comment: 'insforge authenticated role' }
-          - { name: project_admin   ,login: false ,comment: 'insforge project admin with RLS bypass' }
+          - { name: project_admin   ,login: false ,bypassrls: true ,comment: 'insforge project admin with RLS bypass' }
         pg_databases:
           - name: insforge
             owner: dbuser_insforge
@@ -100,10 +137,15 @@ all:
             extensions: [pgcrypto, http, pg_cron]
             comment: InsForge BaaS database
         pg_libs: 'pg_cron, pg_stat_statements, auto_explain'
-        pg_parameters: { cron.database_name: insforge }
+        pg_parameters:
+          cron.database_name: insforge
+          app.encryption_key: your-encryption-key-here-must-be-32-char-or-above
+          insforge.policy_grant_role: project_admin
+          insforge.policy_grant_tables: 'storage.objects,realtime.channels,realtime.messages,payments.stripe_checkout_sessions,payments.stripe_customer_portal_sessions,payments.razorpay_orders,payments.razorpay_subscriptions'
+          insforge.internal_schemas: 'ai,auth,compute,deployments,email,functions,memory,payments,realtime,schedules,storage,system'
         pg_extensions: [ pg_cron, pg_http ]
         pg_hba_rules:
-          - { user: dbuser_insforge ,db: all ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow insforge access from local docker network' }
+          - { user: dbuser_insforge ,db: all ,addr: 172.16.0.0/12 ,auth: pwd ,title: 'allow insforge access from local docker networks' }
         pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
 
     infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
@@ -136,7 +178,7 @@ all:
 
     repo_enabled: false
     node_repo_modules: node,infra,pgsql
-    pg_version: 17
+    pg_version: 18
 
     #----------------------------------------------#
     # PASSWORD : https://pigsty.io/docs/setup/security/
