@@ -4,7 +4,7 @@
 # File      :   docker-compose.yml
 # Desc      :   modified supabase docker compose for pigsty pg
 # Ctime     :   2023-09-19
-# Mtime     :   2026-06-30
+# Mtime     :   2026-07-09
 # Path      :   app/supabase/docker-compose.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -23,7 +23,7 @@ services:
   # https://supabase.com/docs/guides/getting-started/architecture#studio-dashboard
   studio:
     container_name: supabase-studio
-    image: supabase/studio:2026.06.03-sha-0bca601
+    image: supabase/studio:2026.07.07-sha-a6a04f2
     restart: unless-stopped
     healthcheck:
       test: [ "CMD-SHELL", "node -e \"fetch('http://localhost:3000/api/platform/profile').then((r) => {if (r.status !== 200) throw new Error(r.status)})\"" ]
@@ -44,7 +44,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_USER_READ_WRITE: supabase_admin
       PG_META_CRYPTO_KEY: ${PG_META_CRYPTO_KEY}
-      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,storage,graphql_public}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,graphql_public}
       PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
       PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
       DEFAULT_ORGANIZATION_NAME: ${STUDIO_DEFAULT_ORGANIZATION:-Default Organization}
@@ -98,6 +98,7 @@ services:
     environment:
       KONG_DATABASE: "off"
       KONG_DECLARATIVE_CONFIG: /usr/local/kong/kong.yml
+      KONG_ROUTER_FLAVOR: expressions
       # https://github.com/supabase/cli/issues/14
       KONG_DNS_ORDER: LAST,A,CNAME
       KONG_DNS_NOT_FOUND_TTL: 1
@@ -148,7 +149,7 @@ services:
       GOTRUE_JWT_SECRET: ${JWT_SECRET}
       # JSON array of signing JWKs (EC private + legacy symmetric)
       # GOTRUE_JWT_KEYS: ${JWT_KEYS:-[]}
-      GOTRUE_JWT_ISSUER: ${API_EXTERNAL_URL}/auth/v1
+      GOTRUE_JWT_ISSUER: ${API_EXTERNAL_URL}
       GOTRUE_EXTERNAL_EMAIL_ENABLED: ${ENABLE_EMAIL_SIGNUP}
       GOTRUE_EXTERNAL_ANONYMOUS_USERS_ENABLED: ${ENABLE_ANONYMOUS_USERS}
       GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM}
@@ -204,7 +205,7 @@ services:
       retries: 3
     environment:
       PGRST_DB_URI: postgres://authenticator:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
-      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,storage,graphql_public}
+      PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public,graphql_public}
       PGRST_DB_MAX_ROWS: ${PGRST_DB_MAX_ROWS:-1000}
       PGRST_DB_EXTRA_SEARCH_PATH: ${PGRST_DB_EXTRA_SEARCH_PATH:-public}
       PGRST_DB_ANON_ROLE: anon
@@ -245,7 +246,7 @@ services:
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       DB_NAME: ${POSTGRES_DB}
       DB_AFTER_CONNECT_QUERY: 'SET search_path TO _realtime'
-      DB_ENC_KEY: supabaserealtime
+      DB_ENC_KEY: ${REALTIME_DB_ENC_KEY:-supabaserealtime}
       # Legacy symmetric HS256 key
       API_JWT_SECRET: ${JWT_SECRET}
       # JWKS for token verification (EC public + legacy symmetric)
@@ -387,7 +388,7 @@ services:
       # New opaque API keys
       SUPABASE_PUBLISHABLE_KEYS: "{\"default\":\"${SUPABASE_PUBLISHABLE_KEY:-}\"}"
       SUPABASE_SECRET_KEYS: "{\"default\":\"${SUPABASE_SECRET_KEY:-}\"}"
-      SUPABASE_DB_URL: postgresql://postgres:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
+      SUPABASE_DB_URL: postgresql://supabase_admin:${POSTGRES_PASSWORD}@${POSTGRES_HOST}:${POSTGRES_PORT}/${POSTGRES_DB}
       VERIFY_JWT: "${FUNCTIONS_VERIFY_JWT}"
     command: [ "start", "--main-service", "/home/deno/functions/main" ]
     extra_hosts:

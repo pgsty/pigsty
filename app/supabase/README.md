@@ -32,6 +32,7 @@ First, download & [install](https://pigsty.io/docs/setup/install) pigsty as usua
 ```
 
 Please change the `pigsty.yml` config file according to your need before deploying Supabase. (Credentials)
+Make sure `API_EXTERNAL_URL` points to the Auth endpoint with the `/auth/v1` suffix, for example `https://supa.pigsty/auth/v1`.
 
 Then, run the [`docker.yml`](https://github.com/pgsty/pigsty/blob/main/docker.yml) and [`app.yml`](https://github.com/pgsty/pigsty/blob/main/app.yml) to install supabase with docker.
 
