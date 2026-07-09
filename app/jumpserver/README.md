@@ -4,7 +4,7 @@
 This Pigsty app runs the JumpServer community stack with Docker Compose and uses
 Pigsty-managed PostgreSQL as the durable backend database.
 
-Full documentation: <https://pigsty.io/docs/app/jumpserver>
+Full documentation: https://pigsty.io/docs/app/jumpserver
 
 ## Quick Start
 
