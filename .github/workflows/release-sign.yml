@@ -1,0 +1,93 @@
+#==============================================================#
+# File      :   release-sign.yml
+# Desc      :   Sign GitHub release assets with Sigstore cosign
+# Ctime     :   2026-07-09
+# Mtime     :   2026-07-09
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+name: Sign Release Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to sign, such as v4.3.0"
+        required: true
+        type: string
+
+permissions: read-all
+
+jobs:
+  sign:
+    name: Sign assets
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+      id-token: write
+
+    steps:
+      - name: Install cosign
+        uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3
+        with:
+          cosign-release: v2.5.2
+
+      - name: Download release assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist/release-assets
+          gh release download "${TAG}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --dir dist/release-assets \
+            --clobber
+          find dist/release-assets -maxdepth 1 -type f -print | sort
+
+      - name: Sign and upload assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          cd dist/release-assets
+          shopt -s nullglob
+
+          expected_identity="https://github.com/${GITHUB_REPOSITORY}/.github/workflows/release-sign.yml@refs/heads/main"
+
+          assets=()
+          for asset in *; do
+            [ -f "${asset}" ] || continue
+            case "${asset}" in
+              *.sig|*.pem|*.intoto|*.intoto.jsonl|*.bundle|*.sigstore.json)
+                continue
+                ;;
+            esac
+            assets+=("${asset}")
+          done
+
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "No unsigned release assets found for ${TAG}."
+            exit 0
+          fi
+
+          for asset in "${assets[@]}"; do
+            cosign sign-blob --yes \
+              --output-signature "${asset}.sig" \
+              --output-certificate "${asset}.pem" \
+              "${asset}"
+
+            cosign verify-blob \
+              --certificate "${asset}.pem" \
+              --signature "${asset}.sig" \
+              --certificate-identity "${expected_identity}" \
+              --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+              "${asset}"
+          done
+
+          gh release upload "${TAG}" ./*.sig ./*.pem \
+            --repo "${GITHUB_REPOSITORY}" \
+            --clobber
