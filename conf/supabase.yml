@@ -82,7 +82,7 @@ all:
             baseline: supabase.sql
             owner: supabase_admin
             comment: supabase postgres database
-            schemas: [ extensions ,auth ,realtime ,storage ,graphql_public ,supabase_functions ,_analytics ,_realtime ]
+            schemas: [ extensions ,auth ,realtime ,storage ,graphql_public ,supabase_functions ,_realtime ]
             extensions:
               - { name: pgcrypto         ,schema: extensions } # cryptographic functions
               - { name: pg_net           ,schema: extensions } # async HTTP
@@ -98,6 +98,12 @@ all:
               - { name: pg_tle           ,schema: extensions } # pg_tle: Trusted Language Extensions for PostgreSQL
               - { name: vector           ,schema: extensions } # pgvector: the vector similarity search
               - { name: pgmq             ,schema: extensions } # pgmq: A lightweight message queue like AWS SQS and RSMQ
+          - name: _supabase
+            owner: supabase_admin
+            comment: supabase internal analytics database
+            schemas: [ _analytics ]
+            extensions:
+              - { name: pgcrypto         ,schema: extensions } # cryptographic functions
         # supabase required extensions
         pg_libs: 'timescaledb, pgsodium, plpgsql, plpgsql_check, pg_cron, pg_net, pg_stat_statements, auto_explain, pg_wait_sampling, pg_tle, plan_filter'
         pg_extensions: [ pg18-main ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
@@ -105,6 +111,8 @@ all:
         pg_hba_rules: # supabase hba rules, require access from docker network
           - { user: all ,db: postgres  ,addr: intra         ,auth: pwd ,title: 'allow supabase access from intranet'    ,order: 50 }
           - { user: all ,db: postgres  ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow access from local docker network' ,order: 50 }
+          - { user: all ,db: _supabase ,addr: intra         ,auth: pwd ,title: 'allow supabase internal access from intranet'    ,order: 50 }
+          - { user: all ,db: _supabase ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow internal access from local docker network' ,order: 50 }
         pg_crontab:
           - '00 01 * * * /pg/bin/pg-backup full'  # make a full backup every 1am
           - '*  *  * * * /pg/bin/supa-kick'       # kick supabase _analytics lag per minute: https://github.com/pgsty/pigsty/issues/581
@@ -148,6 +156,8 @@ all:
               # 32~64 random characters string for logflare
               LOGFLARE_PUBLIC_ACCESS_TOKEN: 1234567890abcdef1234567890abcdef
               LOGFLARE_PRIVATE_ACCESS_TOKEN: fedcba0987654321fedcba0987654321
+              LOGFLARE_DB: _supabase
+              LOGFLARE_SCHEMA: _analytics
 
               # postgres connection string (use the correct ip and port)
               POSTGRES_HOST: 10.10.10.10      # point to the local postgres node

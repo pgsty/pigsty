@@ -102,7 +102,6 @@ CREATE PUBLICATION supabase_realtime;
 grant create on database postgres to supabase_etl_admin;
 
 -- setup schema owner
-ALTER SCHEMA "_analytics"       OWNER TO supabase_admin;
 ALTER SCHEMA "_realtime"        OWNER TO supabase_admin;
 ALTER SCHEMA auth               OWNER TO supabase_admin;
 ALTER SCHEMA extensions         OWNER TO supabase_admin;

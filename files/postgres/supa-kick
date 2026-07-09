@@ -12,5 +12,8 @@ set -euo pipefail
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
-# perform regular dummy update on the internal postgres._analytics table to kick lag feedback
-psql postgres -Atqwc 'update _analytics.users SET id = 1 where id = 1;'
+# perform regular dummy update on the internal _supabase._analytics table to kick lag feedback
+db="${SUPABASE_INTERNAL_DB:-_supabase}"
+if psql "${db}" -Atqc "select to_regclass('_analytics.users') is not null" 2>/dev/null | grep -qx t; then
+  psql "${db}" -Atqwc 'update _analytics.users SET id = 1 where id = 1;'
+fi
