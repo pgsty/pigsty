@@ -1,0 +1,267 @@
+#!/usr/bin/env docker compose
+---
+#==============================================================#
+# File      :   docker-compose.yml
+# Desc      :   JumpServer docker compose with Pigsty PostgreSQL
+# Ctime     :   2026-07-09
+# Mtime     :   2026-07-09
+# Path      :   app/jumpserver/docker-compose.yml
+# Docs      :   https://pigsty.io/docs/app/jumpserver
+# Source    :   https://github.com/jumpserver/installer/releases/tag/v4.10.16
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+name: jumpserver
+
+services:
+
+  #--------------------------------------------------------------#
+  # Core: Django API/web backend
+  #--------------------------------------------------------------#
+  core:
+    container_name: jms_core
+    hostname: jms_core
+    image: ${REGISTRY:-docker.io}/jumpserver/core:${JUMPSERVER_VERSION:-v4.10.16-ce}
+    restart: unless-stopped
+    command: start web
+    ulimits:
+      core: 0
+    env_file:
+      - .env
+    environment:
+      TIME_ZONE: ${TZ:-Asia/Shanghai}
+    extra_hosts:
+      - "redis:${REDIS_IP:-192.168.250.2}"
+    volumes:
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/core/data:/opt/jumpserver/data
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/certs:/opt/jumpserver/data/certs
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: "check http://localhost:8080/api/health/"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+    networks:
+      net:
+        ipv4_address: ${CORE_IP:-192.168.250.4}
+
+  #--------------------------------------------------------------#
+  # Celery: background tasks and scheduled jobs
+  #--------------------------------------------------------------#
+  celery:
+    container_name: jms_celery
+    hostname: jms_celery
+    image: ${REGISTRY:-docker.io}/jumpserver/core:${JUMPSERVER_VERSION:-v4.10.16-ce}
+    restart: unless-stopped
+    privileged: true
+    command: start task
+    ulimits:
+      core: 0
+    env_file:
+      - .env
+    environment:
+      LC_ALL: C.UTF-8
+    extra_hosts:
+      - "redis:${REDIS_IP:-192.168.250.2}"
+    volumes:
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/core/data:/opt/jumpserver/data
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/certs:/opt/jumpserver/data/certs
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: "bash /opt/jumpserver/utils/check_celery.sh"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks:
+      net:
+        ipv4_address: ${CELERY_IP:-192.168.250.3}
+
+  #--------------------------------------------------------------#
+  # Koko: SSH/SFTP terminal component
+  #--------------------------------------------------------------#
+  koko:
+    container_name: jms_koko
+    hostname: jms_koko
+    image: ${REGISTRY:-docker.io}/jumpserver/koko:${JUMPSERVER_VERSION:-v4.10.16-ce}
+    restart: unless-stopped
+    privileged: true
+    ulimits:
+      core: 0
+    env_file:
+      - .env
+    environment:
+      SSHD_PORT: ${SSH_PORT:-2222}
+    extra_hosts:
+      - "core:${CORE_IP:-192.168.250.4}"
+    ports:
+      - "${SSH_PORT:-2222}:${SSH_PORT:-2222}"
+    volumes:
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/koko/data:/opt/koko/data
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/certs:/opt/koko/data/certs
+    depends_on:
+      core:
+        condition: service_healthy
+    healthcheck:
+      test: "check http://localhost:5000/koko/health/"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      net:
+        ipv4_address: ${KOKO_IP:-192.168.250.7}
+
+  #--------------------------------------------------------------#
+  # Lion: web terminal component
+  #--------------------------------------------------------------#
+  lion:
+    container_name: jms_lion
+    hostname: jms_lion
+    image: ${REGISTRY:-docker.io}/jumpserver/lion:${JUMPSERVER_VERSION:-v4.10.16-ce}
+    restart: unless-stopped
+    ulimits:
+      core: 0
+    env_file:
+      - .env
+    extra_hosts:
+      - "core:${CORE_IP:-192.168.250.4}"
+    volumes:
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/lion/data:/opt/lion/data
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/certs:/opt/lion/data/certs
+    depends_on:
+      core:
+        condition: service_healthy
+    healthcheck:
+      test: "check http://localhost:8081/lion/health/"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+    networks:
+      net:
+        ipv4_address: ${LION_IP:-192.168.250.5}
+
+  #--------------------------------------------------------------#
+  # Chen: WebSocket/terminal support component
+  #--------------------------------------------------------------#
+  chen:
+    container_name: jms_chen
+    hostname: jms_chen
+    image: ${REGISTRY:-docker.io}/jumpserver/chen:${JUMPSERVER_VERSION:-v4.10.16-ce}
+    restart: unless-stopped
+    ulimits:
+      core: 0
+    env_file:
+      - .env
+    extra_hosts:
+      - "core:${CORE_IP:-192.168.250.4}"
+    volumes:
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/chen/data:/opt/chen/data
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/certs:/opt/chen/data/certs
+    depends_on:
+      core:
+        condition: service_healthy
+    healthcheck:
+      test: "check http://localhost:8082/chen/healthy"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks:
+      net:
+        ipv4_address: ${CHEN_IP:-192.168.250.6}
+
+  #--------------------------------------------------------------#
+  # Web: JumpServer web UI / reverse proxy
+  #--------------------------------------------------------------#
+  web:
+    container_name: jms_web
+    hostname: jms_web
+    image: ${REGISTRY:-docker.io}/jumpserver/web:${JUMPSERVER_VERSION:-v4.10.16-ce}
+    restart: unless-stopped
+    ulimits:
+      core: 0
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      HTTP_PORT: ${HTTP_PORT:-8080}
+      USE_LB: ${USE_LB:-1}
+      USE_IPV6: ${USE_IPV6:-0}
+      USE_XPACK: ${USE_XPACK:-0}
+      GZIP: ${GZIP:-on}
+      CLIENT_MAX_BODY_SIZE: ${CLIENT_MAX_BODY_SIZE:-4096m}
+      CORE_ENABLED: ${CORE_ENABLED:-1}
+      KOKO_ENABLED: ${KOKO_ENABLED:-1}
+      LION_ENABLED: ${LION_ENABLED:-1}
+      CHEN_ENABLED: ${CHEN_ENABLED:-1}
+      KAEL_ENABLED: ${KAEL_ENABLED:-0}
+      RAZOR_ENABLED: ${RAZOR_ENABLED:-0}
+      FACELIVE_ENABLED: ${FACELIVE_ENABLED:-0}
+    extra_hosts:
+      - "core:${CORE_IP:-192.168.250.4}"
+      - "koko:${KOKO_IP:-192.168.250.7}"
+      - "lion:${LION_IP:-192.168.250.5}"
+      - "chen:${CHEN_IP:-192.168.250.6}"
+    ports:
+      - "${HTTP_PORT:-8080}:${HTTP_PORT:-8080}"
+    volumes:
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/core/data:/opt/jumpserver/data
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/nginx/data/logs:/var/log/nginx
+    depends_on:
+      core:
+        condition: service_healthy
+      koko:
+        condition: service_healthy
+      lion:
+        condition: service_healthy
+      chen:
+        condition: service_healthy
+    healthcheck:
+      test: "check http://localhost:51980/api/health/"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 90s
+    networks:
+      net:
+        ipv4_address: ${WEB_IP:-192.168.250.8}
+
+  #--------------------------------------------------------------#
+  # Local Redis: cache, Celery broker, and Channels backend
+  #--------------------------------------------------------------#
+  redis:
+    container_name: jms_redis
+    hostname: redis
+    image: redis:${REDIS_VERSION:-7.4.6-bookworm}
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    environment:
+      TZ: ${TZ:-Asia/Shanghai}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    volumes:
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/redis/data:/data
+    healthcheck:
+      test: "redis-cli -h 127.0.0.1 -p ${REDIS_PORT:-6379} -a ${REDIS_PASSWORD} ping"
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+    networks:
+      net:
+        ipv4_address: ${REDIS_IP:-192.168.250.2}
+
+networks:
+  net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: ${DOCKER_SUBNET:-192.168.250.0/24}
+...

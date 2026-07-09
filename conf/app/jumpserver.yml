@@ -1,0 +1,176 @@
+---
+#==============================================================#
+# File      :   jumpserver.yml
+# Desc      :   pigsty config for running 1-node jumpserver app
+# Ctime     :   2026-07-09
+# Mtime     :   2026-07-09
+# Docs      :   https://pigsty.io/docs/app/jumpserver
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# JumpServer: open-source PAM / bastion host
+# GitHub: https://github.com/jumpserver/jumpserver
+# Last Verified JumpServer Version: v4.10.16-ce on 2026-07-09
+#
+# how to use this template:
+#
+#  curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty
+# ./bootstrap                  # prepare local repo & ansible
+# ./configure -c app/jumpserver # use this jumpserver config template
+# vi pigsty.yml                # IMPORTANT: CHANGE CREDENTIALS / DOMAIN / SECRETS!
+# ./deploy.yml                 # install pigsty & pgsql
+# ./docker.yml                 # install docker & docker-compose
+# ./app.yml                    # install jumpserver with docker-compose
+#
+# To replace domain name:
+#   sed -ie 's/jump.pigsty/yourdomain.com/g' pigsty.yml
+#
+# Default Credential:
+#   admin / ChangeMe
+
+all:
+  children:
+
+    # the jumpserver application
+    jumpserver:
+      hosts: { 10.10.10.10: {} }
+      vars:
+        app: jumpserver   # specify app name to be installed (in the apps)
+        apps:             # define all applications
+          jumpserver:     # app name, should have corresponding ~/pigsty/app/jumpserver folder
+            file:         # persistent directories to be created
+              - { path: /data/jumpserver                 ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/core            ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/core/data       ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/core/data/logs  ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/certs           ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/koko            ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/koko/data       ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/lion            ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/lion/data       ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/chen            ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/chen/data       ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/nginx           ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/nginx/data      ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/nginx/data/logs ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/redis           ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/redis/data      ,state: directory ,mode: 0755 }
+            conf:         # override /opt/jumpserver/.env config file
+
+              # replace with your domain
+              DOMAINS: '10.10.10.10:8080,10.10.10.10,jump.pigsty'
+
+              # image / version
+              REGISTRY: docker.io
+              JUMPSERVER_VERSION: v4.10.16-ce
+              REDIS_VERSION: 7.4.6-bookworm
+
+              # fixed Docker bridge; containers reach host PG through host IP/VIP
+              JUMPSERVER_DATA: /data/jumpserver
+              VOLUME_DIR: /data/jumpserver
+              DOCKER_SUBNET: 192.168.250.0/24
+              REDIS_IP: 192.168.250.2
+              CELERY_IP: 192.168.250.3
+              CORE_IP: 192.168.250.4
+              LION_IP: 192.168.250.5
+              CHEN_IP: 192.168.250.6
+              KOKO_IP: 192.168.250.7
+              WEB_IP: 192.168.250.8
+
+              # IMPORTANT: generate once and never change after production data exists
+              SECRET_KEY: ChangeMeSecretKeyMustBeKeptForever0123456789ABCDEF
+              BOOTSTRAP_TOKEN: ChangeMeBootstrapToken2026
+
+              # database credentials; DB_PASSWORD must not contain single or double quotes
+              DB_ENGINE: postgresql
+              DB_HOST: 10.10.10.10
+              DB_PORT: 5432
+              DB_USER: jumpserver
+              DB_PASSWORD: DBUser.JumpServer
+              DB_NAME: jumpserver
+
+              # local Redis container in app/jumpserver/docker-compose.yml
+              # use a fixed bridge IP to avoid Docker DNS resolution races in JumpServer workers
+              REDIS_HOST: 192.168.250.2
+              REDIS_PORT: 6379
+              REDIS_PASSWORD: Redis.JumpServer
+
+              # access and component settings
+              HTTP_PORT: 8080
+              SSH_PORT: 2222
+              CLIENT_MAX_BODY_SIZE: 4096m
+              CORE_HOST: http://192.168.250.4:8080
+              PERIOD_TASK_ENABLED: true
+              SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+
+              USE_LB: 1
+              USE_IPV6: 0
+              USE_XPACK: 0
+              LOG_LEVEL: ERROR
+              TZ: Asia/Shanghai
+              CURRENT_VERSION: v4.10.16-ce
+              CORE_WORKER: 2
+              CELERY_WORKER_COUNT: 2
+
+    # the jumpserver database: single-node starter
+    pg-jumpserver:
+      hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
+      vars:
+        pg_cluster: pg-jumpserver
+        pg_extensions: []  # JumpServer itself requires no PostgreSQL extension
+        pg_users:
+          - { name: jumpserver ,password: DBUser.JumpServer ,pgbouncer: true ,pool_mode: session ,roles: [ dbrole_admin ] ,comment: admin user for jumpserver service }
+        pg_databases:
+          - { name: jumpserver ,owner: jumpserver ,comment: jumpserver main database }
+        pg_hba_rules:
+          - { user: jumpserver ,db: jumpserver ,addr: 192.168.250.0/24 ,auth: pwd ,order: 560 ,title: 'allow jumpserver access from docker bridge' }
+        pgb_hba_rules:
+          - { user: jumpserver ,db: jumpserver ,addr: 192.168.250.0/24 ,auth: pwd ,order: 390 ,title: 'allow jumpserver pgbouncer access from docker bridge' }
+        pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
+
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
+    #minio: { hosts: { 10.10.10.10: { minio_seq: 1 } }, vars: { minio_cluster: minio } }
+
+  vars:                               # global variables
+    version: v4.4.0                   # pigsty version string
+    admin_ip: 10.10.10.10             # admin node ip address
+    region: default                   # upstream mirror region: default|china|europe
+    node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
+    pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
+    pg_version: 18                    # JumpServer 4.x requires PostgreSQL >= 16
+    pg_packages: [ pgsql-main, pgsql-common ]
+
+    docker_enabled: true              # enable docker on app group
+    #docker_registry_mirrors: ["https://docker.1panel.live","https://docker.1ms.run","https://docker.xuanyuan.me","https://registry-1.docker.io"]
+
+    proxy_env:                        # global proxy env when downloading packages & pull docker images
+      no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.tsinghua.edu.cn"
+      #http_proxy:  127.0.0.1:12345 # add your proxy env here for downloading packages or pull images
+      #https_proxy: 127.0.0.1:12345 # usually the proxy is format as http://user:pass@proxy.xxx.com
+      #all_proxy:   127.0.0.1:12345
+
+    infra_portal:                     # domain names and upstream servers
+      home: { domain: i.pigsty }
+      jumpserver:                     # nginx server config for jumpserver
+        domain: jump.pigsty           # REPLACE WITH YOUR OWN DOMAIN!
+        endpoint: "10.10.10.10:8080"  # jumpserver web endpoint: IP:PORT
+        websocket: true               # add websocket support
+        certbot: jump.pigsty          # certbot cert name, apply with `make cert`
+
+    repo_enabled: false
+    node_repo_modules: node,infra,pgsql
+
+    #----------------------------------------------#
+    # PASSWORD : https://pigsty.io/docs/setup/security/
+    #----------------------------------------------#
+    grafana_admin_password: pigsty
+    grafana_view_password: DBUser.Viewer
+    pg_admin_password: DBUser.DBA
+    pg_monitor_password: DBUser.Monitor
+    pg_replication_password: DBUser.Replicator
+    patroni_password: Patroni.API
+    haproxy_admin_password: pigsty
+    minio_secret_key: S3User.MinIO
+    etcd_root_password: Etcd.Root
+...
