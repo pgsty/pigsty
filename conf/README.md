@@ -99,6 +99,7 @@ You can run docker software/app with the following templates:
 * [app/mattermost.yml](app/mattermost.yml) : launch the mattermost team messaging app
 * [app/teable.yml](app/teable.yml) : launch the teable no-code database app
 * [app/maybe.yml](app/maybe.yml) : launch the maybe personal finance app
+* [app/jumpserver.yml](app/jumpserver.yml) : launch the JumpServer PAM / bastion host app
 * [app/registry.yml](app/registry.yml) : launch the docker registry mirror
 
 ----------

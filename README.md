@@ -623,21 +623,21 @@ There are other pro, beta, or pilot modules, and there will be more coming in th
 
 ## Compatibility
 
-We recommend using RockyLinux 9.7 / 10.1, Debian 13.5 / 12.14, and Ubuntu 26.04.0 / 24.04.4 / 22.04.5 for production use.
+We recommend using Rocky 9.7 / 10.1, Debian 13.5 / 12.14, and Ubuntu 24.04.4 / 22.04.5 for production use.
 
 Pigsty runs directly on bare Linux, and focuses on actively maintained mainstream LTS [**Linux Distributions**](https://pigsty.io/docs/ref/linux):
 
-|   Code   | Distro                  |                      `x86_64`                       | Minor   | Status |                       `aarch64`                       | Status |
-|:--------:|-------------------------|:---------------------------------------------------:|---------|:------:|:-----------------------------------------------------:|-------:|
-| **EL10** | RHEL / Rocky / Alma 10  | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) | 10.1    |  🌐📦  | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) |   🌐📦 |
-| **EL9**  | RHEL / Rocky / Alma 9   |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  | 9.7     |  🌐📦  |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  |   🌐📦 |
-| **U26**  | Ubuntu 26.04 (resolute) |  [`u26.x86_64`](roles/node_id/vars/u26.x86_64.yml)  | 26.04.0 |  🌐📦  |  [`u26.aarch64`](roles/node_id/vars/u26.aarch64.yml)  |   🌐📦 |
-| **U24**  | Ubuntu 24.04 (noble)    |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  | 24.04.4 |  🌐📦  |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  |   🌐📦 |
-| **U22**  | Ubuntu 22.04 (jammy)    |  [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml)  | 22.04.5 |  🌐📦  |  [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml)  |   🌐📦 |
-| **D13**  | Debian 13 (trixie)      |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  | 13.5    |  🌐📦  |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |   🌐📦 |
-| **D12**  | Debian 12 (bookworm)    |  [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml)  | 12.14   |  🌐📦  |  [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml)  |   🌐📦 |
+|   Code   | Distro                  | Minor   |                      `x86_64`                       |                       `aarch64`                       |
+|:--------:|-------------------------|---------|:---------------------------------------------------:|:-----------------------------------------------------:|
+| **EL10** | RHEL / Rocky / Alma 10  | 10.1    | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) |
+| **EL9**  | RHEL / Rocky / Alma 9   | 9.7     |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  |
+| **U26**  | Ubuntu 26.04 (resolute) | 26.04.0 |  [`u26.x86_64`](roles/node_id/vars/u26.x86_64.yml)  |  [`u26.aarch64`](roles/node_id/vars/u26.aarch64.yml)  |
+| **U24**  | Ubuntu 24.04 (noble)    | 24.04.4 |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  |
+| **U22**  | Ubuntu 22.04 (jammy)    | 22.04.5 |  [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml)  |  [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml)  |
+| **D13**  | Debian 13 (trixie)      | 13.5    |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |
+| **D12**  | Debian 12 (bookworm)    | 12.14   |  [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml)  |  [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml)  |
 
-> ⚠️ EL minor baseline is fixed at 9.7 / 10.1 for both x86_64 and aarch64 until package validation matures.
+> ⚠️ EL 9.8/10.2 upstream is broken, wait until fixed.
 
 
 ## Sponsor

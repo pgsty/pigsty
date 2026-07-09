@@ -17,6 +17,7 @@ Here are some docker compose templates for popular applications that works well 
 * [Immich](immich/) : High performance self-hosted photo and video management
 * [Metabase](metabase/) : Fast analytics with the friendly UX and integrated tooling
 * [Maybe](maybe/) : Self-hosted personal finance app with Pigsty PostgreSQL
+* [JumpServer](jumpserver/) : Open-source PAM / bastion host with Pigsty PostgreSQL
 * [Jupyter](jupyter/) : Run jupyter notebook, the data analysis IDE with docker
 * etc....
 
@@ -50,6 +51,7 @@ supa      : { domain: supa.pigsty ,endpoint: "127.0.0.1:8000" ,websocket: true }
 dify      : { domain: dify.pigsty ,endpoint: "127.0.0.1:8001" ,websocket: true }
 immich    : { domain: photo.pigsty ,endpoint: "127.0.0.1:2283" ,websocket: true }
 maybe     : { domain: maybe.pigsty ,endpoint: "127.0.0.1:5002" ,websocket: true }
+jumpserver: { domain: jump.pigsty  ,endpoint: "127.0.0.1:8080" ,websocket: true }
 ```
 
 **Pull Image**
@@ -75,6 +77,12 @@ docker pull ghcr.io/immich-app/immich-machine-learning:v3
 docker pull docker.io/valkey/valkey:9
 docker pull ghcr.io/maybe-finance/maybe:stable
 docker pull redis:7-alpine
+docker pull jumpserver/core:v4.10.16-ce
+docker pull jumpserver/koko:v4.10.16-ce
+docker pull jumpserver/lion:v4.10.16-ce
+docker pull jumpserver/chen:v4.10.16-ce
+docker pull jumpserver/web:v4.10.16-ce
+docker pull redis:7.4.6-bookworm
 ```
 
 
@@ -102,6 +110,12 @@ docker save ghcr.io/immich-app/immich-machine-learning:v3 | gzip -9 -c > /tmp/do
 docker save docker.io/valkey/valkey:9                     | gzip -9 -c > /tmp/docker/valkey.tgz
 docker save ghcr.io/maybe-finance/maybe:stable            | gzip -9 -c > /tmp/docker/maybe.tgz
 docker save redis:7-alpine                                | gzip -9 -c > /tmp/docker/redis.tgz
+docker save jumpserver/core:v4.10.16-ce                   | gzip -9 -c > /tmp/docker/jumpserver-core.tgz
+docker save jumpserver/koko:v4.10.16-ce                   | gzip -9 -c > /tmp/docker/jumpserver-koko.tgz
+docker save jumpserver/lion:v4.10.16-ce                   | gzip -9 -c > /tmp/docker/jumpserver-lion.tgz
+docker save jumpserver/chen:v4.10.16-ce                   | gzip -9 -c > /tmp/docker/jumpserver-chen.tgz
+docker save jumpserver/web:v4.10.16-ce                    | gzip -9 -c > /tmp/docker/jumpserver-web.tgz
+docker save redis:7.4.6-bookworm                          | gzip -9 -c > /tmp/docker/jumpserver-redis.tgz
 ```
 
 
@@ -127,6 +141,12 @@ cat /tmp/docker/immich-machine-learning.tgz | gzip -d -c - | docker load;
 cat /tmp/docker/valkey.tgz                  | gzip -d -c - | docker load;
 cat /tmp/docker/maybe.tgz                   | gzip -d -c - | docker load;
 cat /tmp/docker/redis.tgz                   | gzip -d -c - | docker load;
+cat /tmp/docker/jumpserver-core.tgz         | gzip -d -c - | docker load;
+cat /tmp/docker/jumpserver-koko.tgz         | gzip -d -c - | docker load;
+cat /tmp/docker/jumpserver-lion.tgz         | gzip -d -c - | docker load;
+cat /tmp/docker/jumpserver-chen.tgz         | gzip -d -c - | docker load;
+cat /tmp/docker/jumpserver-web.tgz          | gzip -d -c - | docker load;
+cat /tmp/docker/jumpserver-redis.tgz        | gzip -d -c - | docker load;
 ```
 
 
