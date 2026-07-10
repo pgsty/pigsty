@@ -389,7 +389,7 @@ if __name__ == '__main__':
     else:
         dashboard_dir_path = '.'
 
-    print("Grafana API: %s:%s @ %s" % (USERNAME, PASSWORD, ENDPOINT))
+    print("Grafana API: %s:****** @ %s" % (USERNAME, ENDPOINT))
 
     if action == 'clean':
         print("clean all dashboards and folders")
