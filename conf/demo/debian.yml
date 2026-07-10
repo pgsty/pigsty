@@ -3,7 +3,7 @@
 # File      :   debian.yml
 # Desc      :   Default parameters for Debian/Ubuntu in Pigsty
 # Ctime     :   2020-05-22
-# Mtime     :   2026-03-04
+# Mtime     :   2026-07-10
 # Docs      :   https://pigsty.io/docs/conf/debian
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -230,6 +230,17 @@ all:
     infra_portal:                     # infra services exposed via portal
       home : { domain: i.pigsty }     # default domain name
     infra_data: /data/infra           # default data path for infrastructure data
+    infra_services:                   # home page navigation entries
+      - { name: Metrics            ,url: '/vmetrics/vmui/'         ,desc: 'VictoriaMetrics Query UI'    ,icon: metrics  ,name_cn: '指标查询' ,desc_cn: 'VictoriaMetrics 指标查询界面' }
+      - { name: Logs               ,url: '/vlogs/select/vmui/'     ,desc: 'VictoriaLogs Query UI'       ,icon: logs     ,name_cn: '日志查询' ,desc_cn: 'VictoriaLogs 日志查询界面' }
+      - { name: Traces             ,url: '/vtraces/select/vmui/'   ,desc: 'VictoriaTraces Query UI'     ,icon: traces   ,name_cn: '链路追踪' ,desc_cn: 'VictoriaTraces 链路查询界面' }
+      - { name: Monitor Targets    ,url: '/vmetrics/targets'       ,desc: 'Prometheus Scrape Targets'   ,icon: target   ,name_cn: '监控目标' ,desc_cn: 'VictoriaMetrics 监控对象列表' }
+      - { name: Alert Rules        ,url: '/vmalert/vmalert/groups' ,desc: 'VMAlert alert/record Rules'  ,icon: alert    ,name_cn: '告警规则' ,desc_cn: 'VMAlert 告警规则管理' }
+      - { name: Alert Manager      ,url: '/alertmgr/#/alerts'      ,desc: 'Alert Manage & Silence'      ,icon: alertmgr ,name_cn: '告警管理' ,desc_cn: 'AlertManager 告警管理与屏蔽' }
+      - { name: CA Certificate     ,url: '/ca.crt'                 ,desc: 'Self-Signed CA Certificate'  ,icon: lock     ,name_cn: 'CA 证书'  ,desc_cn: 'Pigsty 自签CA根证书' }
+      - { name: Software Repo      ,url: '/pigsty'                 ,desc: 'Local YUM/APT Repository'    ,icon: package  ,name_cn: '软件仓库' ,desc_cn: '本地 YUM/APT 软件源' }
+      - { name: Explain Visualizer ,url: '/pev'                    ,desc: 'Postgres EXPLAIN Visualizer' ,icon: search   ,name_cn: '执行计划' ,desc_cn: 'PG 执行计划可视化工具' }
+    infra_extra_services: []          # extra services to be added on infra home page
 
     #-----------------------------------------------------------------
     # REPO
@@ -469,6 +480,7 @@ all:
     vip_preempt: false                # optional, `true/false`, false by default, enable vip preemption
     vip_interface: auto               # node vip network interface to listen, `auto` by default
     vip_dns_suffix: ''                # node vip dns name suffix, empty string by default
+    vip_auth_pass: ''                 # empty to use '<cls>-<vrid>' as the default
     vip_exporter_port: 9650           # keepalived exporter listen port, 9650 by default
 
     #-----------------------------------------------------------------
@@ -557,6 +569,9 @@ all:
       - { access_key: pgbackrest  ,secret_key: S3User.Backup ,policy: pgsql }
       - { access_key: s3user_meta ,secret_key: S3User.Meta   ,policy: meta  }
       - { access_key: s3user_data ,secret_key: S3User.Data   ,policy: data  }
+    minio_safeguard: false            # prevent purging running minio instance?
+    minio_rm_data: true               # purging minio data and config?
+    minio_rm_pkg: false               # uninstall minio packages?
 
 
     #================================================================#
@@ -580,6 +595,9 @@ all:
     redis_rename_commands: {}         # rename redis dangerous commands
     redis_cluster_replicas: 1         # replica number for one master in redis cluster
     redis_sentinel_monitor: []        # sentinel master list, works on sentinel cluster only
+    redis_safeguard: false            # prevent purging running redis instance?
+    redis_rm_data: true               # remove redis data dir?
+    redis_rm_pkg: false               # uninstall redis packages?
 
 
     #================================================================#
@@ -609,6 +627,7 @@ all:
     pg_services: []                   # postgres business services
     pg_hba_rules: []                  # business hba rules for postgres
     pgb_hba_rules: []                 # business hba rules for pgbouncer
+    pg_crontab: []                    # postgres crontab entries for dbsu
     # global credentials, overwrite in global vars
     pg_dbsu_password: ''              # dbsu password, empty string means no dbsu password by default
     pg_replication_username: replicator
@@ -662,10 +681,16 @@ all:
     pg_shared_buffer_ratio: 0.25      # postgres shared buffers ratio, 0.25 by default, 0.1~0.4
     pg_io_method: worker              # io method for postgres, auto,fsync,worker,io_uring, worker by default
     pg_rto: norm                      # shared rto mode for patroni & haproxy: fast,norm,safe,wide
+    pg_rto_plan:  # [ttl, loop, retry, start, margin, inter, fastinter, downinter, rise, fall]
+      fast: [ 20  ,5  ,5  ,15 ,5  ,'1s' ,'0.5s' ,'1s' ,3 ,3 ]
+      norm: [ 30  ,5  ,10 ,25 ,5  ,'2s' ,'1s'   ,'2s' ,3 ,3 ]
+      safe: [ 60  ,10 ,20 ,45 ,10 ,'3s' ,'1.5s' ,'3s' ,3 ,3 ]
+      wide: [ 120 ,20 ,30 ,95 ,15 ,'4s' ,'2s'   ,'4s' ,3 ,3 ]
     pg_rpo: 1048576                   # recovery point objective in bytes, `1MiB` at most by default
     pg_libs: 'pg_stat_statements, auto_explain'  # preloaded libraries, `pg_stat_statements,auto_explain` by default
     pg_delay: 0                       # replication apply delay for standby cluster leader
     pg_checksum: true                 # enable data checksum for postgres cluster?
+    pg_pwd_enc: scram-sha-256         # password encryption algorithm
     pg_encoding: UTF8                 # database cluster encoding, `UTF8` by default
     pg_locale: C                      # database cluster local, `C` by default
     pg_lc_collate: C                  # database cluster collate, `C` by default
@@ -686,25 +711,25 @@ all:
       - { name: postgres     ,superuser: true  ,comment: system superuser }
       - { name: replicator ,replication: true  ,roles: [pg_monitor, dbrole_readonly] ,comment: system replicator }
       - { name: dbuser_dba   ,superuser: true  ,roles: [dbrole_admin]  ,pgbouncer: true ,pool_mode: session, pool_connlimit: 16 ,comment: pgsql admin user }
-      - { name: dbuser_monitor ,roles: [pg_monitor] ,pgbouncer: true ,parameters: {log_min_duration_statement: 1000 } ,pool_mode: session ,pool_connlimit: 8 ,comment: pgsql monitor user }
+      - { name: dbuser_monitor ,roles: [pg_monitor, dbrole_readonly] ,pgbouncer: true ,parameters: {log_min_duration_statement: 1000 } ,pool_mode: session ,pool_connlimit: 8 ,comment: pgsql monitor user }
     pg_default_privileges:            # default privileges when created by admin user
-      - GRANT USAGE      ON SCHEMAS   TO dbrole_readonly
-      - GRANT SELECT     ON TABLES    TO dbrole_readonly
-      - GRANT SELECT     ON SEQUENCES TO dbrole_readonly
-      - GRANT EXECUTE    ON FUNCTIONS TO dbrole_readonly
-      - GRANT USAGE      ON SCHEMAS   TO dbrole_offline
-      - GRANT SELECT     ON TABLES    TO dbrole_offline
-      - GRANT SELECT     ON SEQUENCES TO dbrole_offline
-      - GRANT EXECUTE    ON FUNCTIONS TO dbrole_offline
-      - GRANT INSERT     ON TABLES    TO dbrole_readwrite
-      - GRANT UPDATE     ON TABLES    TO dbrole_readwrite
-      - GRANT DELETE     ON TABLES    TO dbrole_readwrite
-      - GRANT USAGE      ON SEQUENCES TO dbrole_readwrite
-      - GRANT UPDATE     ON SEQUENCES TO dbrole_readwrite
-      - GRANT TRUNCATE   ON TABLES    TO dbrole_admin
-      - GRANT REFERENCES ON TABLES    TO dbrole_admin
-      - GRANT TRIGGER    ON TABLES    TO dbrole_admin
-      - GRANT CREATE     ON SCHEMAS   TO dbrole_admin
+      - GRANT USAGE      ON SCHEMAS    TO  dbrole_readonly
+      - GRANT SELECT     ON TABLES     TO  dbrole_readonly
+      - GRANT SELECT     ON SEQUENCES  TO  dbrole_readonly
+      - GRANT EXECUTE    ON FUNCTIONS  TO  dbrole_readonly
+      - GRANT USAGE      ON SCHEMAS    TO  dbrole_offline
+      - GRANT SELECT     ON TABLES     TO  dbrole_offline
+      - GRANT SELECT     ON SEQUENCES  TO  dbrole_offline
+      - GRANT EXECUTE    ON FUNCTIONS  TO  dbrole_offline
+      - GRANT INSERT     ON TABLES     TO  dbrole_readwrite
+      - GRANT UPDATE     ON TABLES     TO  dbrole_readwrite
+      - GRANT DELETE     ON TABLES     TO  dbrole_readwrite
+      - GRANT USAGE      ON SEQUENCES  TO  dbrole_readwrite
+      - GRANT UPDATE     ON SEQUENCES  TO  dbrole_readwrite
+      - GRANT TRUNCATE   ON TABLES     TO  dbrole_admin
+      - GRANT REFERENCES ON TABLES     TO  dbrole_admin
+      - GRANT TRIGGER    ON TABLES     TO  dbrole_admin
+      - GRANT CREATE     ON SCHEMAS    TO  dbrole_admin
     pg_default_schemas: [ monitor ]   # default schemas to be created
     pg_default_extensions:            # default extensions to be created
       - { name: pg_stat_statements ,schema: monitor }
@@ -731,7 +756,7 @@ all:
       - {user: '${repl}'    ,db: postgres    ,addr: intra     ,auth: pwd   ,title: 'replicator postgres db from intranet' ,order: 300}
       - {user: '${monitor}' ,db: all         ,addr: localhost ,auth: pwd   ,title: 'monitor from localhost with password' ,order: 350}
       - {user: '${monitor}' ,db: all         ,addr: infra     ,auth: pwd   ,title: 'monitor from infra host with password',order: 400}
-      - {user: '${admin}'   ,db: all         ,addr: infra     ,auth: ssl   ,title: 'admin @ infra nodes with pwd & ssl'   ,order: 450}
+      - {user: '${admin}'   ,db: all         ,addr: intra     ,auth: pwd   ,title: 'admin @ intranet nodes with pwd'      ,order: 450}
       - {user: '${admin}'   ,db: all         ,addr: world     ,auth: ssl   ,title: 'admin @ everywhere with ssl & pwd'    ,order: 500}
       - {user: '+dbrole_readonly',db: all    ,addr: localhost ,auth: pwd   ,title: 'pgbouncer read/write via local socket',order: 550}
       - {user: '+dbrole_readonly',db: all    ,addr: intra     ,auth: pwd   ,title: 'read/write biz user via password'     ,order: 600}
@@ -821,7 +846,7 @@ all:
     pgbouncer_exporter_options: ''         # overwrite extra options for pgbouncer_exporter
     pgbackrest_exporter_enabled: true      # enable pgbackrest_exporter on pgsql hosts?
     pgbackrest_exporter_port: 9854         # pgbackrest_exporter listen port, 9854 by default
-    pgbackrest_exporter_options: >
+    pgbackrest_exporter_options: >-
       --collect.interval=120
       --log.level=info
 

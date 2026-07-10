@@ -2,7 +2,7 @@
 -- # File      :   cmdb.sql
 -- # Desc      :   Pigsty CMDB baseline
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2026-01-25
+-- # Mtime     :   2026-07-10
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -1288,6 +1288,9 @@ INSERT INTO pigsty.default_var VALUES
 (111, 'ca_cn', '"pigsty-ca"', 'INFRA', 'CA', 'string', 'G', 'ca common name, fixed as pigsty-ca', NULL),
 (112, 'cert_validity', '"7300d"', 'INFRA', 'CA', 'interval', 'G', 'cert validity, 20 years by default', NULL),
 
+(113, 'infra_services', '[{"name":"Metrics","url":"/vmetrics/vmui/","desc":"VictoriaMetrics Query UI","icon":"metrics","name_cn":"指标查询","desc_cn":"VictoriaMetrics 指标查询界面"},{"name":"Logs","url":"/vlogs/select/vmui/","desc":"VictoriaLogs Query UI","icon":"logs","name_cn":"日志查询","desc_cn":"VictoriaLogs 日志查询界面"},{"name":"Traces","url":"/vtraces/select/vmui/","desc":"VictoriaTraces Query UI","icon":"traces","name_cn":"链路追踪","desc_cn":"VictoriaTraces 链路查询界面"},{"name":"Monitor Targets","url":"/vmetrics/targets","desc":"Prometheus Scrape Targets","icon":"target","name_cn":"监控目标","desc_cn":"VictoriaMetrics 监控对象列表"},{"name":"Alert Rules","url":"/vmalert/vmalert/groups","desc":"VMAlert alert/record Rules","icon":"alert","name_cn":"告警规则","desc_cn":"VMAlert 告警规则管理"},{"name":"Alert Manager","url":"/alertmgr/#/alerts","desc":"Alert Manage & Silence","icon":"alertmgr","name_cn":"告警管理","desc_cn":"AlertManager 告警管理与屏蔽"},{"name":"CA Certificate","url":"/ca.crt","desc":"Self-Signed CA Certificate","icon":"lock","name_cn":"CA 证书","desc_cn":"Pigsty 自签CA根证书"},{"name":"Software Repo","url":"/pigsty","desc":"Local YUM/APT Repository","icon":"package","name_cn":"软件仓库","desc_cn":"本地 YUM/APT 软件源"},{"name":"Explain Visualizer","url":"/pev","desc":"Postgres EXPLAIN Visualizer","icon":"search","name_cn":"执行计划","desc_cn":"PG 执行计划可视化工具"}]', 'INFRA', 'INFRA', 'service[]', 'G', 'infra home page navigation entries', NULL),
+(114, 'infra_extra_services', '[]', 'INFRA', 'INFRA', 'service[]', 'G', 'extra services added to the infra home page', NULL),
+
 (115, 'infra_seq', NULL, 'INFRA', 'INFRA', 'int', 'I', 'infra node identity, REQUIRED', NULL),
 (116, 'infra_portal', '{"home": {"domain": "i.pigsty"}}', 'INFRA', 'INFRA', 'dict', 'G', 'infra services exposed via portal', NULL),
 (117, 'infra_data', '"/data/infra"', 'INFRA', 'INFRA', 'path', 'G', 'default data path for infrastructure data', NULL),
@@ -1365,7 +1368,7 @@ INSERT INTO pigsty.default_var VALUES
 (204, 'nodename_exchange', 'false', 'NODE', 'NODE_ID', 'bool', 'C', 'exchange nodename among play hosts?', NULL),
 (205, 'node_id_from_pg', 'true', 'NODE', 'NODE_ID', 'bool', 'C', 'use postgres identity as node identity if applicable?', NULL),
 
-(210, 'node_write_etc_hosts', 'true', 'NODE', 'NODE_DNS', 'bool', 'G|C|I', 'modify `/etc/hosts on target node?', NULL),
+(210, 'node_write_etc_hosts', 'true', 'NODE', 'NODE_DNS', 'bool', 'G/C/I', 'modify `/etc/hosts` on target node?', NULL),
 (211, 'node_default_etc_hosts', '["${admin_ip} i.pigsty"]', 'NODE', 'NODE_DNS', 'string[]', 'G', 'static dns records in `/etc/hosts`', NULL),
 (212, 'node_etc_hosts', '[]', 'NODE', 'NODE_DNS', 'string[]', 'C', 'extra static dns records in `/etc/hosts`', NULL),
 (213, 'node_dns_method', '"add"', 'NODE', 'NODE_DNS', 'enum', 'C', 'how to handle dns servers: add,none,overwrite', NULL),
@@ -1443,13 +1446,13 @@ INSERT INTO pigsty.default_var VALUES
 (295, 'vector_log_endpoint', '["infra"]', 'NODE', 'VECTOR', 'cidr[]', 'C', 'if defined, sending vector log to this endpoint.', NULL),
 
 -- DOCKER PARAMETERS
-(400, 'docker_enabled', 'false', 'NODE', 'DOCKER', 'bool', 'C', 'enable docker on this node?', NULL),
+(400, 'docker_enabled', 'false', 'DOCKER', 'DOCKER', 'bool', 'C', 'enable docker on this node?', NULL),
 (401, 'docker_data', '"/data/docker"', 'DOCKER', 'DOCKER', 'path', 'G/C/I', 'docker data directory, /data/docker by default', NULL),
 (402, 'docker_storage_driver', '"overlay2"', 'DOCKER', 'DOCKER', 'enum', 'C', 'docker storage driver, overlay2 by default', NULL),
 (403, 'docker_cgroups_driver', '"systemd"', 'DOCKER', 'DOCKER', 'enum', 'C', 'docker cgroup fs driver: cgroupfs,systemd', NULL),
 (404, 'docker_registry_mirrors', '[]', 'DOCKER', 'DOCKER', 'string[]', 'C', 'docker registry mirror list', NULL),
 (405, 'docker_exporter_port', '9323', 'DOCKER', 'DOCKER', 'port', 'G', 'docker metrics exporter port, 9323 by default', NULL),
-(406, 'docker_image', '[]', 'DOCKER', 'DOCKER', 'path', 'C', 'docker image to be pulled, empty list by default', NULL),
+(406, 'docker_image', '[]', 'DOCKER', 'DOCKER', 'string[]', 'C', 'docker images to be pulled, empty list by default', NULL),
 (407, 'docker_image_cache', '"/tmp/docker/*.tgz"', 'DOCKER', 'DOCKER', 'path', 'C', 'docker image cache tarball glob, /tmp/docker/*.tgz by default', NULL),
 
 -- ETCD PARAMETERS
@@ -1571,31 +1574,32 @@ INSERT INTO pigsty.default_var VALUES
 (871, 'pg_parameters', '{}', 'PGSQL', 'PG_BOOTSTRAP', 'dict', 'C', 'extra parameters in postgresql.auto.conf', NULL),
 (872, 'pg_files', '[]', 'PGSQL', 'PG_BOOTSTRAP', 'path[]', 'C', 'extra files to be copied to postgres data directory (e.g. license)', NULL),
 (873, 'pg_conf', '"oltp.yml"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'config template: oltp,olap,crit,tiny. `oltp.yml` by default', NULL),
-(874, 'pg_max_conn', '"auto"', 'PGSQL', 'PG_BOOTSTRAP', 'int', 'C', 'postgres max connections, `auto` will use recommended value', NULL),
+(874, 'pg_max_conn', '"auto"', 'PGSQL', 'PG_BOOTSTRAP', 'int|string', 'C', 'postgres max connections, `auto` will use recommended value', NULL),
 (875, 'pg_shared_buffer_ratio', '0.25', 'PGSQL', 'PG_BOOTSTRAP', 'float', 'C', 'postgres shared buffer memory ratio, 0.25 by default, 0.1~0.4', NULL),
 (876, 'pg_io_method', '"worker"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'io method for postgres: auto,fsync,worker,io_uring, worker by default', NULL),
 (877, 'pg_rto', '"norm"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'shared rto mode for patroni & haproxy: fast,norm,safe,wide', NULL),
-(878, 'pg_rpo', '1048576', 'PGSQL', 'PG_BOOTSTRAP', 'int', 'C', 'recovery point objective in bytes, `1MiB` at most by default', NULL),
-(879, 'pg_libs', '"pg_stat_statements, auto_explain"', 'PGSQL', 'PG_BOOTSTRAP', 'string', 'C', 'preloaded libraries, `pg_stat_statements,auto_explain` by default', NULL),
-(880, 'pg_delay', '0', 'PGSQL', 'PG_BOOTSTRAP', 'interval', 'I', 'replication apply delay for standby cluster leader', NULL),
-(881, 'pg_checksum', 'true', 'PGSQL', 'PG_BOOTSTRAP', 'bool', 'C', 'enable data checksum for postgres cluster?', NULL),
-(882, 'pg_pwd_enc', '"scram-sha-256"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'passwords encryption algorithm: scram-sha-256 by default', NULL),
-(883, 'pg_encoding', '"UTF8"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database cluster encoding, `UTF8` by default', NULL),
-(884, 'pg_locale', '"C"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database cluster local, `C` by default', NULL),
-(885, 'pg_lc_collate', '"C"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database cluster collate, `C` by default', NULL),
-(886, 'pg_lc_ctype', '"C"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database character type, `C` by default', NULL),
+(878, 'pg_rto_plan', '{"fast":[20,5,5,15,5,"1s","0.5s","1s",3,3],"norm":[30,5,10,25,5,"2s","1s","2s",3,3],"safe":[60,10,20,45,10,"3s","1.5s","3s",3,3],"wide":[120,20,30,95,15,"4s","2s","4s",3,3]}', 'PGSQL', 'PG_BOOTSTRAP', 'dict', 'G/C', 'shared RTO presets for Patroni and HAProxy health checks', NULL),
+(879, 'pg_rpo', '1048576', 'PGSQL', 'PG_BOOTSTRAP', 'int', 'C', 'recovery point objective in bytes, `1MiB` at most by default', NULL),
+(880, 'pg_libs', '"pg_stat_statements, auto_explain"', 'PGSQL', 'PG_BOOTSTRAP', 'string', 'C', 'preloaded libraries, `pg_stat_statements,auto_explain` by default', NULL),
+(881, 'pg_delay', '0', 'PGSQL', 'PG_BOOTSTRAP', 'interval', 'I', 'replication apply delay for standby cluster leader', NULL),
+(882, 'pg_checksum', 'true', 'PGSQL', 'PG_BOOTSTRAP', 'bool', 'C', 'enable data checksum for postgres cluster?', NULL),
+(883, 'pg_pwd_enc', '"scram-sha-256"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'passwords encryption algorithm: scram-sha-256 by default', NULL),
+(884, 'pg_encoding', '"UTF8"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database cluster encoding, `UTF8` by default', NULL),
+(885, 'pg_locale', '"C"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database cluster local, `C` by default', NULL),
+(886, 'pg_lc_collate', '"C"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database cluster collate, `C` by default', NULL),
+(887, 'pg_lc_ctype', '"C"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'database character type, `C` by default', NULL),
 (890, 'pgsodium_key', NULL, 'PGSQL', 'PG_BOOTSTRAP', 'string', 'C', 'pgsodium key, 64 hex digit, default to sha256(pg_cluster) if not specified', NULL),
 (891, 'pgsodium_getkey_script', NULL, 'PGSQL', 'PG_BOOTSTRAP', 'path', 'C', 'pgsodium getkey script path, `pgsodium_getkey` in template by default', NULL),
 
 (900, 'pg_provision', 'true', 'PGSQL', 'PG_PROVISION', 'bool', 'C', 'provision postgres cluster after bootstrap', NULL),
 (901, 'pg_init', '"pg-init"', 'PGSQL', 'PG_PROVISION', 'string', 'G/C', 'provision init script for cluster template, `pg-init` by default', NULL),
 (902, 'pg_default_roles', '[{"name": "dbrole_readonly", "login": false, "comment": "role for global read-only access"}, {"name": "dbrole_offline", "login": false, "comment": "role for restricted read-only access"}, {"name": "dbrole_readwrite", "login": false, "roles": ["dbrole_readonly"], "comment": "role for global read-write access"}, {"name": "dbrole_admin", "login": false, "roles": ["pg_monitor", "dbrole_readwrite"], "comment": "role for object creation"}, {"name": "postgres", "comment": "system superuser", "superuser": true}, {"name": "replicator", "roles": ["pg_monitor", "dbrole_readonly"], "comment": "system replicator", "replication": true}, {"name": "dbuser_dba", "roles": ["dbrole_admin"], "comment": "pgsql admin user", "pgbouncer": true, "pool_mode": "session", "superuser": true, "pool_connlimit": 16}, {"name": "dbuser_monitor", "roles": ["pg_monitor", "dbrole_readonly"], "comment": "pgsql monitor user", "pgbouncer": true, "pool_mode": "session", "parameters": {"log_min_duration_statement": 1000}, "pool_connlimit": 8}]', 'PGSQL', 'PG_PROVISION', 'role[]', 'G/C', 'default roles and users in postgres cluster', NULL),
-(903, 'pg_default_privileges', '["GRANT USAGE      ON SCHEMAS   TO dbrole_readonly", "GRANT SELECT     ON TABLES    TO dbrole_readonly", "GRANT SELECT     ON SEQUENCES TO dbrole_readonly", "GRANT EXECUTE    ON FUNCTIONS TO dbrole_readonly", "GRANT USAGE      ON SCHEMAS   TO dbrole_offline", "GRANT SELECT     ON TABLES    TO dbrole_offline", "GRANT SELECT     ON SEQUENCES TO dbrole_offline", "GRANT EXECUTE    ON FUNCTIONS TO dbrole_offline", "GRANT INSERT     ON TABLES    TO dbrole_readwrite", "GRANT UPDATE     ON TABLES    TO dbrole_readwrite", "GRANT DELETE     ON TABLES    TO dbrole_readwrite", "GRANT USAGE      ON SEQUENCES TO dbrole_readwrite", "GRANT UPDATE     ON SEQUENCES TO dbrole_readwrite", "GRANT TRUNCATE   ON TABLES    TO dbrole_admin", "GRANT REFERENCES ON TABLES    TO dbrole_admin", "GRANT TRIGGER    ON TABLES    TO dbrole_admin", "GRANT CREATE     ON SCHEMAS   TO dbrole_admin"]', 'PGSQL', 'PG_PROVISION', 'string[]', 'G/C', 'default privileges when created by admin user', NULL),
+(903, 'pg_default_privileges', '["GRANT USAGE      ON SCHEMAS    TO  dbrole_readonly","GRANT SELECT     ON TABLES     TO  dbrole_readonly","GRANT SELECT     ON SEQUENCES  TO  dbrole_readonly","GRANT EXECUTE    ON FUNCTIONS  TO  dbrole_readonly","GRANT USAGE      ON SCHEMAS    TO  dbrole_offline","GRANT SELECT     ON TABLES     TO  dbrole_offline","GRANT SELECT     ON SEQUENCES  TO  dbrole_offline","GRANT EXECUTE    ON FUNCTIONS  TO  dbrole_offline","GRANT INSERT     ON TABLES     TO  dbrole_readwrite","GRANT UPDATE     ON TABLES     TO  dbrole_readwrite","GRANT DELETE     ON TABLES     TO  dbrole_readwrite","GRANT USAGE      ON SEQUENCES  TO  dbrole_readwrite","GRANT UPDATE     ON SEQUENCES  TO  dbrole_readwrite","GRANT TRUNCATE   ON TABLES     TO  dbrole_admin","GRANT REFERENCES ON TABLES     TO  dbrole_admin","GRANT TRIGGER    ON TABLES     TO  dbrole_admin","GRANT CREATE     ON SCHEMAS    TO  dbrole_admin"]', 'PGSQL', 'PG_PROVISION', 'string[]', 'G/C', 'default privileges when created by admin user', NULL),
 (904, 'pg_default_schemas', '["monitor"]', 'PGSQL', 'PG_PROVISION', 'string[]', 'G/C', 'default schemas to be created', NULL),
 (905, 'pg_default_extensions', '[{"name": "pg_stat_statements", "schema": "monitor"}, {"name": "pgstattuple", "schema": "monitor"}, {"name": "pg_buffercache", "schema": "monitor"}, {"name": "pageinspect", "schema": "monitor"}, {"name": "pg_prewarm", "schema": "monitor"}, {"name": "pg_visibility", "schema": "monitor"}, {"name": "pg_freespacemap", "schema": "monitor"}, {"name": "postgres_fdw", "schema": "public"}, {"name": "file_fdw", "schema": "public"}, {"name": "btree_gist", "schema": "public"}, {"name": "btree_gin", "schema": "public"}, {"name": "pg_trgm", "schema": "public"}, {"name": "intagg", "schema": "public"}, {"name": "intarray", "schema": "public"}, {"name": "pg_repack"}]', 'PGSQL', 'PG_PROVISION', 'extension[]', 'G/C', 'default extensions to be created', NULL),
 (906, 'pg_reload', 'true', 'PGSQL', 'PG_PROVISION', 'bool', 'A', 'reload postgres after hba changes', NULL),
-(907, 'pg_default_hba_rules', '[{"db": "all", "addr": "local", "auth": "ident", "user": "${dbsu}", "title": "dbsu access via local os user ident"}, {"db": "replication", "addr": "local", "auth": "ident", "user": "${dbsu}", "title": "dbsu replication from local os ident"}, {"db": "replication", "addr": "localhost", "auth": "pwd", "user": "${repl}", "title": "replicator replication from localhost"}, {"db": "replication", "addr": "intra", "auth": "pwd", "user": "${repl}", "title": "replicator replication from intranet"}, {"db": "postgres", "addr": "intra", "auth": "pwd", "user": "${repl}", "title": "replicator postgres db from intranet"}, {"db": "all", "addr": "localhost", "auth": "pwd", "user": "${monitor}", "title": "monitor from localhost with password"}, {"db": "all", "addr": "infra", "auth": "pwd", "user": "${monitor}", "title": "monitor from infra host with password"}, {"db": "all", "addr": "infra", "auth": "ssl", "user": "${admin}", "title": "admin @ infra nodes with pwd & ssl"}, {"db": "all", "addr": "world", "auth": "ssl", "user": "${admin}", "title": "admin @ everywhere with ssl & pwd"}, {"db": "all", "addr": "localhost", "auth": "pwd", "user": "+dbrole_readonly", "title": "pgbouncer read/write via local socket"}, {"db": "all", "addr": "intra", "auth": "pwd", "user": "+dbrole_readonly", "title": "read/write biz user via password"}, {"db": "all", "addr": "intra", "auth": "pwd", "user": "+dbrole_offline", "title": "allow etl offline tasks from intranet"}]', 'PGSQL', 'PG_PROVISION', 'hba[]', 'G/C', 'postgres default host-based authentication rules', NULL),
-(908, 'pgb_default_hba_rules', '[{"db": "pgbouncer", "addr": "local", "auth": "peer", "user": "${dbsu}", "title": "dbsu local admin access with os ident"}, {"db": "all", "addr": "localhost", "auth": "pwd", "user": "all", "title": "allow all user local access with pwd"}, {"db": "pgbouncer", "addr": "intra", "auth": "pwd", "user": "${monitor}", "title": "monitor access via intranet with pwd"}, {"db": "all", "addr": "world", "auth": "deny", "user": "${monitor}", "title": "reject all other monitor access addr"}, {"db": "all", "addr": "intra", "auth": "pwd", "user": "${admin}", "title": "admin access via intranet with pwd"}, {"db": "all", "addr": "world", "auth": "deny", "user": "${admin}", "title": "reject all other admin access addr"}, {"db": "all", "addr": "intra", "auth": "pwd", "user": "all", "title": "allow all user intra access with pwd"}]', 'PGSQL', 'PG_PROVISION', 'hba[]', 'G/C', 'pgbouncer default host-based authentication rules', NULL),
+(907, 'pg_default_hba_rules', '[{"user":"${dbsu}","db":"all","addr":"local","auth":"ident","title":"dbsu access via local os user ident","order":100},{"user":"${dbsu}","db":"replication","addr":"local","auth":"ident","title":"dbsu replication from local os ident","order":150},{"user":"${repl}","db":"replication","addr":"localhost","auth":"pwd","title":"replicator replication from localhost","order":200},{"user":"${repl}","db":"replication","addr":"intra","auth":"pwd","title":"replicator replication from intranet","order":250},{"user":"${repl}","db":"postgres","addr":"intra","auth":"pwd","title":"replicator postgres db from intranet","order":300},{"user":"${monitor}","db":"all","addr":"localhost","auth":"pwd","title":"monitor from localhost with password","order":350},{"user":"${monitor}","db":"all","addr":"infra","auth":"pwd","title":"monitor from infra host with password","order":400},{"user":"${admin}","db":"all","addr":"intra","auth":"pwd","title":"admin @ intranet nodes with pwd","order":450},{"user":"${admin}","db":"all","addr":"world","auth":"ssl","title":"admin @ everywhere with ssl & pwd","order":500},{"user":"+dbrole_readonly","db":"all","addr":"localhost","auth":"pwd","title":"pgbouncer read/write via local socket","order":550},{"user":"+dbrole_readonly","db":"all","addr":"intra","auth":"pwd","title":"read/write biz user via password","order":600},{"user":"+dbrole_offline","db":"all","addr":"intra","auth":"pwd","title":"allow etl offline tasks from intranet","order":650}]', 'PGSQL', 'PG_PROVISION', 'hba[]', 'G/C', 'postgres default host-based authentication rules', NULL),
+(908, 'pgb_default_hba_rules', '[{"user":"${dbsu}","db":"pgbouncer","addr":"local","auth":"peer","title":"dbsu local admin access with os ident","order":100},{"user":"all","db":"all","addr":"localhost","auth":"pwd","title":"allow all user local access with pwd","order":150},{"user":"${monitor}","db":"pgbouncer","addr":"intra","auth":"pwd","title":"monitor access via intranet with pwd","order":200},{"user":"${monitor}","db":"all","addr":"world","auth":"deny","title":"reject all other monitor access addr","order":250},{"user":"${admin}","db":"all","addr":"intra","auth":"pwd","title":"admin access via intranet with pwd","order":300},{"user":"${admin}","db":"all","addr":"world","auth":"deny","title":"reject all other admin access addr","order":350},{"user":"all","db":"all","addr":"intra","auth":"pwd","title":"allow all user intra access with pwd","order":400}]', 'PGSQL', 'PG_PROVISION', 'hba[]', 'G/C', 'pgbouncer default host-based authentication rules', NULL),
 
 (910, 'pgbackrest_enabled', 'true', 'PGSQL', 'PG_BACKUP', 'bool', 'C', 'enable pgbackrest on pgsql host?', NULL),
 (912, 'pgbackrest_log_dir', '"/pg/log/pgbackrest"', 'PGSQL', 'PG_BACKUP', 'path', 'C', 'pgbackrest log dir, `/pg/log/pgbackrest` by default', NULL),
@@ -1609,7 +1613,7 @@ INSERT INTO pigsty.default_var VALUES
 (923, 'pgbouncer_auth_query', 'false', 'PGSQL', 'PG_ACCESS', 'bool', 'C', 'query postgres to retrieve unlisted business users?', NULL),
 (924, 'pgbouncer_poolmode', '"transaction"', 'PGSQL', 'PG_ACCESS', 'enum', 'C', 'pooling mode: transaction,session,statement, transaction by default', NULL),
 (925, 'pgbouncer_sslmode', '"disable"', 'PGSQL', 'PG_ACCESS', 'enum', 'C', 'pgbouncer client ssl mode, disable by default', NULL),
-(926, 'pgbouncer_ignore_param', '["extra_float_digits", "application_name", "TimeZone", "DateStyle", "IntervalStyle", "search_path"]', 'PGSQL', 'PG_ACCESS', 'enum', 'C', 'pgbouncer ignore_startup_parameters, param list', NULL),
+(926, 'pgbouncer_ignore_param', '["extra_float_digits", "application_name", "TimeZone", "DateStyle", "IntervalStyle", "search_path"]', 'PGSQL', 'PG_ACCESS', 'string[]', 'C', 'pgbouncer ignore_startup_parameters, param list', NULL),
 (927, 'pg_weight', '100', 'PGSQL', 'PG_ACCESS', 'int', 'I', 'relative load balance weight in service, 100 by default, 0-255', NULL),
 (928, 'pg_service_provider', '""', 'PGSQL', 'PG_ACCESS', 'string', 'G/C', 'dedicate haproxy node group name, or empty string for local nodes by default', NULL),
 (929, 'pg_default_service_dest', '"pgbouncer"', 'PGSQL', 'PG_ACCESS', 'enum', 'G/C', 'default service destination if svc.dest=''default''', NULL),
@@ -1651,7 +1655,7 @@ INSERT INTO pigsty.default_var VALUES
 (1012, 'code_data', '"/data/code"', 'VIBE', 'CODE', 'path', 'C', 'code-server user data directory', NULL),
 (1013, 'code_password', '"Vibe.Coding"', 'VIBE', 'CODE', 'password', 'C', 'code-server password', NULL),
 (1014, 'code_gallery', '"openvsx"', 'VIBE', 'CODE', 'enum', 'C', 'extension gallery: openvsx or microsoft', NULL),
-(1020, 'jupyter_enabled', 'true', 'VIBE', 'JUPYTER', 'bool', 'C', 'enable jupyter lab installation', NULL),
+(1020, 'jupyter_enabled', 'false', 'VIBE', 'JUPYTER', 'bool', 'C', 'enable jupyter lab installation, disabled by default', NULL),
 (1021, 'jupyter_port', '8888', 'VIBE', 'JUPYTER', 'port', 'C', 'jupyter lab listen port, 8888 by default', NULL),
 (1022, 'jupyter_data', '"/data/jupyter"', 'VIBE', 'JUPYTER', 'path', 'C', 'jupyter lab data directory', NULL),
 (1023, 'jupyter_password', '"Vibe.Coding"', 'VIBE', 'JUPYTER', 'password', 'C', 'jupyter lab access token', NULL),
