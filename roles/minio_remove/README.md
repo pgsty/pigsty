@@ -98,7 +98,7 @@ Override with:
 | Component    | What's Removed                             |
 |--------------|--------------------------------------------|
 | Monitoring   | `/infra/targets/minio/<cluster>-<seq>.yml` |
-| DNS          | `/infra/hosts/<cluster>-<seq>`, `/etc/hosts` entries |
+| DNS          | `/etc/dnsmasq.d/pigsty/<cluster>-<seq>`, `/etc/hosts` entries |
 | Service      | `minio.service` (systemd)                  |
 | Config       | `/etc/default/minio`, `/home/minio/.minio` |
 | Data         | All directories in `minio_data`            |

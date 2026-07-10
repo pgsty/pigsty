@@ -2,10 +2,32 @@
 #--------------------------------------------------------------#
 # Create DNS Dir                                       [dns_dir]
 #--------------------------------------------------------------#
-# dnsmasq runs as dnsmasq:dnsmasq, owns this directory to read it
+# dnsmasq reads generated host records from this directory
 - name: create dns records dir
   tags: dns_dir
-  file: path={{ infra_data }}/hosts state=directory mode=0755 owner=dnsmasq group=dnsmasq
+  file: path=/etc/dnsmasq.d/pigsty state=directory mode=0755 owner=root group=dnsmasq
+
+# preserve registered records when upgrading from previous locations
+- name: migrate legacy dns records
+  tags: dns_dir
+  shell: |
+    for old_dir in /infra/hosts /etc/hosts.d; do
+      [ -d "${old_dir}" ] || continue
+      for src in "${old_dir}"/*; do
+        [ -f "${src}" ] || continue
+        dst="/etc/dnsmasq.d/pigsty/${src##*/}"
+        [ -e "${dst}" ] && continue
+        tmp="/etc/dnsmasq.d/pigsty/.${src##*/}.migrate.tmp"
+        cp "${src}" "${tmp}"
+        chown root:root "${tmp}"
+        chmod 0644 "${tmp}"
+        mv "${tmp}" "${dst}"
+        echo "${dst}"
+      done
+    done
+  args: { executable: /bin/bash }
+  register: dns_migrate
+  changed_when: dns_migrate.stdout|default('') != ''
 
 
 #--------------------------------------------------------------#
@@ -26,7 +48,7 @@
 - name: render default dns records
   tags: dns_record
   copy:
-    dest: /infra/hosts/.default.tmp
+    dest: /etc/dnsmasq.d/pigsty/.default.tmp
     owner: root
     group: root
     mode: 0644
@@ -37,25 +59,29 @@
 
 - name: activate default dns records
   tags: dns_record
-  shell: chcon -t dnsmasq_etc_t /infra/hosts/.default.tmp 2>/dev/null; mv /infra/hosts/.default.tmp /infra/hosts/default || true
-  args: { executable: /bin/bash } 
+  command: mv /etc/dnsmasq.d/pigsty/.default.tmp /etc/dnsmasq.d/pigsty/default
 
 #--------------------------------------------------------------#
-# Setup SELinux for Dnsmasq                        [dns_selinux]
+# Normalize SELinux for Dnsmasq                    [dns_selinux]
 #--------------------------------------------------------------#
-# dnsmasq needs to read hostsdir, set proper SELinux context
-- name: setup selinux for dnsmasq
+# /etc/dnsmasq.d already uses dnsmasq_etc_t in the stock policy
+- name: cleanup legacy dnsmasq selinux overrides
   tags: [ dns_selinux ]
   ignore_errors: true
   shell: |
-    command -v semanage &>/dev/null || exit 0
-    semanage fcontext -m -t dnsmasq_etc_t "{{ infra_data }}/hosts(/.*)?" 2>/dev/null || \
-    semanage fcontext -a -t dnsmasq_etc_t "{{ infra_data }}/hosts(/.*)?" 2>/dev/null
-    semanage fcontext -a -t dnsmasq_etc_t "/data/infra/hosts" 2>/dev/null
-    semanage permissive -a dnsmasq_t 2>/dev/null
-    restorecon -Rv {{ infra_data }}/hosts 2>/dev/null
-    /bin/true
+    if command -v restorecon &>/dev/null; then
+      restorecon -Fv /etc/dnsmasq.d
+      restorecon -RFv /etc/dnsmasq.d/pigsty
+    fi
+    if command -v semanage &>/dev/null; then
+      semanage permissive -d dnsmasq_t 2>/dev/null && echo "removed dnsmasq_t permissive override" || true
+      semanage fcontext -d "{{ infra_data }}/hosts(/.*)?" 2>/dev/null && echo "removed {{ infra_data }}/hosts fcontext override" || true
+      semanage fcontext -d "/data/infra/hosts" 2>/dev/null && echo "removed /data/infra/hosts fcontext override" || true
+      semanage fcontext -d "/etc/hosts.d(/.*)?" 2>/dev/null && echo "removed /etc/hosts.d fcontext override" || true
+    fi
   args: { executable: /bin/bash }
+  register: dnsmasq_selinux
+  changed_when: dnsmasq_selinux.stdout|default('') != ''
 
 
 #--------------------------------------------------------------#

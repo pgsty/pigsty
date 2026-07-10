@@ -104,18 +104,25 @@
   tags: [ minio_dns, register, add_dns ]
   delegate_to: '{{ item }}'
   loop: "{{ groups['infra'] | default([]) }}"
+  ignore_errors: true
   copy:
-    dest: /infra/hosts/.{{ minio_instance }}.tmp
+    dest: /etc/dnsmasq.d/pigsty/.{{ minio_instance }}.tmp
     mode: 0644
+    owner: root
+    group: root
     content: |
       {{ inventory_hostname }} {{ minio_nodename }}
       {{ inventory_hostname }} {{ minio_cluster }}-{{ minio_seq }}
+  register: minio_dns_render
 
 - name: activate minio instance dns on infra nameserver
   tags: [ minio_dns, register, add_dns ]
   delegate_to: '{{ item }}'
   loop: "{{ groups['infra'] | default([]) }}"
-  shell: chcon -t dnsmasq_etc_t /infra/hosts/.{{ minio_instance }}.tmp 2>/dev/null; mv /infra/hosts/.{{ minio_instance }}.tmp /infra/hosts/{{ minio_instance }} || true
-  args: { executable: /bin/bash }
+  when:
+    - minio_dns_render is defined
+    - minio_dns_render is succeeded
+  ignore_errors: true
+  command: mv /etc/dnsmasq.d/pigsty/.{{ minio_instance }}.tmp /etc/dnsmasq.d/pigsty/{{ minio_instance }}
 
 ...

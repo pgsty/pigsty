@@ -58,20 +58,23 @@
   loop: "{{ groups['infra'] | default([]) }}"
   ignore_errors: true
   copy:
-    dest: /infra/hosts/.{{ node_cluster }}.vip.tmp
+    dest: /etc/dnsmasq.d/pigsty/.{{ node_cluster }}.vip.{{ nodename }}.tmp
     mode: 0644
     owner: root
     group: root
     content: "{{ vip_address }} {{ node_cluster }}{{ vip_dns_suffix|default('') }}"
+  register: node_vip_dns_render
 
 - name: activate node vip dns name
   tags: [ node_vip, vip_dns, add_dns ]
-  when: vip_enabled|bool
+  when:
+    - vip_enabled|bool
+    - node_vip_dns_render is defined
+    - node_vip_dns_render is succeeded
   delegate_to: '{{ item }}'
   loop: "{{ groups['infra'] | default([]) }}"
   ignore_errors: true
-  shell: chcon -t dnsmasq_etc_t /infra/hosts/.{{ node_cluster }}.vip.tmp 2>/dev/null; mv /infra/hosts/.{{ node_cluster }}.vip.tmp /infra/hosts/{{ node_cluster }}.vip || true
-  args: { executable: /bin/bash }
+  command: mv /etc/dnsmasq.d/pigsty/.{{ node_cluster }}.vip.{{ nodename }}.tmp /etc/dnsmasq.d/pigsty/{{ node_cluster }}.vip
 
 
 #--------------------------------------------------------------#

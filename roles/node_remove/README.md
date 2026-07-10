@@ -89,7 +89,7 @@ The role removes:
 | Docker Target    | `/infra/targets/docker/<ip>.yml`                |
 | Ping Target      | `/infra/targets/ping/<ip>.yml`                  |
 | VIP Ping Target  | `/infra/targets/ping/<vip>---<ip>.yml`          |
-| VIP DNS          | `/infra/hosts/<cluster>.vip`                    |
+| VIP DNS          | `/etc/dnsmasq.d/pigsty/<cluster>.vip`           |
 | HAProxy Nginx    | `/etc/nginx/conf.d/haproxy/upstream-<name>.conf`|
 | HAProxy Nginx    | `/etc/nginx/conf.d/haproxy/location-<name>.conf`|
 | Vector Config    | `/etc/vector/node.yaml`                         |
