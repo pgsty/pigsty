@@ -2,7 +2,7 @@
 
 [![Website: pigsty.io](https://img.shields.io/badge/website-pigsty.io-slategray?style=flat&logo=cilium&logoColor=white)](https://pigsty.io)
 [![CN: pigsty.cc](https://img.shields.io/badge/CN-pigsty.cc-slategray?style=flat&logo=cilium&logoColor=white)](https://pigsty.cc)
-[![Version: v4.3.0](https://img.shields.io/badge/version-v4.3.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases)
+[![Version: v4.4.0](https://img.shields.io/badge/version-v4.4.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases)
 [![License: Apache-2.0](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://pigsty.io/docs/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
 [![Extensions: 531](https://img.shields.io/badge/extensions-531-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pigsty.io/ext/list)
@@ -12,20 +12,20 @@ Enterprise-Grade Open-Source **PostgreSQL** Distribution with HA, PITR, IaC, Mon
 
 > "**P**ostgreSQL **I**n **G**reat **STY**le": **P**ostgres, **I**nfras, **G**raphics, **S**ervice, **T**oolbox, it's all **Y**ours.
 
-[Website](https://pigsty.io) | [ORG](https://github.com/pgsty) | [PGEXT](https://pigsty.io/ext) | [AI INFRA](https://pigsty.io/docs/piglet) | [Public Demo](https://demo.pigsty.io) | [Blog](https://pigsty.io/blog/) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [中文](https://pigsty.cc/)
+[Website](https://pigsty.io) | [ORG](https://github.com/pgsty) | [PGEXT](https://pigsty.io/ext) | [Piglet](https://pigsty.io/docs/piglet) | [Public Demo](https://demo.pigsty.io) | [Blog](https://pigsty.io/blog/) | [Discuss](https://github.com/orgs/pgsty/discussions) | [Support](https://pigsty.io/price) | [Release Notes](https://pigsty.io/docs/about/release) | [中文](https://pigsty.cc/)
 
 [![banner](https://pigsty.io/img/pigsty/banner.png)](https://pigsty.io)
 
-Pigsty scales from [**laptop**](https://pigsty.io/docs/setup) to [**datacenter**](https://pigsty.io/docs/deploy). Enterprise-grade. Developer-friendly. [**Get Started**](https://pigsty.io/docs/setup/install) with the latest [**v4.3.0**](https://github.com/pgsty/pigsty/releases):
+Pigsty scales from [**laptop**](https://pigsty.io/docs/setup) to [**datacenter**](https://pigsty.io/docs/deploy). Enterprise-grade. Developer-friendly. [**Get Started**](https://pigsty.io/docs/setup/install) with the latest [**v4.4.0**](https://github.com/pgsty/pigsty/releases/tag/v4.4.0):
 
 ```bash
-curl -fsSL https://repo.pigsty.io/get | bash -s v4.3.0
+curl -fsSL https://repo.pigsty.io/get | bash -s v4.4.0
 ```
 
 
 ## Features
 
-- **Extensible**:   **531** [**PG Extensions**](https://pigsty.io/ext/list) & **12** [**PG Kernels**](https://pigsty.io/docs/pgsql/kernel) available, Packed for [**14 Linux Platforms**](https://pigsty.io/docs/ref/linux), Battery-Included.
+- **Extensible**:   **531** [**PG Extensions**](https://pigsty.io/ext/list) & **12** [**PG Kernels**](https://pigsty.io/docs/pgsql/kernel) available, Packed for [**16 Linux Platforms**](https://pigsty.io/docs/ref/linux), Battery-Included.
 - **Reliable**:     Self-healing [**HA**](https://pigsty.io/docs/concept/ha) clusters with pre-configured [**PITR**](https://pigsty.io/docs/pgsql/backup) and built-in [**ACL**](https://pigsty.io/docs/pgsql/config/acl), [**CA & SSL**](https://pigsty.io/docs/infra/admin/cert) secure best practice.
 - **Observable**:   SOTA monitoring for [**PG**](https://demo.pigsty.io/ui/d/pgrds-instance/pgrds-instance) / [**Infra**](https://pigsty.io/docs/infra) / [**Node**](https://pigsty.io/docs/node) based on the **Victoria** & **Grafana** stack: [**Demo**](https://demo.pigsty.io) & [**Gallery**](https://github.com/pgsty/pigsty/wiki/Gallery).
 - **Scalable**:     Auto-routed & pooled customizable database [**Services**](https://pigsty.io/docs/pgsql/service) [**Access**](https://pigsty.io/docs/pgsql/service#access-service) with **haproxy**, **pgbouncer**, and **VIP**.
@@ -81,7 +81,7 @@ And gather the synergistic superpowers of all [**531 PostgreSQL Extensions**](ht
 [![EL Support: 8/9/10](https://img.shields.io/badge/EL-8/9/10-red?style=flat&logo=redhat&logoColor=red)](https://pigsty.io/docs/ref/linux#el)
 [![Debian Support: 12/13](https://img.shields.io/badge/Debian-12/13-%23A81D33?style=flat&logo=debian&logoColor=%23A81D33)](https://pigsty.io/docs/ref/linux#debian)
 [![Ubuntu Support: 22/24/26](https://img.shields.io/badge/Ubuntu-22/24/26-%23E95420?style=flat&logo=ubuntu&logoColor=%23E95420)](https://pigsty.io/docs/ref/linux#ubuntu)
-[![Docker Image](https://img.shields.io/badge/Docker-v4.3.0-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/setup/docker)
+[![Docker Image](https://img.shields.io/badge/Docker-v4.4.0-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/setup/docker)
 
 [**Prepare**](https://pigsty.io/docs/deploy/prepare) a fresh `x86_64` / `aarch64` node runs any [**compatible**](https://pigsty.io/docs/ref/linux) **Linux** OS Distros, then [**Install**](https://pigsty.io/docs/setup/install#install) **Pigsty** with:
 
@@ -121,24 +121,24 @@ pig sty deploy   # run the deploy.yml playbook
 <details><summary>Install with get script</summary><br>
 
 ```bash
-[root@pg-meta ~]# curl -fsSL https://repo.pigsty.io/get | bash -s v4.3.0
-[v4.3.0] ===========================================
+[root@pg-meta ~]# curl -fsSL https://repo.pigsty.io/get | bash -s v4.4.0
+[v4.4.0] ===========================================
 $ curl -fsSL https://repo.pigsty.io/get | bash
 [Docs] https://pigsty.io/docs
 [Demo] https://demo.pigsty.io
 [Repo] https://github.com/pgsty/pigsty
 [Download] ===========================================
-[ OK ] version = v4.3.0 (from arg)
-curl -fSL https://repo.pigsty.io/src/pigsty-v4.3.0.tgz -o /tmp/pigsty-v4.3.0.tgz
+[ OK ] version = v4.4.0 (from arg)
+curl -fSL https://repo.pigsty.io/src/pigsty-v4.4.0.tgz -o /tmp/pigsty-v4.4.0.tgz
 ######################################################################## 100.0%
-[ OK ] md5sums = 53cb5980f9XXXXX1fbb832d7ee2fc93a  /tmp/pigsty-v4.3.0.tgz
+[ OK ] md5sums = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  /tmp/pigsty-v4.4.0.tgz
 [Install] ===========================================
 [WARN] os user = root , it's recommended to use a non-root sudo-able admin
-[ OK ] install = /root/pigsty, from /tmp/pigsty-v4.3.0.tgz
+[ OK ] install = /root/pigsty, from /tmp/pigsty-v4.4.0.tgz
 
 [Bootstrap] ===========================================
 [WARN] ansible = not found, bootstrap
-bootstrap pigsty v4.3.0 begin
+bootstrap pigsty v4.4.0 begin
 [ OK ] region = china
 [ OK ] kernel  = Linux
 [ OK ] machine = x86_64
@@ -175,7 +175,7 @@ proceed with ./configure
 > HINT: To install a specific version, pass the version string as the first parameter:
 >
 > ```bash
-> curl -fsSL https://repo.pigsty.io/get | bash -s v4.3.0
+> curl -fsSL https://repo.pigsty.io/get | bash -s v4.4.0
 > ```
 
 </details>
@@ -186,7 +186,7 @@ proceed with ./configure
 You can also download the pigsty source with `git`, remember to check out a specific version tag, the `main` branch is for development.
 
 ```bash
-git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v4.3.0
+git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v4.4.0
 ```
 
 </details>
@@ -441,7 +441,7 @@ pg-meta:      # 3 instance postgres cluster `pg-meta`
       - {name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [pigsty] ,extensions: [{name: postgis, schema: public}, {name: timescaledb}]}
     pg_default_service_dest: postgres
     pg_services:
-      - { name: standby ,src_ip: "*" ,port: 5435 , dest: default ,selector: "[]" , backup: "[? pg_role == `primary`]" }
+      - { name: standby ,ip: "*" ,port: 5435 , dest: default ,selector: "[]" , backup: "[? pg_role == `primary`]" }
     pg_vip_enabled: true
     pg_vip_address: 10.10.10.2/24
     pg_listen: '${ip},${vip},${lo}'
@@ -552,7 +552,8 @@ The [`conf/supabase.yml`](https://github.com/pgsty/pigsty/blob/main/conf/supabas
 
 ```yaml
 pg-meta:
-  hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
+  hosts:
+    10.10.10.10: { pg_seq: 1, pg_role: primary }
   vars:
     pg_cluster: pg-meta
     pg_users:
@@ -568,38 +569,47 @@ pg-meta:
       - { name: supabase_storage_admin     ,password: 'DBUser.Supa' ,pgbouncer: true ,inherit: false  ,roles: [ dbrole_admin, authenticated ,anon ,service_role ] ,createrole: true }
       - { name: supabase_functions_admin   ,password: 'DBUser.Supa' ,pgbouncer: true ,inherit: false  ,roles: [ dbrole_admin ] ,createrole: true }
       - { name: supabase_replication_admin ,password: 'DBUser.Supa' ,replication: true ,roles: [ dbrole_admin ]}
-      - { name: supabase_read_only_user    ,password: 'DBUser.Supa' ,bypassrls: true ,roles: [ dbrole_readonly, pg_read_all_data ] }
+      - { name: supabase_etl_admin         ,password: 'DBUser.Supa' ,replication: true ,roles: [ pg_read_all_data, dbrole_readonly ]}
+      - { name: supabase_read_only_user    ,password: 'DBUser.Supa' ,bypassrls: true ,roles:   [ pg_read_all_data, dbrole_readonly ]}
     pg_databases:
       - name: postgres
         baseline: supabase.sql
         owner: supabase_admin
         comment: supabase postgres database
-        schemas: [ extensions ,auth ,realtime ,storage ,graphql_public ,supabase_functions ,_analytics ,_realtime ]
+        schemas: [ extensions ,auth ,realtime ,storage ,graphql_public ,supabase_functions ,_realtime ]
         extensions:
-          - { name: pgcrypto  ,schema: extensions } # cryptographic functions
-          - { name: pg_net    ,schema: extensions } # async HTTP
-          - { name: pgjwt     ,schema: extensions } # json web token API for postgres
-          - { name: uuid-ossp ,schema: extensions } # generate universally unique identifiers (UUIDs)
-          - { name: pgsodium        }               # pgsodium is a modern cryptography library for Postgres.
-          - { name: supabase_vault  }               # Supabase Vault Extension
-          - { name: pg_graphql      }               # pg_graphql: GraphQL support
-          - { name: pg_jsonschema   }               # pg_jsonschema: Validate json schema
-          - { name: wrappers        }               # wrappers: FDW collections
-          - { name: http            }               # http: allows web page retrieval inside the database.
-          - { name: pg_cron         }               # pg_cron: Job scheduler for PostgreSQL
-          - { name: timescaledb     }               # timescaledb: Enables scalable inserts and complex queries for time-series data
-          - { name: pg_tle          }               # pg_tle: Trusted Language Extensions for PostgreSQL
-          - { name: vector          }               # pgvector: the vector similarity search
-          - { name: pgmq            }               # pgmq: A lightweight message queue like AWS SQS and RSMQ
+          - { name: pgcrypto         ,schema: extensions } # cryptographic functions
+          - { name: pg_net           ,schema: extensions } # async HTTP
+          - { name: pgjwt            ,schema: extensions } # json web token API for postgres
+          - { name: uuid-ossp        ,schema: extensions } # generate universally unique identifiers (UUIDs)
+          - { name: pgsodium         ,schema: extensions } # pgsodium is a modern cryptography library for Postgres.
+          - { name: supabase_vault   ,schema: extensions } # Supabase Vault Extension
+          - { name: pg_jsonschema    ,schema: extensions } # pg_jsonschema: Validate json schema
+          - { name: wrappers         ,schema: extensions } # wrappers: FDW collections
+          - { name: http             ,schema: extensions } # http: allows web page retrieval inside the database.
+          - { name: pg_cron          ,schema: extensions } # pg_cron: Job scheduler for PostgreSQL
+          - { name: timescaledb      ,schema: extensions } # timescaledb: Enables scalable inserts and complex queries for time-series data
+          - { name: pg_tle           ,schema: extensions } # pg_tle: Trusted Language Extensions for PostgreSQL
+          - { name: vector           ,schema: extensions } # pgvector: the vector similarity search
+          - { name: pgmq             ,schema: extensions } # pgmq: A lightweight message queue like AWS SQS and RSMQ
+      - name: _supabase
+        owner: supabase_admin
+        comment: supabase internal analytics database
+        schemas: [ _analytics ]
+        extensions:
+          - { name: pgcrypto         ,schema: extensions } # cryptographic functions
     # supabase required extensions
-    pg_libs: 'timescaledb, plpgsql, plpgsql_check, pg_cron, pg_net, pg_stat_statements, auto_explain, pg_tle, plan_filter'
-    pg_parameters:
-      cron.database_name: postgres
-      pgsodium.enable_event_trigger: off
+    pg_libs: 'timescaledb, pgsodium, plpgsql, plpgsql_check, pg_cron, pg_net, pg_stat_statements, auto_explain, pg_wait_sampling, pg_tle, plan_filter'
+    pg_extensions: [ pg18-main ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
+    pg_parameters: { cron.database_name: postgres }
     pg_hba_rules: # supabase hba rules, require access from docker network
-      - { user: all ,db: postgres  ,addr: intra         ,auth: pwd ,title: 'allow supabase access from intranet'    }
-      - { user: all ,db: postgres  ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow access from local docker network' }
-    pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
+      - { user: all ,db: postgres  ,addr: intra         ,auth: pwd ,title: 'allow supabase access from intranet'    ,order: 50 }
+      - { user: all ,db: postgres  ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow access from local docker network' ,order: 50 }
+      - { user: all ,db: _supabase ,addr: intra         ,auth: pwd ,title: 'allow supabase internal access from intranet'    ,order: 50 }
+      - { user: all ,db: _supabase ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow internal access from local docker network' ,order: 50 }
+    pg_crontab:
+      - '00 01 * * * /pg/bin/pg-backup full'  # make a full backup every 1am
+      - '*  *  * * * /pg/bin/supa-kick'       # kick supabase _analytics lag per minute: https://github.com/pgsty/pigsty/issues/581
 ```
 
 ![](https://pigsty.io/img/docs/supa-home.png)
@@ -631,13 +641,14 @@ Pigsty runs directly on bare Linux, and focuses on actively maintained mainstrea
 |:--------:|-------------------------|---------|:---------------------------------------------------:|:-----------------------------------------------------:|
 | **EL10** | RHEL / Rocky / Alma 10  | 10.1    | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) |
 | **EL9**  | RHEL / Rocky / Alma 9   | 9.7     |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  |
+| **EL8**  | RHEL / Rocky / Alma 8   | 8.10    |  [`el8.x86_64`](roles/node_id/vars/el8.x86_64.yml)  |  [`el8.aarch64`](roles/node_id/vars/el8.aarch64.yml)  |
 | **U26**  | Ubuntu 26.04 (resolute) | 26.04.0 |  [`u26.x86_64`](roles/node_id/vars/u26.x86_64.yml)  |  [`u26.aarch64`](roles/node_id/vars/u26.aarch64.yml)  |
 | **U24**  | Ubuntu 24.04 (noble)    | 24.04.4 |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  |
 | **U22**  | Ubuntu 22.04 (jammy)    | 22.04.5 |  [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml)  |  [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml)  |
 | **D13**  | Debian 13 (trixie)      | 13.5    |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |
 | **D12**  | Debian 12 (bookworm)    | 12.14   |  [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml)  |  [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml)  |
 
-> ⚠️ EL 9.8/10.2 upstream is broken, wait until fixed.
+> ⚠️ EL 9/10 are pinned to 9.7/10.1 because newer upstream minors are currently broken.
 
 
 ## Sponsor

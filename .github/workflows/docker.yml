@@ -2,7 +2,7 @@
 # File      :   docker.yml
 # Desc      :   Build and push Docker images to Docker Hub
 # Ctime     :   2025-01-27
-# Mtime     :   2025-01-27
+# Mtime     :   2026-07-10
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -11,7 +11,7 @@
 # and pushes them to Docker Hub under pgsty/pigsty.
 #
 # Triggers:
-#   - On tag push matching 'v*.*.*' pattern (e.g., v4.2.1)
+#   - On tag push matching 'v*.*.*' pattern (e.g., v4.4.0)
 #   - Manual trigger via workflow_dispatch
 #
 # Required secrets:
@@ -19,7 +19,7 @@
 #   - DOCKERHUB_TOKEN: Docker Hub access token (not password)
 #
 # Images produced:
-#   - pgsty/pigsty:v4.2.1 (version tag)
+#   - pgsty/pigsty:v4.4.0 (version tag)
 #   - pgsty/pigsty:latest (only for release tags)
 #
 #==============================================================#
@@ -33,9 +33,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version tag (e.g., v4.2.1)'
+        description: 'Version tag (e.g., v4.4.0)'
         required: true
-        default: 'v4.2.1'
+        default: 'v4.4.0'
       push_latest:
         description: 'Also tag as latest?'
         required: true
@@ -73,12 +73,10 @@ jobs:
             VERSION="${{ github.event.inputs.version }}"
             PUSH_LATEST="${{ github.event.inputs.push_latest }}"
           else
-            # Extract version from git tag (refs/tags/v4.2.1 -> v4.2.1)
             VERSION="${GITHUB_REF#refs/tags/}"
             PUSH_LATEST="true"
           fi
 
-          # Remove 'v' prefix for Docker build arg (v4.2.1 -> 4.2.1)
           VERSION_NUM="${VERSION#v}"
 
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
@@ -113,7 +111,6 @@ jobs:
         with:
           images: ${{ env.IMAGE_NAME }}
           tags: |
-            # Version tag (e.g., v4.2.1)
             type=raw,value=${{ steps.version.outputs.version }}
             # Latest tag (only when push_latest is true)
             type=raw,value=latest,enable=${{ steps.version.outputs.push_latest == 'true' }}
