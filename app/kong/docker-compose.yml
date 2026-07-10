@@ -16,8 +16,6 @@ services:
       KONG_PROXY_LISTEN: 0.0.0.0:${KONG_PORT}
       KONG_PROXY_LISTEN_SSL: 0.0.0.0:${KONG_PORT_SSL}
       KONG_ADMIN_LISTEN: 0.0.0.0:${KONG_ADMIN_PORT}
-    depends_on:
-      - kong-migration
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://kong:${KONG_ADMIN_PORT}" ]
       interval: 5s
@@ -30,10 +28,10 @@ services:
 
   # Kong database migration task
   kong-migration: # one time job
-    container_name: kong-migration
     image: kong:latest
+    profiles: ["bootstrap"]
     command: "kong migrations bootstrap"
-    restart: on-failure
+    restart: "no"
     environment:
       KONG_DATABASE: ${KONG_DATABASE}
       KONG_PG_HOST: ${KONG_PG_HOST}

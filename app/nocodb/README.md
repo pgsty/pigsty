@@ -2,6 +2,9 @@
 
 Open Source Airtable Alternative: https://nocodb.com/
 
+This is a minimal single-container example, not NocoDB's full production
+reference architecture. `DATABASE_URL` remains supported here for compatibility.
+
 ```bash
 # do not forget to check app/nocodb/.env before make up
 cd app/nocodb; make up

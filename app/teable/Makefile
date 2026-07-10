@@ -1,3 +1,6 @@
+-include .env
+export
+
 default: up view
 
 DOCKER_IMAGE_DIR=/tmp/docker/
@@ -6,7 +9,8 @@ up: view
 	docker compose up -d
 
 view:
-	cat .env
+	@echo "visit $(PUBLIC_ORIGIN) or http://10.10.10.10:$(TEABLE_PORT)"
+	@echo "persistent assets: $(TEABLE_DATA)"
 
 log:
 	docker compose logs -f
@@ -19,9 +23,7 @@ stop:
 	docker compose down
 
 clean:
-	docker compose rm
-	sudo rm -rf volumes/app;
-	@echo "dont' forget to nuke the teable database in postgres"
+	docker compose down --remove-orphans
 
 pull:
 	docker compose pull
@@ -35,3 +37,5 @@ tarball: save
 
 load:
 	cat $(DOCKER_IMAGE_DIR)/teable.tgz | gzip -d -c - | docker load
+
+.PHONY: default up view log info down stop clean pull save tarball load

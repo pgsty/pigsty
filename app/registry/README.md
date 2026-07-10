@@ -141,8 +141,8 @@ make health      # Test health
 make catalog     # Show cached images
 make backup      # Backup data
 make du          # Show disk usage
-make prune       # Clean up unused data
-make clean       # Remove all data
+make clean       # Remove services, preserving registry data
+make purge       # Remove services and all registry data
 ```
 
 ## Monitoring
@@ -152,7 +152,9 @@ make clean       # Remove all data
 The registry provides health endpoints:
 
 - `GET /v2/` - Registry API version
-- `GET /debug/health` - Detailed health status
+
+The storage-driver health stanza in `config.yml` feeds the registry's internal
+health checks; it does not enable a public `/debug/health` endpoint.
 
 ### Web UI
 
@@ -237,8 +239,9 @@ server {
    # Check disk usage
    make du
    
-   # Clean up unused images
-   make prune
+   # Review usage, then explicitly purge the cache only if all data can be deleted
+   make du
+   make purge
    ```
 
 ### Performance Tuning

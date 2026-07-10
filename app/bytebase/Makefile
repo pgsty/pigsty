@@ -50,4 +50,4 @@ save:
 load:
 	cat /tmp/docker/bytebase.tgz | gzip -d -c - | docker load
 
-.PHONY: default up run view log info stop clean conf dump pull rmi save load
+.PHONY: default up run view log info pg stop clean pull rmi save load

@@ -3,7 +3,6 @@
 Here are some docker compose templates for popular applications that works well with PostgreSQL
 
 * [Supabase](supabase/) : The open source Firebase alternative, built on Postgres
-* [FerretDB](ferretdb/) : Open Source MongoDB alternative, built on Postgres
 * [PgAdmin4](pgadmin/) : Postgres Admin Tools
 * [PgWeb](pgweb/) : Postgres Web Console
 * [ByteBase](bytebase/) : Postgres DDL Migration
@@ -19,7 +18,16 @@ Here are some docker compose templates for popular applications that works well 
 * [Maybe](maybe/) : Self-hosted personal finance app with Pigsty PostgreSQL
 * [JumpServer](jumpserver/) : Open-source PAM / bastion host with Pigsty PostgreSQL
 * [Jupyter](jupyter/) : Run jupyter notebook, the data analysis IDE with docker
+* [Electric](electric/) : Postgres sync engine for frontend applications
+* [Hindsight](hindsight/) : Agent memory service backed by Postgres
+* [InsForge](insforge/) : Backend platform built on Postgres
+* [Mattermost](mattermost/) : Self-hosted team collaboration service
+* [MinIO](minio/) : S3-compatible object storage
+* [PG Exporter](pg_exporter/) : PostgreSQL metrics exporter
+* [Registry](registry/) : Docker Registry pull-through cache and UI
+* [Teable](teable/) : AI-enabled no-code database
 * etc....
+
 
 
 **Docker**
@@ -29,7 +37,7 @@ If you wish to use a mirror, add them to `docker_registry_mirrors`. To use anoth
 
 ```bash
 docker login quay.io
-````
+```
 
 
 **Portals**
@@ -59,10 +67,10 @@ jumpserver: { domain: jump.pigsty  ,endpoint: "127.0.0.1:8080" ,websocket: true 
 ```bash
 docker pull dpage/pgadmin4
 docker pull sosedoff/pgweb
-docker pull vonng/pg_exporter
+docker pull pgsty/pg_exporter
 docker pull postgrest/postgrest
 docker pull bytebase/bytebase
-docker pull jupyter/minimal-notebook
+docker pull quay.io/jupyter/minimal-notebook:latest
 #docker pull jupyter/scipy-notebook:latest 
 docker pull alpine
 docker pull registry:3.1.1
@@ -72,7 +80,6 @@ docker pull requarks/wiki
 docker pull gitea/gitea
 docker pull kong
 docker pull odoo
-docker pull quay.io/ferretdb/ferretdb
 docker pull ghcr.io/immich-app/immich-server:v3
 docker pull ghcr.io/immich-app/immich-machine-learning:v3
 docker pull docker.io/valkey/valkey:9
@@ -93,10 +100,10 @@ docker pull redis:7.4.6-bookworm
 mkdir -p /tmp/docker
 docker save dpage/pgadmin4                   | gzip -9 -c > /tmp/docker/pgadmin4.tgz
 docker save sosedoff/pgweb                   | gzip -9 -c > /tmp/docker/pgweb.tgz
-docker save vonng/pg_exporter                | gzip -9 -c > /tmp/docker/pg_exporter.tgz
+docker save pgsty/pg_exporter                | gzip -9 -c > /tmp/docker/pg_exporter.tgz
 docker save postgrest/postgrest              | gzip -9 -c > /tmp/docker/postgrest.tgz
 docker save bytebase/bytebase                | gzip -9 -c > /tmp/docker/bytebase.tgz
-docker save jupyter/minimal-notebook         | gzip -9 -c > /tmp/docker/jupyter.tgz
+docker save quay.io/jupyter/minimal-notebook:latest | gzip -9 -c > /tmp/docker/jupyter.tgz
 docker save alpine                           | gzip -9 -c > /tmp/docker/alpine.tgz
 docker save registry:3.1.1                   | gzip -9 -c > /tmp/docker/registry.tgz
 docker save joxit/docker-registry-ui:2.6.0   | gzip -9 -c > /tmp/docker/registry-ui.tgz
@@ -105,7 +112,6 @@ docker save requarks/wiki                    | gzip -9 -c > /tmp/docker/wiki.tgz
 docker save gitea/gitea                      | gzip -9 -c > /tmp/docker/gitea.tgz
 docker save kong                             | gzip -9 -c > /tmp/docker/kong.tgz
 docker save odoo                             | gzip -9 -c > /tmp/docker/odoo.tgz
-docker save quay.io/ferretdb/ferretdb        | gzip -9 -c > /tmp/docker/ferretdb.tgz
 docker save nocodb/nocodb                    | gzip -9 -c > /tmp/docker/nocodb.tgz
 docker save ghcr.io/immich-app/immich-server:v3           | gzip -9 -c > /tmp/docker/immich-server.tgz
 docker save ghcr.io/immich-app/immich-machine-learning:v3 | gzip -9 -c > /tmp/docker/immich-machine-learning.tgz
@@ -136,6 +142,7 @@ cat /tmp/docker/kong.tgz         | gzip -d -c - | docker load;
 cat /tmp/docker/odoo.tgz         | gzip -d -c - | docker load;
 cat /tmp/docker/alpine.tgz       | gzip -d -c - | docker load;
 cat /tmp/docker/registry.tgz     | gzip -d -c - | docker load;
+cat /tmp/docker/registry-ui.tgz  | gzip -d -c - | docker load;
 cat /tmp/docker/schemaspy.tgz    | gzip -d -c - | docker load;
 cat /tmp/docker/nocodb.tgz       | gzip -d -c - | docker load;
 cat /tmp/docker/immich-server.tgz           | gzip -d -c - | docker load;

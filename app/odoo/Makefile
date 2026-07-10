@@ -1,3 +1,6 @@
+-include .env
+export
+
 default: init up view
 
 # init odoo dir & database schema
@@ -40,7 +43,7 @@ info:
 
 save:
 	mkdir -p /tmp/docker
-	docker save odoo/odoo:19.0 | gzip -9 -c > /tmp/docker/odoo.tgz
+	docker save odoo:$(ODOO_VERSION) | gzip -9 -c > /tmp/docker/odoo.tgz
 load:
 	cat /tmp/docker/odoo.tgz | gzip -d -c - | docker load
 

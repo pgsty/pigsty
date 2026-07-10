@@ -9,7 +9,7 @@ up: view
 
 view:
 	@echo "visit http://photo.pigsty or http://10.10.10.10:$$(grep -E '^IMMICH_HOST_PORT=' .env | cut -d= -f2)"
-	@grep -E '^(IMMICH_VERSION|IMMICH_HOST_PORT|UPLOAD_LOCATION|DB_URL|DB_VECTOR_EXTENSION|REDIS_HOSTNAME|REDIS_PORT)=' .env
+	@grep -E '^(IMMICH_VERSION|IMMICH_HOST_PORT|UPLOAD_LOCATION|DB_VECTOR_EXTENSION|REDIS_HOSTNAME|REDIS_PORT)=' .env
 
 log logs:
 	docker compose logs -f

@@ -1,3 +1,6 @@
+-include .env
+export
+
 default: up view
 
 up: view
@@ -7,12 +10,15 @@ up: view
 dir:
 	sudo mkdir -p /data/jupyter; sudo chown -R 1000:100 /data/jupyter
 
-run:
-	docker run --init --name jupyter --restart always --detach --publish 8886:8081 sosedoff/jupyter
+run: dir
+	docker run --init --name jupyter --restart always --detach \
+		--publish $(JUPYTER_PORT):8888 \
+		--volume /data/jupyter:/home/jovyan/work \
+		--env JUPYTER_TOKEN=$(JUPYTER_TOKEN) \
+		$(JUPYTER_IMAGE)
 
 view:
-	@echo "visit http://cli.pigsty  or  http://10.10.10.10:8886"
-	@echo "example url: postgres://dbuser_meta:DBUser.Meta@10.10.10.10:5432/meta?sslmode=disable"
+	@echo "visit http://lab.pigsty  or  http://10.10.10.10:$(JUPYTER_PORT)"
 
 log:
 	docker logs -f jupyter
@@ -34,13 +40,13 @@ pull:
 	docker compose pull
 
 rmi:
-	docker rmi jupyter/minimal-notebook
+	docker rmi $(JUPYTER_IMAGE)
 
 save:
 	mkdir -p /tmp/docker
-	docker save sosedoff/jupyter | gzip -9 -c > /tmp/docker/jupyter.tgz
+	docker save $(JUPYTER_IMAGE) | gzip -9 -c > /tmp/docker/jupyter.tgz
 
 load:
 	cat /tmp/docker/jupyter.tgz | gzip -d -c - | docker load
 
-.PHONY: default up run view log info stop clean pull rmi save load
+.PHONY: default up dir run view log info stop clean purge pull rmi save load

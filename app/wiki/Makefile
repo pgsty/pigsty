@@ -31,4 +31,4 @@ save:
 load:
 	cat /tmp/docker/wiki.tgz | gzip -d -c - | docker load
 
-.PHONY: default up run view log info stop clean pull rmi save load
+.PHONY: default up view log info stop clean pull rmi save load

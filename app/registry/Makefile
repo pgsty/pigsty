@@ -2,8 +2,12 @@
 
 # Registry app management commands
 APP = registry
-APP_DIR = /opt/$(APP)
-DATA_DIR = /data/$(APP)
+APP_DIR ?= $(CURDIR)
+
+-include .env
+REGISTRY_DATA ?= /data/$(APP)
+DATA_DIR ?= $(REGISTRY_DATA)
+REGISTRY_PORT ?= 5000
 
 #==============================================================#
 # Docker Registry Mirror Management
@@ -17,8 +21,7 @@ dir:
 
 # show effective registry configuration
 conf:
-	@touch .env
-	@grep -E '^(REGISTRY_IMAGE|REGISTRY_UI_IMAGE|REGISTRY_DATA|REGISTRY_PORT|REGISTRY_UI_PORT|REGISTRY_STORAGE_DELETE_ENABLED|REGISTRY_LOG_LEVEL|REGISTRY_PROXY_REMOTEURL|REGISTRY_PROXY_TTL)=' .env || true
+	@grep -E '^(REGISTRY_IMAGE|REGISTRY_UI_IMAGE|REGISTRY_DATA|REGISTRY_PORT|REGISTRY_UI_PORT|REGISTRY_STORAGE_DELETE_ENABLED|REGISTRY_LOG_LEVEL|REGISTRY_PROXY_REMOTEURL|REGISTRY_PROXY_TTL)=' .env 2>/dev/null || true
 
 
 # launch the registry service
@@ -32,10 +35,14 @@ down:
 # restart the registry service
 restart: down up
 
-# remove the registry service and data
-clean: down
+# remove the registry service; cached data is preserved
+clean:
 	cd $(APP_DIR) && docker compose down -v
-	rm -rf $(DATA_DIR)/*
+
+# explicitly remove all cached registry data
+purge: clean
+	@test -n "$(DATA_DIR)" && test "$(DATA_DIR)" != "/"
+	rm -rf -- "$(DATA_DIR)"/*
 
 # show registry service status
 status:
@@ -52,12 +59,12 @@ pull:
 # test registry health
 health:
 	@echo "Testing registry health..."
-	@curl -f http://localhost:5000/v2/ && echo "Registry is healthy" || echo "Registry is not responding"
+	@curl -f http://localhost:$(REGISTRY_PORT)/v2/ && echo "Registry is healthy" || echo "Registry is not responding"
 
 # show registry catalog
 catalog:
 	@echo "Registry catalog:"
-	@curl -s http://localhost:5000/v2/_catalog | jq '.' 2>/dev/null || curl -s http://localhost:5000/v2/_catalog
+	@curl -s http://localhost:$(REGISTRY_PORT)/v2/_catalog | jq '.' 2>/dev/null || curl -s http://localhost:$(REGISTRY_PORT)/v2/_catalog
 
 # backup registry data
 backup:
@@ -68,11 +75,6 @@ backup:
 du:
 	@echo "Registry data disk usage:"
 	@du -sh $(DATA_DIR) 2>/dev/null || echo "Data directory not found"
-
-# clean up unused data
-prune:
-	cd $(APP_DIR) && docker system prune -f
-	cd $(APP_DIR) && docker volume prune -f
 
 #==============================================================#
 # Helper commands
@@ -86,11 +88,11 @@ help:
 	@echo "  restart  - Restart registry service"
 	@echo "  status   - Show service status"
 	@echo "  log      - Show service logs"
-	@echo "  clean    - Remove service and data"
+	@echo "  clean    - Remove services while preserving registry data"
+	@echo "  purge    - Remove services and all registry data"
 	@echo "  health   - Test registry health"
 	@echo "  catalog  - Show registry catalog"
 	@echo "  backup   - Backup registry data"
 	@echo "  du       - Show disk usage"
-	@echo "  prune    - Clean up unused data"
 
-.PHONY: default dir conf up down restart clean status log pull health catalog backup du prune help
+.PHONY: default dir conf up down restart clean purge status log pull health catalog backup du help

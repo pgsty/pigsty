@@ -12,7 +12,7 @@ run:
           -e "MB_DB_USER=dbuser_meta" \
           -e "MB_DB_PASS=DBUser.Meta" \
           -e "MB_DB_HOST=10.10.10.10" \
-           --name metabase metabase/metabase
+          metabase/metabase
 
 view:
 	@echo "visit http://mtbs.pigsty  or  http://10.10.10.10:9004"
@@ -42,4 +42,4 @@ save:
 load:
 	cat /tmp/docker/metabase.tgz | gzip -d -c - | docker load
 
-.PHONY: default up run view log info stop clean conf dump pull rmi save load
+.PHONY: default up run view log info stop clean pull rmi save load

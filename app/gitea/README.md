@@ -40,7 +40,6 @@ Visit [http://git.pigsty](http://git.pigsty) or http://10.10.10.10:8889 and foll
 
 ```bash
 make up      # pull up gitea with docker compose in minimal mode
-make run     # launch gitea with docker , local data dir and external PostgreSQL
 make view    # print gitea access point
 make log     # tail -f gitea logs
 make info    # introspect gitea with jq

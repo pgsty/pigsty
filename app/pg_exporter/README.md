@@ -34,10 +34,10 @@ systemctl stop pg_exporter # stop existing pg_exporter on bare metal
 docker run --init --name pg_exporter -p 9632:9630 \
     -e PG_EXPORTER_URL='postgres://dbuser_dba:DBUser.DBA@10.10.10.10:5432/postgres?sslmode=disable' \
     -e PG_EXPORTER_AUTO_DISCOVERY='true' \
-    vonng/pg_exporter
+    pgsty/pg_exporter
 ```
 
 ```bash
-curl http://127.0.0.1:9630/metrics  # get metrics from pg_exporter inside docker
+curl http://127.0.0.1:9632/metrics  # default host port; container listens on 9630
 make view   # or use the shortcut
 ```

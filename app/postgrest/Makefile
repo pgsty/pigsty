@@ -1,16 +1,27 @@
+-include .env
+export
+
 default: up view
 
 up: view
 	docker compose up -d
 
 run:
-	docker run --init --name postgrest --restart always --detach --publish 8884:8081 postgrest/postgrest
+	docker run --init --name postgrest --restart always --detach \
+		--publish $(POSTGREST_SERVER_PORT):$(POSTGREST_SERVER_PORT) \
+		--env PGRST_DB_URI=$(POSTGREST_DB_URI) \
+		--env PGRST_DB_SCHEMA=$(POSTGREST_DB_SCHEMA) \
+		--env PGRST_DB_ANON_ROLE=$(POSTGREST_DB_ANON_ROLE) \
+		--env PGRST_SERVER_PORT=$(POSTGREST_SERVER_PORT) \
+		--env PGRST_JWT_SECRET=$(POSTGREST_JWT_SECRET) \
+		postgrest/postgrest
 
 ui:
-	docker run --init --name pgweb --name swagger -p 8882:8080 -e API_URL=http://10.10.10.10:8884 swaggerapi/swagger-ui
+	docker run --init --name swagger -d -p 8883:8080 \
+		-e API_URL=http://10.10.10.10:$(POSTGREST_SERVER_PORT) swaggerapi/swagger-ui
 
 view:
-	@echo "visit http://10.10.10.10:8884 for API Spec"
+	@echo "visit http://10.10.10.10:$(POSTGREST_SERVER_PORT) for API Spec"
 
 log:
 	docker logs -f postgrest
@@ -25,7 +36,7 @@ clean:
 	docker stop postgrest; docker rm -f postgrest
 
 rmui:
-	docker stop swagger; docker rm swagger
+	docker rm -f swagger
 
 pull:
 	docker pull postgrest/postgrest

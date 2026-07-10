@@ -40,4 +40,4 @@ save:
 load:
 	cat /tmp/docker/gitea.tgz | gzip -d -c - | docker load
 
-.PHONY: default up run view log info stop clean pull rmi save load
+.PHONY: default up view log info pg stop clean pull rmi rmdata save load

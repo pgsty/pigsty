@@ -1,13 +1,16 @@
+-include .env
+
 default: up
 
 up:
 	docker compose up -d
 
 run:
-	docker run --init --name pg_exporter -p 9632:9630 -e PG_EXPORTER_URL='postgres://dbuser_dba:DBUser.DBA@10.10.10.10:5432/postgres?sslmode=disable' vonng/pg_exporter
+	docker run --init --name pg_exporter -p $(PG_EXPORTER_PORT):9630 \
+		-e PG_EXPORTER_URL=$(PG_EXPORTER_URL) pgsty/pg_exporter
 
 view:
-	curl http://localhost:9632/metrics
+	curl http://localhost:$(PG_EXPORTER_PORT)/metrics
 
 log:
 	docker logs -f pg_exporter
@@ -22,14 +25,14 @@ clean:
 	docker stop pg_exporter; docker rm -f pg_exporter
 
 pull:
-	docker pull vonng/pg_exporter
+	docker pull pgsty/pg_exporter
 
 rmi:
-	docker rmi vonng/pg_exporter
+	docker rmi pgsty/pg_exporter
 
 save:
 	mkdir -p /tmp/docker
-	docker save Vonng/pg_exporter | gzip -9 -c > /tmp/docker/pg_exporter.tgz
+	docker save pgsty/pg_exporter | gzip -9 -c > /tmp/docker/pg_exporter.tgz
 
 load:
 	cat /tmp/docker/pg_exporter.tgz | gzip -d -c - | docker load

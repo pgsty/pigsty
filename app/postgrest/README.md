@@ -39,7 +39,7 @@ make load       # load postgrest image from /tmp/docker/postgrest.tgz
 Launch a swagger OpenAPI UI and visualize PostgREST API on 8883 with: 
 
 ```bash
-docker run --init --name postgrest --name swagger -p 8883:8080 -e API_URL=http://10.10.10.10:8884 swaggerapi/swagger-ui
+docker run --init --name swagger -p 8883:8080 -e API_URL=http://10.10.10.10:8884 swaggerapi/swagger-ui
 # docker run -d -e API_URL=http://10.10.10.10:8884 -p 8883:8080 swaggerapi/swagger-editor # swagger editor
 ```
 

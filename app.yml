@@ -4,7 +4,7 @@
 # File      :   app.yml
 # Desc      :   copy and launch docker compose app
 # Ctime     :   2025-01-11
-# Mtime     :   2025-06-17
+# Mtime     :   2026-07-10
 # Path      :   app.yml
 # Docs      :   https://pigsty.io/docs/app
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -75,10 +75,12 @@
             fail_msg: "docker_enabled is required to install app"
 
         - name: fetch app definition
+          no_log: true
           set_fact:
             app_def: "{{ apps[app] | default({}) }}"
 
         - name: set app properties
+          no_log: true
           set_fact:
             app_name: "{{ app }}"
             app_src:  "{{ app_def.src | default(playbook_dir + '/app/' + app) }}" # override src name with app.src
@@ -89,7 +91,7 @@
 
         - name: print app details
           debug:
-            msg: "app: {{ app_name }}, src: {{ app_src }}, dest: {{ app_dest }}, conf: {{ app_conf }}, file: {{ app_file }}"
+            msg: "app: {{ app_name }}, src: {{ app_src }}, dest: {{ app_dest }}, conf keys: {{ app_conf.keys() | list }}, file: {{ app_file }}"
 
     #----------------------------------------------------------#
     # Install app resources to /opt                [app_install]
@@ -112,15 +114,17 @@
     #----------------------------------------------------------#
     # Configure app with .env                       [app_config]
     #----------------------------------------------------------#
-    # append entries to app .env config (override existing entries)
+    # write runtime overrides without exposing values; protect the file when secrets are materialized
     - name: configure app by updating .env
       tags: app_config
       when: app_conf | length > 0
+      no_log: true
       lineinfile:
         path: "{{ app_dest }}/.env"
         regexp: '^{{ item.key | upper }}='
         line: '{{ item.key | upper }}={{ item.value if item.value is not boolean else item.value | string | lower }}'
         create: yes
+        mode: '0600'
       loop: "{{ app_conf | dict2items }}"
 
     #----------------------------------------------------------#

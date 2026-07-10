@@ -57,6 +57,6 @@ services:
       MB_DB_HOST: "${MB_DB_HOST}"
     restart: always
     ports:
-      - ${MB_PORT}:8080
+      - "${MB_PORT}:3000"
 
 ```

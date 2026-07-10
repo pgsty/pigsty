@@ -7,7 +7,7 @@ platform.
 
 ## TL;DR
 
-Check [`.env](.env) for postgres credentials and ports:
+Check [`.env`](.env) for postgres credentials and ports:
 
 ```bash
 #https://hub.docker.com/_/kong
@@ -21,10 +21,12 @@ KONG_PORT_SSL=8443
 KONG_ADMIN_PORT=8001
 ```
 
-Then launch kong with:
+Bootstrap a new, empty Kong database once, then launch Kong:
 
 ```bash
-cd app/kong ; make up
+cd app/kong
+make bootstrap   # only for a fresh database; this is not an upgrade command
+make up
 ```
 
 
@@ -32,6 +34,7 @@ cd app/kong ; make up
 
 ```bash
 make up         # pull up kong with docker compose
+make bootstrap  # initialize a new, empty Kong database once
 make ui         # run swagger ui container
 make log        # tail -f kong logs
 make info       # introspect kong with jq

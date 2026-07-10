@@ -4,7 +4,7 @@ up: mkdir
 	docker compose up -d
 
 mkdir:
-	mkdir -p volumes/{config,data,logs,plugins,client/plugins,bleve-indexes}
+	mkdir -p volumes/config volumes/data volumes/logs volumes/plugins volumes/client/plugins volumes/bleve-indexes
 	chown -R 2000:2000 volumes
 
 view:
@@ -41,4 +41,4 @@ save:
 load:
 	cat /tmp/docker/mattermost.tgz | gzip -d -c - | docker load
 
-.PHONY: default up mkdir run view log info stop clean edit pull rmi save load
+.PHONY: default up mkdir view log info stop clean edit restart pull rmi save load

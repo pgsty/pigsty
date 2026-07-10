@@ -1,11 +1,19 @@
 default: up view
-	docker compose up -d
+
+bootstrap:
+	docker compose --profile bootstrap run --rm kong-migration
+
+up: view
+	docker compose up -d kong
 
 view:
 	@echo "admin url: http://10.10.10.10:8001"
 
 ui:
-	docker run --init --name pgweb --name swagger -p 8882:8080 -e API_URL=http://10.10.10.10:8001 swaggerapi/swagger-ui
+	docker run --init --name swagger -d -p 8882:8080 -e API_URL=http://10.10.10.10:8001 swaggerapi/swagger-ui
+
+rmui:
+	docker rm -f swagger
 
 log:
 	docker logs -f kong
@@ -33,4 +41,4 @@ save:
 load:
 	cat /tmp/docker/kong.tgz | gzip -d -c - | docker load
 
-.PHONY: default up run view log info stop clean pull rmi save load
+.PHONY: default bootstrap up view ui rmui log info stop clean pull rmi save load

@@ -38,4 +38,4 @@ save:
 load:
 	cat /tmp/docker/electric.tgz | gzip -d -c - | docker load
 
-.PHONY: default init view up down stop start restart pause resume pull rm logs port conf info save load
+.PHONY: default view up down stop start restart pause resume pull rm log logs port conf info save load
