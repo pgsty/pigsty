@@ -1,0 +1,41 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   kafka.yml
+# Desc      :   Deploy Apache Kafka 4.x in KRaft mode
+# Ctime     :   2024-01-01
+# Mtime     :   2026-07-16
+# Path      :   kafka.yml
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: KAFKA
+  hosts: all
+  become: true
+  gather_facts: false
+  roles:
+    - { role: node_id ,tags: id    ,when: kafka_cluster is defined and kafka_seq is defined }
+    - { role: kafka   ,tags: kafka ,when: kafka_cluster is defined and kafka_seq is defined }
+
+
+#---------------------------------------------------------------
+# Usage
+#---------------------------------------------------------------
+# 1. Define a Kafka cluster in the inventory.
+# 2. Preview a specific sandbox target first:
+#      ./kafka.yml --check -l <exact-host-or-group>
+# 3. A real run requires separate, explicit user approval.
+#---------------------------------------------------------------
+# Single-node combined broker/controller example
+#---------------------------------------------------------------
+# kf-main:
+#   hosts:
+#     10.10.10.10: { kafka_seq: 1, kafka_role: controller }
+#   vars:
+#     kafka_cluster: kf-main
+#     kafka_peer_port: 9095     # avoid AlertManager's default 9093
+#---------------------------------------------------------------
+# Roles: controller (combined, backwards compatible), combined,
+#        broker, controller-only
+#---------------------------------------------------------------
+...

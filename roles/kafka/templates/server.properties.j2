@@ -1,0 +1,34 @@
+# Apache Kafka 4.x KRaft configuration managed by Pigsty
+# instance={{ kafka_instance }} cluster={{ kafka_cluster }}
+
+############################# KRaft #############################
+process.roles={{ kafka_process_roles }}
+node.id={{ kafka_seq }}
+controller.quorum.voters={{ kafka_controller_quorum }}
+controller.listener.names=CONTROLLER
+
+############################# Listeners #########################
+{% if kafka_has_broker | bool and kafka_has_controller | bool %}
+listeners=PLAINTEXT://{{ kafka_bind_address }}:{{ kafka_port }},CONTROLLER://{{ kafka_bind_address }}:{{ kafka_peer_port }}
+advertised.listeners=PLAINTEXT://{{ kafka_advertise_address | default(inventory_hostname) }}:{{ kafka_port }},CONTROLLER://{{ kafka_controller_address | default(kafka_advertise_address | default(inventory_hostname)) }}:{{ kafka_peer_port }}
+inter.broker.listener.name=PLAINTEXT
+{% elif kafka_has_controller | bool %}
+listeners=CONTROLLER://{{ kafka_bind_address }}:{{ kafka_peer_port }}
+advertised.listeners=CONTROLLER://{{ kafka_controller_address | default(kafka_advertise_address | default(inventory_hostname)) }}:{{ kafka_peer_port }}
+{% else %}
+listeners=PLAINTEXT://{{ kafka_bind_address }}:{{ kafka_port }}
+advertised.listeners=PLAINTEXT://{{ kafka_advertise_address | default(inventory_hostname) }}:{{ kafka_port }}
+inter.broker.listener.name=PLAINTEXT
+{% endif %}
+listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+
+############################# Storage ###########################
+log.dirs={{ kafka_data_dir }}
+metadata.log.dir={{ kafka_metadata_dir }}
+
+{% if kafka_has_broker | bool %}
+############################# Broker ############################
+{% for key, value in kafka_parameters.items() %}
+{{ key }}={{ value }}
+{% endfor %}
+{% endif %}

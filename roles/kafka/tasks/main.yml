@@ -1,0 +1,400 @@
+---
+#--------------------------------------------------------------#
+# Kafka identity and topology                         [kafka-id]
+#--------------------------------------------------------------#
+- name: validate kafka identity
+  tags: [ always, kafka-id ]
+  block:
+    - name: assert required kafka identity
+      assert:
+        that:
+          - kafka_cluster is defined
+          - kafka_cluster | string | length > 0
+          - (kafka_cluster | string | regex_search('^[A-Za-z0-9][A-Za-z0-9_-]*$')) is not none
+          - kafka_seq is defined
+          - kafka_seq | int >= 0
+          - (kafka_seq | string | regex_search('^[0-9]+$')) is not none
+          - kafka_role is defined
+          - kafka_role in ['controller', 'combined', 'broker', 'controller-only']
+          - kafka_data is string
+          - (kafka_data | regex_search('^/[^\\s]+$')) is not none
+          - kafka_data not in ['/', '/data', '/var', '/etc', '/opt', '/usr', '/home', '/root', '/pg']
+          - kafka_data_dir.startswith(kafka_data + '/')
+          - kafka_metadata_dir.startswith(kafka_data + '/')
+          - kafka_data_dir != kafka_metadata_dir
+          - kafka_port | int != kafka_peer_port | int
+          - kafka_port | int != kafka_exporter_port | int
+          - kafka_peer_port | int != kafka_exporter_port | int
+          - kafka_port | int > 0 and kafka_port | int <= 65535
+          - kafka_peer_port | int > 0 and kafka_peer_port | int <= 65535
+          - kafka_exporter_port | int > 0 and kafka_exporter_port | int <= 65535
+          - not (inventory_hostname in groups['infra'] | default([]) and kafka_peer_port | int == alertmanager_port | default(9093) | int)
+          - kafka_parameters is mapping
+          - kafka_parameters.keys() | intersect(['process.roles', 'node.id', 'controller.quorum.voters', 'controller.quorum.bootstrap.servers', 'listeners', 'advertised.listeners', 'inter.broker.listener.name', 'controller.listener.names', 'listener.security.protocol.map', 'log.dirs', 'metadata.log.dir']) | length == 0
+        fail_msg: >-
+          Invalid Kafka identity, role, paths, ports, or reserved kafka_parameters.
+          Controller port 9093 is not allowed on an infra host because AlertManager uses it.
+
+    - name: collect kafka cluster members and local role
+      become: false
+      connection: local
+      set_fact:
+        kafka_cluster_members: >-
+          {{ hostvars | dict2items
+             | selectattr('value.kafka_cluster', 'defined')
+             | selectattr('value.kafka_cluster', 'equalto', kafka_cluster)
+             | map(attribute='key') | list | sort }}
+        kafka_process_roles: >-
+          {% if kafka_role in ['controller', 'combined'] %}broker,controller{% elif kafka_role == 'controller-only' %}controller{% else %}broker{% endif %}
+        kafka_has_broker: "{{ kafka_role in ['controller', 'combined', 'broker'] }}"
+        kafka_has_controller: "{{ kafka_role in ['controller', 'combined', 'controller-only'] }}"
+        kafka_instance: "{{ kafka_cluster }}-{{ kafka_seq }}"
+        kafka_cluster_id_actual: >-
+          {{ kafka_cluster_id | default(
+             ((kafka_cluster | hash('sha256'))[:16] | b64encode
+              | regex_replace('=+$', '') | replace('+', '-') | replace('/', '_')),
+             true) }}
+
+    - name: build kafka controller quorum and node ids
+      become: false
+      connection: local
+      set_fact:
+        kafka_cluster_node_ids: "{{ kafka_cluster_members | map('extract', hostvars, 'kafka_seq') | map('int') | list }}"
+        kafka_controller_quorum: >-
+          {%- set voters = [] -%}
+          {%- for host in kafka_cluster_members -%}
+          {%-   set role = hostvars[host].kafka_role | default('broker') -%}
+          {%-   if role in ['controller', 'combined', 'controller-only'] -%}
+          {%-     set address = hostvars[host].kafka_controller_address
+                                  | default(hostvars[host].kafka_advertise_address | default(host)) -%}
+          {%-     set port = hostvars[host].kafka_peer_port | default(9095) -%}
+          {%-     set _ = voters.append((hostvars[host].kafka_seq | string) ~ '@' ~ address ~ ':' ~ (port | string)) -%}
+          {%-   endif -%}
+          {%- endfor -%}
+          {{- voters | join(',') -}}
+
+    - name: assert kafka cluster topology
+      assert:
+        that:
+          - kafka_cluster_members | length > 0
+          - kafka_cluster_node_ids | unique | length == kafka_cluster_node_ids | length
+          - kafka_controller_quorum | length > 0
+          - kafka_cluster_id_actual | length == 22
+          - (kafka_cluster_id_actual | regex_search('^[A-Za-z0-9_-]{22}$')) is not none
+        fail_msg: >-
+          Kafka node ids must be unique, at least one controller is required,
+          and kafka_cluster_id must be a 22-character Kafka UUID.
+
+    - name: print kafka identity
+      become: false
+      connection: local
+      debug:
+        msg: >-
+          {{ kafka_instance }}@{{ inventory_hostname }} roles={{ kafka_process_roles }}
+          broker={{ kafka_port }} controller={{ kafka_peer_port }}
+          quorum={{ kafka_controller_quorum }} cluster.id={{ kafka_cluster_id_actual }}
+
+
+#--------------------------------------------------------------#
+# Dangerous cleanup                              [kafka_clean]
+#--------------------------------------------------------------#
+- name: purge kafka data directory
+  tags: [ never, kafka_clean, kafka_purge ]
+  when: kafka_clean | bool
+  block:
+    - name: require exact kafka cleanup confirmation
+      assert:
+        that:
+          - kafka_clean_confirm == kafka_cluster
+          - kafka_data.startswith('/')
+          - kafka_data | length >= 8
+          - kafka_data not in ['/', '/data', '/var', '/etc', '/opt', '/usr', '/home', '/root', '/pg']
+          - kafka_data_dir.startswith(kafka_data + '/')
+          - kafka_metadata_dir.startswith(kafka_data + '/')
+        fail_msg: >-
+          Refusing Kafka cleanup. Pass --tags kafka_clean -e kafka_clean=true
+          -e kafka_clean_confirm={{ kafka_cluster }} and use a dedicated kafka_data path.
+
+    - name: stop kafka before cleanup
+      systemd:
+        name: kafka
+        state: stopped
+        enabled: false
+
+    - name: remove confirmed kafka data directory
+      file:
+        path: "{{ kafka_data }}"
+        state: absent
+
+
+#--------------------------------------------------------------#
+# Package installation                               [kafka_pkg]
+#--------------------------------------------------------------#
+- name: resolve kafka package aliases
+  tags: kafka_pkg
+  block:
+    - name: assert kafka package aliases exist
+      assert:
+        that:
+          - package_map is mapping
+          - "'kafka' in package_map"
+          - "'java-runtime' in package_map"
+        fail_msg: "node_id must load package_map aliases for kafka and java-runtime"
+
+    - name: calculate kafka package list
+      become: false
+      connection: local
+      set_fact:
+        kafka_packages_resolved: >-
+          {{ (((package_map['java-runtime'] | default('')) ~ ' ' ~ (package_map['kafka'] | default('')))
+              .replace(',', ' ').split()) | unique | list }}
+
+- name: create kafka operating system account
+  tags: kafka_user
+  block:
+    - name: create kafka group
+      group: { name: kafka, system: true }
+    - name: create kafka user
+      user:
+        name: kafka
+        group: kafka
+        system: true
+        home: /home/kafka
+        shell: /sbin/nologin
+        create_home: false
+
+- name: install kafka packages from package_map
+  tags: kafka_pkg
+  environment: "{{ proxy_env | default({}) }}"
+  package:
+    name: "{{ kafka_packages_resolved }}"
+    state: present
+
+- name: verify kafka package payload
+  tags: kafka_pkg
+  when: not ansible_check_mode
+  block:
+    - name: inspect kafka package commands
+      stat:
+        path: "{{ item }}"
+      loop:
+        - "{{ kafka_home }}/bin/kafka-server-start.sh"
+        - "{{ kafka_home }}/bin/kafka-storage.sh"
+        - /usr/bin/kafka_exporter
+      register: kafka_package_payload
+
+    - name: assert kafka package commands exist
+      assert:
+        that: kafka_package_payload.results | map(attribute='stat.exists') | min
+        fail_msg: "Kafka package payload does not match /opt/kafka and /usr/bin/kafka_exporter"
+
+
+#--------------------------------------------------------------#
+# Configuration                                      [kafka_config]
+#--------------------------------------------------------------#
+- name: create kafka configuration and data directories
+  tags: kafka_dir
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: kafka
+    group: kafka
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: /etc/kafka                   ,mode: '0750' }
+    - { path: /home/kafka                  ,mode: '0750' }
+    - { path: /home/kafka/.ansible/tmp     ,mode: '0700' }
+    - { path: "{{ kafka_data }}"           ,mode: '0750' }
+    - { path: "{{ kafka_data_dir }}"       ,mode: '0750' }
+    - { path: "{{ kafka_metadata_dir }}"   ,mode: '0750' }
+
+- name: render kafka runtime configuration
+  tags: [ kafka_config, kafka_svc ]
+  notify: restart kafka
+  block:
+    - name: render kafka server properties
+      template:
+        src: server.properties.j2
+        dest: "{{ kafka_config }}"
+        owner: kafka
+        group: kafka
+        mode: '0640'
+
+    - name: render console-only kafka log4j configuration
+      template:
+        src: log4j2.yaml.j2
+        dest: "{{ kafka_log4j_config }}"
+        owner: kafka
+        group: kafka
+        mode: '0640'
+
+    - name: render kafka environment
+      template:
+        src: kafka.env.j2
+        dest: /etc/default/kafka
+        owner: root
+        group: root
+        mode: '0644'
+
+    - name: render kafka systemd unit
+      template:
+        src: kafka.service
+        dest: "{{ systemd_dir }}/kafka.service"
+        owner: root
+        group: root
+        mode: '0644'
+
+
+#--------------------------------------------------------------#
+# Idempotent KRaft format                              [kafka_boot]
+#--------------------------------------------------------------#
+- name: inspect kafka metadata format marker
+  tags: kafka_boot
+  stat:
+    path: "{{ kafka_metadata_dir }}/meta.properties"
+  register: kafka_meta_properties
+
+- name: verify existing kafka metadata identity
+  tags: kafka_boot
+  when: kafka_meta_properties.stat.exists
+  block:
+    - name: read existing kafka metadata identity
+      slurp:
+        src: "{{ kafka_metadata_dir }}/meta.properties"
+      register: kafka_meta_properties_raw
+
+    - name: decode existing kafka metadata identity
+      set_fact:
+        kafka_meta_properties_content: "{{ kafka_meta_properties_raw.content | b64decode }}"
+
+    - name: assert existing kafka metadata matches inventory
+      assert:
+        that:
+          - "('cluster.id=' ~ kafka_cluster_id_actual) in kafka_meta_properties_content.splitlines()"
+          - "('node.id=' ~ (kafka_seq | string)) in kafka_meta_properties_content.splitlines()"
+        fail_msg: >-
+          Existing Kafka metadata does not match kafka_cluster/kafka_seq.
+          The role will not reformat or overwrite it.
+
+- name: format uninitialized kafka storage once
+  tags: kafka_boot
+  when: not ansible_check_mode
+  become_user: kafka
+  command:
+    argv:
+      - "{{ kafka_home }}/bin/kafka-storage.sh"
+      - format
+      - --cluster-id
+      - "{{ kafka_cluster_id_actual }}"
+      - --config
+      - "{{ kafka_config }}"
+    creates: "{{ kafka_metadata_dir }}/meta.properties"
+  notify: restart kafka
+
+
+#--------------------------------------------------------------#
+# Kafka exporter                                  [kafka_exporter]
+#--------------------------------------------------------------#
+- name: configure kafka exporter on broker nodes
+  tags: [ kafka_exporter, kafka_exporter_config ]
+  when: kafka_has_broker | bool
+  notify: restart kafka exporter
+  block:
+    - name: render kafka exporter environment
+      template:
+        src: kafka_exporter.env.j2
+        dest: /etc/default/kafka_exporter
+        owner: root
+        group: prometheus
+        mode: '0640'
+
+    - name: render kafka exporter systemd unit
+      template:
+        src: kafka_exporter.service
+        dest: "{{ systemd_dir }}/kafka_exporter.service"
+        owner: root
+        group: root
+        mode: '0644'
+
+- name: disable kafka exporter on controller-only nodes
+  tags: [ kafka_exporter, kafka_exporter_launch ]
+  when: not kafka_has_broker | bool and not ansible_check_mode
+  systemd:
+    name: kafka_exporter
+    state: stopped
+    enabled: false
+    daemon_reload: true
+
+
+#--------------------------------------------------------------#
+# Service launch                                      [kafka_launch]
+#--------------------------------------------------------------#
+- name: apply kafka configuration handlers
+  tags: [ kafka_launch, kafka_exporter_launch ]
+  when: not ansible_check_mode
+  meta: flush_handlers
+
+- name: launch kafka service
+  tags: kafka_launch
+  when: not ansible_check_mode
+  block:
+    - name: ensure kafka is enabled and running
+      systemd:
+        name: kafka
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: wait for local kafka listener
+      wait_for:
+        host: 127.0.0.1
+        port: "{{ kafka_port if kafka_has_broker | bool else kafka_peer_port }}"
+        state: started
+        timeout: 60
+
+- name: launch kafka exporter
+  tags: [ kafka_exporter, kafka_exporter_launch ]
+  when: kafka_has_broker | bool and not ansible_check_mode
+  block:
+    - name: ensure kafka exporter is enabled and running
+      systemd:
+        name: kafka_exporter
+        state: started
+        enabled: true
+        daemon_reload: true
+
+    - name: wait for local kafka exporter listener
+      wait_for:
+        host: 127.0.0.1
+        port: "{{ kafka_exporter_port }}"
+        state: started
+        timeout: 30
+
+
+#--------------------------------------------------------------#
+# VictoriaMetrics registration                  [kafka_register]
+#--------------------------------------------------------------#
+- name: register kafka exporter with victoria
+  tags: [ kafka_register, register, add_metrics ]
+  when: kafka_has_broker | bool
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['infra'] | default([]) }}"
+  copy:
+    dest: "/infra/targets/kafka/{{ kafka_instance }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
+    content: |
+      # {{ kafka_instance }} @ {{ inventory_hostname }}
+      - labels: { cls: {{ kafka_cluster }}, ins: {{ kafka_instance }}, ip: {{ inventory_hostname }}, instance: '{{ inventory_hostname }}:{{ kafka_exporter_port }}' }
+        targets: [ '{{ inventory_hostname }}:{{ kafka_exporter_port }}' ]
+
+- name: remove stale victoria target from controller-only nodes
+  tags: [ kafka_register, register, add_metrics ]
+  when: not kafka_has_broker | bool
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['infra'] | default([]) }}"
+  file:
+    path: "/infra/targets/kafka/{{ kafka_instance }}.yml"
+    state: absent
+...

@@ -1,0 +1,67 @@
+---
+#-----------------------------------------------------------------
+# KAFKA IDENTITY
+#-----------------------------------------------------------------
+# kafka_cluster: kf-main             # required cluster name
+# kafka_seq: 1                       # required unique KRaft node id
+# kafka_role: controller             # controller/combined, broker, controller-only
+# kafka_cluster_id:                  # optional 22-char Kafka UUID; deterministic when empty
+
+#-----------------------------------------------------------------
+# KAFKA PACKAGE & PATHS
+#-----------------------------------------------------------------
+kafka_home: /opt/kafka               # verified RPM/DEB package installation root
+kafka_config: /etc/kafka/server.properties
+kafka_log4j_config: /etc/kafka/log4j2.yaml
+kafka_data: /data/kafka              # parent directory protected by cleanup assertions
+kafka_data_dir: "{{ kafka_data }}/data"
+kafka_metadata_dir: "{{ kafka_data }}/metadata"
+kafka_heap_opts: -Xms1G -Xmx1G
+
+#-----------------------------------------------------------------
+# KAFKA NETWORK
+#-----------------------------------------------------------------
+kafka_port: 9092                     # broker/client listener
+kafka_peer_port: 9095                # controller listener; 9093 conflicts with AlertManager
+kafka_bind_address: 0.0.0.0
+# kafka_advertise_address:           # defaults to inventory_hostname
+# kafka_controller_address:          # defaults to kafka_advertise_address
+
+#-----------------------------------------------------------------
+# KAFKA SERVER PARAMETERS
+# Core KRaft/listener/storage keys are rendered by the role and cannot be
+# overridden here. These values apply only to nodes with the broker role.
+#-----------------------------------------------------------------
+kafka_parameters:
+  num.network.threads: 3
+  num.io.threads: 8
+  socket.send.buffer.bytes: 102400
+  socket.receive.buffer.bytes: 102400
+  socket.request.max.bytes: 104857600
+  num.partitions: 1
+  num.recovery.threads.per.data.dir: 2
+  offsets.topic.replication.factor: 1
+  share.coordinator.state.topic.replication.factor: 1
+  share.coordinator.state.topic.min.isr: 1
+  transaction.state.log.replication.factor: 1
+  transaction.state.log.min.isr: 1
+  log.retention.hours: 168
+  log.segment.bytes: 1073741824
+  log.retention.check.interval.ms: 300000
+
+#-----------------------------------------------------------------
+# EXPORTER & REGISTRATION
+#-----------------------------------------------------------------
+kafka_exporter_port: 9308
+kafka_exporter_kafka_version: '4.0.0' # highest protocol supported by kafka_exporter 1.9.0 / Sarama 1.45.0
+kafka_exporter_options: []           # extra kafka_exporter command-line arguments
+
+#-----------------------------------------------------------------
+# DANGEROUS CLEANUP
+# Cleanup is skipped in normal runs because its tasks carry the `never` tag.
+# It additionally requires --tags kafka_clean, kafka_clean=true, and an exact
+# kafka_clean_confirm value matching kafka_cluster.
+#-----------------------------------------------------------------
+kafka_clean: false
+kafka_clean_confirm: ''
+...

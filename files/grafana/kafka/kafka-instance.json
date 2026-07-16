@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Kafka exporter instance, topic, consumer group, node resource, and journald log details.",
+  "description": "Kafka exporter instance drill-down: exporter identity and runtime, cluster metadata, topic/partition topology, consumer lag, node resources, and service logs.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -56,44 +56,49 @@
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "description": "",
+      "description": "Selected kafka_exporter identity and reachability. Click to return to its logical cluster.",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
           "decimals": 0,
+          "mappings": [],
+          "noValue": "No Instance",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#e02f44",
+                "value": null
+              },
+              {
+                "color": "#4bb39ce0",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short",
           "links": [
             {
               "title": "Kafka Cluster : $cls",
               "url": "/d/kafka-overview?var-cls=$cls&${__url_time_range}"
             }
           ],
-          "mappings": [],
           "min": 0,
-          "noValue": "0",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
+          "max": 1
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
+        "h": 6,
+        "w": 6,
         "x": 0,
         "y": 1
       },
       "id": 2,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -106,7 +111,8 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "text": {},
+        "textMode": "name",
         "wideLayout": true
       },
       "pluginVersion": "13.0.0",
@@ -118,14 +124,557 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "max(kafka_exporter_up{ins=\"$ins\"}) or on() vector(0)",
+          "expr": "kafka_exporter_up{job=\"kafka\",ins=\"$ins\"}",
           "instant": false,
-          "legendFormat": "Exporter Up",
+          "interval": "",
+          "legendFormat": "{{ cls }} / {{ ins }}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Exporter Up",
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Exporter target, build, and runtime identity.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#e3e3e3e0",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Instance"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#4bb39ce0",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.filterable",
+                "value": true
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Kafka Instance : ${__value.raw}",
+                    "url": "/d/kafka-instance?var-ins=${__value.raw}&${__url_time_range}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 130
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Cluster"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#4bb39ce0",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.filterable",
+                "value": true
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Kafka Cluster : ${__value.raw}",
+                    "url": "/d/kafka-overview?var-cls=${__value.raw}&${__url_time_range}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 110
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "IP"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#4bb39ce0",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.filterable",
+                "value": true
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Node Instance : ${__value.raw}",
+                    "url": "/d/node-instance?var-id=${__value.raw}&${__url_time_range}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 120
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Up"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "color": "#e02f44",
+                        "index": 0,
+                        "text": "Down"
+                      },
+                      "1": {
+                        "color": "#4bb39ce0",
+                        "index": 1,
+                        "text": "Healthy"
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#e02f44",
+                      "value": null
+                    },
+                    {
+                      "color": "#4bb39ce0",
+                      "value": 1
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Revision"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 190
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 6,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "cellHeight": "md",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "kafka_exporter_up{job=\"kafka\",ins=\"$ins\"}",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "A",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "kafka_exporter_build_info{job=\"kafka\",ins=\"$ins\"}",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "B",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "ins"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "Time 1": true,
+              "__name__ 1": true,
+              "job 1": true,
+              "ins 1": true,
+              "cls 1": true,
+              "ip 1": true,
+              "instance 1": true,
+              "Time 2": true,
+              "__name__ 2": true,
+              "job 2": true,
+              "ins 2": true,
+              "cls 2": true,
+              "ip 2": true,
+              "instance 2": true,
+              "Time 3": true,
+              "__name__ 3": true,
+              "job 3": true,
+              "ins 3": true,
+              "cls 3": true,
+              "ip 3": true,
+              "instance 3": true,
+              "Time 4": true,
+              "__name__ 4": true,
+              "job 4": true,
+              "ins 4": true,
+              "cls 4": true,
+              "ip 4": true,
+              "instance 4": true,
+              "Value #B": true,
+              "branch": true,
+              "goarch": true,
+              "goos": true,
+              "tags": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "ins": 0,
+              "cls": 1,
+              "ip": 2,
+              "instance": 3,
+              "version": 4,
+              "goversion": 5,
+              "revision": 6,
+              "Value #A": 7
+            },
+            "renameByName": {
+              "ins": "Instance",
+              "cls": "Cluster",
+              "ip": "IP",
+              "instance": "Target",
+              "version": "Exporter",
+              "goversion": "Go",
+              "revision": "Revision",
+              "Value #A": "Up"
+            }
+          }
+        }
+      ],
+      "title": "Exporter Identity",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Exporter process uptime, memory, concurrency, and file descriptor pressure.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4bb39ce0",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "E"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    },
+                    {
+                      "color": "#f79f64",
+                      "value": 0.7
+                    },
+                    {
+                      "color": "#e02f44",
+                      "value": 0.9
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "time() - process_start_time_seconds{job=\"kafka\",ins=\"$ins\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Uptime",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "process_resident_memory_bytes{job=\"kafka\",ins=\"$ins\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "RSS",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "go_memstats_heap_alloc_bytes{job=\"kafka\",ins=\"$ins\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Heap",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "go_goroutines{job=\"kafka\",ins=\"$ins\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Goroutines",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "process_open_fds{job=\"kafka\",ins=\"$ins\"} / clamp_min(process_max_fds{job=\"kafka\",ins=\"$ins\"}, 1)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "FD Usage",
+          "range": true,
+          "refId": "E"
+        }
+      ],
+      "title": "Exporter Runtime",
       "type": "stat"
     },
     {
@@ -140,15 +689,13 @@
             "mode": "thresholds"
           },
           "decimals": 0,
-          "links": [],
           "mappings": [],
-          "min": 0,
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#4bb39ce0",
                 "value": null
               }
             ]
@@ -159,13 +706,13 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 3,
-        "y": 1
+        "w": 4,
+        "x": 0,
+        "y": 7
       },
-      "id": 3,
+      "id": 5,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -178,7 +725,8 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "text": {},
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "13.0.0",
@@ -190,8 +738,9 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "max(kafka_brokers{ins=\"$ins\"}) or on() vector(0)",
+          "expr": "max(kafka_brokers{job=\"kafka\",ins=\"$ins\"}) or on() vector(0)",
           "instant": false,
+          "interval": "",
           "legendFormat": "Brokers",
           "range": true,
           "refId": "A"
@@ -212,15 +761,13 @@
             "mode": "thresholds"
           },
           "decimals": 0,
-          "links": [],
           "mappings": [],
-          "min": 0,
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#4bb39ce0",
                 "value": null
               }
             ]
@@ -231,13 +778,13 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 6,
-        "y": 1
+        "w": 4,
+        "x": 4,
+        "y": 7
       },
-      "id": 4,
+      "id": 6,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -250,7 +797,8 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "text": {},
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "13.0.0",
@@ -262,8 +810,9 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "count(count by (topic) (kafka_topic_partitions{ins=\"$ins\"})) or on() vector(0)",
+          "expr": "count(kafka_topic_partitions{job=\"kafka\",ins=\"$ins\"}) or on() vector(0)",
           "instant": false,
+          "interval": "",
           "legendFormat": "Topics",
           "range": true,
           "refId": "A"
@@ -284,15 +833,13 @@
             "mode": "thresholds"
           },
           "decimals": 0,
-          "links": [],
           "mappings": [],
-          "min": 0,
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#4bb39ce0",
                 "value": null
               }
             ]
@@ -303,13 +850,13 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 9,
-        "y": 1
+        "w": 4,
+        "x": 8,
+        "y": 7
       },
-      "id": 5,
+      "id": 7,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -322,7 +869,8 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "text": {},
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "13.0.0",
@@ -334,8 +882,9 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(kafka_topic_partitions{ins=\"$ins\"}) or on() vector(0)",
+          "expr": "sum(kafka_topic_partitions{job=\"kafka\",ins=\"$ins\"}) or on() vector(0)",
           "instant": false,
+          "interval": "",
           "legendFormat": "Partitions",
           "range": true,
           "refId": "A"
@@ -356,15 +905,13 @@
             "mode": "thresholds"
           },
           "decimals": 0,
-          "links": [],
           "mappings": [],
-          "min": 0,
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#3e668f",
                 "value": null
               }
             ]
@@ -375,13 +922,13 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
+        "w": 4,
         "x": 12,
-        "y": 1
+        "y": 7
       },
-      "id": 6,
+      "id": 8,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -394,7 +941,8 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "text": {},
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "13.0.0",
@@ -406,9 +954,10 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "count(count by (consumergroup) (kafka_consumergroup_current_offset{ins=\"$ins\"})) or on() vector(0)",
+          "expr": "count(count by (consumergroup) (kafka_consumergroup_current_offset{job=\"kafka\",ins=\"$ins\"})) or on() vector(0)",
           "instant": false,
-          "legendFormat": "Consumer Groups",
+          "interval": "",
+          "legendFormat": "Groups",
           "range": true,
           "refId": "A"
         }
@@ -428,32 +977,46 @@
             "mode": "thresholds"
           },
           "decimals": 0,
-          "links": [],
           "mappings": [],
-          "min": 0,
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#4bb39ce0",
                 "value": null
+              },
+              {
+                "color": "#fcdb72",
+                "value": 1
+              },
+              {
+                "color": "#f79f64",
+                "value": 1000
+              },
+              {
+                "color": "#e02f44",
+                "value": 100000
+              },
+              {
+                "color": "#b783af",
+                "value": 1000000
               }
             ]
           },
-          "unit": "mps"
+          "unit": "locale"
         },
         "overrides": []
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 15,
-        "y": 1
+        "w": 4,
+        "x": 16,
+        "y": 7
       },
-      "id": 7,
+      "id": 9,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -466,7 +1029,8 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "text": {},
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "13.0.0",
@@ -478,14 +1042,15 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "max(kafka:ins:msg_rate5m{ins=\"$ins\"}) or on() vector(0)",
+          "expr": "sum(kafka_consumergroup_lag_sum{job=\"kafka\",ins=\"$ins\",consumergroup=~\"$consumergroup\"}) or on() vector(0)",
           "instant": false,
-          "legendFormat": "Produce Rate",
+          "interval": "",
+          "legendFormat": "Records",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Produce Rate",
+      "title": "Total Lag",
       "type": "stat"
     },
     {
@@ -500,32 +1065,40 @@
             "mode": "thresholds"
           },
           "decimals": 0,
-          "links": [],
           "mappings": [],
-          "min": 0,
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#4bb39ce0",
                 "value": null
+              },
+              {
+                "color": "#e02f44",
+                "value": 1
               }
             ]
           },
-          "unit": "mps"
+          "unit": "short",
+          "links": [
+            {
+              "title": "Kafka Alerts",
+              "url": "/alerting/list?search=kafka"
+            }
+          ]
         },
         "overrides": []
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 18,
-        "y": 1
+        "w": 4,
+        "x": 20,
+        "y": 7
       },
-      "id": 8,
+      "id": 10,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -538,7 +1111,8 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "text": {},
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "13.0.0",
@@ -550,14 +1124,15 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "max(kafka:ins:csg_rate5m{ins=\"$ins\"}) or on() vector(0)",
+          "expr": "count(ALERTS{alertstate=\"firing\",category=\"kafka\",ins=\"$ins\"}) or on() vector(0)",
           "instant": false,
-          "legendFormat": "Consume Rate",
+          "interval": "",
+          "legendFormat": "Alerts",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Consume Rate",
+      "title": "Firing Alerts",
       "type": "stat"
     },
     {
@@ -572,15 +1147,393 @@
             "mode": "thresholds"
           },
           "decimals": 0,
-          "links": [],
           "mappings": [],
-          "min": 0,
           "noValue": "0",
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "green",
+                "color": "#4bb39ce0",
+                "value": null
+              },
+              {
+                "color": "#e02f44",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 11
+      },
+      "id": 11,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(kafka_topic_partition_leader{job=\"kafka\",ins=\"$ins\"} < bool 0) or on() vector(0)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Partitions",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Leaderless",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4bb39ce0",
+                "value": null
+              },
+              {
+                "color": "#e02f44",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 11
+      },
+      "id": 12,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(kafka_topic_partition_under_replicated_partition{job=\"kafka\",ins=\"$ins\"}) or on() vector(0)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Partitions",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Under Replicated",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4bb39ce0",
+                "value": null
+              },
+              {
+                "color": "#fcdb72",
+                "value": 1
+              },
+              {
+                "color": "#e02f44",
+                "value": 10
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 11
+      },
+      "id": 13,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(1 - kafka_topic_partition_leader_is_preferred{job=\"kafka\",ins=\"$ins\"}) or on() vector(0)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Leaders",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Non-Preferred",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4bb39ce0",
+                "value": null
+              },
+              {
+                "color": "#e02f44",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 12,
+        "y": 11
+      },
+      "id": 14,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(clamp_min(kafka_topic_partition_replicas{job=\"kafka\",ins=\"$ins\"} - kafka_topic_partition_in_sync_replica{job=\"kafka\",ins=\"$ins\"}, 0)) or on() vector(0)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Replicas",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "ISR Deficit",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Sum of log-end minus oldest offsets. This is an offset span, not an exact record count for compacted topics.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4bb39ce0",
+                "value": null
+              }
+            ]
+          },
+          "unit": "locale"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 16,
+        "y": 11
+      },
+      "id": 15,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(clamp_min(kafka_topic_partition_current_offset{job=\"kafka\",ins=\"$ins\"} - kafka_topic_partition_oldest_offset{job=\"kafka\",ins=\"$ins\"}, 0)) or on() vector(0)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Offsets",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Offset Span",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
                 "value": null
               }
             ]
@@ -591,13 +1544,13 @@
       },
       "gridPos": {
         "h": 4,
-        "w": 3,
-        "x": 21,
-        "y": 1
+        "w": 4,
+        "x": 20,
+        "y": 11
       },
-      "id": 9,
+      "id": 16,
       "options": {
-        "colorMode": "value",
+        "colorMode": "background",
         "graphMode": "area",
         "justifyMode": "auto",
         "orientation": "auto",
@@ -610,7 +1563,8 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "auto",
+        "text": {},
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "13.0.0",
@@ -622,22 +1576,36 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "max(kafka_consumergroup_lag{ins=\"$ins\"}) or on() vector(0)",
+          "expr": "sum(kafka_consumergroup_members{job=\"kafka\",ins=\"$ins\",consumergroup=~\"$consumergroup\"}) or on() vector(0)",
           "instant": false,
-          "legendFormat": "Max Lag",
+          "interval": "",
+          "legendFormat": "Members",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Max Lag",
+      "title": "Consumer Members",
       "type": "stat"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "id": 17,
+      "panels": [],
+      "title": "Workload",
+      "type": "row"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "description": "",
+      "description": "Cluster metadata observed through this exporter: log-end growth and committed-offset progress.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -650,23 +1618,25 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "none",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "linear",
+            "lineInterpolation": "smooth",
             "lineWidth": 1,
-            "pointSize": 3,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "never",
-            "spanNulls": false,
+            "showValues": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -677,7 +1647,6 @@
           },
           "decimals": 1,
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -687,7 +1656,8 @@
               }
             ]
           },
-          "unit": "mps"
+          "unit": "ops",
+          "min": 0
         },
         "overrides": []
       },
@@ -695,15 +1665,17 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 5
+        "y": 16
       },
-      "id": 10,
+      "id": 18,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "mean",
+            "max"
           ],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -722,9 +1694,10 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "kafka:ins:msg_rate1m{ins=\"$ins\"}",
+          "expr": "sum(clamp_min(rate(kafka_topic_partition_current_offset{job=\"kafka\",ins=\"$ins\"}[5m]), 0))",
           "instant": false,
-          "legendFormat": "produce",
+          "interval": "",
+          "legendFormat": "Append",
           "range": true,
           "refId": "A"
         },
@@ -735,14 +1708,15 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "kafka:ins:csg_rate1m{ins=\"$ins\"}",
+          "expr": "sum(clamp_min(rate(kafka_consumergroup_current_offset{job=\"kafka\",ins=\"$ins\",consumergroup=~\"$consumergroup\"}[5m]), 0))",
           "instant": false,
-          "legendFormat": "consume",
+          "interval": "",
+          "legendFormat": "Commit",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "Instance Throughput",
+      "title": "Append / Commit Progress",
       "type": "timeseries"
     },
     {
@@ -763,23 +1737,25 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "none",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "linear",
+            "lineInterpolation": "smooth",
             "lineWidth": 1,
-            "pointSize": 3,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "never",
-            "spanNulls": false,
+            "showValues": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -790,7 +1766,6 @@
           },
           "decimals": 1,
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -800,7 +1775,8 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "locale",
+          "min": 0
         },
         "overrides": []
       },
@@ -808,15 +1784,17 @@
         "h": 7,
         "w": 12,
         "x": 12,
-        "y": 5
+        "y": 16
       },
-      "id": 11,
+      "id": 19,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "mean",
+            "max"
           ],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -835,8 +1813,9 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum by (consumergroup) (kafka_consumergroup_lag{ins=\"$ins\"})",
+          "expr": "topk($topk, sum by (consumergroup) (kafka_consumergroup_lag_sum{job=\"kafka\",ins=\"$ins\",consumergroup=~\"$consumergroup\"}))",
           "instant": false,
+          "interval": "",
           "legendFormat": "{{ consumergroup }}",
           "range": true,
           "refId": "A"
@@ -850,20 +1829,47 @@
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "description": "",
+      "description": "Log-end minus oldest offset per topic; useful for retention balance but not an exact record count on compacted topics.",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
           "custom": {
-            "align": "auto",
-            "cellOptions": {
-              "type": "auto"
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
             },
-            "inspect": false
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
-          "links": [],
+          "decimals": 1,
           "mappings": [],
           "thresholds": {
             "mode": "absolute",
@@ -873,7 +1879,9 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "locale",
+          "min": 0
         },
         "overrides": []
       },
@@ -881,20 +1889,25 @@
         "h": 7,
         "w": 12,
         "x": 0,
-        "y": 12
+        "y": 23
       },
-      "id": 12,
+      "id": 20,
       "options": {
-        "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
           ],
-          "show": false
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
         },
-        "showHeader": true
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
       },
       "pluginVersion": "13.0.0",
       "targets": [
@@ -905,15 +1918,1975 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "kafka_topic_partitions{ins=\"$ins\"}",
-          "instant": true,
+          "expr": "topk($topk, sum by (topic) (clamp_min(kafka_topic_partition_current_offset{job=\"kafka\",ins=\"$ins\"} - kafka_topic_partition_oldest_offset{job=\"kafka\",ins=\"$ins\"}, 0)))",
+          "instant": false,
+          "interval": "",
           "legendFormat": "{{ topic }}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Offset Span by Topic",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Partition leader count by broker ID as observed by this exporter.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short",
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 23
+      },
+      "id": 21,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count_values(\"broker\", kafka_topic_partition_leader{job=\"kafka\",ins=\"$ins\"} >= 0)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "broker {{ broker }}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Leader Distribution",
+      "type": "timeseries"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
+      "id": 22,
+      "panels": [],
+      "title": "Inventory",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Broker IDs and advertised listener addresses.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#e3e3e3e0",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Broker ID"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 85
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Address"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 210
+              },
+              {
+                "id": "custom.filterable",
+                "value": true
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 8,
+        "x": 0,
+        "y": 31
+      },
+      "id": 23,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Broker ID",
+            "desc": false
+          }
+        ]
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "kafka_broker_info{job=\"kafka\",ins=\"$ins\"}",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
           "range": false,
           "refId": "A",
           "format": "table"
         }
       ],
-      "title": "Topics",
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Value": true,
+              "__name__": true,
+              "job": true,
+              "cls": true,
+              "ins": true,
+              "instance": true,
+              "ip": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "id": 0,
+              "address": 1
+            },
+            "renameByName": {
+              "id": "Broker ID",
+              "address": "Address"
+            }
+          }
+        }
+      ],
+      "title": "Broker Directory",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Complete topic catalog from this exporter.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#e3e3e3e0",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Topic"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#4bb39ce0",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.filterable",
+                "value": true
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Select Topic : ${__value.raw}",
+                    "url": "/d/kafka-instance?var-ins=$ins&var-topic=${__value.raw}&${__url_time_range}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 220
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "URP"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    },
+                    {
+                      "color": "#e02f44",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "NonPreferred"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    },
+                    {
+                      "color": "#e02f44",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "OffsetSpan"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Append/s"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ops"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 16,
+        "x": 8,
+        "y": 31
+      },
+      "id": 24,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (topic) (kafka_topic_partitions{job=\"kafka\",ins=\"$ins\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "A",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (topic) (kafka_topic_partition_replicas{job=\"kafka\",ins=\"$ins\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "B",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min by (topic) (kafka_topic_partition_in_sync_replica{job=\"kafka\",ins=\"$ins\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "C",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (topic) (kafka_topic_partition_under_replicated_partition{job=\"kafka\",ins=\"$ins\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "D",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (topic) (1 - kafka_topic_partition_leader_is_preferred{job=\"kafka\",ins=\"$ins\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "E",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (topic) (kafka_topic_partition_current_offset{job=\"kafka\",ins=\"$ins\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "F",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (topic) (kafka_topic_partition_oldest_offset{job=\"kafka\",ins=\"$ins\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "G",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (topic) (clamp_min(kafka_topic_partition_current_offset{job=\"kafka\",ins=\"$ins\"} - kafka_topic_partition_oldest_offset{job=\"kafka\",ins=\"$ins\"}, 0))",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "H",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (topic) (clamp_min(rate(kafka_topic_partition_current_offset{job=\"kafka\",ins=\"$ins\"}[5m]), 0))",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "I",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "topic"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "Time 1": true,
+              "__name__ 1": true,
+              "job 1": true,
+              "topic 1": true,
+              "Time 2": true,
+              "__name__ 2": true,
+              "job 2": true,
+              "topic 2": true,
+              "Time 3": true,
+              "__name__ 3": true,
+              "job 3": true,
+              "topic 3": true,
+              "Time 4": true,
+              "__name__ 4": true,
+              "job 4": true,
+              "topic 4": true,
+              "Time 5": true,
+              "__name__ 5": true,
+              "job 5": true,
+              "topic 5": true,
+              "Time 6": true,
+              "__name__ 6": true,
+              "job 6": true,
+              "topic 6": true,
+              "Time 7": true,
+              "__name__ 7": true,
+              "job 7": true,
+              "topic 7": true,
+              "Time 8": true,
+              "__name__ 8": true,
+              "job 8": true,
+              "topic 8": true,
+              "Time 9": true,
+              "__name__ 9": true,
+              "job 9": true,
+              "topic 9": true,
+              "Time 10": true,
+              "__name__ 10": true,
+              "job 10": true,
+              "topic 10": true,
+              "Time 11": true,
+              "__name__ 11": true,
+              "job 11": true,
+              "topic 11": true,
+              "Time 12": true,
+              "__name__ 12": true,
+              "job 12": true,
+              "topic 12": true,
+              "Time 13": true,
+              "__name__ 13": true,
+              "job 13": true,
+              "topic 13": true,
+              "Time 14": true,
+              "__name__ 14": true,
+              "job 14": true,
+              "topic 14": true,
+              "Time 15": true,
+              "__name__ 15": true,
+              "job 15": true,
+              "topic 15": true,
+              "Time 16": true,
+              "__name__ 16": true,
+              "job 16": true,
+              "topic 16": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "topic": 0,
+              "Value #A": 1,
+              "Value #B": 2,
+              "Value #C": 3,
+              "Value #D": 4,
+              "Value #E": 5,
+              "Value #H": 6,
+              "Value #I": 7,
+              "Value #F": 8,
+              "Value #G": 9
+            },
+            "renameByName": {
+              "topic": "Topic",
+              "Value #A": "Partitions",
+              "Value #B": "RF",
+              "Value #C": "MinISR",
+              "Value #D": "URP",
+              "Value #E": "NonPreferred",
+              "Value #F": "EndOffset",
+              "Value #G": "OldestOffset",
+              "Value #H": "OffsetSpan",
+              "Value #I": "Append/s"
+            }
+          }
+        }
+      ],
+      "title": "Topic Inventory",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Consumer membership, committed offsets, progress, and lag. Empty when no consumer groups exist.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#e3e3e3e0",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Consumer Group"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3e668f",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.filterable",
+                "value": true
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Select Consumer Group : ${__value.raw}",
+                    "url": "/d/kafka-instance?var-ins=$ins&var-consumergroup=${__value.raw}&${__url_time_range}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 300
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "TotalLag"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    },
+                    {
+                      "color": "#fcdb72",
+                      "value": 1
+                    },
+                    {
+                      "color": "#f79f64",
+                      "value": 1000
+                    },
+                    {
+                      "color": "#e02f44",
+                      "value": 100000
+                    },
+                    {
+                      "color": "#b783af",
+                      "value": 1000000
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "MaxLag"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    },
+                    {
+                      "color": "#fcdb72",
+                      "value": 1
+                    },
+                    {
+                      "color": "#f79f64",
+                      "value": 1000
+                    },
+                    {
+                      "color": "#e02f44",
+                      "value": 100000
+                    },
+                    {
+                      "color": "#b783af",
+                      "value": 1000000
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Commit/s"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "ops"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 11,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "id": 25,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": []
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (consumergroup) (kafka_consumergroup_members{job=\"kafka\",ins=\"$ins\",consumergroup=~\"$consumergroup\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "A",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count by (consumergroup) (kafka_consumergroup_lag_sum{job=\"kafka\",ins=\"$ins\",consumergroup=~\"$consumergroup\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "B",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (consumergroup) (clamp_min(kafka_consumergroup_current_offset_sum{job=\"kafka\",ins=\"$ins\",consumergroup=~\"$consumergroup\"}, 0))",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "C",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (consumergroup) (kafka_consumergroup_lag_sum{job=\"kafka\",ins=\"$ins\",consumergroup=~\"$consumergroup\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "D",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (consumergroup) (kafka_consumergroup_lag{job=\"kafka\",ins=\"$ins\",consumergroup=~\"$consumergroup\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "E",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (consumergroup) (clamp_min(rate(kafka_consumergroup_current_offset{job=\"kafka\",ins=\"$ins\",consumergroup=~\"$consumergroup\"}[5m]), 0))",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "F",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "consumergroup"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "Time 1": true,
+              "__name__ 1": true,
+              "job 1": true,
+              "consumergroup 1": true,
+              "Time 2": true,
+              "__name__ 2": true,
+              "job 2": true,
+              "consumergroup 2": true,
+              "Time 3": true,
+              "__name__ 3": true,
+              "job 3": true,
+              "consumergroup 3": true,
+              "Time 4": true,
+              "__name__ 4": true,
+              "job 4": true,
+              "consumergroup 4": true,
+              "Time 5": true,
+              "__name__ 5": true,
+              "job 5": true,
+              "consumergroup 5": true,
+              "Time 6": true,
+              "__name__ 6": true,
+              "job 6": true,
+              "consumergroup 6": true,
+              "Time 7": true,
+              "__name__ 7": true,
+              "job 7": true,
+              "consumergroup 7": true,
+              "Time 8": true,
+              "__name__ 8": true,
+              "job 8": true,
+              "consumergroup 8": true,
+              "Time 9": true,
+              "__name__ 9": true,
+              "job 9": true,
+              "consumergroup 9": true,
+              "Time 10": true,
+              "__name__ 10": true,
+              "job 10": true,
+              "consumergroup 10": true,
+              "Time 11": true,
+              "__name__ 11": true,
+              "job 11": true,
+              "consumergroup 11": true,
+              "Time 12": true,
+              "__name__ 12": true,
+              "job 12": true,
+              "consumergroup 12": true,
+              "Time 13": true,
+              "__name__ 13": true,
+              "job 13": true,
+              "consumergroup 13": true,
+              "Time 14": true,
+              "__name__ 14": true,
+              "job 14": true,
+              "consumergroup 14": true,
+              "Time 15": true,
+              "__name__ 15": true,
+              "job 15": true,
+              "consumergroup 15": true,
+              "Time 16": true,
+              "__name__ 16": true,
+              "job 16": true,
+              "consumergroup 16": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "consumergroup": 0,
+              "Value #A": 1,
+              "Value #B": 2,
+              "Value #D": 3,
+              "Value #E": 4,
+              "Value #F": 5,
+              "Value #C": 6
+            },
+            "renameByName": {
+              "consumergroup": "Consumer Group",
+              "Value #A": "Members",
+              "Value #B": "Topics",
+              "Value #C": "Committed",
+              "Value #D": "TotalLag",
+              "Value #E": "MaxLag",
+              "Value #F": "Commit/s"
+            }
+          }
+        }
+      ],
+      "title": "Consumer Group Inventory",
+      "type": "table"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 51
+      },
+      "id": 26,
+      "panels": [],
+      "title": "Topic Detail : $topic",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Selected topic topology, replication health, and retained offset span.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "mappings": [],
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4bb39ce0",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    },
+                    {
+                      "color": "#e02f44",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "E"
+            },
+            "properties": [
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    },
+                    {
+                      "color": "#e02f44",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "F"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 6,
+        "x": 0,
+        "y": 52
+      },
+      "id": 27,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max(kafka_topic_partitions{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"}) or on() vector(0)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Partitions",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max(kafka_topic_partition_replicas{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"}) or on() vector(0)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "RF",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "min(kafka_topic_partition_in_sync_replica{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"}) or on() vector(0)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Min ISR",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(kafka_topic_partition_under_replicated_partition{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"}) or on() vector(0)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "URP",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(1 - kafka_topic_partition_leader_is_preferred{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"}) or on() vector(0)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Non Preferred",
+          "range": true,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(clamp_min(kafka_topic_partition_current_offset{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"} - kafka_topic_partition_oldest_offset{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"}, 0)) or on() vector(0)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Offset Span",
+          "range": true,
+          "refId": "F"
+        }
+      ],
+      "title": "Topic Health",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Leader, preferred-leader state, replicas, ISR, offsets, retention span, and worst consumer lag per partition.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#e3e3e3e0",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Preferred"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#e02f44",
+                      "value": null
+                    },
+                    {
+                      "color": "#4bb39ce0",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "URP"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "color-background"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    },
+                    {
+                      "color": "#e02f44",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "MaxLag"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    },
+                    {
+                      "color": "#fcdb72",
+                      "value": 1
+                    },
+                    {
+                      "color": "#f79f64",
+                      "value": 1000
+                    },
+                    {
+                      "color": "#e02f44",
+                      "value": 100000
+                    },
+                    {
+                      "color": "#b783af",
+                      "value": 1000000
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "OffsetSpan"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 12,
+        "w": 18,
+        "x": 6,
+        "y": 52
+      },
+      "id": 28,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Partition",
+            "desc": false
+          }
+        ]
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (partition) (kafka_topic_partition_leader{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "A",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (partition) (kafka_topic_partition_leader_is_preferred{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "B",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (partition) (kafka_topic_partition_replicas{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "C",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (partition) (kafka_topic_partition_in_sync_replica{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "D",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (partition) (kafka_topic_partition_under_replicated_partition{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "E",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (partition) (kafka_topic_partition_current_offset{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "F",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (partition) (kafka_topic_partition_oldest_offset{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "G",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (partition) (clamp_min(kafka_topic_partition_current_offset{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"} - kafka_topic_partition_oldest_offset{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"}, 0))",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "H",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (partition) (kafka_consumergroup_lag{job=\"kafka\",ins=\"$ins\",topic=\"$topic\",consumergroup=~\"$consumergroup\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "I",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "partition"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "Time 1": true,
+              "__name__ 1": true,
+              "job 1": true,
+              "partition 1": true,
+              "Time 2": true,
+              "__name__ 2": true,
+              "job 2": true,
+              "partition 2": true,
+              "Time 3": true,
+              "__name__ 3": true,
+              "job 3": true,
+              "partition 3": true,
+              "Time 4": true,
+              "__name__ 4": true,
+              "job 4": true,
+              "partition 4": true,
+              "Time 5": true,
+              "__name__ 5": true,
+              "job 5": true,
+              "partition 5": true,
+              "Time 6": true,
+              "__name__ 6": true,
+              "job 6": true,
+              "partition 6": true,
+              "Time 7": true,
+              "__name__ 7": true,
+              "job 7": true,
+              "partition 7": true,
+              "Time 8": true,
+              "__name__ 8": true,
+              "job 8": true,
+              "partition 8": true,
+              "Time 9": true,
+              "__name__ 9": true,
+              "job 9": true,
+              "partition 9": true,
+              "Time 10": true,
+              "__name__ 10": true,
+              "job 10": true,
+              "partition 10": true,
+              "Time 11": true,
+              "__name__ 11": true,
+              "job 11": true,
+              "partition 11": true,
+              "Time 12": true,
+              "__name__ 12": true,
+              "job 12": true,
+              "partition 12": true,
+              "Time 13": true,
+              "__name__ 13": true,
+              "job 13": true,
+              "partition 13": true,
+              "Time 14": true,
+              "__name__ 14": true,
+              "job 14": true,
+              "partition 14": true,
+              "Time 15": true,
+              "__name__ 15": true,
+              "job 15": true,
+              "partition 15": true,
+              "Time 16": true,
+              "__name__ 16": true,
+              "job 16": true,
+              "partition 16": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "partition": 0,
+              "Value #A": 1,
+              "Value #B": 2,
+              "Value #C": 3,
+              "Value #D": 4,
+              "Value #E": 5,
+              "Value #H": 6,
+              "Value #I": 7,
+              "Value #F": 8,
+              "Value #G": 9
+            },
+            "renameByName": {
+              "partition": "Partition",
+              "Value #A": "Leader",
+              "Value #B": "Preferred",
+              "Value #C": "RF",
+              "Value #D": "ISR",
+              "Value #E": "URP",
+              "Value #F": "EndOffset",
+              "Value #G": "OldestOffset",
+              "Value #H": "OffsetSpan",
+              "Value #I": "MaxLag"
+            }
+          }
+        }
+      ],
+      "title": "Partition Topology",
       "type": "table"
     },
     {
@@ -934,23 +3907,25 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "none",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "linear",
+            "lineInterpolation": "smooth",
             "lineWidth": 1,
-            "pointSize": 3,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "never",
-            "spanNulls": false,
+            "showValues": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -961,7 +3936,6 @@
           },
           "decimals": 1,
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -971,23 +3945,26 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "locale",
+          "min": 0
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
-        "x": 12,
-        "y": 12
+        "x": 0,
+        "y": 64
       },
-      "id": 13,
+      "id": 29,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "mean",
+            "max"
           ],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -1006,122 +3983,10 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum by (topic) (kafka_topic_partition_under_replicated_partition{ins=\"$ins\"}) or on() vector(0)",
+          "expr": "kafka_topic_partition_current_offset{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"}",
           "instant": false,
-          "legendFormat": "{{ topic }}",
-          "range": true,
-          "refId": "A"
-        }
-      ],
-      "title": "Under-Replicated Partitions",
-      "type": "timeseries"
-    },
-    {
-      "collapsed": false,
-      "gridPos": {
-        "h": 1,
-        "w": 24,
-        "x": 0,
-        "y": 19
-      },
-      "id": 14,
-      "panels": [],
-      "title": "Partitions of Topic $topic",
-      "type": "row"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "ds-prometheus"
-      },
-      "description": "",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 1,
-            "pointSize": 3,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 1,
-          "mappings": [],
-          "min": 0,
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "short"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 20
-      },
-      "id": 15,
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
-      "pluginVersion": "13.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "kafka_topic_partition_current_offset{ins=\"$ins\",topic=\"$topic\"}",
-          "instant": false,
-          "legendFormat": "partition {{ partition }} current",
+          "interval": "",
+          "legendFormat": "p{{ partition }} end",
           "range": true,
           "refId": "A"
         },
@@ -1132,9 +3997,10 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "kafka_topic_partition_oldest_offset{ins=\"$ins\",topic=\"$topic\"}",
+          "expr": "kafka_topic_partition_oldest_offset{job=\"kafka\",ins=\"$ins\",topic=\"$topic\"}",
           "instant": false,
-          "legendFormat": "partition {{ partition }} oldest",
+          "interval": "",
+          "legendFormat": "p{{ partition }} oldest",
           "range": true,
           "refId": "B"
         }
@@ -1160,23 +4026,25 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "none",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "linear",
+            "lineInterpolation": "smooth",
             "lineWidth": 1,
-            "pointSize": 3,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "never",
-            "spanNulls": false,
+            "showValues": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -1187,7 +4055,6 @@
           },
           "decimals": 1,
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1197,23 +4064,26 @@
               }
             ]
           },
-          "unit": "short"
+          "unit": "locale",
+          "min": 0
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
+        "h": 8,
         "w": 12,
         "x": 12,
-        "y": 20
+        "y": 64
       },
-      "id": 16,
+      "id": 30,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "mean",
+            "max"
           ],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -1232,15 +4102,322 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "kafka_consumergroup_lag{ins=\"$ins\",topic=\"$topic\",consumergroup=~\"$consumergroup\"}",
+          "expr": "kafka_consumergroup_lag{job=\"kafka\",ins=\"$ins\",topic=\"$topic\",consumergroup=~\"$consumergroup\"}",
           "instant": false,
-          "legendFormat": "{{ consumergroup }}/{{ partition }}",
+          "interval": "",
+          "legendFormat": "{{ consumergroup }} / p{{ partition }}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Consumer Lag for Topic",
+      "title": "Consumer Lag for $topic",
       "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Exact committed offset and lag for every selected consumer group and partition of the selected topic. Empty when no matching consumer groups exist.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "align": "center",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true,
+            "footer": {
+              "reducers": []
+            },
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#e3e3e3e0",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Consumer Group"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#3e668f",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.filterable",
+                "value": true
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Select Consumer Group : ${__value.raw}",
+                    "url": "/d/kafka-instance?var-ins=$ins&var-topic=$topic&var-consumergroup=${__value.raw}&${__url_time_range}"
+                  }
+                ]
+              },
+              {
+                "id": "custom.width",
+                "value": 320
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Partition"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Committed"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Lag"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "locale"
+              },
+              {
+                "id": "decimals",
+                "value": 0
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "mode": "gradient",
+                  "type": "gauge"
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    },
+                    {
+                      "color": "#fcdb72",
+                      "value": 1
+                    },
+                    {
+                      "color": "#f79f64",
+                      "value": 1000
+                    },
+                    {
+                      "color": "#e02f44",
+                      "value": 100000
+                    },
+                    {
+                      "color": "#b783af",
+                      "value": 1000000
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 24,
+        "x": 0,
+        "y": 72
+      },
+      "id": 31,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Lag",
+            "desc": true
+          }
+        ]
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "label_join(max by (consumergroup, partition) (kafka_consumergroup_current_offset{job=\"kafka\",ins=\"$ins\",topic=\"$topic\",consumergroup=~\"$consumergroup\"}), \"key\", \" / \", \"consumergroup\", \"partition\")",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "A",
+          "format": "table"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "label_join(max by (consumergroup, partition) (kafka_consumergroup_lag{job=\"kafka\",ins=\"$ins\",topic=\"$topic\",consumergroup=~\"$consumergroup\"}), \"key\", \" / \", \"consumergroup\", \"partition\")",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "B",
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "key"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "Time 1": true,
+              "__name__ 1": true,
+              "job 1": true,
+              "consumergroup 1": true,
+              "partition 1": true,
+              "topic 1": true,
+              "key 1": true,
+              "Time 2": true,
+              "__name__ 2": true,
+              "job 2": true,
+              "consumergroup 2": true,
+              "partition 2": true,
+              "topic 2": true,
+              "key 2": true,
+              "Time 3": true,
+              "__name__ 3": true,
+              "job 3": true,
+              "consumergroup 3": true,
+              "partition 3": true,
+              "topic 3": true,
+              "key 3": true,
+              "Time 4": true,
+              "__name__ 4": true,
+              "job 4": true,
+              "consumergroup 4": true,
+              "partition 4": true,
+              "topic 4": true,
+              "key 4": true,
+              "topic": true,
+              "key": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "consumergroup": 0,
+              "partition": 1,
+              "Value #A": 2,
+              "Value #B": 3
+            },
+            "renameByName": {
+              "consumergroup": "Consumer Group",
+              "partition": "Partition",
+              "Value #A": "Committed",
+              "Value #B": "Lag"
+            }
+          }
+        }
+      ],
+      "title": "Consumer Partition Offsets",
+      "type": "table"
     },
     {
       "collapsed": false,
@@ -1248,11 +4425,11 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 27
+        "y": 81
       },
-      "id": 17,
+      "id": 32,
       "panels": [],
-      "title": "Node Resources",
+      "title": "Exporter & Node",
       "type": "row"
     },
     {
@@ -1264,6 +4441,104 @@
       "fieldConfig": {
         "defaults": {
           "color": {
+            "mode": "thresholds"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineWidth": 0,
+            "spanNulls": true
+          },
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "color": "#e02f44",
+                  "index": 0,
+                  "text": "Down"
+                },
+                "1": {
+                  "color": "#4bb39ce0",
+                  "index": 1,
+                  "text": "Up"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#e02f44",
+                "value": null
+              },
+              {
+                "color": "#4bb39ce0",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 0,
+        "y": 82
+      },
+      "id": 33,
+      "options": {
+        "alignValue": "left",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": false
+        },
+        "mergeValues": true,
+        "rowHeight": 0.8,
+        "showValue": "auto",
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "kafka_exporter_up{job=\"kafka\",ins=\"$ins\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{ ins }}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Exporter Availability",
+      "type": "state-timeline"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
             "mode": "palette-classic"
           },
           "custom": {
@@ -1273,23 +4548,25 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "none",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "linear",
+            "lineInterpolation": "smooth",
             "lineWidth": 1,
-            "pointSize": 3,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "never",
-            "spanNulls": false,
+            "showValues": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -1300,7 +4577,6 @@
           },
           "decimals": 1,
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1310,23 +4586,54 @@
               }
             ]
           },
-          "unit": "percentunit"
+          "unit": "short"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
-        "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 28
+        "h": 6,
+        "w": 8,
+        "x": 8,
+        "y": 82
       },
-      "id": 18,
+      "id": 34,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "mean",
+            "max"
           ],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -1345,14 +4652,57 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "node:ins:cpu_usage{ip=\"$ip\"}",
+          "expr": "rate(process_cpu_seconds_total{job=\"kafka\",ins=\"$ins\"}[5m])",
           "instant": false,
+          "interval": "",
           "legendFormat": "CPU",
           "range": true,
           "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "go_goroutines{job=\"kafka\",ins=\"$ins\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Goroutines",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "go_threads{job=\"kafka\",ins=\"$ins\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Threads",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "rate(go_gc_duration_seconds_sum{job=\"kafka\",ins=\"$ins\"}[5m]) / clamp_min(rate(go_gc_duration_seconds_count{job=\"kafka\",ins=\"$ins\"}[5m]), 1e-9)",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "GC Mean",
+          "range": true,
+          "refId": "D"
         }
       ],
-      "title": "Node CPU Usage",
+      "title": "Exporter Runtime",
       "type": "timeseries"
     },
     {
@@ -1373,23 +4723,25 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "none",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "linear",
+            "lineInterpolation": "smooth",
             "lineWidth": 1,
-            "pointSize": 3,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "never",
-            "spanNulls": false,
+            "showValues": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -1400,7 +4752,291 @@
           },
           "decimals": 1,
           "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "s"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 8,
+        "x": 16,
+        "y": 82
+      },
+      "id": 35,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "scrape_duration_seconds{job=\"kafka\",ins=\"$ins\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Duration",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "scrape_samples_scraped{job=\"kafka\",ins=\"$ins\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Samples",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "scrape_response_size_bytes{job=\"kafka\",ins=\"$ins\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Response",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Scrape Cost",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percentunit",
           "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 88
+      },
+      "id": 36,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "node:ins:cpu_usage_1m{ip=\"$ip\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "CPU",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "node:ins:mem_usage{ip=\"$ip\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "Memory",
+          "range": true,
+          "refId": "B"
+        }
+      ],
+      "title": "Node CPU / Memory",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": true,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1416,17 +5052,19 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 12,
-        "x": 12,
-        "y": 28
+        "w": 8,
+        "x": 8,
+        "y": 88
       },
-      "id": 19,
+      "id": 37,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "mean",
+            "max"
           ],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -1447,7 +5085,8 @@
           "exemplar": false,
           "expr": "node:ins:network_tx_bytes_rate1m{ip=\"$ip\"}",
           "instant": false,
-          "legendFormat": "transmit",
+          "interval": "",
+          "legendFormat": "Transmit",
           "range": true,
           "refId": "A"
         },
@@ -1460,12 +5099,13 @@
           "exemplar": false,
           "expr": "-node:ins:network_rx_bytes_rate1m{ip=\"$ip\"}",
           "instant": false,
-          "legendFormat": "receive",
+          "interval": "",
+          "legendFormat": "Receive",
           "range": true,
           "refId": "B"
         }
       ],
-      "title": "Node Network Bandwidth",
+      "title": "Node Network",
       "type": "timeseries"
     },
     {
@@ -1481,28 +5121,30 @@
           },
           "custom": {
             "axisBorderShow": false,
-            "axisCenteredZero": false,
+            "axisCenteredZero": true,
             "axisColorMode": "text",
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "none",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "linear",
+            "lineInterpolation": "smooth",
             "lineWidth": 1,
-            "pointSize": 3,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "never",
-            "spanNulls": false,
+            "showValues": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -1513,7 +5155,6 @@
           },
           "decimals": 1,
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1523,23 +5164,58 @@
               }
             ]
           },
-          "unit": "iops"
+          "unit": "Bps"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "iops"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "D"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "iops"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 7,
-        "w": 12,
-        "x": 0,
-        "y": 35
+        "w": 8,
+        "x": 16,
+        "y": 88
       },
-      "id": 20,
+      "id": 38,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "mean",
+            "max"
           ],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -1558,9 +5234,10 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "node:dev:disk_reads_rate1m{ip=\"$ip\"}",
+          "expr": "node:dev:disk_read_bytes_rate1m{ip=\"$ip\"}",
           "instant": false,
-          "legendFormat": "{{ dev }} read",
+          "interval": "",
+          "legendFormat": "{{ device }} read",
           "range": true,
           "refId": "A"
         },
@@ -1571,14 +5248,43 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "-node:dev:disk_writes_rate1m{ip=\"$ip\"}",
+          "expr": "-node:dev:disk_write_bytes_rate1m{ip=\"$ip\"}",
           "instant": false,
-          "legendFormat": "{{ dev }} write",
+          "interval": "",
+          "legendFormat": "{{ device }} write",
           "range": true,
           "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "node:dev:disk_reads_rate1m{ip=\"$ip\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{ device }} read IOPS",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "-node:dev:disk_writes_rate1m{ip=\"$ip\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{ device }} write IOPS",
+          "range": true,
+          "refId": "D"
         }
       ],
-      "title": "Node Disk IOPS",
+      "title": "Node Disk I/O",
       "type": "timeseries"
     },
     {
@@ -1599,23 +5305,25 @@
             "axisLabel": "",
             "axisPlacement": "auto",
             "barAlignment": 0,
+            "barWidthFactor": 0.6,
             "drawStyle": "line",
-            "fillOpacity": 12,
-            "gradientMode": "none",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "insertNulls": false,
-            "lineInterpolation": "linear",
+            "lineInterpolation": "smooth",
             "lineWidth": 1,
-            "pointSize": 3,
+            "pointSize": 4,
             "scaleDistribution": {
               "type": "linear"
             },
             "showPoints": "never",
-            "spanNulls": false,
+            "showValues": false,
+            "spanNulls": true,
             "stacking": {
               "group": "A",
               "mode": "none"
@@ -1626,7 +5334,6 @@
           },
           "decimals": 1,
           "mappings": [],
-          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1638,21 +5345,56 @@
           },
           "unit": "percentunit"
         },
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "C"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "short"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              }
+            ]
+          }
+        ]
       },
       "gridPos": {
         "h": 7,
         "w": 12,
-        "x": 12,
-        "y": 35
+        "x": 0,
+        "y": 95
       },
-      "id": 21,
+      "id": 39,
       "options": {
         "legend": {
           "calcs": [
-            "lastNotNull"
+            "lastNotNull",
+            "mean",
+            "max"
           ],
-          "displayMode": "list",
+          "displayMode": "table",
           "placement": "bottom",
           "showLegend": true
         },
@@ -1671,14 +5413,149 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "node:fs:space_usage{ip=\"$ip\"}",
+          "expr": "node:dev:disk_util_1m{ip=\"$ip\"}",
           "instant": false,
-          "legendFormat": "{{ path }}",
+          "interval": "",
+          "legendFormat": "{{ device }} util",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "node:dev:disk_io_rt_1m{ip=\"$ip\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{ device }} latency",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "node:dev:disk_avg_queue_size{ip=\"$ip\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{ device }} queue",
+          "range": true,
+          "refId": "C"
+        }
+      ],
+      "title": "Disk Pressure",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "percentunit",
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 95
+      },
+      "id": 40,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "node:fs:space_usage{ip=\"$ip\",fstype!~\"tmpfs|overlay\"}",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{ mountpoint }}",
           "range": true,
           "refId": "A"
         }
       ],
-      "title": "Node Filesystem Usage",
+      "title": "Filesystem Usage",
       "type": "timeseries"
     },
     {
@@ -1687,9 +5564,9 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 42
+        "y": 102
       },
-      "id": 22,
+      "id": 41,
       "panels": [],
       "title": "Logs",
       "type": "row"
@@ -1699,13 +5576,395 @@
         "type": "victoriametrics-logs-datasource",
         "uid": "ds-vlogs"
       },
+      "description": "Kafka service log events grouped by severity on the selected node.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.8,
+            "drawStyle": "bars",
+            "fillOpacity": 90,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4bb39ce0",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e02f44",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fatal"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#b783af",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warn"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fcdb72",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warning"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fcdb72",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "info"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#4bb39ce0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "debug"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e3e3e3e0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
       "gridPos": {
-        "h": 12,
+        "h": 7,
         "w": 12,
         "x": 0,
-        "y": 43
+        "y": 103
       },
-      "id": 23,
+      "id": 42,
+      "interval": "1s",
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "ds-vlogs"
+          },
+          "editorMode": "code",
+          "expr": "ip:$ip job:syslog (unit:kafka OR app:kafka) | stats by (level) count() as count",
+          "legendFormat": "{{ level }}",
+          "queryType": "statsRange",
+          "refId": "A"
+        }
+      ],
+      "title": "Kafka Log Volume",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "ds-vlogs"
+      },
+      "description": "kafka_exporter log events grouped by severity on the selected node.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.8,
+            "drawStyle": "bars",
+            "fillOpacity": 90,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4bb39ce0",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "error"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e02f44",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "fatal"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#b783af",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warn"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fcdb72",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "warning"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#fcdb72",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "info"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#4bb39ce0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "debug"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#e3e3e3e0",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 103
+      },
+      "id": 43,
+      "interval": "1s",
+      "options": {
+        "legend": {
+          "calcs": [
+            "sum"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "ds-vlogs"
+          },
+          "editorMode": "code",
+          "expr": "ip:$ip job:syslog (unit:kafka_exporter OR app:kafka_exporter) | stats by (level) count() as count",
+          "legendFormat": "{{ level }}",
+          "queryType": "statsRange",
+          "refId": "A"
+        }
+      ],
+      "title": "Exporter Log Volume",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "ds-vlogs"
+      },
+      "gridPos": {
+        "h": 16,
+        "w": 12,
+        "x": 0,
+        "y": 110
+      },
+      "id": 44,
       "options": {
         "dedupStrategy": "none",
         "enableInfiniteScrolling": false,
@@ -1747,12 +6006,12 @@
         "uid": "ds-vlogs"
       },
       "gridPos": {
-        "h": 12,
+        "h": 16,
         "w": 12,
         "x": 12,
-        "y": 43
+        "y": 110
       },
-      "id": 24,
+      "id": 45,
       "options": {
         "dedupStrategy": "none",
         "enableInfiniteScrolling": false,
@@ -1885,7 +6144,7 @@
           "query": "label_values(kafka_topic_partitions{ins=\"$ins\"},topic)",
           "refId": "PrometheusVariableQueryEditor-topic"
         },
-        "refresh": 1,
+        "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 1,
@@ -1904,19 +6163,56 @@
         "hide": 0,
         "includeAll": true,
         "label": "Consumer Group",
-        "multi": false,
+        "multi": true,
         "name": "consumergroup",
         "options": [],
         "query": {
           "query": "label_values(kafka_consumergroup_current_offset{ins=\"$ins\",topic=\"$topic\"},consumergroup)",
           "refId": "PrometheusVariableQueryEditor-consumergroup"
         },
-        "refresh": 1,
+        "refresh": 2,
         "regex": "",
         "skipUrlSync": false,
         "sort": 1,
         "type": "query",
         "allValue": ".*"
+      },
+      {
+        "current": {
+          "selected": true,
+          "text": "20",
+          "value": "20"
+        },
+        "hide": 0,
+        "includeAll": false,
+        "label": "Top N",
+        "multi": false,
+        "name": "topk",
+        "options": [
+          {
+            "selected": false,
+            "text": "10",
+            "value": "10"
+          },
+          {
+            "selected": true,
+            "text": "20",
+            "value": "20"
+          },
+          {
+            "selected": false,
+            "text": "50",
+            "value": "50"
+          },
+          {
+            "selected": false,
+            "text": "100",
+            "value": "100"
+          }
+        ],
+        "query": "10,20,50,100",
+        "skipUrlSync": false,
+        "type": "custom"
       }
     ]
   },

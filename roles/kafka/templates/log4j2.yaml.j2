@@ -1,0 +1,22 @@
+# Console-only Kafka logging. systemd captures stdout/stderr and the node
+# Vector journald source forwards it to VictoriaLogs as job=syslog.
+Configuration:
+  Properties:
+    Property:
+      - name: logPattern
+        value: "[%d] %p %m (%c)%n"
+  Appenders:
+    Console:
+      name: STDOUT
+      PatternLayout:
+        pattern: "${logPattern}"
+  Loggers:
+    Root:
+      level: INFO
+      AppenderRef:
+        ref: STDOUT
+    Logger:
+      - name: kafka
+        level: INFO
+      - name: org.apache.kafka
+        level: INFO

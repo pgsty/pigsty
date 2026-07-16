@@ -2,52 +2,49 @@
 #==============================================================#
 # File      :   kafka.yml
 # Ctime     :   2024-01-01
-# Mtime     :   2024-08-08
-# Desc      :   Record rules for kafka
+# Mtime     :   2026-07-16
+# Desc      :   Recording and alert rules for Kafka exporter
 # Path      :   /infra/rules/kafka.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
-
 groups:
-  ################################################################
-  #                         Kafka Rules                          #
-  ################################################################
   - name: kafka-rules
     rules:
-
-      # message in
+      # Producer progress: current broker offsets per topic/partition.
       - record: kafka:topic:msg_rate1m
-        expr: sum without (partition) (rate(kafka_topic_partition_current_offset{}[1m]))
+        expr: clamp_min(sum without (partition) (rate(kafka_topic_partition_current_offset[1m])), 0)
       - record: kafka:topic:msg_rate5m
-        expr: sum without (partition) (rate(kafka_topic_partition_current_offset{}[5m]))
+        expr: clamp_min(sum without (partition) (rate(kafka_topic_partition_current_offset[5m])), 0)
 
       - record: kafka:ins:msg_rate1m
-        expr: sum(kafka:topic:msg_rate1m) without (topic)
+        expr: sum without (topic) (kafka:topic:msg_rate1m)
       - record: kafka:ins:msg_rate5m
-        expr: sum(kafka:topic:msg_rate5m) without (topic)
+        expr: sum without (topic) (kafka:topic:msg_rate5m)
 
+      # Exporters query the cluster, so deduplicate identical exporter views
+      # before summing topic rates into the logical Kafka cluster rate.
       - record: kafka:cls:msg_rate1m
-        expr: sum(kafka:topic:msg_rate1m) by (job,cls)
+        expr: sum by (job, cls) (max without (ins, ip, instance) (kafka:topic:msg_rate1m))
       - record: kafka:cls:msg_rate5m
-        expr: sum(kafka:topic:msg_rate5m) by (job,cls)
+        expr: sum by (job, cls) (max without (ins, ip, instance) (kafka:topic:msg_rate5m))
 
-      # message out
+      # Consumer progress: committed offsets per group/topic/partition.
       - record: kafka:topic:csg_rate1m
-        expr: sum without (partition) (rate(kafka_consumergroup_current_offset{}[1m]))
+        expr: clamp_min(sum without (partition) (rate(kafka_consumergroup_current_offset[1m])), 0)
       - record: kafka:topic:csg_rate5m
-        expr: sum without (partition) (rate(kafka_consumergroup_current_offset{}[5m]))
+        expr: clamp_min(sum without (partition) (rate(kafka_consumergroup_current_offset[5m])), 0)
 
       - record: kafka:ins:csg_rate1m
-        expr: sum(kafka:topic:msg_rate1m) without (topic)
+        expr: sum without (topic, consumergroup) (kafka:topic:csg_rate1m)
       - record: kafka:ins:csg_rate5m
-        expr: sum(kafka:topic:msg_rate5m) without (topic)
+        expr: sum without (topic, consumergroup) (kafka:topic:csg_rate5m)
 
       - record: kafka:cls:csg_rate1m
-        expr: sum(kafka:topic:msg_rate1m) by (job,cls)
+        expr: sum by (job, cls) (max without (ins, ip, instance) (kafka:topic:csg_rate1m))
       - record: kafka:cls:csg_rate5m
-        expr: sum(kafka:topic:msg_rate5m) by (job,cls)
+        expr: sum by (job, cls) (max without (ins, ip, instance) (kafka:topic:csg_rate5m))
 
 
   ################################################################
@@ -67,7 +64,6 @@ groups:
         annotations:
           summary: "CRIT KafkaExporterDown {{ $labels.ins }}@{{ $labels.instance }}"
           description: |
-            kafka_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
-            /ui/d/kafka-overview
-
+            kafka_exporter_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
+            /ui/d/kafka-instance?var-ins={{ $labels.ins }}
 ...

@@ -1,0 +1,86 @@
+---
+# Static controller-side rendering checks. No remote connection or target file
+# mutation is performed; only kafka-id tasks and template lookups are selected.
+- name: render single-node kafka topology
+  hosts: kafka_single
+  connection: local
+  gather_facts: false
+  roles:
+    - role: kafka
+  post_tasks:
+    - name: render single-node server properties in memory
+      tags: render
+      set_fact:
+        kafka_rendered_config: "{{ lookup('template', playbook_dir + '/../templates/server.properties.j2') }}"
+        kafka_rendered_exporter_env: "{{ lookup('template', playbook_dir + '/../templates/kafka_exporter.env.j2') }}"
+        kafka_matching_meta: |-
+          cluster.id={{ kafka_cluster_id_actual }}
+          node.id={{ kafka_seq }}
+        kafka_mismatched_meta: |-
+          cluster.id={{ kafka_cluster_id_actual }}x
+          node.id={{ kafka_seq }}0
+
+    - name: assert single-node combined topology
+      tags: render
+      assert:
+        that:
+          - kafka_cluster_id_actual | length == 22
+          - kafka_controller_quorum == '1@10.90.0.10:9095'
+          - "'process.roles=broker,controller' in kafka_rendered_config"
+          - "'listeners=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9095' in kafka_rendered_config"
+          - "'advertised.listeners=PLAINTEXT://10.90.0.10:9092,CONTROLLER://10.90.0.10:9095' in kafka_rendered_config"
+          - "'zookeeper' not in kafka_rendered_config | lower"
+          - "'--kafka.version=4.0.0' in kafka_rendered_exporter_env"
+          - "('cluster.id=' ~ kafka_cluster_id_actual) in kafka_matching_meta.splitlines()"
+          - "('node.id=' ~ (kafka_seq | string)) in kafka_matching_meta.splitlines()"
+          - "('cluster.id=' ~ kafka_cluster_id_actual) not in kafka_mismatched_meta.splitlines()"
+          - "('node.id=' ~ (kafka_seq | string)) not in kafka_mismatched_meta.splitlines()"
+
+- name: render three-node mixed kafka topology
+  hosts: kafka_three
+  connection: local
+  gather_facts: false
+  roles:
+    - role: kafka
+  post_tasks:
+    - name: render three-node server properties in memory
+      tags: render
+      set_fact:
+        kafka_rendered_config: "{{ lookup('template', playbook_dir + '/../templates/server.properties.j2') }}"
+
+    - name: assert shared three-node controller quorum
+      tags: render
+      assert:
+        that:
+          - kafka_cluster_id_actual | length == 22
+          - kafka_controller_quorum == '1@10.90.0.11:9095,2@10.90.0.12:9095'
+          - "'controller.quorum.voters=' ~ kafka_controller_quorum in kafka_rendered_config"
+          - "'zookeeper' not in kafka_rendered_config | lower"
+
+    - name: assert controller-only listener rendering
+      tags: render
+      when: kafka_role == 'controller-only'
+      assert:
+        that:
+          - "'process.roles=controller' in kafka_rendered_config"
+          - "'listeners=CONTROLLER://0.0.0.0:9095' in kafka_rendered_config"
+          - "'PLAINTEXT://0.0.0.0:9092' not in kafka_rendered_config"
+          - "'inter.broker.listener.name' not in kafka_rendered_config"
+
+    - name: assert combined listener rendering
+      tags: render
+      when: kafka_role == 'combined'
+      assert:
+        that:
+          - "'process.roles=broker,controller' in kafka_rendered_config"
+          - "'listeners=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9095' in kafka_rendered_config"
+
+    - name: assert broker-only listener rendering
+      tags: render
+      when: kafka_role == 'broker'
+      assert:
+        that:
+          - "'process.roles=broker' in kafka_rendered_config"
+          - "'listeners=PLAINTEXT://0.0.0.0:9092' in kafka_rendered_config"
+          - "'CONTROLLER://0.0.0.0:9095' not in kafka_rendered_config"
+...
