@@ -1,33 +1,51 @@
 ---
-# The playbook invokes this role in explicit phases.  Keeping the dispatcher
-# here also makes each phase independently taggable and testable.
+# The kafka role converges one Kafka cluster to its declared state in a single
+# pass. It is idempotent: a no-change run on a healthy cluster restarts nothing,
+# and it never wipes an existing cluster (teardown lives in the kafka_remove role
+# and the kafka-rm.yml playbook). All cross-node sequencing (dynamic-quorum
+# bootstrap, one-at-a-time broker admission, strict rolling restart) is owned by
+# launch.yml, so kafka.yml stays a thin node_id + kafka wrapper like pgsql.yml.
+
+#--------------------------------------------------------------#
+# Kafka Identity                                     [kafka-id]
+#--------------------------------------------------------------#
+# kafka_topology, kafka_endpoint, kafka_assert, kafka_print
 - import_tasks: identity.yml
-  tags: [always, kafka-id]
+  tags: [ always, kafka-id ]
 
-- include_tasks:
-    file: clean.yml
-    apply:
-      tags: [never, kafka_clean]
-  when: kafka_phase | default('prepare') == 'prepare'
-  tags: [never, kafka_clean]
+#--------------------------------------------------------------#
+# Install Kafka                                 [kafka_install]
+#--------------------------------------------------------------#
+# kafka_user, kafka_pkg
+- import_tasks: install.yml
+  tags: kafka_install
 
-- include_tasks: prepare.yml
-  when: kafka_phase | default('prepare') == 'prepare'
-  tags: [kafka, kafka_prepare, kafka_pkg, kafka_config, kafka_boot]
+#--------------------------------------------------------------#
+# Render Config, Manifest & Format Storage       [kafka_config]
+#--------------------------------------------------------------#
+# kafka_dir, kafka_meta, kafka_manifest, kafka_security, kafka_fingerprint,
+# kafka_format, kafka_lifecycle
+- import_tasks: config.yml
+  tags: kafka_config
 
-- include_tasks: converge.yml
-  when: kafka_phase | default('prepare') == 'converge'
-  tags: [kafka, kafka_converge, kafka_launch]
+#--------------------------------------------------------------#
+# Bootstrap / Converge / Roll Services           [kafka_launch]
+#--------------------------------------------------------------#
+# kafka_commission
+- import_tasks: launch.yml
+  tags: kafka_launch
 
-- include_tasks: admission.yml
-  when: kafka_phase | default('prepare') == 'admission'
-  tags: [kafka, kafka_admission, kafka_launch]
+#--------------------------------------------------------------#
+# Provision Users, ACLs, Quotas & Topics      [kafka_provision]
+#--------------------------------------------------------------#
+# kafka_validate, kafka_drift
+- import_tasks: provision.yml
+  tags: kafka_provision
 
-- include_tasks: rolling.yml
-  when: kafka_phase | default('prepare') == 'rolling'
-  tags: [kafka, kafka_rolling, kafka_launch]
-
-- include_tasks: finalize.yml
-  when: kafka_phase | default('prepare') == 'finalize'
-  tags: [kafka, kafka_finalize, kafka_resource, kafka_exporter, kafka_register]
+#--------------------------------------------------------------#
+# Setup Monitoring & Register Targets           [kafka_monitor]
+#--------------------------------------------------------------#
+# kafka_exporter, kafka_register
+- import_tasks: monitor.yml
+  tags: [ kafka_monitor, monitor ]
 ...

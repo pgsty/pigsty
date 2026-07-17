@@ -1,0 +1,83 @@
+---
+# Restart exactly one node (roll_host) whose static config changed. Invoked once
+# per changed node by the run_once loop in launch.yml, so restarts are strictly
+# serialized. A multi-node cluster is protected by a quorum/minISR preflight and
+# a post-restart catch-up gate; the only-node case accepts unavoidable downtime.
+- name: evaluate rolling target {{ roll_host }}
+  set_fact:
+    roll_is_controller: "{{ hostvars[roll_host].kafka_has_controller | bool }}"
+    roll_is_broker: "{{ hostvars[roll_host].kafka_has_broker | bool }}"
+    roll_seq: "{{ hostvars[roll_host].kafka_seq }}"
+    roll_listen_port: >-
+      {{ hostvars[roll_host].kafka_port | default(9092)
+         if hostvars[roll_host].kafka_has_broker | bool
+         else hostvars[roll_host].kafka_controller_port | default(9093) }}
+    roll_gate_host: >-
+      {{ (kafka_broker_nodes | rejectattr('host', 'equalto', roll_host)
+          | map(attribute='host') | list | first)
+         | default(kafka_admin_host_internal, true) }}
+    roll_only_node: >-
+      {{ (hostvars[roll_host].kafka_has_controller | bool and kafka_controller_nodes | length == 1) or
+         (hostvars[roll_host].kafka_has_broker | bool and kafka_broker_nodes | length == 1) }}
+
+- name: preflight quorum and minisr before restarting {{ roll_host }}
+  when: not roll_only_node | bool
+  delegate_to: "{{ roll_gate_host }}"
+  become_user: kafka
+  command:
+    argv: >-
+      {{ ['/usr/local/bin/pigsty-kafka-health', 'pre',
+          '--bootstrap-server', roll_gate_host ~ ':' ~
+             (hostvars[roll_gate_host].kafka_port | default(9092) | string),
+          '--command-config', '/etc/kafka/admin.properties',
+          '--node-id', roll_seq | string] +
+         (['--controller'] if roll_is_controller | bool else []) +
+         (['--broker'] if roll_is_broker | bool else []) }}
+  changed_when: false
+
+- name: warn about unavoidable downtime restarting single-node {{ roll_host }}
+  when: roll_only_node | bool
+  debug:
+    msg: >-
+      {{ roll_host }} is the only {{ 'controller' if roll_is_controller | bool else 'broker' }}
+      in {{ kafka_cluster }}; restarting it causes a brief unavoidable service outage.
+
+- name: restart kafka on {{ roll_host }}
+  delegate_to: "{{ roll_host }}"
+  systemd: name=kafka state=restarted enabled=yes daemon_reload=yes
+
+- name: wait for the restarted listener on {{ roll_host }}
+  delegate_to: "{{ roll_host }}"
+  wait_for:
+    host: "{{ roll_host }}"
+    port: "{{ roll_listen_port }}"
+    state: started
+    timeout: 180
+
+- name: require catch-up and full health after restarting {{ roll_host }}
+  delegate_to: "{{ roll_gate_host }}"
+  become_user: kafka
+  command:
+    argv: >-
+      {{ ['/usr/local/bin/pigsty-kafka-health', 'post',
+          '--bootstrap-server', roll_gate_host ~ ':' ~
+             (hostvars[roll_gate_host].kafka_port | default(9092) | string),
+          '--command-config', '/etc/kafka/admin.properties',
+          '--node-id', roll_seq | string] +
+         (['--controller'] if roll_is_controller | bool else []) +
+         (['--broker'] if roll_is_broker | bool else []) }}
+  register: kafka_roll_health_internal
+  changed_when: false
+  retries: 45
+  delay: 4
+  until: kafka_roll_health_internal.rc == 0
+
+- name: record static state proven live on {{ roll_host }}
+  delegate_to: "{{ roll_host }}"
+  copy:
+    dest: /etc/kafka/.pigsty-applied-static.sha256
+    content: "{{ hostvars[roll_host].kafka_desired_static_fingerprint_internal }}\n"
+    owner: root
+    group: root
+    mode: '0644'
+...

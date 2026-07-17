@@ -54,12 +54,20 @@ def topic_filter(ns, flag):
     return rc == 0 and not re.search(r"(?m)^Topic:\s", out), out
 
 
+def listener_reachable(bootstrap_servers):
+    """Accept any reachable broker from Kafka's comma-separated bootstrap list."""
+    for endpoint in bootstrap_servers.split(","):
+        try:
+            host, port = endpoint.strip().rsplit(":", 1)
+            with socket.create_connection((host, int(port)), timeout=2):
+                return True
+        except (OSError, ValueError):
+            continue
+    return False
+
+
 def global_health(ns):
-    try:
-        host, port = ns.bootstrap_server.split(",", 1)[0].rsplit(":", 1)
-        with socket.create_connection((host, int(port)), timeout=2):
-            pass
-    except (OSError, ValueError):
+    if not listener_reachable(ns.bootstrap_server):
         return False, set(), {"listener": False}, {"listener": "unreachable"}
     q_ok, voters, q_out = quorum(ns)
     checks = {}

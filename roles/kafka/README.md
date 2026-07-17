@@ -1,268 +1,218 @@
-# Kafka role
+# Role: kafka
 
-This role deploys Apache Kafka 4.x in native dynamic KRaft mode. It owns the
-bootstrap manifest, safe converge/rolling state machine, declarative topics and
-users, TLS/SCRAM security profile, JMX monitoring, and at most two protocol
-exporter replicas. ZooKeeper and static `controller.quorum.voters` are not used.
+> Deploy Apache Kafka 4.x cluster in native dynamic KRaft mode
 
-The 2026-07-16 package payload was verified as Kafka 4.3.1,
-`kafka_exporter` 1.9.0, and JMX Exporter 1.6.0. Installation still uses
-`package_map['java-runtime']` and `package_map['kafka-stack']`, so repository
-package policy remains authoritative.
+| **Module**        | [KAFKA](https://pigsty.io/docs/kafka)                      |
+|-------------------|------------------------------------------------------------|
+| **Docs**          | https://pigsty.io/docs/kafka                               |
+| **Related Roles** | [`node_id`](../node_id), [`kafka_remove`](../kafka_remove) |
 
-## Required operating discipline
+
+## Overview
+
+The `kafka` role deploys production-ready Kafka 4.x clusters with:
+
+- **Dynamic KRaft** quorum: no ZooKeeper, no static `controller.quorum.voters`
+- **Bootstrap manifest** freezing cluster identity, initial controllers, and replication policy
+- **Safe lifecycle**: parallel bootstrap for fresh clusters, one-at-a-time gated broker
+  admission and rolling restart for healthy clusters; a no-change run restarts nothing
+- **Declarative resources**: topics, users, ACLs, and quotas reconciled against live metadata
+- **Security profiles**: `plaintext` for trusted networks, or the `scram` production profile
+  with Pigsty-CA node certs, controller mTLS, SASL_SSL + SCRAM-SHA-512, and default-deny ACLs
+- **Monitoring**: per-JVM JMX exporter plus at most two protocol exporter replicas,
+  registered to VictoriaMetrics on infra nodes
+
+The role converges one cluster to its declared state in a single idempotent pass and
+never wipes an existing cluster: teardown lives in [`kafka_remove`](../kafka_remove).
+
+
+## Playbooks
+
+| Playbook       | Description                                            |
+|----------------|--------------------------------------------------------|
+| `kafka.yml`    | Init / converge kafka cluster (id + kafka)             |
+| `kafka-rm.yml` | Remove cluster (use [`kafka_remove`](../kafka_remove)) |
 
 Every lifecycle run must select every member of exactly one `kafka_cluster`:
 
 ```bash
-./kafka.yml --check -l kf-main
+./kafka.yml --check -l kf-main    # dry run first
+./kafka.yml -l kf-main            # bootstrap, or converge to declared state
+```
+
+
+## File Structure
+
+```
+roles/kafka/
+├── defaults/
+│   └── main.yml              # Public API: 15 persistent variables
+├── handlers/
+│   └── main.yml              # Intentionally empty: restarts are owned by launch.yml
+├── files/
+│   ├── kafka_health.py       # Role-owned health predicate (pigsty-kafka-health)
+│   └── kafka_provision.py    # Declarative provision helper (pigsty-kafka-provision)
+├── tasks/
+│   ├── main.yml              # Entry point: orchestrates all subtasks
+│   ├── identity.yml          # [kafka-id] Derive & assert identity and topology
+│   ├── install.yml           # [kafka_install] Create OS user & install packages
+│   ├── config.yml            # [kafka_config] Config, manifest, security, format, lifecycle
+│   ├── security.yml          # [kafka_security] Secrets, certs, keystores, admin channels
+│   ├── launch.yml            # [kafka_launch] Converge / admit / roll / commission
+│   ├── admit.yml             # One gated broker admission (looped by launch.yml)
+│   ├── roll.yml              # One gated rolling restart (looped by launch.yml)
+│   ├── provision.yml         # [kafka_provision] Users, ACLs, quotas & topics
+│   └── monitor.yml           # [kafka_monitor] Exporters & victoria registration
+└── templates/
+    ├── server.properties.j2  # Kafka server configuration
+    ├── admin.properties.j2   # Role-owned broker admin channel
+    ├── controller.properties.j2  # Role-owned controller admin channel
+    ├── kafka.env.j2          # JVM heap & agent environment
+    ├── kafka.service         # Kafka systemd unit
+    ├── kafka_exporter.env.j2 # Protocol exporter options
+    ├── kafka_exporter.service # Protocol exporter systemd unit
+    ├── jmx_exporter.yml.j2   # Bounded JMX metric rules
+    └── log4j2.yaml.j2        # Journald logging configuration
+```
+
+Every cluster node keeps authoritative copies of the bootstrap facts:
+`/etc/kafka/manifest.yml` (cluster identity, initial controllers, frozen
+replication policy) and `/etc/kafka/secrets.yml` (role-owned scram secrets).
+The admin-side `files/kafka/<kafka_cluster>/` dir is only a convenience cache:
+when lost or relocated it is transparently recovered from any cluster member,
+and issued certificates are simply re-signed from the pigsty CA. A stale
+manifest paired with empty data disks still fails closed.
+
+
+## Tags
+
+### Tag Hierarchy
+
+```
+kafka (full role)
+│
+├── kafka-id                   # Derive & assert identity (always runs)
+│
+├── kafka_install              # Software installation
+│   ├── kafka_user             # Create kafka OS user & group
+│   └── kafka_pkg              # Install kafka-stack & java-runtime packages
+│
+├── kafka_config               # Configuration & storage
+│   ├── kafka_dir              # Create data & config directories
+│   ├── kafka_meta             # Inspect on-disk KRaft metadata identity
+│   ├── kafka_manifest         # Load / reconstruct / create bootstrap manifest
+│   ├── kafka_security         # Secrets, Pigsty-CA certs, keystores, admin channels
+│   ├── kafka_fingerprint      # Static-config fingerprint (restart trigger)
+│   ├── kafka_format           # Format uninitialized storage (dynamic quorum)
+│   └── kafka_lifecycle        # Classify run as converge or strict rolling
+│
+├── kafka_launch               # Service lifecycle
+│   ├── converge               # Parallel bootstrap of fresh/unhealthy cluster
+│   ├── admit                  # Gated one-at-a-time broker admission
+│   ├── roll                   # Quorum/minISR-gated rolling restart
+│   └── kafka_commission       # Commission manifest & record proven state
+│
+├── kafka_provision            # Provision users, ACLs, quotas & topics
+│
+└── kafka_monitor              # Monitoring [monitor]
+    ├── kafka_exporter         # Protocol exporter on selected nodes
+    └── kafka_register         # Register targets [register, add_metrics]
+```
+
+Phase tags are sequencing markers within the single-pass role; only
+`kafka_install` and `register` are meaningful standalone entrypoints, and
+everything else converges through a full run.
+
+### Usage Examples
+
+```bash
+# Full deployment / convergence
 ./kafka.yml -l kf-main
+
+# Install packages only
+./kafka.yml -l kf-main -t kafka_install
+
+# Re-register victoria monitoring targets
+./kafka.yml -l kf-main -t register
+
+# Protected credential / certificate rotation (scram clusters)
+./kafka.yml -l kf-main -e kafka_rotate_credentials=true  -e kafka_rotate_confirm=kf-main
+./kafka.yml -l kf-main -e kafka_rotate_certificates=true -e kafka_rotate_confirm=kf-main
+
+# Remove a cluster (honors kafka_safeguard)
+./kafka-rm.yml -l kf-main
 ```
 
-The role rejects a missing, partial, or cross-cluster limit. A normal run uses
-one health predicate to select its path:
 
-- unhealthy or stopped cluster: start stopped controllers without restarting
-  surviving members, require a caught-up dynamic quorum, then expose brokers;
-- healthy cluster expansion: admit newly formatted pure brokers one at a time
-  and verify registration before rolling any existing member;
-- healthy cluster with static changes: strict `serial: 1` rolling restart with
-  pre/post caught-up quorum, offline-partition, under-minISR, and ISR catch-up
-  gates;
-- healthy cluster without static changes: no Kafka restart.
+## Key Variables
 
-The desired static fingerprint is persisted only after the rendered files are
-proven live by a successful start or health-gated restart. If repair and a
-static change coincide, converge first restores quorum without restarting live
-controllers, then hands still-pending changes to strict rolling. An interrupted
-run therefore cannot lose a pending static restart on the next invocation.
+### Identity (Required)
 
-Formatting is one-time and explicit. Existing `meta.properties` is validated
-for cluster and node identity and is never reformatted by a normal run.
-Adding or replacing a controller is an explicit Kafka membership procedure:
-format it for the existing cluster, start and catch it up, then run the Kafka
-`add-controller` operation. Inventory membership alone is rejected; controller
-removal likewise requires the corresponding explicit admin workflow.
+| Variable        | Level        | Description                                  |
+|-----------------|--------------|----------------------------------------------|
+| `kafka_cluster` | **CLUSTER**  | Cluster name (required)                      |
+| `kafka_seq`     | **INSTANCE** | Unique KRaft `node.id` (required)            |
+| `kafka_role`    | **INSTANCE** | `combined` (default), `broker`, `controller` |
 
-## Inventory
+### Cluster
 
-The compact default is a combined cluster. Omit `kafka_role` on every member:
+| Variable                | Default         | Description                                      |
+|-------------------------|-----------------|--------------------------------------------------|
+| `kafka_data`            | `/data/kafka`   | Role-owned data root                             |
+| `kafka_heap_opts`       | `-Xms1G -Xmx1G` | JVM heap options                                 |
+| `kafka_port`            | `9092`          | Broker / client listener                         |
+| `kafka_controller_port` | `9093`          | KRaft controller listener                        |
+| `kafka_rack`            | unset           | Optional broker placement label (all or none)    |
+| `kafka_parameters`      | `{}`            | Extra non-role-owned broker settings             |
+| `kafka_cluster_id`      | unset           | Recovery/adoption assertion; bootstrap is random |
 
-```yaml
-kf-main:
-  hosts:
-    10.10.10.11: { kafka_seq: 1 }
-    10.10.10.12: { kafka_seq: 2 }
-    10.10.10.13: { kafka_seq: 3 }
-  vars:
-    kafka_cluster: kf-main
-```
+### Security
 
-Split topology must declare every role explicitly. The only valid roles are
-`combined`, `controller`, and `broker`:
+| Variable         | Default     | Description                                     |
+|------------------|-------------|-------------------------------------------------|
+| `kafka_security` | `plaintext` | `plaintext` or the production `scram` profile   |
+| `kafka_users`    | `[]`        | Declarative credential, ACL, and quota objects  |
+| `kafka_topics`   | `[]`        | Declarative topic objects                       |
+| `cert_validity`  | `7300d`     | Node cert validity (shared Pigsty CA parameter) |
 
-```yaml
-kf-main:
-  hosts:
-    10.10.10.11: { kafka_seq: 1, kafka_role: controller }
-    10.10.10.12: { kafka_seq: 2, kafka_role: controller }
-    10.10.10.13: { kafka_seq: 3, kafka_role: controller }
-    10.10.10.21: { kafka_seq: 4, kafka_role: broker }
-    10.10.10.22: { kafka_seq: 5, kafka_role: broker }
-    10.10.10.23: { kafka_seq: 6, kafka_role: broker }
-  vars:
-    kafka_cluster: kf-main
-```
+### Monitoring
 
-Node IDs are unique cluster-wide. Broker-capable nodes either all declare
-`kafka_rack` or all omit it. Controller port 9095 avoids Pigsty
-AlertManager's 9093.
+| Variable                     | Default | Description                          |
+|------------------------------|---------|--------------------------------------|
+| `kafka_jmx_exporter_port`    | `9404`  | JMX exporter port                    |
+| `kafka_exporter_port`        | `9308`  | Protocol exporter port               |
 
-## Persistent public API
+Topology, listeners, storage paths, replication safety, authorizer, TLS, and SASL
+keys are role-owned and cannot be overridden through `kafka_parameters`.
 
-The role deliberately exposes only these 16 persistent variables:
+Full parameter reference: [KAFKA Configuration](https://pigsty.io/docs/kafka/config)
 
-| Variable | Default | Meaning |
-|---|---|---|
-| `kafka_cluster` | required | Cluster identity |
-| `kafka_seq` | required | Unique KRaft `node.id` |
-| `kafka_role` | `combined` | `combined`, `broker`, or `controller` |
-| `kafka_cluster_id` | unset | Recovery/adoption assertion; bootstrap is random |
-| `kafka_data` | `/data/kafka` | Role-owned data root |
-| `kafka_heap_opts` | `-Xms1G -Xmx1G` | JVM heap |
-| `kafka_port` | `9092` | Broker/client listener |
-| `kafka_controller_port` | `9095` | Controller listener |
-| `kafka_rack` | unset | Optional all-or-none broker placement label |
-| `kafka_parameters` | `{}` | Non-role-owned broker settings |
-| `kafka_jmx_exporter_enabled` | `true` | Per-JVM JMX endpoint |
-| `kafka_jmx_exporter_port` | `9404` | JMX endpoint port |
-| `kafka_exporter_port` | `9308` | Protocol exporter port |
-| `kafka_security` | `plaintext` | `plaintext` or production `scram` profile |
-| `kafka_users` | `[]` | Credential, ACL, and quota objects |
-| `kafka_topics` | `[]` | Declarative topic objects |
 
-Topology, listeners, storage paths, replication safety, authorizer, TLS, and
-SASL keys are role-owned and cannot be overridden through `kafka_parameters`.
+## Operation Notes
 
-## Dynamic KRaft identity
+- New clusters bootstrap with a **random Cluster ID** and random initial controller
+  directory IDs; after first healthy convergence the manifest is `commissioned` and
+  those identities are frozen.
+- Initial replication policy derives from broker count:
+  `RF = min(3, brokers)`, `minISR = max(1, RF - 1)`, then freezes in the manifest.
+- A healthy cluster with static changes performs a strict one-at-a-time rolling
+  restart with pre/post quorum, offline-partition, under-minISR, and ISR catch-up
+  gates; expansion admits newly formatted pure brokers one at a time.
+- A sole controller/broker cannot restart without downtime: such a restart
+  proceeds with a logged warning and a brief unavoidable outage.
+- An empty controller disk under a commissioned manifest **fails closed**: reusing a
+  frozen directory ID would be a Raft identity replay. Controller membership changes
+  require the explicit Kafka `add-controller`/`remove-controller` procedure (not yet
+  orchestrated by this role; a Beta limitation).
+- `default.replication.factor` and existing topic RF never change automatically after
+  expansion; use a reviewed `kafka-reassign-partitions.sh` plan.
+- Clients must resolve and reach every broker's `inventory_hostname` directly:
+  do not front the Kafka data plane with haproxy / VIP / L4 LB.
+- The default 1GiB heap suits ≥4GiB nodes; pair smaller lab nodes with a smaller heap.
 
-New clusters receive a random Kafka Cluster ID and random initial controller
-directory IDs. Every node formats with either `--initial-controllers` or
-`--no-initial-controllers`; after startup, `kraft.version` must be dynamic.
 
-Bootstrap-only facts live in:
+## See Also
 
-```text
-files/kafka/<kafka_cluster>/manifest.yml
-```
-
-The manifest contains only cluster identity, initial controller identities,
-security mode, and frozen initial replication/minISR policy. The live cluster
-remains authoritative. A stale manifest with empty disks, an identity mismatch,
-or a security-mode mismatch fails closed. A healthy dynamic cluster can
-reconstruct a missing manifest without reformatting; secure reconstruction also
-requires its existing role-owned secrets.
-
-The initial internal-topic, future-topic default RF, and cluster minISR policy
-remain frozen during broker expansion. Kafka 4.3 does not allow
-`default.replication.factor` to be updated dynamically, so changing that static
-default requires an explicit maintenance plan. The role never claims or
-performs replication-factor upgrades for existing topics; those require an
-explicit reassignment workflow.
-
-## Security profile
-
-`kafka_security: scram` is one production profile rather than a set of
-independent switches. It enables:
-
-- TLS with Pigsty-CA-signed per-node certificates;
-- mutual TLS on the controller listener;
-- SASL_SSL and SCRAM-SHA-512 on the broker listener and inter-broker channel;
-- `StandardAuthorizer` with deny-by-default;
-- role-owned admin, monitor, and dual-slot inter-broker principals;
-- monitor ACL convergence before the protocol exporter starts.
-
-Internal credentials and generated private PKI are stored under
-`files/kafka/<cluster>/`, mode-protected, and ignored by Git. Never copy their
-contents into inventory, logs, or tickets. Changing `kafka_security` after
-format is intentionally rejected; online plaintext-to-secure migration is a
-separate future admin workflow.
-
-Example application resources:
-
-```yaml
-kafka_security: scram
-kafka_users:
-  - name: order-service
-    password: "{{ vault_kafka_order_password }}"
-    acls:
-      - resource: topic
-        name: order.
-        pattern: prefixed
-        operations: [Read, Write, Describe]
-      - resource: group
-        name: order.
-        pattern: prefixed
-        operations: [Read]
-      - resource: transactional_id
-        name: order.
-        pattern: prefixed
-        operations: [Write, Describe]
-    quota:
-      producer_byte_rate: 10485760
-      consumer_byte_rate: 20971520
-kafka_topics:
-  - name: order.events
-    partitions: 12
-    replication_factor: 3
-    config:
-      min.insync.replicas: 2
-      cleanup.policy: delete
-```
-
-Topic creation is idempotent, partitions only increase, and only declared
-configs converge. Replication-factor changes fail with an explicit reassignment
-instruction. Removing a topic from inventory never deletes it. User password
-changes rotate SCRAM credentials; ACLs and declared quotas converge
-idempotently.
-
-### Protected internal rotation
-
-Internal inter-broker credentials use active/standby principals. Rotation first
-changes the inactive credential through the live admin channel, atomically
-switches the protected local secret record, then uses the normal strict rolling
-path. The old active principal remains valid as the next standby, making a
-partial run recoverable.
-
-Run check mode first, then the confirmed full-cluster action:
-
-```bash
-./kafka.yml --check -l kf-main \
-  -e kafka_rotate_credentials=true -e kafka_rotate_confirm=kf-main
-./kafka.yml -l kf-main \
-  -e kafka_rotate_credentials=true -e kafka_rotate_confirm=kf-main
-```
-
-Certificate rotation first requires controller and node UTC clocks to be
-within 30 seconds. It generates replacements in an isolated staging
-workspace, verifies the complete set against the Pigsty CA, promotes them only
-after every certificate passes, rebuilds keystores, verifies validity again on
-each node's clock, and enters the same strict rolling path. A generation or
-clock-preflight failure therefore leaves the active certificate set intact.
-
-```bash
-./kafka.yml --check -l kf-main \
-  -e kafka_rotate_certificates=true -e kafka_rotate_confirm=kf-main
-./kafka.yml -l kf-main \
-  -e kafka_rotate_certificates=true -e kafka_rotate_confirm=kf-main
-```
-
-The two actions are mutually exclusive, require an already formatted, healthy
-SCRAM cluster, and are transient operations rather than persistent API fields.
-
-## Protected cleanup
-
-Cleanup deletes only the selected cluster's Kafka data, node-local security
-state, monitoring discovery targets, bootstrap manifest, and internal
-secret/PKI directory. It is tagged `never` and requires an exact cluster limit
-plus all three confirmations:
-
-```bash
-./kafka.yml --check -l kf-main --tags kafka_clean \
-  -e kafka_clean=true -e kafka_clean_confirm=kf-main
-./kafka.yml -l kf-main --tags kafka_clean \
-  -e kafka_clean=true -e kafka_clean_confirm=kf-main
-```
-
-Treat the formal command as destructive: verify backup/rebuild intent and get
-the production runbook's explicit user confirmation first.
-
-## Observability
-
-Every Kafka JVM optionally exposes bounded JMX metrics at port 9404 and is
-registered under `/infra/targets/kafka/`. Lifecycle gates never depend on JMX.
-
-The first at most two broker-capable nodes run `kafka_exporter` and register
-under `/infra/targets/kafka_exporter/`; deselected nodes have the unit,
-environment, CA copy, and target removed. Secure mode derives exporter
-TLS/SCRAM arguments from the monitor principal. Protocol version 4.0.0 is the
-newest supported by the bundled exporter client.
-
-Kafka and exporter output goes to journald with identifiers `kafka` and
-`kafka_exporter`, then follows the existing Vector/VictoriaLogs path.
-
-## Validation
-
-Useful non-destructive checks:
-
-```bash
-ansible-playbook -i pigsty.yml kafka.yml --syntax-check
-ANSIBLE_ROLES_PATH="$PWD/roles" \
-  ansible-playbook -i roles/kafka/tests/inventory.yml roles/kafka/tests/render.yml
-python3 roles/kafka/tests/health.py
-./kafka.yml --check -l <exact-cluster>
-jq -e . files/grafana/kafka/*.json
-```
-
-See `DESIGN.md` for the complete contract and acceptance criteria and
-`REVIEW.md` for the two adversarial design reviews.
+- [`kafka_remove`](../kafka_remove): Remove kafka cluster (`kafka_safeguard` protected)
+- [`node_id`](../node_id): Node identity & package alias resolution
+- [KAFKA Docs](https://pigsty.io/docs/kafka): Config, playbook, admin, monitor, FAQ

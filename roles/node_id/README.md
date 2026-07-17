@@ -153,17 +153,17 @@ the role falls back to: `el10` (rpm), `u24` (ubuntu), `d12` (debian).
 
 ## Supported Operating Systems
 
-| OS              | Code   | Package | Note |
-|-----------------|--------|---------|------|
-| RHEL/Rocky 7    | `el7`  | rpm     | Legacy, x86_64 only, EOL |
-| RHEL/Rocky 8    | `el8`  | rpm     | |
-| RHEL/Rocky 9    | `el9`  | rpm     | |
-| RHEL/Rocky 10   | `el10` | rpm     | |
-| Debian 12       | `d12`  | deb     | |
-| Debian 13       | `d13`  | deb     | |
-| Ubuntu 22.04    | `u22`  | deb     | |
-| Ubuntu 24.04    | `u24`  | deb     | |
-| Ubuntu 26.04    | `u26`  | deb     | |
+| OS            | Code   | Package | Note                     |
+|---------------|--------|---------|--------------------------|
+| RHEL/Rocky 7  | `el7`  | rpm     | Legacy, x86_64 only, EOL |
+| RHEL/Rocky 8  | `el8`  | rpm     |                          |
+| RHEL/Rocky 9  | `el9`  | rpm     |                          |
+| RHEL/Rocky 10 | `el10` | rpm     |                          |
+| Debian 12     | `d12`  | deb     |                          |
+| Debian 13     | `d13`  | deb     |                          |
+| Ubuntu 22.04  | `u22`  | deb     |                          |
+| Ubuntu 24.04  | `u24`  | deb     |                          |
+| Ubuntu 26.04  | `u26`  | deb     |                          |
 
 
 ## See Also

@@ -1,0 +1,24 @@
+---
+#--------------------------------------------------------------#
+# Create Kafka OS User                              [kafka_user]
+#--------------------------------------------------------------#
+- name: create kafka user group
+  tags: kafka_user
+  block:
+    - name: create kafka os group
+      group: name=kafka state=present system=yes
+    - name: create kafka os user
+      user: name=kafka group=kafka system=yes home=/home/kafka shell=/sbin/nologin create_home=no
+
+#--------------------------------------------------------------#
+# Install Kafka Packages                             [kafka_pkg]
+#--------------------------------------------------------------#
+# the kafka-stack & java-runtime aliases pin the supported kafka 4.x and jdk
+# lines per platform in roles/node_id/vars
+- name: install kafka packages
+  tags: kafka_pkg
+  environment: "{{ proxy_env | default({}) }}"
+  package:
+    name: "{{ (((package_map['java-runtime'] | default('')) ~ ' ' ~ (package_map['kafka-stack'] | default(''))).replace(',', ' ').split()) | unique | list }}"
+    state: present
+...

@@ -2,7 +2,7 @@
 #==============================================================#
 # File      :   kafka.yml
 # Ctime     :   2024-01-01
-# Mtime     :   2026-07-16
+# Mtime     :   2026-07-17
 # Desc      :   Recording and alert rules for Kafka JMX and protocol exporters
 # Path      :   /infra/rules/kafka.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -86,7 +86,7 @@ groups:
       #                         Aliveness                            #
       #==============================================================#
       - alert: KafkaDown
-        expr: up{job="kafka"} < 1
+        expr: up{job="kafka",role=~".+"} < 1
         for: 1m
         labels: { level: 0, severity: CRIT, category: kafka }
         annotations:
@@ -96,13 +96,13 @@ groups:
             /ui/d/kafka-node?var-ins={{ $labels.ins }}
 
       - alert: KafkaExporterDown
-        expr: up{job="kafka_exporter"} < 1
+        expr: up{job="kafka",role=""} < 1
         for: 1m
         labels: { level: 0, severity: CRIT, category: kafka }
         annotations:
           summary: "CRIT KafkaExporterDown {{ $labels.ins }}@{{ $labels.instance }}"
           description: |
-            up[job=kafka_exporter, ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
+            up[job=kafka, role='', ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
             /ui/d/kafka-instance?var-ins={{ $labels.ins }}
 
       - alert: KafkaJmxScrapeError

@@ -128,13 +128,13 @@ def numerically_equal(actual, desired):
         return actual == desired
 
 
-def converge_user(common, user, cache, changed):
+def converge_user(common, user, cache, salt, changed):
     name = user["name"]
     password = user.get("password")
     if password is not None:
         _, out = invoke("kafka-configs.sh", common,
                         ["--entity-type", "users", "--entity-name", name, "--describe"])
-        digest = hashlib.sha256(password.encode()).hexdigest()
+        digest = hashlib.sha256((salt + password).encode()).hexdigest()
         live_scram = "SCRAM-SHA-512" in out
         if not live_scram or cache.get(name) != digest:
             value = f"SCRAM-SHA-512=[iterations=8192,password={password}]"
@@ -185,6 +185,8 @@ def converge_topic(common, topic, changed):
         invoke("kafka-topics.sh", common, args)
         changed.append(f"topic-create:{name}")
         state, output = topic_description(common, name)
+    if state is None:
+        raise Failure(f"topic {name} is not describable after convergence: {output}")
     current_partitions, current_rf = state
     if desired_rf != current_rf:
         raise Failure(
@@ -226,7 +228,7 @@ def converge_cluster_min_isr(common, value, changed):
 
 def main():
     if len(sys.argv) != 4:
-        print("usage: kafka_resources.py SPEC BOOTSTRAP COMMAND_CONFIG", file=sys.stderr)
+        print("usage: kafka_provision.py SPEC BOOTSTRAP COMMAND_CONFIG", file=sys.stderr)
         return 2
     spec_path, bootstrap, command_config = sys.argv[1:]
     with open(spec_path, encoding="utf-8") as stream:
@@ -242,7 +244,7 @@ def main():
     try:
         converge_cluster_min_isr(common, spec["min_insync_replicas"], changed)
         for user in spec.get("users", []):
-            converge_user(common, user, cache, changed)
+            converge_user(common, user, cache, spec.get("cluster_id", ""), changed)
         for topic in spec.get("topics", []):
             converge_topic(common, topic, changed)
     except (Failure, subprocess.TimeoutExpired, OSError) as exc:

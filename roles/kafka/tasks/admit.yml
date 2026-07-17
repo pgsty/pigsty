@@ -1,0 +1,49 @@
+---
+# Admit exactly one newly formatted pure broker (roll_host) into a healthy
+# cluster. Invoked once per broker by the run_once loop in launch.yml, so brokers
+# are added serially; all node-local actions delegate to roll_host and all
+# cluster gates delegate to a surviving broker.
+- name: select the admission gate host for {{ roll_host }}
+  set_fact:
+    admit_gate_host: >-
+      {{ (kafka_broker_nodes | rejectattr('host', 'equalto', roll_host)
+          | map(attribute='host') | list | first)
+         | default(kafka_admin_host_internal, true) }}
+
+- name: start newly formatted broker {{ roll_host }}
+  delegate_to: "{{ roll_host }}"
+  systemd: name=kafka state=started enabled=yes daemon_reload=yes
+
+- name: wait for the admitted broker listener on {{ roll_host }}
+  delegate_to: "{{ roll_host }}"
+  wait_for:
+    host: "{{ roll_host }}"
+    port: "{{ hostvars[roll_host].kafka_port | default(9092) }}"
+    state: started
+    timeout: 180
+
+- name: require broker registration and full health after admitting {{ roll_host }}
+  delegate_to: "{{ admit_gate_host }}"
+  become_user: kafka
+  command:
+    argv: >-
+      {{ ['/usr/local/bin/pigsty-kafka-health', 'post',
+          '--bootstrap-server', admit_gate_host ~ ':' ~
+             (hostvars[admit_gate_host].kafka_port | default(9092) | string),
+          '--command-config', '/etc/kafka/admin.properties',
+          '--node-id', hostvars[roll_host].kafka_seq | string, '--broker'] }}
+  register: kafka_admit_health_internal
+  changed_when: false
+  retries: 45
+  delay: 4
+  until: kafka_admit_health_internal.rc == 0
+
+- name: record static state proven live on admitted {{ roll_host }}
+  delegate_to: "{{ roll_host }}"
+  copy:
+    dest: /etc/kafka/.pigsty-applied-static.sha256
+    content: "{{ hostvars[roll_host].kafka_desired_static_fingerprint_internal }}\n"
+    owner: root
+    group: root
+    mode: '0644'
+...

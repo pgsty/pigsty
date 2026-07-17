@@ -2,92 +2,86 @@
 ---
 #==============================================================#
 # File      :   kafka.yml
-# Desc      :   Deploy production Kafka 4.x with dynamic KRaft
+# Desc      :   init kafka cluster / instance (dynamic KRaft)
 # Ctime     :   2024-01-01
-# Mtime     :   2026-07-16
+# Mtime     :   2026-07-17
 # Path      :   kafka.yml
+# Docs      :   https://pigsty.io/docs/kafka/playbook
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
-
-- name: KAFKA PREPARE
-  hosts: all
+- name: KAFKA
   become: true
-  gather_facts: false
-  any_errors_fatal: true
-  pre_tasks:
-    - name: remember whether kafka_role was explicitly declared
-      when: kafka_cluster is defined and kafka_seq is defined
-      set_fact:
-        _kafka_role_was_explicit: "{{ kafka_role is defined }}"
-      tags: [always, kafka-id]
-  roles:
-    - role: node_id
-      tags: [id, kafka, kafka_pkg]
-      when: kafka_cluster is defined and kafka_seq is defined
-    - role: kafka
-      kafka_phase: prepare
-      tags: [kafka]
-      when: kafka_cluster is defined and kafka_seq is defined
-
-- name: KAFKA CONVERGE
   hosts: all
-  become: true
-  gather_facts: false
+  gather_facts: no
   any_errors_fatal: true
   roles:
-    - role: kafka
-      kafka_phase: converge
-      tags: [kafka, kafka_converge]
-      when: kafka_cluster is defined and kafka_seq is defined
+    - { role: node_id ,tags: [id, node-id] ,when: kafka_cluster is defined and kafka_seq is defined } # get node identity (always)
+    - { role: kafka   ,tags: kafka         ,when: kafka_cluster is defined and kafka_seq is defined } # init & converge kafka cluster
 
-- name: KAFKA BROKER ADMISSION
-  hosts: all
-  become: true
-  gather_facts: false
-  serial: 1
-  any_errors_fatal: true
-  roles:
-    - role: kafka
-      kafka_phase: admission
-      tags: [kafka, kafka_admission]
-      when: kafka_cluster is defined and kafka_seq is defined
 
-- name: KAFKA STRICT ROLLING
-  hosts: all
-  become: true
-  gather_facts: false
-  serial: 1
-  any_errors_fatal: true
-  roles:
-    - role: kafka
-      kafka_phase: rolling
-      tags: [kafka, kafka_rolling]
-      when: kafka_cluster is defined and kafka_seq is defined
-
-- name: KAFKA FINALIZE
-  hosts: all
-  become: true
-  gather_facts: false
-  any_errors_fatal: true
-  roles:
-    - role: kafka
-      kafka_phase: finalize
-      tags: [kafka, kafka_finalize]
-      when: kafka_cluster is defined and kafka_seq is defined
-
-# Lifecycle operations must use an exact full-cluster limit:
-#   ./kafka.yml --check -l kf-main
-#   ./kafka.yml -l kf-main
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+#  Kafka lifecycle operations require an exact full-cluster -l limit selecting
+#  every member of exactly one kafka_cluster. The role converges the cluster to
+#  its declared state: fresh clusters bootstrap in parallel, healthy clusters roll
+#  changed nodes one at a time, and a no-change run restarts nothing.
 #
-# Default combined cluster:
-# kf-main:
-#   hosts:
-#     10.10.10.11: { kafka_seq: 1 }
-#     10.10.10.12: { kafka_seq: 2 }
-#     10.10.10.13: { kafka_seq: 3 }
-#   vars: { kafka_cluster: kf-main }
+#  Init / converge a cluster (e.g. kf-main)
+#    ./kafka.yml -l kf-main            # bootstrap, or converge to declared state
+#    ./kafka.yml -l kf-main --check    # dry run first
 #
-# Split topology must declare every role explicitly with combined, broker, or
-# controller. kafka_controller_port defaults to 9095 to avoid AlertManager 9093.
+#  Expand a cluster (add a broker/controller declared in the inventory)
+#    ./kafka.yml -l kf-main            # new members are formatted & admitted safely
+#
+#  Reconcile topics/users, or refresh monitoring
+#    ./kafka.yml -l kf-main                          # reconcile everything (idempotent)
+#    ./kafka.yml -l kf-main -t kafka_monitor         # refresh exporters & register targets
+#    ./kafka.yml -l kf-main -t register              # re-register victoria targets only
+#
+#  Remove a cluster: use the separate teardown playbook
+#    ./kafka-rm.yml -l kf-main
+#
+#  Default combined cluster:
+#  kf-main:
+#    hosts:
+#      10.10.10.11: { kafka_seq: 1 }
+#      10.10.10.12: { kafka_seq: 2 }
+#      10.10.10.13: { kafka_seq: 3 }
+#    vars: { kafka_cluster: kf-main }
+#
+#  Split topology declares kafka_role (combined|broker|controller) on every node.
+#  Broker listens on 9092 and the kraft controller on 9093 by default.
+#
+#--------------------------------------------------------------#
+# Tasks
+#--------------------------------------------------------------#
+# kafka-id        : derive & assert kafka cluster identity and topology
+#
+# kafka_install   : create os user & install kafka packages
+#   - kafka_user        : create kafka os user & group
+#   - kafka_pkg         : install kafka-stack & java-runtime packages
+#
+# kafka_config    : render config, manage bootstrap manifest, format storage
+#   - kafka_dir         : create kafka data & config directories
+#   - kafka_meta        : inspect on-disk KRaft metadata identity
+#   - kafka_manifest    : load / reconstruct / create the bootstrap manifest
+#   - kafka_security    : issue certs, secrets, and scram credentials
+#   - kafka_fingerprint : derive the static-config fingerprint (restart trigger)
+#   - kafka_format      : format uninitialized storage (dynamic-quorum mode)
+#   - kafka_lifecycle   : classify this run as converge or strict rolling
+#
+# kafka_launch    : bring services to the declared state
+#   - converge          : parallel bootstrap of a fresh/unhealthy cluster
+#   - admit             : start & gate each new broker one at a time
+#   - roll              : quorum/minISR-gated rolling restart of changed nodes
+#   - kafka_commission  : commission manifest & record proven static state
+#
+# kafka_provision : provision declared users, acls, quotas & topics
+#
+# kafka_monitor   : setup monitoring and register targets to infra
+#   - kafka_exporter    : config & launch kafka_exporter on selected nodes
+#   - kafka_register    : register kafka/kafka_exporter to victoria [add_metrics]
+#--------------------------------------------------------------#
 ...

@@ -1,0 +1,116 @@
+---
+#--------------------------------------------------------------#
+# Validate Declared Kafka Objects               [kafka_validate]
+#--------------------------------------------------------------#
+- name: validate declared kafka resource collections
+  run_once: true
+  assert:
+    that:
+      - kafka_users | map(attribute='name') | list | unique | length == kafka_users | length
+      - kafka_users | map(attribute='name') | list
+        | intersect(['pigsty-admin', 'pigsty-monitor', 'pigsty-broker-a', 'pigsty-broker-b'])
+        | length == 0
+      - kafka_topics | map(attribute='name') | list | unique | length == kafka_topics | length
+      - kafka_security == 'scram' or kafka_users | length == 0
+      - kafka_users | length == 0 or kafka_users | map(attribute='password') | map('length') | min >= 12
+    fail_msg: >-
+      Kafka users require scram mode and passwords of at least 12 characters;
+      user/topic names must be unique; and role-owned pigsty-admin, pigsty-monitor,
+      pigsty-broker-a, and pigsty-broker-b principals are reserved.
+
+#--------------------------------------------------------------#
+# Provision Users, ACLs, Quotas & Topics       [kafka_provision]
+#--------------------------------------------------------------#
+- name: install the role-owned kafka provision helper
+  copy: src=kafka_provision.py dest=/usr/local/bin/pigsty-kafka-provision owner=root group=root mode=0755
+
+- name: build resource reconciliation specification
+  run_once: true
+  no_log: true
+  set_fact:
+    kafka_resource_spec_internal:
+      cluster_id: "{{ kafka_manifest_internal.cluster_id }}"
+      min_insync_replicas: "{{ kafka_manifest_internal.min_insync_replicas | int }}"
+      users: >-
+        {{ kafka_users +
+           ([{'name': kafka_monitor_principal_internal,
+              'acls': [
+                {'resource': 'cluster', 'name': 'kafka-cluster', 'pattern': 'literal', 'operations': ['Describe']},
+                {'resource': 'topic', 'name': '*', 'pattern': 'literal', 'operations': ['Describe']},
+                {'resource': 'group', 'name': '*', 'pattern': 'literal', 'operations': ['Describe']}]}]
+            if kafka_security == 'scram' else []) }}
+      topics: "{{ kafka_topics }}"
+
+- name: reconcile kafka resources against live metadata
+  run_once: true
+  when: not ansible_check_mode
+  delegate_to: "{{ kafka_admin_host_internal }}"
+  block:
+    - name: stage transient resource specification
+      no_log: true
+      copy:
+        dest: /run/pigsty-kafka-provision.json
+        content: "{{ kafka_resource_spec_internal | to_json }}"
+        owner: kafka
+        group: kafka
+        mode: '0600'
+      changed_when: false
+    - name: run the kafka resource reconciler
+      become_user: kafka
+      no_log: "{{ kafka_users | length > 0 }}"
+      command: >-
+        /usr/local/bin/pigsty-kafka-provision /run/pigsty-kafka-provision.json
+        {{ kafka_broker_bootstrap_internal }} /etc/kafka/admin.properties
+      register: kafka_resource_result_internal
+      failed_when: false
+      changed_when: >-
+        kafka_resource_result_internal.rc == 0 and
+        (kafka_resource_result_internal.stdout | from_json).changed | length > 0
+    - name: require successful kafka resource convergence
+      assert:
+        that: kafka_resource_result_internal.rc == 0
+        fail_msg: >-
+          Kafka resource convergence failed safely:
+          {{ ((kafka_resource_result_internal.stdout | default('{}', true) | from_json).error
+              | default('resource helper returned no diagnostic')) }}
+    - name: report non-secret kafka resource changes
+      vars:
+        kafka_resource_changes_internal: "{{ (kafka_resource_result_internal.stdout | from_json).changed }}"
+      when: kafka_resource_changes_internal | length > 0
+      debug:
+        msg: "Kafka resource changes: {{ kafka_resource_changes_internal | join(', ') }}"
+  always:
+    - name: remove transient resource specification
+      file: path=/run/pigsty-kafka-provision.json state=absent
+      changed_when: false
+
+#--------------------------------------------------------------#
+# Report Replication Drift                         [kafka_drift]
+#--------------------------------------------------------------#
+- name: inspect frozen internal topic replication
+  run_once: true
+  when: not ansible_check_mode
+  delegate_to: "{{ kafka_admin_host_internal }}"
+  become_user: kafka
+  command: >-
+    /opt/kafka/bin/kafka-topics.sh
+    --bootstrap-server {{ kafka_broker_bootstrap_internal }}
+    --command-config /etc/kafka/admin.properties
+    --describe --topic __consumer_offsets
+  register: kafka_internal_topic_internal
+  changed_when: false
+  failed_when: false
+
+- name: report internal topic replication drift without unsafe reassignment
+  run_once: true
+  when: >-
+    not ansible_check_mode and
+    kafka_internal_topic_internal.rc | default(1) == 0 and
+    ('ReplicationFactor: ' ~ (kafka_manifest_internal.replication_factor | string))
+    not in kafka_internal_topic_internal.stdout
+  debug:
+    msg: >-
+      __consumer_offsets replication differs from frozen bootstrap RF
+      {{ kafka_manifest_internal.replication_factor }}. The role will not claim
+      an RF upgrade or perform automatic reassignment; use an explicit reviewed plan.
+...

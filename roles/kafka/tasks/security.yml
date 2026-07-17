@@ -1,97 +1,98 @@
 ---
-- name: inspect role-owned Kafka secret material
-  run_once: true
-  become: false
-  delegate_to: localhost
-  stat:
-    path: "{{ kafka_secret_file_internal }}"
-  register: kafka_secret_stat_internal
+#--------------------------------------------------------------#
+# Load or Generate Internal Secrets               [kafka_secret]
+#--------------------------------------------------------------#
+- name: inspect role-owned kafka secret material
+  set_fact:
+    kafka_secret_exists_internal: "{{ (kafka_manifest_dir_internal ~ '/secrets.yml') is exists }}"
 
-- name: reject missing secrets for formatted SCRAM storage
+# every scram node keeps a secret copy in /etc/kafka/secrets.yml, so a lost
+# admin cache is transparently recovered from any cluster member
+- name: read node secret material copy
   when:
     - kafka_security == 'scram'
-    - kafka_formatted_flags_internal | select('equalto', true) | list | length > 0
-    - not kafka_secret_stat_internal.stat.exists
+    - not kafka_secret_exists_internal | bool
+  shell: cat /etc/kafka/secrets.yml 2>/dev/null || true
+  args: { executable: /bin/bash }
+  register: kafka_node_secret_raw_internal
+  no_log: true
+  check_mode: false
+  changed_when: false
+
+- name: recover secret material from a node copy
+  when:
+    - kafka_security == 'scram'
+    - not kafka_secret_exists_internal | bool
+    - kafka_node_secret_best | trim | length > 0
+  no_log: true
+  set_fact:
+    kafka_secrets_internal: "{{ kafka_node_secret_best | from_yaml }}"
+    kafka_secret_recovered_internal: true
+  vars:
+    kafka_node_secret_best: >-
+      {{ kafka_cluster_members | map('extract', hostvars, 'kafka_node_secret_raw_internal')
+         | map(attribute='stdout', default='') | select | first | default('') }}
+
+- name: reject missing secrets for formatted scram storage
+  when:
+    - kafka_security == 'scram'
+    - kafka_any_formatted_internal | bool
+    - not kafka_secret_exists_internal | bool
+    - not kafka_secret_recovered_internal | default(false) | bool
   fail:
     msg: >-
       Formatted SCRAM cluster {{ kafka_cluster }} has no role-owned secret file
-      {{ kafka_secret_file_internal }}. Refusing to rotate or invent identities.
+      on the admin node or any cluster member. Restore
+      {{ kafka_manifest_dir_internal }}/secrets.yml before rerunning.
 
-- name: generate internal SCRAM and keystore secrets for a new secure cluster
+# run_once broadcasts one generated secret set to every host: per-host
+# evaluation would format each node with different scram bootstrap records
+- name: generate internal secrets for a new secure cluster
   when:
     - kafka_security == 'scram'
-    - not kafka_secret_stat_internal.stat.exists
-    - not ansible_check_mode
+    - not kafka_secret_exists_internal | bool
+    - not kafka_secret_recovered_internal | default(false) | bool
   run_once: true
-  delegate_to: "{{ kafka_initial_admin_host_internal }}"
-  become_user: kafka
-  command: /opt/kafka/bin/kafka-storage.sh random-uuid
-  loop:
-    - admin_password
-    - monitor_password
-    - broker_a_password
-    - broker_b_password
-    - keystore_password
-    - truststore_password
-  register: kafka_new_secrets_internal
-  changed_when: false
-  no_log: true
-
-- name: build new internal secret material in memory
-  when:
-    - kafka_security == 'scram'
-    - not kafka_secret_stat_internal.stat.exists
   no_log: true
   set_fact:
     kafka_secrets_internal:
       schema: 1
       admin_principal: pigsty-admin
-      admin_password: "{{ 'check-admin-password' if ansible_check_mode else kafka_new_secrets_internal.results[0].stdout }}"
+      admin_password: "{{ lookup('password', '/dev/null length=22 chars=ascii_letters,digits') }}"
       monitor_principal: pigsty-monitor
-      monitor_password: "{{ 'check-monitor-password' if ansible_check_mode else kafka_new_secrets_internal.results[1].stdout }}"
+      monitor_password: "{{ lookup('password', '/dev/null length=22 chars=ascii_letters,digits') }}"
       broker_active: a
       broker_a_principal: pigsty-broker-a
-      broker_a_password: "{{ 'check-broker-a-password' if ansible_check_mode else kafka_new_secrets_internal.results[2].stdout }}"
+      broker_a_password: "{{ lookup('password', '/dev/null length=22 chars=ascii_letters,digits') }}"
       broker_b_principal: pigsty-broker-b
-      broker_b_password: "{{ 'check-broker-b-password' if ansible_check_mode else kafka_new_secrets_internal.results[3].stdout }}"
-      keystore_password: "{{ 'check-keystore-password' if ansible_check_mode else kafka_new_secrets_internal.results[4].stdout }}"
-      truststore_password: "{{ 'check-truststore-password' if ansible_check_mode else kafka_new_secrets_internal.results[5].stdout }}"
+      broker_b_password: "{{ lookup('password', '/dev/null length=22 chars=ascii_letters,digits') }}"
+
+- name: load existing internal secret material
+  when:
+    - kafka_security == 'scram'
+    - kafka_secret_exists_internal | bool
+  no_log: true
+  set_fact:
+    kafka_secrets_internal: "{{ lookup('file', kafka_manifest_dir_internal ~ '/secrets.yml') | from_yaml }}"
 
 - name: persist new internal secret material
   when:
     - kafka_security == 'scram'
-    - not kafka_secret_stat_internal.stat.exists
+    - not kafka_secret_exists_internal | bool
     - not ansible_check_mode
   run_once: true
   become: false
   delegate_to: localhost
   no_log: true
   copy:
-    dest: "{{ kafka_secret_file_internal }}"
-    content: "{{ kafka_secrets_internal | to_nice_yaml(indent=2, sort_keys=false) }}"
+    dest: "{{ kafka_manifest_dir_internal }}/secrets.yml"
+    content: "{{ kafka_secrets_internal | to_nice_yaml(indent=2) }}"
     mode: '0600'
 
-- name: read existing internal secret material
-  when:
-    - kafka_security == 'scram'
-    - kafka_secret_stat_internal.stat.exists
-  run_once: true
-  become: false
-  delegate_to: localhost
-  no_log: true
-  slurp:
-    src: "{{ kafka_secret_file_internal }}"
-  register: kafka_secret_raw_internal
-
-- name: load existing internal secret material
-  when:
-    - kafka_security == 'scram'
-    - kafka_secret_stat_internal.stat.exists
-  no_log: true
-  set_fact:
-    kafka_secrets_internal: "{{ kafka_secret_raw_internal.content | b64decode | from_yaml }}"
-
-- name: validate protected Kafka security rotation request
+#--------------------------------------------------------------#
+# Protected Credential Rotation                   [kafka_rotate]
+#--------------------------------------------------------------#
+- name: validate protected kafka security rotation request
   when: >-
     kafka_rotate_credentials | default(false) | bool or
     kafka_rotate_certificates | default(false) | bool
@@ -102,7 +103,7 @@
       - kafka_rotate_confirm | default('') == kafka_cluster
       - not (kafka_rotate_credentials | default(false) | bool and
              kafka_rotate_certificates | default(false) | bool)
-      - kafka_secret_stat_internal.stat.exists
+      - kafka_secret_exists_internal | bool
       - kafka_formatted_flags_internal | select('equalto', true) | list | length == kafka_cluster_members | length
     fail_msg: >-
       Security rotation is a protected, one-action-at-a-time workflow for an
@@ -117,30 +118,18 @@
   run_once: true
   delegate_to: "{{ kafka_admin_host_internal }}"
   become_user: kafka
-  command:
-    argv:
-      - /usr/local/bin/pigsty-kafka-health
-      - cluster
-      - --bootstrap-server
-      - "{{ kafka_admin_host_internal }}:{{ hostvars[kafka_admin_host_internal].kafka_port | default(9092) }}"
-      - --command-config
-      - /etc/kafka/admin.properties
+  command: >-
+    /usr/local/bin/pigsty-kafka-health cluster
+    --bootstrap-server {{ kafka_broker_bootstrap_internal }}
+    --command-config /etc/kafka/admin.properties
   changed_when: false
 
-- name: report planned security rotation in check mode
-  when:
-    - ansible_check_mode
-    - kafka_rotate_credentials | default(false) | bool or kafka_rotate_certificates | default(false) | bool
-  run_once: true
-  debug:
-    msg: >-
-      Validated protected {{ 'credential' if kafka_rotate_credentials | default(false) | bool
-      else 'certificate' }} rotation for {{ kafka_cluster }}; no secret or PKI
-      material is changed in check mode.
-  changed_when: true
-
-- name: derive inactive inter-broker credential slot
+# inter-broker credentials use two principal slots: the replacement password is
+# installed on the inactive slot first, so a failed rotation never invalidates
+# the credential the live brokers are still using
+- name: rotate the inactive inter-broker credential slot
   when: kafka_rotate_credentials | default(false) | bool
+  run_once: true
   no_log: true
   set_fact:
     kafka_rotation_standby_slot_internal: >-
@@ -148,20 +137,9 @@
     kafka_rotation_standby_principal_internal: >-
       {{ kafka_secrets_internal['broker_' ~
          ('b' if kafka_secrets_internal.broker_active == 'a' else 'a') ~ '_principal'] }}
-    kafka_rotation_standby_password_key_internal: >-
-      {{ 'broker_' ~ ('b' if kafka_secrets_internal.broker_active == 'a' else 'a') ~ '_password' }}
-
-- name: generate a replacement inactive inter-broker credential
-  when:
-    - kafka_rotate_credentials | default(false) | bool
-    - not ansible_check_mode
-  run_once: true
-  delegate_to: "{{ kafka_admin_host_internal }}"
-  become_user: kafka
-  command: /opt/kafka/bin/kafka-storage.sh random-uuid
-  register: kafka_rotated_broker_secret_internal
-  changed_when: false
-  no_log: true
+    kafka_rotation_standby_password_internal: >-
+      {{ 'check-rotation-password' if ansible_check_mode
+         else lookup('password', '/dev/null length=22 chars=ascii_letters,digits') }}
 
 - name: install replacement credential before switching broker identity
   when:
@@ -175,7 +153,7 @@
     argv:
       - /opt/kafka/bin/kafka-configs.sh
       - --bootstrap-server
-      - "{{ kafka_admin_host_internal }}:{{ hostvars[kafka_admin_host_internal].kafka_port | default(9092) }}"
+      - "{{ kafka_broker_bootstrap_internal }}"
       - --command-config
       - /etc/kafka/admin.properties
       - --entity-type
@@ -185,9 +163,9 @@
       - --alter
       - --add-config
       - >-
-        SCRAM-SHA-512=[iterations=8192,password={{ kafka_rotated_broker_secret_internal.stdout }}]
+        SCRAM-SHA-512=[iterations=8192,password={{ kafka_rotation_standby_password_internal }}]
 
-- name: switch to the prepared inter-broker credential slot
+- name: switch and persist the rotated inter-broker credential slot
   when:
     - kafka_rotate_credentials | default(false) | bool
     - not ansible_check_mode
@@ -196,8 +174,8 @@
     kafka_secrets_internal: >-
       {{ kafka_secrets_internal | combine({
            'broker_active': kafka_rotation_standby_slot_internal,
-           kafka_rotation_standby_password_key_internal:
-             kafka_rotated_broker_secret_internal.stdout
+           'broker_' ~ kafka_rotation_standby_slot_internal ~ '_password':
+             kafka_rotation_standby_password_internal
          }) }}
     kafka_credentials_rotated_internal: true
 
@@ -210,21 +188,34 @@
   delegate_to: localhost
   no_log: true
   copy:
-    dest: "{{ kafka_secret_file_internal }}"
-    content: "{{ kafka_secrets_internal | to_nice_yaml(indent=2, sort_keys=false) }}"
+    dest: "{{ kafka_manifest_dir_internal }}/secrets.yml"
+    content: "{{ kafka_secrets_internal | to_nice_yaml(indent=2) }}"
     mode: '0600'
 
-- name: derive role-owned Kafka security identities
+# every node keeps an authoritative secret copy so the admin cache is
+# recoverable; runs after rotation so node copies always hold the final state
+- name: sync secret material to cluster nodes
+  when:
+    - kafka_security == 'scram'
+    - not ansible_check_mode
+  no_log: true
+  copy:
+    dest: /etc/kafka/secrets.yml
+    content: "{{ kafka_secrets_internal | to_nice_yaml(indent=2) }}"
+    owner: kafka
+    group: kafka
+    mode: '0600'
+
+#--------------------------------------------------------------#
+# Derive Security Identities                   [kafka_principal]
+#--------------------------------------------------------------#
+- name: derive role-owned kafka security identities
   no_log: true
   set_fact:
-    kafka_admin_principal_internal: >-
-      {{ kafka_secrets_internal.admin_principal if kafka_security == 'scram' else '' }}
-    kafka_admin_password_internal: >-
-      {{ kafka_secrets_internal.admin_password if kafka_security == 'scram' else '' }}
-    kafka_monitor_principal_internal: >-
-      {{ kafka_secrets_internal.monitor_principal if kafka_security == 'scram' else '' }}
-    kafka_monitor_password_internal: >-
-      {{ kafka_secrets_internal.monitor_password if kafka_security == 'scram' else '' }}
+    kafka_admin_principal_internal: "{{ kafka_secrets_internal.admin_principal if kafka_security == 'scram' else '' }}"
+    kafka_admin_password_internal: "{{ kafka_secrets_internal.admin_password if kafka_security == 'scram' else '' }}"
+    kafka_monitor_principal_internal: "{{ kafka_secrets_internal.monitor_principal if kafka_security == 'scram' else '' }}"
+    kafka_monitor_password_internal: "{{ kafka_secrets_internal.monitor_password if kafka_security == 'scram' else '' }}"
     kafka_broker_principal_internal: >-
       {{ kafka_secrets_internal['broker_' ~ kafka_secrets_internal.broker_active ~ '_principal']
          if kafka_security == 'scram' else '' }}
@@ -237,36 +228,24 @@
     kafka_broker_standby_password_internal: >-
       {{ kafka_secrets_internal['broker_' ~ ('b' if kafka_secrets_internal.broker_active == 'a' else 'a') ~ '_password']
          if kafka_security == 'scram' else '' }}
-    kafka_keystore_password_internal: >-
-      {{ kafka_secrets_internal.keystore_password if kafka_security == 'scram' else '' }}
-    kafka_truststore_password_internal: >-
-      {{ kafka_secrets_internal.truststore_password if kafka_security == 'scram' else '' }}
 
-- name: validate internal Kafka secret schema
+#--------------------------------------------------------------#
+# Issue Node Certificates from Pigsty CA            [kafka_cert]
+#--------------------------------------------------------------#
+# per-node keys and certs are issued from the shared Pigsty CA with the same
+# openssl_privatekey/openssl_csr/openssl_certificate(ownca) chain used by the
+# pgsql/etcd/ferret roles; the CN is the fixed controller mTLS principal, so it
+# must stay a bare CN=pigsty-controller subject that matches super.users.
+# the openssl modules regenerate material whenever sans or the ca change.
+- name: resolve routable certificate subject alternatives
   when: kafka_security == 'scram'
-  no_log: true
-  assert:
-    that:
-      - kafka_secrets_internal.schema | int == 1
-      - kafka_secrets_internal.broker_active in ['a', 'b']
-      - kafka_admin_password_internal | length >= 16
-      - kafka_monitor_password_internal | length >= 16
-      - kafka_broker_password_internal | length >= 16
-      - kafka_broker_standby_password_internal | length >= 16
-
-- name: resolve canonical TLS endpoint aliases
-  when: kafka_security == 'scram'
-  command:
-    argv:
-      - getent
-      - hosts
-      - "{{ inventory_hostname }}"
+  command: getent hosts {{ inventory_hostname }}
   register: kafka_tls_host_lookup_internal
   changed_when: false
   failed_when: false
   check_mode: false
 
-- name: derive routable certificate subject alternatives
+- name: derive certificate subject alternatives
   when: kafka_security == 'scram'
   set_fact:
     kafka_tls_sans_internal: >-
@@ -286,377 +265,121 @@
       {%- endif -%}
       {{ sans | unique | sort }}
 
-- name: derive the certificate generation workspace
+- name: ensure controller-side certificate directory
   when: kafka_security == 'scram'
-  set_fact:
-    kafka_certificate_workspace_internal: >-
-      {{ kafka_manifest_dir_internal }}/pki{{ '/.rotation'
-         if kafka_rotate_certificates | default(false) | bool else '' }}
+  run_once: true
+  become: false
+  delegate_to: localhost
+  file: path={{ kafka_manifest_dir_internal }}/pki state=directory mode=0700
 
-- name: clear only the staging workspace for protected certificate rotation
+# protected rotation discards the issued material so the chain below reissues
+# fresh keys and certs in place: old and new certs share the same ca and stay
+# mutually trusted, so no staged promotion is needed
+- name: discard issued certificates for protected rotation
   when:
     - kafka_security == 'scram'
     - kafka_rotate_certificates | default(false) | bool
-  run_once: true
-  become: false
-  delegate_to: localhost
-  file:
-    path: "{{ kafka_certificate_workspace_internal }}"
-    state: absent
-
-- name: ensure controller-side certificate workspace
-  when: kafka_security == 'scram'
-  run_once: true
-  become: false
-  delegate_to: localhost
-  file:
-    path: "{{ kafka_manifest_dir_internal }}/pki"
-    state: directory
-    mode: '0700'
-
-- name: ensure isolated certificate rotation staging workspace
-  when:
-    - kafka_security == 'scram'
-    - kafka_rotate_certificates | default(false) | bool
-  run_once: true
-  become: false
-  delegate_to: localhost
-  file:
-    path: "{{ kafka_certificate_workspace_internal }}"
-    state: directory
-    mode: '0700'
-
-- name: inspect node UTC time before certificate generation
-  when: kafka_security == 'scram'
-  command:
-    argv: [date, -u, +%s]
-  register: kafka_certificate_node_time_internal
-  changed_when: false
-  check_mode: false
-
-- name: inspect controller UTC time before certificate generation
-  when: kafka_security == 'scram'
-  run_once: true
-  become: false
-  delegate_to: localhost
-  command:
-    argv: [date, -u, +%s]
-  register: kafka_certificate_controller_time_internal
-  changed_when: false
-  check_mode: false
-
-- name: require synchronized clocks before replacing active certificates
-  when: kafka_security == 'scram'
-  run_once: true
-  become: false
-  delegate_to: localhost
-  assert:
-    that:
-      - >-
-        ((hostvars[item].kafka_certificate_node_time_internal.stdout | int) -
-         (kafka_certificate_controller_time_internal.stdout | int)) | abs <= 30
-    fail_msg: >-
-      Kafka certificate generation requires controller and node UTC clocks to
-      differ by no more than 30 seconds. Synchronize NTP on {{ item }} before
-      retrying; active certificates have not been replaced.
-  loop: "{{ kafka_cluster_members }}"
-
-- name: persist the desired certificate endpoint specification
-  when:
-    - kafka_security == 'scram'
-    - not ansible_check_mode or kafka_secret_stat_internal.stat.exists
-  run_once: true
-  become: false
-  delegate_to: localhost
-  copy:
-    dest: "{{ kafka_manifest_dir_internal }}/pki/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.spec"
-    content: |
-      schema=1
-      sans={{ hostvars[item].kafka_tls_sans_internal | join(',') }}
-      ca={{ lookup('file', role_path + '/../../files/pki/ca/ca.crt') | hash('sha256') }}
-    mode: '0600'
-  loop: "{{ kafka_cluster_members }}"
-  register: kafka_certificate_spec_internal
-  no_log: true
-
-- name: invalidate certificates whose endpoint specification changed
-  when:
-    - kafka_security == 'scram'
-    - not ansible_check_mode or kafka_secret_stat_internal.stat.exists
-    - not kafka_rotate_certificates | default(false) | bool
+    - not ansible_check_mode
   run_once: true
   become: false
   delegate_to: localhost
   file:
     path: "{{ kafka_manifest_dir_internal }}/pki/{{ item.0 | regex_replace('[^A-Za-z0-9_.-]', '_') }}.{{ item.1 }}"
     state: absent
-  loop: >-
-    {{ (kafka_certificate_spec_internal.results | default([])
-        | selectattr('changed') | map(attribute='item') | list)
-       | product(['key', 'csr', 'crt']) | list }}
-  no_log: true
-
-- name: generate per-node private keys and CSRs with routable SANs
-  when: kafka_security == 'scram'
-  run_once: true
-  become: false
-  delegate_to: localhost
-  command:
-    argv:
-      - openssl
-      - req
-      - -new
-      - -newkey
-      - rsa:2048
-      - -nodes
-      - -subj
-      - /CN=pigsty-controller
-      - -addext
-      - "subjectAltName={{ hostvars[item].kafka_tls_sans_internal | join(',') }}"
-      - -keyout
-      - "{{ kafka_certificate_workspace_internal }}/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.key"
-      - -out
-      - "{{ kafka_certificate_workspace_internal }}/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.csr"
-  args:
-    creates: "{{ kafka_certificate_workspace_internal }}/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.key"
-  loop: "{{ kafka_cluster_members }}"
-  no_log: true
-
-- name: sign per-node certificates with the Pigsty CA
-  when: kafka_security == 'scram'
-  run_once: true
-  become: false
-  delegate_to: localhost
-  command:
-    argv:
-      - openssl
-      - x509
-      - -req
-      - -in
-      - "{{ kafka_certificate_workspace_internal }}/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.csr"
-      - -CA
-      - "{{ role_path }}/../../files/pki/ca/ca.crt"
-      - -CAkey
-      - "{{ role_path }}/../../files/pki/ca/ca.key"
-      - -CAcreateserial
-      - -days
-      - '825'
-      - -sha256
-      - -copy_extensions
-      - copy
-      - -out
-      - "{{ kafka_certificate_workspace_internal }}/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.crt"
-  args:
-    creates: "{{ kafka_certificate_workspace_internal }}/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.crt"
-  loop: "{{ kafka_cluster_members }}"
-  no_log: true
-
-- name: enforce private modes on controller-side certificate material
-  when:
-    - kafka_security == 'scram'
-    - not ansible_check_mode
-  run_once: true
-  become: false
-  delegate_to: localhost
-  file:
-    path: "{{ kafka_certificate_workspace_internal }}/{{ item.0 | regex_replace('[^A-Za-z0-9_.-]', '_') }}.{{ item.1 }}"
-    mode: "{{ '0644' if item.1 == 'crt' else '0600' }}"
   loop: "{{ kafka_cluster_members | product(['key', 'csr', 'crt']) | list }}"
-  no_log: true
 
-- name: verify each generated node certificate against the Pigsty CA
+- name: generate per-node private keys
   when:
     - kafka_security == 'scram'
     - not ansible_check_mode
   run_once: true
   become: false
   delegate_to: localhost
-  command:
-    argv:
-      - openssl
-      - verify
-      - -CAfile
-      - "{{ role_path }}/../../files/pki/ca/ca.crt"
-      - "{{ kafka_certificate_workspace_internal }}/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.crt"
+  no_log: true
+  vars: { ansible_python_interpreter: "{{ ansible_playbook_python }}" }
+  openssl_privatekey:
+    path: "{{ kafka_manifest_dir_internal }}/pki/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.key"
+    format: pkcs8
+    mode: '0600'
   loop: "{{ kafka_cluster_members }}"
-  changed_when: false
-  no_log: true
 
-- name: promote verified certificate rotation material
+- name: generate per-node signing requests with routable sans
   when:
     - kafka_security == 'scram'
-    - kafka_rotate_certificates | default(false) | bool
     - not ansible_check_mode
   run_once: true
   become: false
   delegate_to: localhost
+  no_log: true
+  vars: { ansible_python_interpreter: "{{ ansible_playbook_python }}" }
+  openssl_csr:
+    path: "{{ kafka_manifest_dir_internal }}/pki/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.csr"
+    privatekey_path: "{{ kafka_manifest_dir_internal }}/pki/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.key"
+    common_name: pigsty-controller
+    subject_alt_name: "{{ hostvars[item].kafka_tls_sans_internal }}"
+  loop: "{{ kafka_cluster_members }}"
+
+- name: sign per-node certificates with the pigsty ca
+  when:
+    - kafka_security == 'scram'
+    - not ansible_check_mode
+  run_once: true
+  become: false
+  delegate_to: localhost
+  no_log: true
+  vars: { ansible_python_interpreter: "{{ ansible_playbook_python }}" }
+  openssl_certificate:
+    path: "{{ kafka_manifest_dir_internal }}/pki/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.crt"
+    csr_path: "{{ kafka_manifest_dir_internal }}/pki/{{ item | regex_replace('[^A-Za-z0-9_.-]', '_') }}.csr"
+    provider: ownca
+    ownca_path: files/pki/ca/ca.crt
+    ownca_privatekey_path: files/pki/ca/ca.key
+    ownca_not_after: "+{{ cert_validity }}"
+    mode: '0644'
+  loop: "{{ kafka_cluster_members }}"
+
+#--------------------------------------------------------------#
+# Install Node PEM Bundle                            [kafka_pem]
+#--------------------------------------------------------------#
+- name: create node-local kafka pki directory
+  when: kafka_security == 'scram'
+  file: path=/etc/kafka/pki state=directory owner=kafka group=kafka mode=0700
+
+# kafka reads pem keystores natively (KIP-651): one bundle holds the pkcs8 key
+# and cert, and the system-wide pigsty ca at /etc/pki/ca.crt is the truststore,
+# so no pkcs12 stores or store passwords exist at all
+- name: install node pem key and certificate bundle
+  when:
+    - kafka_security == 'scram'
+    - not ansible_check_mode or kafka_secret_exists_internal | bool
+  no_log: true
+  vars:
+    kafka_pki_base: "{{ kafka_manifest_dir_internal }}/pki/{{ inventory_hostname | regex_replace('[^A-Za-z0-9_.-]', '_') }}"
   copy:
-    src: >-
-      {{ kafka_certificate_workspace_internal }}/{{ item.0 |
-         regex_replace('[^A-Za-z0-9_.-]', '_') }}.{{ item.1 }}
-    dest: >-
-      {{ kafka_manifest_dir_internal }}/pki/{{ item.0 |
-         regex_replace('[^A-Za-z0-9_.-]', '_') }}.{{ item.1 }}
-    remote_src: true
-    mode: "{{ '0644' if item.1 == 'crt' else '0600' }}"
-  loop: "{{ kafka_cluster_members | product(['key', 'csr', 'crt']) | list }}"
-  no_log: true
-
-- name: remove promoted certificate rotation staging workspace
-  when:
-    - kafka_security == 'scram'
-    - kafka_rotate_certificates | default(false) | bool
-    - not ansible_check_mode
-  run_once: true
-  become: false
-  delegate_to: localhost
-  file:
-    path: "{{ kafka_certificate_workspace_internal }}"
-    state: absent
-
-- name: create node-local Kafka PKI directory
-  when: kafka_security == 'scram'
-  file:
-    path: /etc/kafka/pki
-    state: directory
+    dest: /etc/kafka/pki/kafka.pem
+    content: |
+      {{ lookup('file', kafka_pki_base ~ '.key') }}
+      {{ lookup('file', kafka_pki_base ~ '.crt') }}
     owner: kafka
     group: kafka
-    mode: '0700'
-
-- name: install node certificate, key, and CA certificate
-  when:
-    - kafka_security == 'scram'
-    - not ansible_check_mode or kafka_secret_stat_internal.stat.exists
-  copy:
-    src: "{{ item.src }}"
-    dest: "{{ item.dest }}"
-    owner: kafka
-    group: kafka
-    mode: "{{ item.mode }}"
-  loop:
-    - src: "{{ kafka_manifest_dir_internal }}/pki/{{ inventory_hostname | regex_replace('[^A-Za-z0-9_.-]', '_') }}.key"
-      dest: /etc/kafka/pki/kafka.key
-      mode: '0600'
-    - src: "{{ kafka_manifest_dir_internal }}/pki/{{ inventory_hostname | regex_replace('[^A-Za-z0-9_.-]', '_') }}.crt"
-      dest: /etc/kafka/pki/kafka.crt
-      mode: '0644'
-    - src: "{{ role_path }}/../../files/pki/ca/ca.crt"
-      dest: /etc/kafka/pki/ca.crt
-      mode: '0644'
+    mode: '0600'
   register: kafka_pki_copy_internal
 
-- name: inspect node keystore and truststore
-  when: kafka_security == 'scram'
-  stat:
-    path: "{{ item }}"
-  loop:
-    - /etc/kafka/pki/kafka.p12
-    - /etc/kafka/pki/truststore.p12
-  register: kafka_store_stat_internal
-
-- name: reset truststore only when the trusted CA changed
-  when:
-    - kafka_security == 'scram'
-    - kafka_pki_copy_internal.results | default([]) | length > 2
-    - kafka_pki_copy_internal.results[2].changed | default(false)
-  file:
-    path: /etc/kafka/pki/truststore.p12
-    state: absent
-  register: kafka_truststore_reset_internal
-
-- name: build node PKCS12 keystore
-  when:
-    - kafka_security == 'scram'
-    - kafka_pki_copy_internal.changed or not kafka_store_stat_internal.results[0].stat.exists
-    - not ansible_check_mode
-  become_user: kafka
-  no_log: true
-  command:
-    argv:
-      - openssl
-      - pkcs12
-      - -export
-      - -name
-      - kafka
-      - -in
-      - /etc/kafka/pki/kafka.crt
-      - -inkey
-      - /etc/kafka/pki/kafka.key
-      - -certfile
-      - /etc/kafka/pki/ca.crt
-      - -out
-      - /etc/kafka/pki/kafka.p12
-      - -passout
-      - "pass:{{ kafka_keystore_password_internal }}"
-  register: kafka_keystore_result_internal
-
-- name: build node PKCS12 truststore
-  when:
-    - kafka_security == 'scram'
-    - kafka_truststore_reset_internal.changed | default(false) or not kafka_store_stat_internal.results[1].stat.exists
-    - not ansible_check_mode
-  become_user: kafka
-  no_log: true
-  command:
-    argv:
-      - keytool
-      - -importcert
-      - -noprompt
-      - -alias
-      - pigsty-ca
-      - -file
-      - /etc/kafka/pki/ca.crt
-      - -keystore
-      - /etc/kafka/pki/truststore.p12
-      - -storetype
-      - PKCS12
-      - -storepass
-      - "{{ kafka_truststore_password_internal }}"
-  register: kafka_truststore_result_internal
-
-- name: require each node clock to accept its installed certificate
-  when:
-    - kafka_security == 'scram'
-    - not ansible_check_mode
-  command:
-    argv:
-      - openssl
-      - verify
-      - -CAfile
-      - /etc/kafka/pki/ca.crt
-      - /etc/kafka/pki/kafka.crt
-  register: kafka_node_certificate_verify_internal
-  changed_when: false
-  retries: 30
-  delay: 2
-  until: kafka_node_certificate_verify_internal.rc == 0
-
-- name: remove secure PKI files in plaintext mode
+- name: remove secure pki files in plaintext mode
   when: kafka_security == 'plaintext'
-  file:
-    path: /etc/kafka/pki
-    state: absent
+  file: path=/etc/kafka/pki state=absent
   register: kafka_plaintext_pki_absent_internal
 
-- name: render role-owned Kafka admin channels
+#--------------------------------------------------------------#
+# Render Admin Channels & SCRAM Bootstrap          [kafka_admin]
+#--------------------------------------------------------------#
+- name: render role-owned kafka admin channels
   no_log: "{{ kafka_security == 'scram' }}"
-  block:
-    - template:
-        src: admin.properties.j2
-        dest: /etc/kafka/admin.properties
-        owner: kafka
-        group: kafka
-        mode: '0600'
-      register: kafka_admin_properties_result_internal
-    - template:
-        src: controller.properties.j2
-        dest: /etc/kafka/controller.properties
-        owner: kafka
-        group: kafka
-        mode: '0600'
-      register: kafka_controller_properties_result_internal
+  template: src={{ item }}.j2 dest=/etc/kafka/{{ item }} owner=kafka group=kafka mode=0600
+  loop: [ admin.properties, controller.properties ]
+  register: kafka_admin_channel_result_internal
 
-- name: derive SCRAM records for initial metadata bootstrap
+- name: derive scram bootstrap records and security change state
   no_log: true
   set_fact:
     kafka_storage_scram_args_internal: >-
@@ -667,10 +390,7 @@
          if kafka_security == 'scram' else [] }}
     kafka_security_changed_internal: >-
       {{ kafka_pki_copy_internal.changed | default(false) or
-         kafka_keystore_result_internal.changed | default(false) or
-         kafka_truststore_result_internal.changed | default(false) or
          kafka_plaintext_pki_absent_internal.changed | default(false) or
-         kafka_admin_properties_result_internal.changed | default(false) or
-         kafka_controller_properties_result_internal.changed | default(false) or
+         kafka_admin_channel_result_internal.changed | default(false) or
          kafka_credentials_rotated_internal | default(false) }}
 ...

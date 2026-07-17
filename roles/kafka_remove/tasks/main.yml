@@ -1,0 +1,101 @@
+---
+#--------------------------------------------------------------#
+# Derive Kafka Identity                              [kafka_id]
+#--------------------------------------------------------------#
+- name: derive kafka remove identity
+  tags: [ always, kafka-id ]
+  set_fact:
+    kafka_instance: "{{ kafka_cluster }}-{{ kafka_seq }}"
+    kafka_manifest_dir_internal: "files/kafka/{{ kafka_cluster }}"
+
+#--------------------------------------------------------------#
+# Honor kafka_safeguard                        [kafka_safeguard]
+#--------------------------------------------------------------#
+- name: ABORT due to kafka_safeguard enabled
+  connection: local
+  when: kafka_safeguard | bool
+  tags: [ always, kafka_safeguard ]
+  any_errors_fatal: true
+  ignore_errors: false
+  fail: msg="Abort due to kafka_safeguard for {{ kafka_cluster }} @ {{ inventory_hostname }} is enabled, override with -e kafka_safeguard=false"
+
+#--------------------------------------------------------------#
+# Deregister Monitoring Targets              [kafka_deregister]
+#--------------------------------------------------------------#
+# remove the kafka victoria target file from every infra node
+- name: deregister kafka targets from victoria
+  when: not kafka_safeguard | bool
+  tags: [ kafka_deregister, deregister, rm_metrics ]
+  ignore_errors: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['infra'] | default([]) }}"
+  file: path=/infra/targets/kafka/{{ kafka_instance }}.yml state=absent
+
+#--------------------------------------------------------------#
+# Stop Kafka Services                                   [kafka]
+#--------------------------------------------------------------#
+# kafka_exporter only exists on the two selected broker nodes, and a unit may
+# already be gone on re-entry: a missing service is expected, not a failure
+- name: stop kafka services
+  when: not kafka_safeguard | bool
+  tags: kafka
+  failed_when: false
+  systemd: name={{ item }} state=stopped enabled=no daemon_reload=yes
+  loop: [ kafka_exporter, kafka ]
+
+#--------------------------------------------------------------#
+# Remove Config, Units & Helpers                  [kafka_config]
+#--------------------------------------------------------------#
+- name: remove kafka configuration, units, and helpers
+  when: not kafka_safeguard | bool
+  tags: kafka_config
+  ignore_errors: true
+  block:
+    - name: remove kafka config, default env, unit, and helper files
+      file: path={{ item }} state=absent
+      loop:
+        - /etc/kafka
+        - /etc/kafka_exporter
+        - /etc/default/kafka
+        - /etc/default/kafka_exporter
+        - "{{ systemd_dir }}/kafka.service"
+        - "{{ systemd_dir }}/kafka_exporter.service"
+        - /usr/local/bin/pigsty-kafka-health
+        - /usr/local/bin/pigsty-kafka-provision
+    - name: reload systemd after kafka unit removal
+      systemd: daemon_reload=yes
+
+#--------------------------------------------------------------#
+# Remove Kafka Data & Manifest                      [kafka_data]
+#--------------------------------------------------------------#
+# data dir and the control-node bootstrap manifest/secrets are the cluster
+# identity: they are wiped together only when kafka_rm_data is enabled
+- name: remove kafka data directory
+  when: not kafka_safeguard | bool and kafka_rm_data | bool
+  tags: kafka_data
+  ignore_errors: true
+  file: path={{ kafka_data }} state=absent
+
+# every host removes its own cluster manifest dir: run_once would only remove
+# the first host's cluster when multiple kafka clusters are selected at once
+- name: remove kafka bootstrap manifest and secrets
+  when: not kafka_safeguard | bool and kafka_rm_data | bool
+  tags: kafka_data
+  become: false
+  delegate_to: localhost
+  throttle: 1
+  file: path={{ kafka_manifest_dir_internal }} state=absent
+
+#--------------------------------------------------------------#
+# Uninstall Kafka Packages                           [kafka_pkg]
+#--------------------------------------------------------------#
+# only the kafka-stack payload (kafka/kafka_exporter/jmx-exporter) is removed;
+# the shared java-runtime is never uninstalled
+- name: uninstall kafka packages
+  when: not kafka_safeguard | bool and kafka_rm_pkg | bool
+  tags: kafka_pkg
+  ignore_errors: true
+  package:
+    name: "{{ ((package_map['kafka-stack'] | default('kafka')).replace(',', ' ').split()) | unique | list }}"
+    state: absent
+...

@@ -1,0 +1,49 @@
+---
+#--------------------------------------------------------------#
+# Configure Protocol Exporter                   [kafka_exporter]
+#--------------------------------------------------------------#
+# at most two broker-capable nodes with the lowest kafka_seq run kafka_exporter;
+# in scram mode it trusts the system-wide pigsty ca at /etc/pki/ca.crt
+- name: configure selected kafka exporter replica
+  when: inventory_hostname in kafka_exporter_hosts_internal
+  block:
+    - name: render kafka exporter env and unit
+      no_log: "{{ kafka_security == 'scram' }}"
+      template: src={{ item.src }} dest={{ item.dest }} owner=root group={{ item.group }} mode={{ item.mode }}
+      loop:
+        - { src: "kafka_exporter.env.j2"  ,dest: "/etc/default/kafka_exporter"              ,group: "prometheus" ,mode: "0640" }
+        - { src: "kafka_exporter.service" ,dest: "{{ systemd_dir }}/kafka_exporter.service" ,group: "root"       ,mode: "0644" }
+      register: kafka_exporter_render_internal
+    - name: launch selected kafka exporter
+      when: not ansible_check_mode
+      systemd:
+        name: kafka_exporter
+        state: "{{ 'restarted' if kafka_exporter_render_internal.changed else 'started' }}"
+        enabled: true
+        daemon_reload: true
+
+#--------------------------------------------------------------#
+# Register Monitoring Targets      [add_metrics][kafka_register]
+#--------------------------------------------------------------#
+# one target file per instance under the single kafka job: the jmx target
+# carries the role label (used by the kafka_up recording rule), the protocol
+# exporter target is appended on the selected replicas
+- name: register kafka as victoria target
+  tags: [ kafka_register, register, add_metrics ]
+  ignore_errors: true
+  delegate_to: '{{ item }}'
+  loop: '{{ groups["infra"] | default([]) }}'
+  copy:
+    dest: "/infra/targets/kafka/{{ kafka_instance }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
+    content: |
+      # {{ kafka_instance }} @ {{ inventory_hostname }}
+      - labels: { ip: {{ inventory_hostname }} , ins: {{ kafka_instance }} , cls: {{ kafka_cluster }} , role: {{ kafka_role }} , node_id: '{{ kafka_seq }}' , instance: {{ inventory_hostname }}:{{ kafka_jmx_exporter_port }} }
+        targets: [ {{ inventory_hostname }}:{{ kafka_jmx_exporter_port }} ]
+      {% if inventory_hostname in kafka_exporter_hosts_internal %}
+      - labels: { ip: {{ inventory_hostname }} , ins: {{ kafka_instance }} , cls: {{ kafka_cluster }} , instance: {{ inventory_hostname }}:{{ kafka_exporter_port }} }
+        targets: [ {{ inventory_hostname }}:{{ kafka_exporter_port }} ]
+      {% endif %}
+...

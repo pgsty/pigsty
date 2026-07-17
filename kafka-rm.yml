@@ -1,0 +1,53 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   kafka-rm.yml
+# Desc      :   remove kafka cluster / instance from hosts
+# Ctime     :   2024-01-01
+# Mtime     :   2026-07-17
+# Path      :   kafka-rm.yml
+# Docs      :   https://pigsty.io/docs/kafka/playbook
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: KAFKA REMOVE
+  hosts: all
+  become: true
+  gather_facts: no
+  ignore_errors: true
+  vars:
+    #kafka_safeguard: false            # set true to halt removal (safety switch)
+    #kafka_rm_data: true               # remove data dir & bootstrap manifest? true by default
+    kafka_rm_pkg: false                # uninstall kafka packages? false by default, explicit override required
+  roles:
+    - { role: node_id      ,when: kafka_cluster is defined and kafka_seq is defined }
+    - { role: kafka_remove ,when: kafka_cluster is defined and kafka_seq is defined }
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+#  Remove kafka cluster `kf-main` (always with an exact full-cluster -l limit)
+#     ./kafka-rm.yml -l kf-main
+#         -e kafka_rm_data=true      # remove data dir & bootstrap manifest (default)
+#         -e kafka_rm_data=false     # keep data on disk, remove services & config only
+#         -e kafka_rm_pkg=true       # also uninstall the kafka-stack packages
+#         -e kafka_safeguard=true    # abort: refuse to remove anything
+#  It will abort if `kafka_safeguard` is set to `true` explicitly.
+#
+#  Shrink a kafka cluster (remove one broker/controller):
+#     ./kafka-rm.yml -l 10.10.10.13  # remove a single member from its cluster
+#  Removing a KRaft controller changes quorum membership; only shrink a healthy
+#  cluster and keep an odd controller count.
+#
+#--------------------------------------------------------------#
+# Tasks
+#--------------------------------------------------------------#
+# kafka_safeguard  : abort when kafka_safeguard=true
+# kafka_deregister : remove kafka / kafka_exporter victoria targets from infra
+# kafka            : stop & disable kafka and kafka_exporter services
+# kafka_config     : remove config, systemd units, and helper scripts
+# kafka_data       : remove data dir & bootstrap manifest  (disable with kafka_rm_data=false)
+# kafka_pkg        : uninstall kafka-stack packages         (enable  with kafka_rm_pkg=true)
+#--------------------------------------------------------------#
+...

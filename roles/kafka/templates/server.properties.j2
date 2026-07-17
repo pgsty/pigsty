@@ -9,7 +9,7 @@ controller.listener.names=CONTROLLER
 
 ############################# Listeners #########################
 {% if kafka_role == 'combined' %}
-listeners=BROKER://0.0.0.0:{{ kafka_port }},CONTROLLER://0.0.0.0:{{ kafka_controller_port }}
+listeners=BROKER://0.0.0.0:{{ kafka_port }},CONTROLLER://{{ inventory_hostname }}:{{ kafka_controller_port }}
 advertised.listeners=BROKER://{{ inventory_hostname }}:{{ kafka_port }}
 inter.broker.listener.name=BROKER
 {% elif kafka_role == 'broker' %}
@@ -17,7 +17,7 @@ listeners=BROKER://0.0.0.0:{{ kafka_port }}
 advertised.listeners=BROKER://{{ inventory_hostname }}:{{ kafka_port }}
 inter.broker.listener.name=BROKER
 {% else %}
-listeners=CONTROLLER://0.0.0.0:{{ kafka_controller_port }}
+listeners=CONTROLLER://{{ inventory_hostname }}:{{ kafka_controller_port }}
 {% endif %}
 listener.security.protocol.map=BROKER:{{ 'SASL_SSL' if kafka_security == 'scram' else 'PLAINTEXT' }},CONTROLLER:{{ 'SSL' if kafka_security == 'scram' else 'PLAINTEXT' }}
 
@@ -27,13 +27,10 @@ metadata.log.dir={{ kafka_metadata_dir_internal }}
 
 {% if kafka_security == 'scram' %}
 ############################# Security ##########################
-ssl.keystore.type=PKCS12
-ssl.keystore.location=/etc/kafka/pki/kafka.p12
-ssl.keystore.password={{ kafka_keystore_password_internal }}
-ssl.key.password={{ kafka_keystore_password_internal }}
-ssl.truststore.type=PKCS12
-ssl.truststore.location=/etc/kafka/pki/truststore.p12
-ssl.truststore.password={{ kafka_truststore_password_internal }}
+ssl.keystore.type=PEM
+ssl.keystore.location=/etc/kafka/pki/kafka.pem
+ssl.truststore.type=PEM
+ssl.truststore.location=/etc/pki/ca.crt
 ssl.endpoint.identification.algorithm=https
 listener.name.controller.ssl.client.auth=required
 listener.name.broker.ssl.client.auth=none

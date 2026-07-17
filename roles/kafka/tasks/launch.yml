@@ -1,0 +1,150 @@
+---
+# The lifecycle predicate in config.yml classified this run as either a fresh /
+# unhealthy `converge` (bring the whole cluster up in parallel) or a healthy
+# `rolling` operation (touch only changed/new nodes, one at a time). A no-change
+# run on a healthy cluster restarts nothing.
+
+#--------------------------------------------------------------#
+# Converge Fresh / Unhealthy Cluster              [kafka_launch]
+#--------------------------------------------------------------#
+# controllers form the dynamic quorum first, then brokers join; a healthy
+# cluster (lifecycle=rolling) skips this section entirely
+- name: converge fresh or unhealthy kafka cluster
+  when: kafka_lifecycle_internal == 'converge' and not ansible_check_mode
+  block:
+    - name: start controller-capable kafka services
+      when: kafka_has_controller | bool
+      systemd: name=kafka state=started enabled=yes daemon_reload=yes
+    - name: wait for controller listener
+      when: kafka_has_controller | bool
+      wait_for: host={{ inventory_hostname }} port={{ kafka_controller_port }} state=started timeout=120
+    - name: wait for dynamic controller quorum convergence
+      run_once: true
+      delegate_to: "{{ kafka_initial_admin_host_internal }}"
+      become_user: kafka
+      command: >-
+        /opt/kafka/bin/kafka-metadata-quorum.sh
+        --bootstrap-controller {{ kafka_controller_bootstrap_internal }}
+        --command-config /etc/kafka/controller.properties describe --status
+      register: kafka_controller_converge_internal
+      changed_when: false
+      retries: 30
+      delay: 4
+      until:
+        - kafka_controller_converge_internal.rc == 0
+        - "'LeaderId:' in kafka_controller_converge_internal.stdout"
+    - name: verify frozen initial controller directory identities
+      run_once: true
+      assert:
+        that: item.directory_id in kafka_controller_converge_internal.stdout
+        fail_msg: >-
+          Controller node.id {{ item.node_id }} directory identity is absent from
+          the live quorum. Use explicit remove-controller/add-controller recovery.
+      loop: "{{ kafka_manifest_internal.initial_controllers }}"
+    - name: start pure broker services after quorum convergence
+      when: kafka_role == 'broker'
+      systemd: name=kafka state=started enabled=yes daemon_reload=yes
+    - name: wait for broker listener
+      when: kafka_has_broker | bool
+      wait_for: host={{ inventory_hostname }} port={{ kafka_port }} state=started timeout=180
+    - name: require full cluster health after converge
+      run_once: true
+      delegate_to: "{{ kafka_admin_host_internal }}"
+      become_user: kafka
+      command: >-
+        /usr/local/bin/pigsty-kafka-health cluster
+        --bootstrap-server {{ kafka_broker_bootstrap_internal }}
+        --command-config /etc/kafka/admin.properties
+      register: kafka_converge_health_internal
+      changed_when: false
+      retries: 45
+      delay: 4
+      until: kafka_converge_health_internal.rc == 0
+    # nodes that converge just started (were down) now run the desired static
+    # config, so their pending restart is cleared; nodes that were already up
+    # but stale keep it and fall through to the strict rolling section below
+    - name: record static state loaded during converge
+      when: kafka_service_active_internal.rc != 0
+      copy:
+        dest: /etc/kafka/.pigsty-applied-static.sha256
+        content: "{{ kafka_desired_static_fingerprint_internal }}\n"
+        owner: root
+        group: root
+        mode: '0644'
+    - name: clear pending restart already satisfied by converge
+      when: kafka_service_active_internal.rc != 0
+      set_fact: { kafka_restart_required_internal: false }
+
+#--------------------------------------------------------------#
+# Admit New Brokers One At A Time                 [kafka_launch]
+#--------------------------------------------------------------#
+# expanding a healthy cluster: each newly formatted pure broker is started and
+# gated on registration + full health before the next one is admitted
+- name: admit newly formatted brokers one at a time
+  run_once: true
+  when: kafka_lifecycle_internal == 'rolling' and not ansible_check_mode
+  include_tasks: admit.yml
+  loop: "{{ kafka_cluster_admission_required_internal }}"
+  loop_control: { loop_var: roll_host, label: "{{ roll_host }}" }
+
+#--------------------------------------------------------------#
+# Strict Rolling Restart One At A Time            [kafka_launch]
+#--------------------------------------------------------------#
+# every node whose static config changed is restarted one at a time, each gated
+# by a quorum/minISR preflight and a post-restart catch-up; unchanged and freshly
+# converged nodes are skipped, so a no-change run restarts nothing
+- name: rolling restart changed kafka nodes one at a time
+  run_once: true
+  include_tasks: roll.yml
+  loop: "{{ kafka_cluster_members }}"
+  loop_control: { loop_var: roll_host, label: "{{ roll_host }}" }
+  when:
+    - not ansible_check_mode
+    - hostvars[roll_host].kafka_restart_required_internal | default(false) | bool
+
+#--------------------------------------------------------------#
+# Commission Manifest & Record State           [kafka_commission]
+#--------------------------------------------------------------#
+- name: require full kafka health after launch
+  run_once: true
+  when: not ansible_check_mode
+  delegate_to: "{{ kafka_admin_host_internal }}"
+  become_user: kafka
+  command: >-
+    /usr/local/bin/pigsty-kafka-health cluster
+    --bootstrap-server {{ kafka_broker_bootstrap_internal }}
+    --command-config /etc/kafka/admin.properties
+  changed_when: false
+
+# marking the manifest commissioned freezes the initial-controller identities:
+# from now on an unformatted controller can never be silently reformatted
+- name: mark node manifest copies commissioned after proven health
+  when: not ansible_check_mode
+  copy:
+    dest: /etc/kafka/manifest.yml
+    content: >-
+      {{ kafka_manifest_internal | combine({'commissioned': true}) | to_nice_yaml(indent=2) }}
+    owner: kafka
+    group: kafka
+    mode: '0600'
+
+- name: refresh the admin bootstrap manifest cache
+  run_once: true
+  when: not ansible_check_mode
+  become: false
+  delegate_to: localhost
+  copy:
+    dest: "{{ kafka_manifest_dir_internal }}/manifest.yml"
+    content: >-
+      {{ kafka_manifest_internal | combine({'commissioned': true}) | to_nice_yaml(indent=2) }}
+    mode: '0600'
+
+- name: record static state proven live on every node
+  when: not ansible_check_mode
+  copy:
+    dest: /etc/kafka/.pigsty-applied-static.sha256
+    content: "{{ kafka_desired_static_fingerprint_internal }}\n"
+    owner: root
+    group: root
+    mode: '0644'
+...
