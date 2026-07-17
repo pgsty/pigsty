@@ -1,0 +1,133 @@
+---
+- name: derive role-owned Kafka paths and local identity
+  set_fact:
+    kafka_home_internal: /opt/kafka
+    kafka_config_internal: /etc/kafka/server.properties
+    kafka_log4j_internal: /etc/kafka/log4j2.yaml
+    kafka_data_dir_internal: "{{ kafka_data }}/data"
+    kafka_metadata_dir_internal: "{{ kafka_data }}/metadata"
+    kafka_manifest_dir_internal: "{{ role_path }}/../../files/kafka/{{ kafka_cluster | default('invalid') }}"
+    kafka_manifest_file_internal: "{{ role_path }}/../../files/kafka/{{ kafka_cluster | default('invalid') }}/manifest.yml"
+    kafka_secret_file_internal: "{{ role_path }}/../../files/kafka/{{ kafka_cluster | default('invalid') }}/secrets.yml"
+    kafka_instance: "{{ kafka_cluster | default('invalid') }}-{{ kafka_seq | default('invalid') }}"
+    kafka_process_roles: >-
+      {{ 'broker,controller' if kafka_role | default('combined') == 'combined'
+         else ('broker' if kafka_role | default('combined') == 'broker' else 'controller') }}
+    kafka_has_broker: "{{ kafka_role | default('combined') in ['combined', 'broker'] }}"
+    kafka_has_controller: "{{ kafka_role | default('combined') in ['combined', 'controller'] }}"
+
+- name: collect selected and complete Kafka cluster membership
+  set_fact:
+    kafka_selected_hosts: "{{ ansible_play_hosts_all | sort }}"
+    kafka_cluster_members: >-
+      {{ hostvars | dict2items
+         | selectattr('value.kafka_cluster', 'defined')
+         | selectattr('value.kafka_cluster', 'equalto', kafka_cluster)
+         | map(attribute='key') | list | sort }}
+
+- name: derive Kafka topology
+  set_fact:
+    kafka_controller_nodes: >-
+      {%- set nodes = [] -%}
+      {%- for host in kafka_cluster_members -%}
+      {%-   if hostvars[host].kafka_role | default('combined') in ['combined', 'controller'] -%}
+      {%-     set _ = nodes.append({'host': host, 'seq': hostvars[host].kafka_seq | int}) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ nodes | sort(attribute='seq') }}
+    kafka_broker_nodes: >-
+      {%- set nodes = [] -%}
+      {%- for host in kafka_cluster_members -%}
+      {%-   if hostvars[host].kafka_role | default('combined') in ['combined', 'broker'] -%}
+      {%-     set _ = nodes.append({'host': host, 'seq': hostvars[host].kafka_seq | int}) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ nodes | sort(attribute='seq') }}
+    kafka_node_ids: "{{ kafka_cluster_members | map('extract', hostvars, 'kafka_seq') | map('int') | list }}"
+    kafka_explicit_role_flags: >-
+      {%- set flags = [] -%}
+      {%- for host in kafka_cluster_members -%}
+      {%-   set _ = flags.append(hostvars[host]._kafka_role_was_explicit | default(false)) -%}
+      {%- endfor -%}
+      {{ flags }}
+    kafka_rack_flags: >-
+      {%- set flags = [] -%}
+      {%- for host in kafka_cluster_members -%}
+      {%-   if hostvars[host].kafka_role | default('combined') in ['combined', 'broker'] -%}
+      {%-     set _ = flags.append(hostvars[host].kafka_rack is defined) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ flags }}
+
+- name: derive Kafka bootstrap, administration, and exporter endpoints
+  set_fact:
+    kafka_controller_bootstrap_internal: >-
+      {{ kafka_controller_nodes | map(attribute='host')
+         | zip(kafka_controller_nodes | map(attribute='host')
+         | map('extract', hostvars, 'kafka_controller_port')
+         | map('default', 9095, true))
+         | map('join', ':') | join(',') }}
+    kafka_admin_host_internal: "{{ (kafka_broker_nodes | first).host }}"
+    kafka_initial_admin_host_internal: "{{ (kafka_controller_nodes | first).host }}"
+    kafka_exporter_hosts_internal: "{{ (kafka_broker_nodes | map(attribute='host') | list)[:2] }}"
+    kafka_current_replication_factor_internal: "{{ [3, kafka_broker_nodes | length] | min }}"
+    kafka_current_min_isr_internal: "{{ [1, ([3, kafka_broker_nodes | length] | min) - 1] | max }}"
+
+- name: validate Kafka identity, topology, and public API
+  assert:
+    that:
+      - ansible_limit is defined
+      - ansible_limit | string | length > 0
+      - kafka_cluster is string and kafka_cluster | length > 0
+      - (kafka_cluster | regex_search('^[A-Za-z0-9][A-Za-z0-9_-]*$')) is not none
+      - kafka_seq is number or (kafka_seq | string | regex_search('^[0-9]+$')) is not none
+      - kafka_seq | int >= 0
+      - kafka_role in ['combined', 'broker', 'controller']
+      - kafka_cluster_members | length > 0
+      - kafka_selected_hosts | difference(kafka_cluster_members) | length == 0
+      - kafka_cluster_members | difference(kafka_selected_hosts) | length == 0
+      - kafka_node_ids | unique | length == kafka_node_ids | length
+      - kafka_controller_nodes | length > 0
+      - kafka_broker_nodes | length > 0
+      - kafka_explicit_role_flags | unique | length == 1
+      - kafka_rack_flags | unique | length == 1
+      - kafka_data is string
+      - (kafka_data | regex_search('^/[^\\s]+$')) is not none
+      - kafka_data not in ['/', '/data', '/var', '/etc', '/opt', '/usr', '/home', '/root', '/pg']
+      - kafka_port | int > 0 and kafka_port | int <= 65535
+      - kafka_controller_port | int > 0 and kafka_controller_port | int <= 65535
+      - kafka_exporter_port | int > 0 and kafka_exporter_port | int <= 65535
+      - kafka_jmx_exporter_port | int > 0 and kafka_jmx_exporter_port | int <= 65535
+      - kafka_port | int != kafka_controller_port | int
+      - kafka_port | int != kafka_exporter_port | int
+      - kafka_port | int != kafka_jmx_exporter_port | int
+      - kafka_controller_port | int != kafka_exporter_port | int
+      - kafka_controller_port | int != kafka_jmx_exporter_port | int
+      - kafka_exporter_port | int != kafka_jmx_exporter_port | int
+      - not (inventory_hostname in groups['infra'] | default([]) and kafka_controller_port | int == alertmanager_port | default(9093) | int)
+      - kafka_parameters is mapping
+      - kafka_security in ['plaintext', 'scram']
+      - kafka_users is sequence and kafka_users is not string
+      - kafka_topics is sequence and kafka_topics is not string
+      - kafka_parameters.keys() | select('match', '^(process.roles|node.id|controller.quorum\\..*|listeners|advertised.listeners|listener.security.protocol.map|inter.broker.listener.name|controller.listener.names|log.dirs|metadata.log.dir|min.insync.replicas|default.replication.factor|offsets.topic.replication.factor|transaction.state.log.replication.factor|transaction.state.log.min.isr|share.coordinator.state.topic.replication.factor|share.coordinator.state.topic.min.isr|broker.rack|authorizer.class.name|super.users|allow.everyone.if.no.acl.found|sasl\\..*|ssl\\..*|listener\\..*)$') | list | length == 0
+    fail_msg: >-
+      Invalid Kafka API or topology. Use an explicit -l selecting every member
+      of exactly one kafka_cluster; roles must be all omitted (combined) or all
+      explicit; rack must be configured on all broker-capable nodes or none;
+      role-owned topology/listener/security/storage/replication keys are reserved.
+
+- name: warn about an even-sized Kafka controller quorum
+  run_once: true
+  when: kafka_controller_nodes | length | int is even
+  debug:
+    msg: >-
+      Kafka cluster {{ kafka_cluster }} has {{ kafka_controller_nodes | length }}
+      controllers. An odd controller count is recommended for fault tolerance.
+
+- name: warn when JMX observability is explicitly disabled
+  when: not kafka_jmx_exporter_enabled | bool
+  debug:
+    msg: >-
+      Kafka JMX monitoring is disabled on {{ inventory_hostname }}. Lifecycle
+      gates still use the role-owned Kafka admin CLI, but JVM/node visibility is reduced.
+...

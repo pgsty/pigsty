@@ -1,0 +1,220 @@
+---
+- name: require healthy Kafka before resource and exporter convergence
+  run_once: true
+  when: not ansible_check_mode
+  delegate_to: "{{ kafka_admin_host_internal }}"
+  become_user: kafka
+  command:
+    argv:
+      - /usr/local/bin/pigsty-kafka-health
+      - cluster
+      - --bootstrap-server
+      - "{{ kafka_admin_host_internal }}:{{ hostvars[kafka_admin_host_internal].kafka_port | default(9092) }}"
+      - --command-config
+      - /etc/kafka/admin.properties
+  register: kafka_finalize_pre_health_internal
+  changed_when: false
+
+- name: converge role-owned dynamic configuration and declared resources
+  include_tasks: resources.yml
+
+- name: determine exporter placement on this node
+  set_fact:
+    kafka_exporter_selected_internal: "{{ inventory_hostname in kafka_exporter_hosts_internal }}"
+
+- name: configure selected Kafka exporter replica
+  when: kafka_exporter_selected_internal | bool
+  block:
+    - name: create Kafka exporter configuration directory
+      file:
+        path: /etc/kafka_exporter
+        state: directory
+        owner: root
+        group: prometheus
+        mode: '0750'
+    - name: remove legacy in-tree exporter CA path
+      file:
+        path: /etc/kafka/exporter-ca.crt
+        state: absent
+    - name: install exporter CA trust in SCRAM mode
+      when: kafka_security == 'scram'
+      copy:
+        src: "{{ role_path }}/../../files/pki/ca/ca.crt"
+        dest: /etc/kafka_exporter/ca.crt
+        owner: root
+        group: prometheus
+        mode: '0640'
+      register: kafka_exporter_ca_internal
+    - name: remove exporter CA in plaintext mode
+      when: kafka_security == 'plaintext'
+      file:
+        path: /etc/kafka_exporter/ca.crt
+        state: absent
+      register: kafka_exporter_ca_absent_internal
+    - name: render Kafka exporter environment
+      no_log: "{{ kafka_security == 'scram' }}"
+      template:
+        src: kafka_exporter.env.j2
+        dest: /etc/default/kafka_exporter
+        owner: root
+        group: prometheus
+        mode: '0640'
+      register: kafka_exporter_env_internal
+    - name: render Kafka exporter unit
+      template:
+        src: kafka_exporter.service
+        dest: "{{ systemd_dir }}/kafka_exporter.service"
+        owner: root
+        group: root
+        mode: '0644'
+      register: kafka_exporter_unit_internal
+    - name: start or restart selected Kafka exporter
+      when: not ansible_check_mode
+      systemd:
+        name: kafka_exporter
+        state: >-
+          {{ 'restarted' if kafka_exporter_env_internal.changed or
+             kafka_exporter_unit_internal.changed or
+             kafka_exporter_ca_internal.changed | default(false) or
+             kafka_exporter_ca_absent_internal.changed | default(false)
+             else 'started' }}
+        enabled: true
+        daemon_reload: true
+    - name: wait for selected Kafka exporter
+      when: not ansible_check_mode
+      wait_for:
+        host: 127.0.0.1
+        port: "{{ kafka_exporter_port }}"
+        state: started
+        timeout: 60
+
+- name: stop and remove deselected Kafka exporter state
+  when: not kafka_exporter_selected_internal | bool
+  block:
+    - name: stop and disable deselected exporter
+      when: not ansible_check_mode
+      systemd:
+        name: kafka_exporter
+        state: stopped
+        enabled: false
+        daemon_reload: true
+      failed_when: false
+    - name: remove deselected exporter files
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/default/kafka_exporter
+        - "{{ systemd_dir }}/kafka_exporter.service"
+        - /etc/kafka_exporter
+        - /etc/kafka/exporter-ca.crt
+
+- name: verify JMX metrics contract on every enabled Kafka JVM
+  when:
+    - kafka_jmx_exporter_enabled | bool
+    - not ansible_check_mode
+  block:
+    - wait_for:
+        host: "{{ inventory_hostname }}"
+        port: "{{ kafka_jmx_exporter_port }}"
+        state: started
+        timeout: 60
+    - uri:
+        url: "http://{{ inventory_hostname }}:{{ kafka_jmx_exporter_port }}/metrics"
+        status_code: 200
+        return_content: true
+      register: kafka_jmx_metrics_internal
+    - assert:
+        that:
+          - "'jmx_scrape_error 0.0' in kafka_jmx_metrics_internal.content"
+          - "'jvm_memory_used_bytes' in kafka_jmx_metrics_internal.content"
+          - "'kafka_' in kafka_jmx_metrics_internal.content"
+        fail_msg: JMX endpoint is reachable but its bounded JVM/Kafka contract failed
+
+- name: ensure Kafka monitoring target directories
+  delegate_to: "{{ item.0 }}"
+  loop: "{{ (groups['infra'] | default([])) | product(['/infra/targets/kafka', '/infra/targets/kafka_exporter']) | list }}"
+  file:
+    path: "{{ item.1 }}"
+    state: directory
+    owner: victoria
+    group: infra
+    mode: '0750'
+
+- name: register enabled Kafka JMX target
+  when: kafka_jmx_exporter_enabled | bool
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['infra'] | default([]) }}"
+  copy:
+    dest: "/infra/targets/kafka/{{ kafka_instance }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
+    content: |
+      - labels:
+          cls: '{{ kafka_cluster }}'
+          ins: '{{ kafka_instance }}'
+          ip: '{{ inventory_hostname }}'
+          role: '{{ kafka_role }}'
+          node_id: '{{ kafka_seq }}'
+          instance: '{{ inventory_hostname }}:{{ kafka_jmx_exporter_port }}'
+        targets: [ '{{ inventory_hostname }}:{{ kafka_jmx_exporter_port }}' ]
+
+- name: remove disabled Kafka JMX target
+  when: not kafka_jmx_exporter_enabled | bool
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['infra'] | default([]) }}"
+  file:
+    path: "/infra/targets/kafka/{{ kafka_instance }}.yml"
+    state: absent
+
+- name: register selected protocol exporter replica
+  when: kafka_exporter_selected_internal | bool
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['infra'] | default([]) }}"
+  copy:
+    dest: "/infra/targets/kafka_exporter/{{ kafka_instance }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
+    content: |
+      - labels:
+          cls: '{{ kafka_cluster }}'
+          ins: '{{ kafka_instance }}'
+          ip: '{{ inventory_hostname }}'
+          instance: '{{ inventory_hostname }}:{{ kafka_exporter_port }}'
+        targets: [ '{{ inventory_hostname }}:{{ kafka_exporter_port }}' ]
+
+- name: remove stale protocol exporter target from deselected nodes
+  when: not kafka_exporter_selected_internal | bool
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['infra'] | default([]) }}"
+  file:
+    path: "/infra/targets/kafka_exporter/{{ kafka_instance }}.yml"
+    state: absent
+
+- name: require full Kafka health after final convergence
+  run_once: true
+  when: not ansible_check_mode
+  delegate_to: "{{ kafka_admin_host_internal }}"
+  become_user: kafka
+  command:
+    argv:
+      - /usr/local/bin/pigsty-kafka-health
+      - cluster
+      - --bootstrap-server
+      - "{{ kafka_admin_host_internal }}:{{ hostvars[kafka_admin_host_internal].kafka_port | default(9092) }}"
+      - --command-config
+      - /etc/kafka/admin.properties
+  register: kafka_finalize_health_internal
+  changed_when: false
+
+- name: record static Kafka state proven live by final convergence
+  when: not ansible_check_mode
+  copy:
+    dest: /etc/kafka/.pigsty-applied-static.sha256
+    content: "{{ kafka_desired_static_fingerprint_internal }}\n"
+    owner: root
+    group: root
+    mode: '0644'
+...

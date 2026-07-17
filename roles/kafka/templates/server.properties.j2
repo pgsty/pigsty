@@ -4,31 +4,62 @@
 ############################# KRaft #############################
 process.roles={{ kafka_process_roles }}
 node.id={{ kafka_seq }}
-controller.quorum.voters={{ kafka_controller_quorum }}
+controller.quorum.bootstrap.servers={{ kafka_controller_bootstrap_internal }}
 controller.listener.names=CONTROLLER
 
 ############################# Listeners #########################
-{% if kafka_has_broker | bool and kafka_has_controller | bool %}
-listeners=PLAINTEXT://{{ kafka_bind_address }}:{{ kafka_port }},CONTROLLER://{{ kafka_bind_address }}:{{ kafka_peer_port }}
-advertised.listeners=PLAINTEXT://{{ kafka_advertise_address | default(inventory_hostname) }}:{{ kafka_port }},CONTROLLER://{{ kafka_controller_address | default(kafka_advertise_address | default(inventory_hostname)) }}:{{ kafka_peer_port }}
-inter.broker.listener.name=PLAINTEXT
-{% elif kafka_has_controller | bool %}
-listeners=CONTROLLER://{{ kafka_bind_address }}:{{ kafka_peer_port }}
-advertised.listeners=CONTROLLER://{{ kafka_controller_address | default(kafka_advertise_address | default(inventory_hostname)) }}:{{ kafka_peer_port }}
+{% if kafka_role == 'combined' %}
+listeners=BROKER://0.0.0.0:{{ kafka_port }},CONTROLLER://0.0.0.0:{{ kafka_controller_port }}
+advertised.listeners=BROKER://{{ inventory_hostname }}:{{ kafka_port }}
+inter.broker.listener.name=BROKER
+{% elif kafka_role == 'broker' %}
+listeners=BROKER://0.0.0.0:{{ kafka_port }}
+advertised.listeners=BROKER://{{ inventory_hostname }}:{{ kafka_port }}
+inter.broker.listener.name=BROKER
 {% else %}
-listeners=PLAINTEXT://{{ kafka_bind_address }}:{{ kafka_port }}
-advertised.listeners=PLAINTEXT://{{ kafka_advertise_address | default(inventory_hostname) }}:{{ kafka_port }}
-inter.broker.listener.name=PLAINTEXT
+listeners=CONTROLLER://0.0.0.0:{{ kafka_controller_port }}
 {% endif %}
-listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+listener.security.protocol.map=BROKER:{{ 'SASL_SSL' if kafka_security == 'scram' else 'PLAINTEXT' }},CONTROLLER:{{ 'SSL' if kafka_security == 'scram' else 'PLAINTEXT' }}
 
 ############################# Storage ###########################
-log.dirs={{ kafka_data_dir }}
-metadata.log.dir={{ kafka_metadata_dir }}
+log.dirs={{ kafka_data_dir_internal }}
+metadata.log.dir={{ kafka_metadata_dir_internal }}
+
+{% if kafka_security == 'scram' %}
+############################# Security ##########################
+ssl.keystore.type=PKCS12
+ssl.keystore.location=/etc/kafka/pki/kafka.p12
+ssl.keystore.password={{ kafka_keystore_password_internal }}
+ssl.key.password={{ kafka_keystore_password_internal }}
+ssl.truststore.type=PKCS12
+ssl.truststore.location=/etc/kafka/pki/truststore.p12
+ssl.truststore.password={{ kafka_truststore_password_internal }}
+ssl.endpoint.identification.algorithm=https
+listener.name.controller.ssl.client.auth=required
+listener.name.broker.ssl.client.auth=none
+sasl.enabled.mechanisms=SCRAM-SHA-512
+sasl.mechanism.inter.broker.protocol=SCRAM-SHA-512
+listener.name.broker.scram-sha-512.sasl.jaas.config=org.apache.kafka.common.security.scram.ScramLoginModule required username="{{ kafka_broker_principal_internal }}" password="{{ kafka_broker_password_internal }}";
+authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer
+allow.everyone.if.no.acl.found=false
+super.users=User:{{ kafka_admin_principal_internal }};User:{{ kafka_broker_principal_internal }};User:{{ kafka_broker_standby_principal_internal }};User:CN=pigsty-controller
+{% endif %}
 
 {% if kafka_has_broker | bool %}
 ############################# Broker ############################
-{% for key, value in kafka_parameters.items() %}
+default.replication.factor={{ kafka_manifest_internal.replication_factor }}
+offsets.topic.replication.factor={{ kafka_manifest_internal.replication_factor }}
+transaction.state.log.replication.factor={{ kafka_manifest_internal.replication_factor }}
+transaction.state.log.min.isr={{ kafka_manifest_internal.min_insync_replicas }}
+share.coordinator.state.topic.replication.factor={{ kafka_manifest_internal.replication_factor }}
+share.coordinator.state.topic.min.isr={{ kafka_manifest_internal.min_insync_replicas }}
+{% if kafka_security == 'scram' %}
+auto.create.topics.enable=false
+{% endif %}
+{% if kafka_rack is defined %}
+broker.rack={{ kafka_rack }}
+{% endif %}
+{% for key, value in kafka_parameters | dictsort %}
 {{ key }}={{ value }}
 {% endfor %}
 {% endif %}

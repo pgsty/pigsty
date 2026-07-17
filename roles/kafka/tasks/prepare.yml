@@ -1,0 +1,635 @@
+---
+- name: resolve Kafka package aliases
+  assert:
+    that:
+      - package_map is mapping
+      - "'kafka-stack' in package_map"
+      - "'java-runtime' in package_map"
+    fail_msg: node_id must provide kafka-stack and java-runtime package aliases
+
+- name: derive Kafka package list
+  set_fact:
+    kafka_packages_internal: >-
+      {{ (((package_map['java-runtime'] | default('')) ~ ' ' ~
+           (package_map['kafka-stack'] | default(''))).replace(',', ' ').split())
+         | unique | list }}
+
+- name: create Kafka operating-system account
+  block:
+    - group:
+        name: kafka
+        system: true
+    - user:
+        name: kafka
+        group: kafka
+        system: true
+        home: /home/kafka
+        shell: /sbin/nologin
+        create_home: false
+
+- name: install the Kafka production package set
+  environment: "{{ proxy_env | default({}) }}"
+  package:
+    name: "{{ kafka_packages_internal }}"
+    state: present
+
+- name: verify Kafka package payload
+  when: not ansible_check_mode
+  block:
+    - stat:
+        path: "{{ item }}"
+      loop: >-
+        {{ ['/opt/kafka/bin/kafka-server-start.sh',
+            '/opt/kafka/bin/kafka-storage.sh',
+            '/opt/kafka/bin/kafka-metadata-quorum.sh',
+            '/opt/kafka/bin/kafka-topics.sh',
+            '/opt/kafka/bin/kafka-configs.sh',
+            '/opt/kafka/bin/kafka-acls.sh',
+            '/usr/bin/kafka_exporter'] +
+           (['/usr/share/java/jmx_prometheus_javaagent.jar']
+            if kafka_jmx_exporter_enabled | bool else []) }}
+      register: kafka_payload_internal
+    - assert:
+        that: kafka_payload_internal.results | map(attribute='stat.exists') | min
+        fail_msg: Installed kafka-stack payload is incomplete or uses unexpected paths
+
+- name: create Kafka configuration and data directories
+  file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: kafka
+    group: kafka
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: /etc/kafka, mode: '0750' }
+    - { path: /home/kafka, mode: '0750' }
+    - { path: /home/kafka/.ansible/tmp, mode: '0700' }
+    - { path: "{{ kafka_data }}", mode: '0750' }
+    - { path: "{{ kafka_data_dir_internal }}", mode: '0750' }
+    - { path: "{{ kafka_metadata_dir_internal }}", mode: '0750' }
+
+- name: inspect node metadata identity
+  stat:
+    path: "{{ kafka_metadata_dir_internal }}/meta.properties"
+  register: kafka_meta_stat_internal
+
+- name: read existing node metadata identity
+  when: kafka_meta_stat_internal.stat.exists
+  slurp:
+    src: "{{ kafka_metadata_dir_internal }}/meta.properties"
+  register: kafka_meta_raw_internal
+
+- name: decode node metadata identity
+  set_fact:
+    kafka_storage_formatted_internal: "{{ kafka_meta_stat_internal.stat.exists }}"
+    kafka_meta_content_internal: >-
+      {{ (kafka_meta_raw_internal.content | b64decode)
+         if kafka_meta_stat_internal.stat.exists else '' }}
+    kafka_meta_cluster_id_internal: >-
+      {{ ((kafka_meta_raw_internal.content | b64decode)
+          | regex_findall('(?m)^cluster\.id=([^\n]+)') | first)
+         if kafka_meta_stat_internal.stat.exists else '' }}
+    kafka_meta_node_id_internal: >-
+      {{ ((kafka_meta_raw_internal.content | b64decode)
+          | regex_findall('(?m)^node\.id=([^\n]+)') | first)
+         if kafka_meta_stat_internal.stat.exists else '' }}
+    kafka_meta_directory_id_internal: >-
+      {{ ((kafka_meta_raw_internal.content | b64decode)
+          | regex_findall('(?m)^directory\.id=([^\n]+)') | first)
+         if kafka_meta_stat_internal.stat.exists else '' }}
+
+- name: aggregate formatted storage state
+  set_fact:
+    kafka_formatted_flags_internal: >-
+      {{ kafka_cluster_members
+         | map('extract', hostvars, 'kafka_storage_formatted_internal') | list }}
+    kafka_formatted_cluster_ids_internal: >-
+      {%- set ids = [] -%}
+      {%- for host in kafka_cluster_members -%}
+      {%-   if hostvars[host].kafka_storage_formatted_internal | bool -%}
+      {%-     set _ = ids.append(hostvars[host].kafka_meta_cluster_id_internal) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ ids }}
+
+- name: inspect cluster bootstrap manifest
+  run_once: true
+  become: false
+  delegate_to: localhost
+  stat:
+    path: "{{ kafka_manifest_file_internal }}"
+  register: kafka_manifest_stat_internal
+
+- name: read cluster bootstrap manifest
+  run_once: true
+  become: false
+  delegate_to: localhost
+  when: kafka_manifest_stat_internal.stat.exists
+  slurp:
+    src: "{{ kafka_manifest_file_internal }}"
+  register: kafka_manifest_raw_internal
+
+- name: load existing cluster bootstrap manifest
+  when: kafka_manifest_stat_internal.stat.exists
+  set_fact:
+    kafka_manifest_internal: "{{ kafka_manifest_raw_internal.content | b64decode | from_yaml }}"
+
+- name: reject a stale manifest paired with an entirely empty cluster
+  when:
+    - kafka_manifest_stat_internal.stat.exists
+    - not (kafka_formatted_flags_internal | select('equalto', true) | list | length)
+  fail:
+    msg: >-
+      {{ kafka_manifest_file_internal }} exists but every selected Kafka data
+      disk is empty. Refusing to reuse bootstrap identity. Run the protected
+      kafka_clean action for {{ kafka_cluster }} before a deliberate rebuild.
+
+- name: verify a live cluster before reconstructing a missing manifest
+  when:
+    - not kafka_manifest_stat_internal.stat.exists
+    - kafka_formatted_flags_internal | select('equalto', true) | list | length > 0
+  run_once: true
+  delegate_to: "{{ kafka_admin_host_internal }}"
+  become_user: kafka
+  command:
+    argv:
+      - /opt/kafka/bin/kafka-features.sh
+      - --bootstrap-server
+      - "{{ kafka_admin_host_internal }}:{{ hostvars[kafka_admin_host_internal].kafka_port | default(9092) }}"
+      - --command-config
+      - /etc/kafka/admin.properties
+      - describe
+  register: kafka_reconstruct_features_internal
+  check_mode: false
+  changed_when: false
+
+- name: inspect live security state for manifest reconstruction
+  when:
+    - not kafka_manifest_stat_internal.stat.exists
+    - kafka_formatted_flags_internal | select('equalto', true) | list | length > 0
+  run_once: true
+  delegate_to: "{{ kafka_admin_host_internal }}"
+  slurp:
+    src: /etc/kafka/server.properties
+  register: kafka_reconstruct_server_config_internal
+  no_log: "{{ kafka_security == 'scram' }}"
+
+- name: inspect protected secrets for secure manifest reconstruction
+  when:
+    - not kafka_manifest_stat_internal.stat.exists
+    - kafka_formatted_flags_internal | select('equalto', true) | list | length > 0
+    - kafka_security == 'scram'
+  run_once: true
+  become: false
+  delegate_to: localhost
+  stat:
+    path: "{{ kafka_secret_file_internal }}"
+  register: kafka_reconstruct_secret_stat_internal
+
+- name: derive live security mode for manifest reconstruction
+  when:
+    - not kafka_manifest_stat_internal.stat.exists
+    - kafka_formatted_flags_internal | select('equalto', true) | list | length > 0
+  set_fact:
+    kafka_reconstruct_security_internal: >-
+      {%- set config = kafka_reconstruct_server_config_internal.content | b64decode -%}
+      {{ 'scram' if config is regex('(?m)^listener.security.protocol.map=.*BROKER:SASL_SSL')
+         else ('plaintext' if config is regex('(?m)^listener.security.protocol.map=.*BROKER:PLAINTEXT')
+         else 'invalid') }}
+
+- name: require dynamic quorum for manifest reconstruction
+  when:
+    - not kafka_manifest_stat_internal.stat.exists
+    - kafka_formatted_flags_internal | select('equalto', true) | list | length > 0
+  assert:
+    that:
+      - kafka_reconstruct_security_internal == kafka_security
+      - kafka_security != 'scram' or kafka_reconstruct_secret_stat_internal.stat.exists
+      - "kafka_reconstruct_features_internal.stdout is regex('(?m)^Feature: kraft.version.*FinalizedVersion(?:Level)?: [1-9]')"
+      - kafka_formatted_cluster_ids_internal | unique | length == 1
+    fail_msg: >-
+      Formatted storage exists without a bootstrap manifest, but live security,
+      dynamic-quorum state, inventory security, or protected SCRAM credentials
+      cannot be reconciled safely. No storage will be reformatted.
+
+- name: query live replication policy for manifest reconstruction
+  when:
+    - not kafka_manifest_stat_internal.stat.exists
+    - kafka_formatted_flags_internal | select('equalto', true) | list | length > 0
+  run_once: true
+  delegate_to: "{{ kafka_admin_host_internal }}"
+  become_user: kafka
+  shell: |
+    set -o pipefail
+    replication_factor=$(sed -n 's/^offsets.topic.replication.factor=\([0-9][0-9]*\)$/\1/p' \
+      /etc/kafka/server.properties | head -n 1)
+    config=$(/opt/kafka/bin/kafka-configs.sh --bootstrap-server \
+      {{ kafka_admin_host_internal }}:{{ hostvars[kafka_admin_host_internal].kafka_port | default(9092) }} \
+      --command-config /etc/kafka/admin.properties \
+      --entity-type brokers --entity-default --describe)
+    min_insync_replicas=$(printf '%s\n' "$config" | \
+      sed -n 's/^ *min.insync.replicas=\([0-9][0-9]*\) .*/\1/p' | head -n 1)
+    test -n "$replication_factor" -a -n "$min_insync_replicas"
+    printf 'replication_factor=%s\nmin_insync_replicas=%s\n' \
+      "$replication_factor" "$min_insync_replicas"
+  args:
+    executable: /bin/bash
+  register: kafka_reconstruct_policy_internal
+  check_mode: false
+  changed_when: false
+
+- name: validate live replication policy for manifest reconstruction
+  when:
+    - not kafka_manifest_stat_internal.stat.exists
+    - kafka_formatted_flags_internal | select('equalto', true) | list | length > 0
+  assert:
+    that:
+      - kafka_reconstruct_policy_internal.stdout
+        is regex('(?m)^replication_factor=[0-9]+$')
+      - kafka_reconstruct_policy_internal.stdout
+        is regex('(?m)^min_insync_replicas=[0-9]+$')
+    fail_msg: >-
+      Live Kafka configuration does not expose the frozen internal-topic RF or
+      cluster minISR needed to reconstruct the bootstrap manifest safely.
+
+- name: reconstruct missing bootstrap manifest from the healthy live cluster
+  when:
+    - not kafka_manifest_stat_internal.stat.exists
+    - kafka_formatted_flags_internal | select('equalto', true) | list | length > 0
+  set_fact:
+    kafka_manifest_internal:
+      schema: 1
+      cluster_id: "{{ kafka_formatted_cluster_ids_internal | first }}"
+      security: "{{ kafka_reconstruct_security_internal }}"
+      initial_controllers: >-
+        {%- set controllers = [] -%}
+        {%- for node in kafka_controller_nodes -%}
+        {%-   if hostvars[node.host].kafka_storage_formatted_internal | bool -%}
+        {%-     set _ = controllers.append({'node_id': node.seq | int,
+                  'directory_id': hostvars[node.host].kafka_meta_directory_id_internal}) -%}
+        {%-   endif -%}
+        {%- endfor -%}
+        {{ controllers }}
+      replication_factor: >-
+        {{ kafka_reconstruct_policy_internal.stdout
+           | regex_findall('(?m)^replication_factor=([0-9]+)$') | first | int }}
+      min_insync_replicas: >-
+        {{ kafka_reconstruct_policy_internal.stdout
+           | regex_findall('(?m)^min_insync_replicas=([0-9]+)$') | first | int }}
+
+- name: report bootstrap manifest reconstruction
+  run_once: true
+  when:
+    - not kafka_manifest_stat_internal.stat.exists
+    - kafka_formatted_flags_internal | select('equalto', true) | list | length > 0
+  debug:
+    msg: >-
+      Reconstructed {{ kafka_manifest_file_internal }} from healthy live Kafka
+      metadata. The live cluster remained authoritative and no storage was reformatted.
+
+- name: generate a random Kafka cluster id for a new cluster
+  when:
+    - not kafka_manifest_stat_internal.stat.exists
+    - not (kafka_formatted_flags_internal | select('equalto', true) | list | length)
+    - not ansible_check_mode
+  run_once: true
+  delegate_to: "{{ kafka_initial_admin_host_internal }}"
+  become_user: kafka
+  command: /opt/kafka/bin/kafka-storage.sh random-uuid
+  register: kafka_new_cluster_id_internal
+  changed_when: false
+
+- name: generate initial controller directory ids
+  when:
+    - not kafka_manifest_stat_internal.stat.exists
+    - not (kafka_formatted_flags_internal | select('equalto', true) | list | length)
+    - not ansible_check_mode
+  run_once: true
+  delegate_to: "{{ kafka_initial_admin_host_internal }}"
+  become_user: kafka
+  command: /opt/kafka/bin/kafka-storage.sh random-uuid
+  loop: "{{ kafka_controller_nodes }}"
+  register: kafka_new_directory_ids_internal
+  changed_when: false
+
+- name: build a new bootstrap manifest in memory
+  when:
+    - not kafka_manifest_stat_internal.stat.exists
+    - not (kafka_formatted_flags_internal | select('equalto', true) | list | length)
+  set_fact:
+    kafka_manifest_internal:
+      schema: 1
+      cluster_id: >-
+        {{ kafka_cluster_id | default(
+           ('AAAAAAAAAAAAAAAAAAAAAA' if ansible_check_mode
+            else kafka_new_cluster_id_internal.stdout), true) }}
+      security: "{{ kafka_security }}"
+      initial_controllers: >-
+        {%- set controllers = [] -%}
+        {%- for node in kafka_controller_nodes -%}
+        {%-   set directory_id = ('BBBBBBBBBBBBBBBBBBBB' ~ (node.seq | string))[-22:]
+              if ansible_check_mode else kafka_new_directory_ids_internal.results[loop.index0].stdout -%}
+        {%-   set _ = controllers.append({'node_id': node.seq | int,
+                                          'directory_id': directory_id}) -%}
+        {%- endfor -%}
+        {{ controllers }}
+      replication_factor: "{{ [3, kafka_broker_nodes | length] | min }}"
+      min_insync_replicas: "{{ [1, ([3, kafka_broker_nodes | length] | min) - 1] | max }}"
+
+- name: validate bootstrap manifest against inventory and formatted storage
+  assert:
+    that:
+      - kafka_manifest_internal.schema | int == 1
+      - kafka_manifest_internal.cluster_id is regex('^[A-Za-z0-9_-]{22}$')
+      - kafka_manifest_internal.security == kafka_security
+      - kafka_cluster_id is not defined or kafka_cluster_id == kafka_manifest_internal.cluster_id
+      - kafka_manifest_internal.initial_controllers is sequence
+      - kafka_manifest_internal.initial_controllers | length > 0
+      - kafka_manifest_internal.replication_factor | int >= 1
+      - kafka_manifest_internal.min_insync_replicas | int >= 1
+      - kafka_manifest_internal.min_insync_replicas | int <= kafka_manifest_internal.replication_factor | int
+      - not kafka_storage_formatted_internal or kafka_meta_cluster_id_internal == kafka_manifest_internal.cluster_id
+      - not kafka_storage_formatted_internal or kafka_meta_node_id_internal | int == kafka_seq | int
+    fail_msg: >-
+      Bootstrap manifest, inventory, requested security mode, or formatted
+      cluster/node identity conflicts. Live identity is never rewritten automatically.
+
+- name: reject implicit admission of an unformatted controller
+  when:
+    - kafka_has_controller | bool
+    - not kafka_storage_formatted_internal
+    - kafka_formatted_flags_internal | select('equalto', true) | list | length > 0
+  assert:
+    that:
+      - kafka_manifest_internal.initial_controllers
+        | selectattr('node_id', 'equalto', kafka_seq | int) | list | length == 1
+    fail_msg: >-
+      Controller node.id {{ kafka_seq }} is not an initial controller in the
+      bootstrap manifest. Inventory membership does not add a dynamic-quorum
+      voter; use the explicit format, catch-up, and add-controller workflow.
+
+- name: persist the bootstrap manifest atomically
+  run_once: true
+  when: not ansible_check_mode
+  become: false
+  delegate_to: localhost
+  block:
+    - file:
+        path: "{{ kafka_manifest_dir_internal }}"
+        state: directory
+        mode: '0700'
+    - copy:
+        dest: "{{ kafka_manifest_file_internal }}"
+        content: "{{ kafka_manifest_internal | to_nice_yaml(indent=2, sort_keys=false) }}"
+        mode: '0600'
+
+- name: configure Kafka security material
+  include_tasks: security.yml
+
+- name: render Kafka runtime configuration without restarting services
+  block:
+    - template:
+        src: kafka-health.py.j2
+        dest: /usr/local/bin/pigsty-kafka-health
+        owner: root
+        group: root
+        mode: '0755'
+      register: kafka_health_script_result_internal
+    - template:
+        src: server.properties.j2
+        dest: /etc/kafka/server.properties
+        owner: kafka
+        group: kafka
+        mode: '0640'
+      register: kafka_server_config_result_internal
+    - template:
+        src: log4j2.yaml.j2
+        dest: /etc/kafka/log4j2.yaml
+        owner: kafka
+        group: kafka
+        mode: '0640'
+      register: kafka_log4j_result_internal
+    - template:
+        src: kafka.env.j2
+        dest: /etc/default/kafka
+        owner: root
+        group: root
+        mode: '0644'
+      register: kafka_env_result_internal
+    - template:
+        src: kafka.service
+        dest: "{{ systemd_dir }}/kafka.service"
+        owner: root
+        group: root
+        mode: '0644'
+      register: kafka_unit_result_internal
+    - template:
+        src: jmx_exporter.yml.j2
+        dest: /etc/kafka/jmx_exporter.yml
+        owner: kafka
+        group: kafka
+        mode: '0640'
+      when: kafka_jmx_exporter_enabled | bool
+      register: kafka_jmx_result_internal
+    - file:
+        path: /etc/kafka/jmx_exporter.yml
+        state: absent
+      when: not kafka_jmx_exporter_enabled | bool
+      register: kafka_jmx_absent_result_internal
+
+- name: remember whether static Kafka state requires service convergence
+  set_fact:
+    kafka_restart_required_internal: >-
+      {{ kafka_server_config_result_internal.changed | default(false) or
+         kafka_log4j_result_internal.changed | default(false) or
+         kafka_env_result_internal.changed | default(false) or
+         kafka_unit_result_internal.changed | default(false) or
+         kafka_jmx_result_internal.changed | default(false) or
+         kafka_jmx_absent_result_internal.changed | default(false) or
+         kafka_security_changed_internal | default(false) }}
+
+- name: inspect rendered runtime files for the static-state fingerprint
+  stat:
+    path: "{{ item }}"
+    checksum_algorithm: sha256
+    get_checksum: true
+  loop:
+    - /etc/kafka/server.properties
+    - /etc/kafka/log4j2.yaml
+    - /etc/default/kafka
+    - "{{ systemd_dir }}/kafka.service"
+    - /etc/kafka/jmx_exporter.yml
+    - /etc/kafka/pki/kafka.p12
+    - /etc/kafka/pki/truststore.p12
+  register: kafka_runtime_file_stats_internal
+  no_log: "{{ kafka_security == 'scram' }}"
+
+- name: derive the desired static Kafka state fingerprint
+  set_fact:
+    kafka_desired_static_fingerprint_internal: >-
+      {{ ([
+          'server=' ~ (kafka_server_config_result_internal.checksum | default('absent')),
+          'log4j=' ~ (kafka_log4j_result_internal.checksum | default('absent')),
+          'env=' ~ (kafka_env_result_internal.checksum | default('absent')),
+          'unit=' ~ (kafka_unit_result_internal.checksum | default('absent')),
+          'jmx=' ~ ((kafka_jmx_result_internal.checksum | default('absent'))
+                    if kafka_jmx_exporter_enabled | bool else 'absent'),
+          'keystore=' ~ (kafka_runtime_file_stats_internal.results[5].stat.checksum | default('absent')),
+          'truststore=' ~ (kafka_runtime_file_stats_internal.results[6].stat.checksum | default('absent'))
+          ] | join('\n')) | hash('sha256') }}
+  no_log: "{{ kafka_security == 'scram' }}"
+
+- name: derive the newest rendered runtime-file timestamp
+  set_fact:
+    kafka_latest_runtime_mtime_internal: >-
+      {%- set mtimes = [] -%}
+      {%- for result in kafka_runtime_file_stats_internal.results -%}
+      {%-   if result.stat.exists -%}
+      {%-     set _ = mtimes.append(result.stat.mtime | int) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ mtimes | max | default(0) }}
+
+- name: inspect when the active Kafka process loaded static state
+  shell: |
+    set -o pipefail
+    test "$(systemctl is-active kafka)" = active
+    systemctl show kafka --property=ActiveEnterTimestamp --value | date --file=- +%s
+  args:
+    executable: /bin/bash
+  register: kafka_service_started_epoch_internal
+  check_mode: false
+  changed_when: false
+  failed_when: false
+
+- name: determine whether the active process already loaded rendered state
+  set_fact:
+    kafka_static_state_loaded_internal: >-
+      {{ kafka_service_started_epoch_internal.rc == 0 and
+         kafka_service_started_epoch_internal.stdout | int >=
+         kafka_latest_runtime_mtime_internal | int }}
+
+- name: inspect the last static Kafka state proven live
+  stat:
+    path: /etc/kafka/.pigsty-applied-static.sha256
+  register: kafka_applied_static_fingerprint_stat_internal
+
+- name: read the last static Kafka state proven live
+  when: kafka_applied_static_fingerprint_stat_internal.stat.exists
+  slurp:
+    src: /etc/kafka/.pigsty-applied-static.sha256
+  register: kafka_applied_static_fingerprint_raw_internal
+
+- name: require convergence for static state not yet proven live
+  set_fact:
+    kafka_restart_required_internal: >-
+      {{ kafka_restart_required_internal | bool or
+         ((not kafka_applied_static_fingerprint_stat_internal.stat.exists or
+           (kafka_applied_static_fingerprint_raw_internal.content | default('') |
+            b64decode | trim) != kafka_desired_static_fingerprint_internal) and
+          not kafka_static_state_loaded_internal | bool) or
+         kafka_rotate_credentials | default(false) | bool or
+         kafka_rotate_certificates | default(false) | bool }}
+
+- name: derive the frozen initial-controller format argument
+  set_fact:
+    kafka_initial_controllers_arg_internal: >-
+      {%- set specs = [] -%}
+      {%- for controller in kafka_manifest_internal.initial_controllers -%}
+      {%-   for node in kafka_controller_nodes -%}
+      {%-     if node.seq | int == controller.node_id | int -%}
+      {%-       set port = hostvars[node.host].kafka_controller_port | default(9095) -%}
+      {%-       set _ = specs.append((controller.node_id | string) ~ '@' ~ node.host ~ ':' ~
+                                    (port | string) ~ ':' ~ controller.directory_id) -%}
+      {%-     endif -%}
+      {%-   endfor -%}
+      {%- endfor -%}
+      {{ specs | join(',') }}
+
+- name: format uninitialized Kafka storage with an explicit dynamic-quorum mode
+  when:
+    - not kafka_storage_formatted_internal
+    - not ansible_check_mode
+  become_user: kafka
+  no_log: "{{ kafka_security == 'scram' }}"
+  command:
+    argv: >-
+      {{ ['/opt/kafka/bin/kafka-storage.sh', 'format',
+          '--cluster-id', kafka_manifest_internal.cluster_id,
+          '--config', '/etc/kafka/server.properties'] +
+         (['--initial-controllers',
+           kafka_initial_controllers_arg_internal]
+          if kafka_has_controller | bool else ['--no-initial-controllers']) +
+         (kafka_storage_scram_args_internal | default([])) }}
+  register: kafka_format_result_internal
+
+- name: mark newly formatted storage for converge
+  when: kafka_format_result_internal.changed | default(false)
+  set_fact:
+    kafka_restart_required_internal: true
+    kafka_storage_new_internal: true
+
+- name: inspect Kafka service activity before lifecycle selection
+  command: systemctl is-active kafka
+  register: kafka_service_active_internal
+  check_mode: false
+  changed_when: false
+  failed_when: false
+
+- name: identify pure brokers that require admission or interrupted-admission recovery
+  set_fact:
+    kafka_broker_admission_required_internal: >-
+      {{ kafka_role == 'broker' and
+         (kafka_storage_new_internal | default(false) | bool or
+          (kafka_storage_formatted_internal | bool and
+           kafka_service_active_internal.rc != 0)) }}
+
+- name: evaluate the single Kafka cluster-health predicate
+  run_once: true
+  when: not ansible_check_mode
+  delegate_to: "{{ kafka_admin_host_internal }}"
+  become_user: kafka
+  command:
+    argv:
+      - /usr/local/bin/pigsty-kafka-health
+      - cluster
+      - --bootstrap-server
+      - "{{ kafka_admin_host_internal }}:{{ hostvars[kafka_admin_host_internal].kafka_port | default(9092) }}"
+      - --command-config
+      - /etc/kafka/admin.properties
+  register: kafka_health_before_internal
+  changed_when: false
+  failed_when: false
+
+- name: select converge or strict rolling from the health predicate
+  set_fact:
+    kafka_lifecycle_internal: >-
+      {{ 'check' if ansible_check_mode else
+         ('rolling' if kafka_health_before_internal.rc | default(1) == 0 else 'converge') }}
+    kafka_cluster_restart_required_internal: >-
+      {%- set required = [] -%}
+      {%- for host in kafka_cluster_members -%}
+      {%-   if hostvars[host].kafka_restart_required_internal | default(false) | bool -%}
+      {%-     set _ = required.append(host) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ required }}
+    kafka_cluster_admission_required_internal: >-
+      {%- set required = [] -%}
+      {%- for host in kafka_cluster_members -%}
+      {%-   if hostvars[host].kafka_broker_admission_required_internal | default(false) | bool -%}
+      {%-     set _ = required.append(host) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ required }}
+
+- name: report the selected Kafka lifecycle path
+  run_once: true
+  debug:
+    msg: >-
+      Kafka {{ kafka_cluster }} lifecycle={{ kafka_lifecycle_internal }};
+      static-change-hosts={{ kafka_cluster_restart_required_internal | join(',') | default('none', true) }};
+      broker-admission-hosts={{ kafka_cluster_admission_required_internal | join(',') | default('none', true) }};
+      health={{ kafka_health_before_internal.stdout | default('check-mode or unreachable') }}
+...
+...

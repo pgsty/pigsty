@@ -1,0 +1,339 @@
+---
+# Pigsty Kafka 4.x KRaft metrics contract for JMX Exporter 1.6+
+#
+# This is deliberately an allow-list. It exports the JVM baseline plus bounded
+# broker, request, replication, and KRaft controller metrics. Per-client and
+# per-partition MBeans are omitted to keep cardinality predictable.
+
+startDelaySeconds: 5
+lowercaseOutputName: true
+lowercaseOutputLabelNames: true
+autoExcludeObjectNameAttributes: true
+excludeJvmMetrics: false
+
+includeObjectNames:
+  - 'java.lang:*'
+  - 'kafka.server:*'
+  - 'kafka.controller:*'
+  - 'kafka.network:*'
+  - 'kafka.log:*'
+
+rules:
+
+  #--------------------------------------------------------------------------
+  # Broker traffic: cluster totals only; topic detail stays in kafka_exporter
+  #--------------------------------------------------------------------------
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=MessagesInPerSec><>Count'
+    name: kafka_server_broker_messages_in_total
+    help: Total messages accepted by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=BytesInPerSec><>Count'
+    name: kafka_server_broker_bytes_in_total
+    help: Total client bytes accepted by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=BytesOutPerSec><>Count'
+    name: kafka_server_broker_bytes_out_total
+    help: Total client bytes sent by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=ReplicationBytesInPerSec><>Count'
+    name: kafka_server_broker_replication_bytes_in_total
+    help: Total replication bytes received by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=ReplicationBytesOutPerSec><>Count'
+    name: kafka_server_broker_replication_bytes_out_total
+    help: Total replication bytes sent by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=TotalProduceRequestsPerSec><>Count'
+    name: kafka_server_broker_produce_requests_total
+    help: Total produce requests handled by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=FailedProduceRequestsPerSec><>Count'
+    name: kafka_server_broker_failed_produce_requests_total
+    help: Total failed produce requests handled by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=TotalFetchRequestsPerSec><>Count'
+    name: kafka_server_broker_fetch_requests_total
+    help: Total fetch requests handled by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=BrokerTopicMetrics, name=FailedFetchRequestsPerSec><>Count'
+    name: kafka_server_broker_failed_fetch_requests_total
+    help: Total failed fetch requests handled by this broker.
+    type: COUNTER
+
+  #--------------------------------------------------------------------------
+  # Replication and broker health
+  #--------------------------------------------------------------------------
+  - pattern: 'kafka.server<type=ReplicaManager, name=UnderReplicatedPartitions><>Value'
+    name: kafka_server_replica_manager_under_replicated_partitions
+    help: Partitions whose ISR has fewer replicas than the assigned replica set.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=ReplicaManager, name=UnderMinIsrPartitionCount><>Value'
+    name: kafka_server_replica_manager_under_min_isr_partitions
+    help: Partitions whose ISR is below min.insync.replicas.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=ReplicaManager, name=AtMinIsrPartitionCount><>Value'
+    name: kafka_server_replica_manager_at_min_isr_partitions
+    help: Partitions whose ISR is exactly min.insync.replicas.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=ReplicaManager, name=OfflineReplicaCount><>Value'
+    name: kafka_server_replica_manager_offline_replicas
+    help: Replicas that are offline on this broker.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=ReplicaManager, name=PartitionCount><>Value'
+    name: kafka_server_replica_manager_partitions
+    help: Replicas hosted by this broker.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=ReplicaManager, name=LeaderCount><>Value'
+    name: kafka_server_replica_manager_leaders
+    help: Partitions led by this broker.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=ReplicaManager, name=IsrShrinksPerSec><>Count'
+    name: kafka_server_replica_manager_isr_shrinks_total
+    help: Total ISR shrink events observed by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=ReplicaManager, name=IsrExpandsPerSec><>Count'
+    name: kafka_server_replica_manager_isr_expands_total
+    help: Total ISR expansion events observed by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=ReplicaManager, name=FailedIsrUpdatesPerSec><>Count'
+    name: kafka_server_replica_manager_failed_isr_updates_total
+    help: Total failed ISR update events observed by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=ReplicaManager, name=ReassigningPartitions><>Value'
+    name: kafka_server_replica_manager_reassigning_partitions
+    help: Leader partitions currently being reassigned on this broker.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=DelayedOperationPurgatory, name=PurgatorySize, delayedOperation=(.+)><>Value'
+    name: kafka_server_delayed_operation_purgatory_size
+    help: Requests waiting in a delayed operation purgatory.
+    type: GAUGE
+    labels:
+      operation: '$1'
+
+  #--------------------------------------------------------------------------
+  # Request path, saturation, and latency
+  #--------------------------------------------------------------------------
+  - pattern: 'kafka.network<type=RequestMetrics, name=RequestsPerSec, request=(.+), version=(.+)><>Count'
+    name: kafka_network_request_total
+    help: Total Kafka protocol requests by API and version.
+    type: COUNTER
+    labels:
+      request: '$1'
+      version: '$2'
+
+  - pattern: 'kafka.network<type=RequestMetrics, name=RequestsPerSec, request=(.+)><>Count'
+    name: kafka_network_request_total
+    help: Total Kafka protocol requests by API.
+    type: COUNTER
+    labels:
+      request: '$1'
+      version: all
+
+  - pattern: 'kafka.network<type=RequestMetrics, name=ErrorsPerSec, request=(.+), error=(.+)><>Count'
+    name: kafka_network_request_errors_total
+    help: Total Kafka protocol response errors by API and error code.
+    type: COUNTER
+    labels:
+      request: '$1'
+      error: '$2'
+
+  - pattern: 'kafka.network<type=RequestMetrics, name=TotalTimeMs, request=(.+), version=(.+)><>(50|95|99)thPercentile'
+    name: kafka_network_request_total_time_seconds
+    help: Kafka protocol request total time quantiles.
+    type: GAUGE
+    valueFactor: 0.001
+    labels:
+      request: '$1'
+      version: '$2'
+      quantile: '0.$3'
+
+  - pattern: 'kafka.network<type=RequestMetrics, name=TotalTimeMs, request=(.+)><>(50|95|99)thPercentile'
+    name: kafka_network_request_total_time_seconds
+    help: Kafka protocol request total time quantiles.
+    type: GAUGE
+    valueFactor: 0.001
+    labels:
+      request: '$1'
+      version: all
+      quantile: '0.$2'
+
+  - pattern: 'kafka.network<type=RequestChannel, name=RequestQueueSize><>Value'
+    name: kafka_network_request_queue_size
+    help: Requests waiting for a request handler.
+    type: GAUGE
+
+  - pattern: 'kafka.network<type=RequestChannel, name=ResponseQueueSize><>Value'
+    name: kafka_network_response_queue_size
+    help: Responses waiting for a network processor.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=KafkaRequestHandlerPool, name=RequestHandlerAvgIdlePercent><>MeanRate'
+    name: kafka_server_request_handler_idle_ratio
+    help: Average fraction of idle request handler capacity.
+    type: GAUGE
+
+  - pattern: 'kafka.network<type=SocketServer, name=NetworkProcessorAvgIdlePercent><>Value'
+    name: kafka_network_processor_idle_ratio
+    help: Average fraction of idle network processor capacity.
+    type: GAUGE
+
+  - pattern: 'kafka.log<type=LogManager, name=OfflineLogDirectoryCount><>Value'
+    name: kafka_log_manager_offline_log_directories
+    help: Log directories that Kafka has marked offline on this broker.
+    type: GAUGE
+
+  #--------------------------------------------------------------------------
+  # KRaft quorum and broker metadata propagation
+  #--------------------------------------------------------------------------
+  - pattern: 'kafka.server<type=raft-metrics><>current-state: (.+)'
+    name: kafka_server_raft_state
+    help: Current KRaft quorum state of this member.
+    value: 1
+    type: GAUGE
+    labels:
+      state: '$1'
+
+  - pattern: 'kafka.server<type=raft-metrics><>current-leader'
+    name: kafka_server_raft_current_leader
+    help: Current KRaft leader node id; minus one means unknown.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=raft-metrics><>current-epoch'
+    name: kafka_server_raft_current_epoch
+    help: Current KRaft quorum epoch.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=raft-metrics><>high-watermark'
+    name: kafka_server_raft_high_watermark
+    help: KRaft metadata high watermark.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=raft-metrics><>log-end-offset'
+    name: kafka_server_raft_log_end_offset
+    help: KRaft metadata log end offset.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=broker-metadata-metrics><>last-applied-record-lag-ms'
+    name: kafka_server_broker_metadata_last_applied_record_lag_seconds
+    help: Broker metadata application lag in seconds.
+    valueFactor: 0.001
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=broker-metadata-metrics><>metadata-load-error-count'
+    name: kafka_server_broker_metadata_load_errors_total
+    help: Metadata log load errors observed by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=broker-metadata-metrics><>metadata-apply-error-count'
+    name: kafka_server_broker_metadata_apply_errors_total
+    help: Metadata image apply errors observed by this broker.
+    type: COUNTER
+
+  - pattern: 'kafka.server<type=SnapshotEmitter, name=LatestSnapshotGeneratedBytes><>Value'
+    name: kafka_server_metadata_snapshot_bytes
+    help: Size of the latest generated or loaded metadata snapshot.
+    type: GAUGE
+
+  - pattern: 'kafka.server<type=SnapshotEmitter, name=LatestSnapshotGeneratedAgeMs><>Value'
+    name: kafka_server_metadata_snapshot_age_seconds
+    help: Age of the latest metadata snapshot in seconds.
+    valueFactor: 0.001
+    type: GAUGE
+
+  #--------------------------------------------------------------------------
+  # KRaft controller health. These MBeans exist only on controller processes.
+  #--------------------------------------------------------------------------
+  - pattern: 'kafka.controller<type=KafkaController, name=ActiveControllerCount><>Value'
+    name: kafka_controller_active_controller_count
+    help: One on the active controller and zero on other controllers.
+    type: GAUGE
+
+  - pattern: 'kafka.controller<type=KafkaController, name=FencedBrokerCount><>Value'
+    name: kafka_controller_fenced_broker_count
+    help: Brokers currently fenced by the active controller.
+    type: GAUGE
+
+  - pattern: 'kafka.controller<type=KafkaController, name=ActiveBrokerCount><>Value'
+    name: kafka_controller_active_broker_count
+    help: Active brokers observed by the controller.
+    type: GAUGE
+
+  - pattern: 'kafka.controller<type=KafkaController, name=GlobalTopicCount><>Value'
+    name: kafka_controller_global_topic_count
+    help: Topics observed by the controller.
+    type: GAUGE
+
+  - pattern: 'kafka.controller<type=KafkaController, name=GlobalPartitionCount><>Value'
+    name: kafka_controller_global_partition_count
+    help: Partitions observed by the controller.
+    type: GAUGE
+
+  - pattern: 'kafka.controller<type=KafkaController, name=OfflinePartitionsCount><>Value'
+    name: kafka_controller_offline_partition_count
+    help: Offline non-internal partitions observed by the controller.
+    type: GAUGE
+
+  - pattern: 'kafka.controller<type=KafkaController, name=PreferredReplicaImbalanceCount><>Value'
+    name: kafka_controller_preferred_replica_imbalance_count
+    help: Partitions whose leader is not the preferred replica.
+    type: GAUGE
+
+  - pattern: 'kafka.controller<type=KafkaController, name=MetadataErrorCount><>Value'
+    name: kafka_controller_metadata_errors_total
+    help: Metadata processing errors observed by this controller.
+    type: COUNTER
+
+  - pattern: 'kafka.controller<type=KafkaController, name=LastAppliedRecordLagMs><>Value'
+    name: kafka_controller_last_applied_record_lag_seconds
+    help: Controller metadata application lag in seconds.
+    valueFactor: 0.001
+    type: GAUGE
+
+  - pattern: 'kafka.controller<type=KafkaController, name=TimedOutBrokerHeartbeatCount><>Value'
+    name: kafka_controller_timed_out_broker_heartbeats_total
+    help: Broker heartbeats timed out by the active controller.
+    type: COUNTER
+
+  - pattern: 'kafka.controller<type=KafkaController, name=NewActiveControllersCount><>Value'
+    name: kafka_controller_elections_total
+    help: New active controller elections observed by this node.
+    type: COUNTER
+
+  - pattern: 'kafka.controller<type=ControllerStats, name=UncleanLeaderElectionsPerSec><>Count'
+    name: kafka_controller_unclean_leader_elections_total
+    help: Unclean leader elections observed by this controller.
+    type: COUNTER
+
+  - pattern: 'kafka.controller<type=ControllerEventManager, name=EventQueueTimeMs><>(50|95|99)thPercentile'
+    name: kafka_controller_event_queue_time_seconds
+    help: Time controller events spend waiting in the queue.
+    valueFactor: 0.001
+    type: GAUGE
+    labels:
+      quantile: '0.$1'
+
+  - pattern: 'kafka.controller<type=ControllerEventManager, name=EventQueueProcessingTimeMs><>(50|95|99)thPercentile'
+    name: kafka_controller_event_processing_time_seconds
+    help: Time controller events spend executing.
+    valueFactor: 0.001
+    type: GAUGE
+    labels:
+      quantile: '0.$1'

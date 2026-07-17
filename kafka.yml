@@ -2,40 +2,92 @@
 ---
 #==============================================================#
 # File      :   kafka.yml
-# Desc      :   Deploy Apache Kafka 4.x in KRaft mode
+# Desc      :   Deploy production Kafka 4.x with dynamic KRaft
 # Ctime     :   2024-01-01
 # Mtime     :   2026-07-16
 # Path      :   kafka.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
-- name: KAFKA
+
+- name: KAFKA PREPARE
   hosts: all
   become: true
   gather_facts: false
+  any_errors_fatal: true
+  pre_tasks:
+    - name: remember whether kafka_role was explicitly declared
+      when: kafka_cluster is defined and kafka_seq is defined
+      set_fact:
+        _kafka_role_was_explicit: "{{ kafka_role is defined }}"
+      tags: [always, kafka-id]
   roles:
-    - { role: node_id ,tags: id    ,when: kafka_cluster is defined and kafka_seq is defined }
-    - { role: kafka   ,tags: kafka ,when: kafka_cluster is defined and kafka_seq is defined }
+    - role: node_id
+      tags: [id, kafka, kafka_pkg]
+      when: kafka_cluster is defined and kafka_seq is defined
+    - role: kafka
+      kafka_phase: prepare
+      tags: [kafka]
+      when: kafka_cluster is defined and kafka_seq is defined
 
+- name: KAFKA CONVERGE
+  hosts: all
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  roles:
+    - role: kafka
+      kafka_phase: converge
+      tags: [kafka, kafka_converge]
+      when: kafka_cluster is defined and kafka_seq is defined
 
-#---------------------------------------------------------------
-# Usage
-#---------------------------------------------------------------
-# 1. Define a Kafka cluster in the inventory.
-# 2. Preview a specific sandbox target first:
-#      ./kafka.yml --check -l <exact-host-or-group>
-# 3. A real run requires separate, explicit user approval.
-#---------------------------------------------------------------
-# Single-node combined broker/controller example
-#---------------------------------------------------------------
+- name: KAFKA BROKER ADMISSION
+  hosts: all
+  become: true
+  gather_facts: false
+  serial: 1
+  any_errors_fatal: true
+  roles:
+    - role: kafka
+      kafka_phase: admission
+      tags: [kafka, kafka_admission]
+      when: kafka_cluster is defined and kafka_seq is defined
+
+- name: KAFKA STRICT ROLLING
+  hosts: all
+  become: true
+  gather_facts: false
+  serial: 1
+  any_errors_fatal: true
+  roles:
+    - role: kafka
+      kafka_phase: rolling
+      tags: [kafka, kafka_rolling]
+      when: kafka_cluster is defined and kafka_seq is defined
+
+- name: KAFKA FINALIZE
+  hosts: all
+  become: true
+  gather_facts: false
+  any_errors_fatal: true
+  roles:
+    - role: kafka
+      kafka_phase: finalize
+      tags: [kafka, kafka_finalize]
+      when: kafka_cluster is defined and kafka_seq is defined
+
+# Lifecycle operations must use an exact full-cluster limit:
+#   ./kafka.yml --check -l kf-main
+#   ./kafka.yml -l kf-main
+#
+# Default combined cluster:
 # kf-main:
 #   hosts:
-#     10.10.10.10: { kafka_seq: 1, kafka_role: controller }
-#   vars:
-#     kafka_cluster: kf-main
-#     kafka_peer_port: 9095     # avoid AlertManager's default 9093
-#---------------------------------------------------------------
-# Roles: controller (combined, backwards compatible), combined,
-#        broker, controller-only
-#---------------------------------------------------------------
+#     10.10.10.11: { kafka_seq: 1 }
+#     10.10.10.12: { kafka_seq: 2 }
+#     10.10.10.13: { kafka_seq: 3 }
+#   vars: { kafka_cluster: kf-main }
+#
+# Split topology must declare every role explicitly with combined, broker, or
+# controller. kafka_controller_port defaults to 9095 to avoid AlertManager 9093.
 ...
