@@ -15,7 +15,7 @@
       }
     ]
   },
-  "description": "Kafka 4.x KRaft fleet and cluster operations dashboard built on kafka_exporter 1.9.0, node metrics, alerts, and VictoriaLogs. Select cls=All for the global fleet view.",
+  "description": "Kafka 4.x KRaft fleet and cluster operations dashboard built on Kafka JMX, kafka_exporter 1.9.0, node metrics, alerts, and VictoriaLogs. Select cls=All for the global fleet view.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -112,7 +112,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "count(count by (cls) (kafka_exporter_up{job=\"$job\",cls=~\"$cls\"})) or on() vector(0)",
+          "expr": "count(count by (cls) (up{job=\"$job\",cls=~\"$cls\"})) or on() vector(0)",
           "instant": false,
           "interval": "",
           "legendFormat": "Clusters",
@@ -194,7 +194,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "(sum(kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}) / clamp_min(count(kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}), 1)) or on() vector(0)",
+          "expr": "(sum(up{job=\"$job\",cls=~\"$cls\"}) / clamp_min(count(up{job=\"$job\",cls=~\"$cls\"}), 1)) or on() vector(0)",
           "instant": false,
           "interval": "",
           "legendFormat": "Healthy",
@@ -752,7 +752,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "min by (cls) (kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}) * on (cls) ((max by (cls) (kafka_brokers{job=\"$job\",cls=~\"$cls\"}) or on (cls) (0 * min by (cls) (kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}))) > bool 0) * on (cls) ((sum by (cls) (max without (ins, ip, instance) (kafka_topic_partition_under_replicated_partition{job=\"$job\",cls=~\"$cls\"})) or on (cls) (0 * min by (cls) (kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}))) == bool 0) * on (cls) ((sum by (cls) (max without (ins, ip, instance) (kafka_topic_partition_leader{job=\"$job\",cls=~\"$cls\"}) < bool 0) or on (cls) (0 * min by (cls) (kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}))) == bool 0)",
+          "expr": "max by (cls) (up{job=\"$job\",cls=~\"$cls\"}) * on (cls) ((max by (cls) (kafka_brokers{job=\"$job\",cls=~\"$cls\"}) or on (cls) (0 * max by (cls) (up{job=\"$job\",cls=~\"$cls\"}))) > bool 0) * on (cls) ((sum by (cls) (max without (ins, ip, instance) (kafka_topic_partition_under_replicated_partition{job=\"$job\",cls=~\"$cls\"})) or on (cls) (0 * max by (cls) (up{job=\"$job\",cls=~\"$cls\"}))) == bool 0) * on (cls) ((sum by (cls) (max without (ins, ip, instance) (kafka_topic_partition_leader{job=\"$job\",cls=~\"$cls\"}) < bool 0) or on (cls) (0 * max by (cls) (up{job=\"$job\",cls=~\"$cls\"}))) == bool 0)",
           "instant": false,
           "interval": "",
           "legendFormat": "{{ cls }}",
@@ -852,7 +852,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}",
+          "expr": "up{job=\"$job\",cls=~\"$cls\"}",
           "instant": false,
           "interval": "",
           "legendFormat": "{{ ins }}",
@@ -2172,7 +2172,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "min by (cls) (kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}) * on (cls) ((max by (cls) (kafka_brokers{job=\"$job\",cls=~\"$cls\"}) or on (cls) (0 * min by (cls) (kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}))) > bool 0) * on (cls) ((sum by (cls) (max without (ins, ip, instance) (kafka_topic_partition_under_replicated_partition{job=\"$job\",cls=~\"$cls\"})) or on (cls) (0 * min by (cls) (kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}))) == bool 0) * on (cls) ((sum by (cls) (max without (ins, ip, instance) (kafka_topic_partition_leader{job=\"$job\",cls=~\"$cls\"}) < bool 0) or on (cls) (0 * min by (cls) (kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}))) == bool 0)",
+          "expr": "max by (cls) (up{job=\"$job\",cls=~\"$cls\"}) * on (cls) ((max by (cls) (kafka_brokers{job=\"$job\",cls=~\"$cls\"}) or on (cls) (0 * max by (cls) (up{job=\"$job\",cls=~\"$cls\"}))) > bool 0) * on (cls) ((sum by (cls) (max without (ins, ip, instance) (kafka_topic_partition_under_replicated_partition{job=\"$job\",cls=~\"$cls\"})) or on (cls) (0 * max by (cls) (up{job=\"$job\",cls=~\"$cls\"}))) == bool 0) * on (cls) ((sum by (cls) (max without (ins, ip, instance) (kafka_topic_partition_leader{job=\"$job\",cls=~\"$cls\"}) < bool 0) or on (cls) (0 * max by (cls) (up{job=\"$job\",cls=~\"$cls\"}))) == bool 0)",
           "instant": true,
           "interval": "",
           "legendFormat": "",
@@ -2187,7 +2187,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "count by (cls) (kafka_exporter_up{job=\"$job\",cls=~\"$cls\"})",
+          "expr": "count by (cls) (up{job=\"$job\",cls=~\"$cls\"})",
           "instant": true,
           "interval": "",
           "legendFormat": "",
@@ -2322,7 +2322,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum by (cls) (ALERTS{alertstate=\"firing\",category=\"kafka\",cls=~\"$cls\"}) or (0 * min by (cls) (kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}))",
+          "expr": "sum by (cls) (ALERTS{alertstate=\"firing\",category=\"kafka\",cls=~\"$cls\"}) or (0 * max by (cls) (up{job=\"$job\",cls=~\"$cls\"}))",
           "instant": true,
           "interval": "",
           "legendFormat": "",
@@ -3844,7 +3844,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "kafka_exporter_up{job=\"$job\",cls=~\"$cls\"}",
+          "expr": "up{job=\"$job\",cls=~\"$cls\"}",
           "instant": false,
           "interval": "",
           "legendFormat": "{{ ins }}",
@@ -4710,8 +4710,8 @@
     "list": [
       {
         "current": {
-          "text": "kafka",
-          "value": "kafka"
+          "text": "kafka_exporter",
+          "value": "kafka_exporter"
         },
         "hide": 2,
         "label": "Environment",
@@ -4719,11 +4719,11 @@
         "options": [
           {
             "selected": true,
-            "text": "kafka",
-            "value": "kafka"
+            "text": "kafka_exporter",
+            "value": "kafka_exporter"
           }
         ],
-        "query": "kafka",
+        "query": "kafka_exporter",
         "skipUrlSync": false,
         "type": "constant"
       },
@@ -4736,7 +4736,7 @@
           "type": "prometheus",
           "uid": "ds-prometheus"
         },
-        "definition": "label_values(kafka_exporter_up{job=\"$job\"},cls)",
+        "definition": "label_values(up{job=\"$job\"},cls)",
         "hide": 0,
         "includeAll": true,
         "label": "Cluster",
@@ -4744,7 +4744,7 @@
         "name": "cls",
         "options": [],
         "query": {
-          "query": "label_values(kafka_exporter_up{job=\"$job\"},cls)",
+          "query": "label_values(up{job=\"$job\"},cls)",
           "refId": "PrometheusVariableQueryEditor-cls"
         },
         "refresh": 1,
@@ -4763,7 +4763,7 @@
           "type": "prometheus",
           "uid": "ds-prometheus"
         },
-        "definition": "label_values(kafka_exporter_up{job=\"$job\",cls=~\"$cls\"},ip)",
+        "definition": "label_values(up{job=\"$job\",cls=~\"$cls\"},ip)",
         "hide": 2,
         "includeAll": true,
         "label": "Kafka Node IP",
@@ -4771,7 +4771,7 @@
         "name": "members",
         "options": [],
         "query": {
-          "query": "label_values(kafka_exporter_up{job=\"$job\",cls=~\"$cls\"},ip)",
+          "query": "label_values(up{job=\"$job\",cls=~\"$cls\"},ip)",
           "refId": "PrometheusVariableQueryEditor-members"
         },
         "refresh": 2,

@@ -3,7 +3,7 @@
 # File      :   kafka.yml
 # Ctime     :   2024-01-01
 # Mtime     :   2026-07-16
-# Desc      :   Recording and alert rules for Kafka exporter
+# Desc      :   Recording and alert rules for Kafka JMX and protocol exporters
 # Path      :   /infra/rules/kafka.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -48,6 +48,35 @@ groups:
 
 
   ################################################################
+  #                    Kafka JMX Recording                       #
+  ################################################################
+  - name: kafka-jmx-rules
+    rules:
+      - record: kafka:ins:jvm_heap_used_ratio
+        expr: >-
+          sum by (job, cls, ins, ip, instance, role, node_id)
+          (jvm_memory_used_bytes{job="kafka",area="heap"})
+          /
+          clamp_min(sum by (job, cls, ins, ip, instance, role, node_id)
+          (jvm_memory_max_bytes{job="kafka",area="heap"}), 1)
+
+      - record: kafka:ins:jvm_cpu_cores
+        expr: rate(process_cpu_seconds_total{job="kafka",role=~".+"}[5m])
+
+      - record: kafka:ins:jvm_gc_time_rate5m
+        expr: sum without (gc) (rate(jvm_gc_collection_seconds_sum{job="kafka"}[5m]))
+
+      - record: kafka:ins:messages_in_rate5m
+        expr: rate(kafka_server_broker_messages_in_total{job="kafka"}[5m])
+
+      - record: kafka:ins:bytes_in_rate5m
+        expr: rate(kafka_server_broker_bytes_in_total{job="kafka"}[5m])
+
+      - record: kafka:ins:bytes_out_rate5m
+        expr: rate(kafka_server_broker_bytes_out_total{job="kafka"}[5m])
+
+
+  ################################################################
   #                         Kafka Alert                          #
   ################################################################
   - name: kafka-alert
@@ -56,14 +85,140 @@ groups:
       #==============================================================#
       #                         Aliveness                            #
       #==============================================================#
-      # etcd server instance down
+      - alert: KafkaDown
+        expr: up{job="kafka"} < 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: kafka }
+        annotations:
+          summary: "CRIT KafkaDown {{ $labels.ins }}@{{ $labels.instance }}"
+          description: |
+            Kafka JMX endpoint is unreachable for {{ $labels.ins }} (role={{ $labels.role }}, node_id={{ $labels.node_id }}).
+            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+
       - alert: KafkaExporterDown
-        expr: kafka_exporter_up < 1
+        expr: up{job="kafka_exporter"} < 1
         for: 1m
         labels: { level: 0, severity: CRIT, category: kafka }
         annotations:
           summary: "CRIT KafkaExporterDown {{ $labels.ins }}@{{ $labels.instance }}"
           description: |
-            kafka_exporter_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
+            up[job=kafka_exporter, ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
             /ui/d/kafka-instance?var-ins={{ $labels.ins }}
+
+      - alert: KafkaJmxScrapeError
+        expr: jmx_scrape_error{job="kafka"} > 0
+        for: 3m
+        labels: { level: 1, severity: WARN, category: kafka }
+        annotations:
+          summary: "WARN KafkaJmxScrapeError {{ $labels.ins }}"
+          description: |
+            JMX Exporter is reachable but failed to collect one or more Kafka MBeans.
+            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+
+      #==============================================================#
+      #                         JVM Health                           #
+      #==============================================================#
+      - alert: KafkaJvmHeapHigh
+        expr: kafka:ins:jvm_heap_used_ratio > 0.90
+        for: 15m
+        labels: { level: 1, severity: WARN, category: kafka }
+        annotations:
+          summary: "WARN KafkaJvmHeapHigh {{ $labels.ins }}"
+          description: |
+            Kafka JVM heap utilization has remained above 90% for 15 minutes: {{ $value | humanizePercentage }}.
+            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+
+      - alert: KafkaJvmDeadlock
+        expr: jvm_threads_deadlocked{job="kafka"} > 0
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: kafka }
+        annotations:
+          summary: "CRIT KafkaJvmDeadlock {{ $labels.ins }}"
+          description: |
+            The Kafka JVM reports {{ $value }} deadlocked thread cycle(s).
+            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+
+      - alert: KafkaRequestHandlerSaturated
+        expr: kafka_server_request_handler_idle_ratio{job="kafka"} < 0.10
+        for: 10m
+        labels: { level: 1, severity: WARN, category: kafka }
+        annotations:
+          summary: "WARN KafkaRequestHandlerSaturated {{ $labels.ins }}"
+          description: |
+            Kafka request handler idle capacity is below 10%: {{ $value | humanizePercentage }}.
+            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+
+      #==============================================================#
+      #                     Replication & KRaft                      #
+      #==============================================================#
+      - alert: KafkaUnderReplicatedPartitions
+        expr: kafka_server_replica_manager_under_replicated_partitions{job="kafka"} > 0
+        for: 5m
+        labels: { level: 1, severity: WARN, category: kafka }
+        annotations:
+          summary: "WARN KafkaUnderReplicatedPartitions {{ $labels.ins }}"
+          description: |
+            {{ $value }} partition replicas are outside ISR on {{ $labels.ins }}.
+            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+
+      - alert: KafkaUnderMinISR
+        expr: kafka_server_replica_manager_under_min_isr_partitions{job="kafka"} > 0
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: kafka }
+        annotations:
+          summary: "CRIT KafkaUnderMinISR {{ $labels.ins }}"
+          description: |
+            {{ $value }} partitions are below min.insync.replicas on {{ $labels.ins }}.
+            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+
+      - alert: KafkaOfflineLogDirectory
+        expr: kafka_log_manager_offline_log_directories{job="kafka"} > 0
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: kafka }
+        annotations:
+          summary: "CRIT KafkaOfflineLogDirectory {{ $labels.ins }}"
+          description: |
+            Kafka has marked {{ $value }} log directories offline on {{ $labels.ins }}.
+            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+
+      - alert: KafkaOfflinePartitions
+        expr: max by (cls) (kafka_controller_offline_partition_count{job="kafka"}) > 0
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: kafka }
+        annotations:
+          summary: "CRIT KafkaOfflinePartitions {{ $labels.cls }}"
+          description: |
+            The active KRaft controller reports {{ $value }} offline partitions.
+            /ui/d/kafka-node?var-cls={{ $labels.cls }}
+
+      - alert: KafkaControllerCountMismatch
+        expr: >-
+          (sum by (cls) (kafka_controller_active_controller_count{job="kafka"})
+          or 0 * count by (cls) (up{job="kafka",role=~"combined|controller"})) != 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: kafka }
+        annotations:
+          summary: "CRIT KafkaControllerCountMismatch {{ $labels.cls }}"
+          description: |
+            A healthy KRaft cluster must expose exactly one active controller; observed {{ $value }}.
+            /ui/d/kafka-node?var-cls={{ $labels.cls }}
+
+      - alert: KafkaFencedBrokers
+        expr: max by (cls) (kafka_controller_fenced_broker_count{job="kafka"}) > 0
+        for: 5m
+        labels: { level: 1, severity: WARN, category: kafka }
+        annotations:
+          summary: "WARN KafkaFencedBrokers {{ $labels.cls }}"
+          description: |
+            The active controller reports {{ $value }} fenced brokers.
+            /ui/d/kafka-node?var-cls={{ $labels.cls }}
+
+      - alert: KafkaUncleanLeaderElection
+        expr: increase(kafka_controller_unclean_leader_elections_total{job="kafka"}[5m]) > 0
+        labels: { level: 0, severity: CRIT, category: kafka }
+        annotations:
+          summary: "CRIT KafkaUncleanLeaderElection {{ $labels.cls }}"
+          description: |
+            {{ $value }} unclean leader election(s) occurred during the last five minutes; data loss may have occurred.
+            /ui/d/kafka-node?var-cls={{ $labels.cls }}
 ...
