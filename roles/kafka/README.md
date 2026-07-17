@@ -75,13 +75,13 @@ roles/kafka/
     └── log4j2.yaml.j2        # Journald logging configuration
 ```
 
-Every cluster node keeps authoritative copies of the bootstrap facts:
+Every cluster node keeps the authoritative bootstrap facts:
 `/etc/kafka/manifest.yml` (cluster identity, initial controllers, frozen
 replication policy) and `/etc/kafka/secrets.yml` (role-owned scram secrets).
-The admin-side `files/kafka/<kafka_cluster>/` dir is only a convenience cache:
-when lost or relocated it is transparently recovered from any cluster member,
-and issued certificates are simply re-signed from the pigsty CA. A stale
-manifest paired with empty data disks still fails closed.
+The admin node holds no kafka state: issued node certificates live in the
+shared pki tree (`files/pki/kafka/<cluster>-<seq>.{key,crt}`, CSRs under
+`files/pki/csr/`) and are simply re-signed from the pigsty CA when absent.
+A stale manifest paired with empty data disks still fails closed.
 
 
 ## Tags

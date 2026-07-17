@@ -6,7 +6,6 @@
   tags: [ always, kafka-id ]
   set_fact:
     kafka_instance: "{{ kafka_cluster }}-{{ kafka_seq }}"
-    kafka_manifest_dir_internal: "files/kafka/{{ kafka_cluster }}"
 
 #--------------------------------------------------------------#
 # Honor kafka_safeguard                        [kafka_safeguard]
@@ -68,23 +67,13 @@
 #--------------------------------------------------------------#
 # Remove Kafka Data & Manifest                      [kafka_data]
 #--------------------------------------------------------------#
-# data dir and the control-node bootstrap manifest/secrets are the cluster
-# identity: they are wiped together only when kafka_rm_data is enabled
+# the data dir is the cluster identity (the node manifest/secret copies under
+# /etc/kafka go with kafka_config): wiped only when kafka_rm_data is enabled
 - name: remove kafka data directory
   when: not kafka_safeguard | bool and kafka_rm_data | bool
   tags: kafka_data
   ignore_errors: true
   file: path={{ kafka_data }} state=absent
-
-# every host removes its own cluster manifest dir: run_once would only remove
-# the first host's cluster when multiple kafka clusters are selected at once
-- name: remove kafka bootstrap manifest and secrets
-  when: not kafka_safeguard | bool and kafka_rm_data | bool
-  tags: kafka_data
-  become: false
-  delegate_to: localhost
-  throttle: 1
-  file: path={{ kafka_manifest_dir_internal }} state=absent
 
 #--------------------------------------------------------------#
 # Uninstall Kafka Packages                           [kafka_pkg]

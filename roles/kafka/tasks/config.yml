@@ -45,17 +45,13 @@
 #--------------------------------------------------------------#
 # Load, Rebuild, or Create Bootstrap Manifest   [kafka_manifest]
 #--------------------------------------------------------------#
-# the admin files/kafka/<cluster> dir is only a convenience cache: a lost or
-# relocated admin node recovers the manifest from any cluster member copy
+# bootstrap facts live only on the nodes themselves: the manifest is resolved
+# from the member copies, so the admin node holds no kafka state at all
 - name: resolve authoritative bootstrap manifest
   set_fact:
-    kafka_manifest_exists_internal: "{{ kafka_admin_manifest | length > 0 or kafka_node_manifest_best | length > 0 }}"
-    kafka_manifest_internal: "{{ kafka_admin_manifest if kafka_admin_manifest | length > 0 else kafka_node_manifest_best }}"
+    kafka_manifest_exists_internal: "{{ kafka_node_manifest_best | length > 0 }}"
+    kafka_manifest_internal: "{{ kafka_node_manifest_best }}"
   vars:
-    kafka_manifest_file: "{{ kafka_manifest_dir_internal }}/manifest.yml"
-    kafka_admin_manifest: >-
-      {{ (lookup('file', kafka_manifest_file) | from_yaml)
-         if kafka_manifest_file is exists else {} }}
     kafka_node_manifest_best: >-
       {%- set copies = [] -%}
       {%- for host in kafka_cluster_members -%}
@@ -82,11 +78,10 @@
     - kafka_any_formatted_internal | bool
   fail:
     msg: >-
-      Formatted kafka storage exists but no bootstrap manifest was found on the
-      admin node or on any cluster member (/etc/kafka/manifest.yml). Restore
-      files/kafka/{{ kafka_cluster }}/manifest.yml before rerunning: cluster and
-      node identities remain visible in meta.properties and via
-      kafka-metadata-quorum.sh describe --status.
+      Formatted kafka storage exists but no cluster member holds a bootstrap
+      manifest copy (/etc/kafka/manifest.yml). Restore that file on any member
+      from backup before rerunning: cluster and node identities remain visible
+      in meta.properties and via kafka-metadata-quorum.sh describe --status.
 
 - name: create bootstrap manifest for a new cluster
   when:
@@ -155,20 +150,6 @@
       normal run. Use an explicit remove/format/catch-up/add-controller recovery
       workflow. Only a manifest created by an interrupted, never-commissioned
       bootstrap may resume formatting its original initial controllers.
-
-- name: persist the bootstrap manifest atomically
-  run_once: true
-  when: not ansible_check_mode
-  become: false
-  delegate_to: localhost
-  block:
-    - name: create manifest directory
-      file: path={{ kafka_manifest_dir_internal }} state=directory mode=0700
-    - name: write bootstrap manifest
-      copy:
-        dest: "{{ kafka_manifest_dir_internal }}/manifest.yml"
-        content: "{{ kafka_manifest_internal | to_nice_yaml(indent=2) }}"
-        mode: '0600'
 
 # node copies are written before any storage is formatted, so an interrupted
 # bootstrap can always resume with the same frozen identities
