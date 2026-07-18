@@ -1,6 +1,6 @@
 ---
 #--------------------------------------------------------------#
-# Derive Kafka Identity                              [kafka_id]
+# Derive Kafka Identity                               [kafka_id]
 #--------------------------------------------------------------#
 - name: derive kafka remove identity
   tags: [ always, kafka-id ]
@@ -19,7 +19,7 @@
   fail: msg="Abort due to kafka_safeguard for {{ kafka_cluster }} @ {{ inventory_hostname }} is enabled, override with -e kafka_safeguard=false"
 
 #--------------------------------------------------------------#
-# Deregister Monitoring Targets              [kafka_deregister]
+# Deregister Monitoring Targets               [kafka_deregister]
 #--------------------------------------------------------------#
 # remove the kafka victoria target file from every infra node
 - name: deregister kafka targets from victoria
@@ -31,7 +31,7 @@
   file: path=/infra/targets/kafka/{{ kafka_instance }}.yml state=absent
 
 #--------------------------------------------------------------#
-# Stop Kafka Services                                   [kafka]
+# Stop Kafka Services                                    [kafka]
 #--------------------------------------------------------------#
 # kafka_exporter only exists on the two selected broker nodes, and a unit may
 # already be gone on re-entry: a missing service is expected, not a failure
@@ -43,14 +43,14 @@
   loop: [ kafka_exporter, kafka ]
 
 #--------------------------------------------------------------#
-# Remove Runtime Integration                     [kafka_config]
+# Remove Runtime Integration                      [kafka_config]
 #--------------------------------------------------------------#
 - name: remove kafka runtime integration
   when: not kafka_safeguard | bool
   tags: kafka_config
   ignore_errors: true
   block:
-    - name: remove kafka exporter config, default env, units, and helpers
+    - name: remove kafka exporter config
       file: path={{ item }} state=absent
       loop:
         - /etc/kafka_exporter
@@ -64,7 +64,7 @@
       systemd: daemon_reload=yes
 
 #--------------------------------------------------------------#
-# Remove Kafka Data & Recovery State                 [kafka_data]
+# Remove Kafka Data & Recovery State                [kafka_data]
 #--------------------------------------------------------------#
 # /etc/kafka contains the node manifest and secret copies required to re-adopt
 # retained storage, so it follows the same explicit data-removal gate
@@ -73,9 +73,8 @@
   tags: kafka_data
   ignore_errors: true
   file: path={{ item }} state=absent
-  loop:
-    - "{{ kafka_data }}"
-    - /etc/kafka
+  loop: [ "{{ kafka_data }}" , /etc/kafka ]
+
 
 #--------------------------------------------------------------#
 # Uninstall Kafka Packages                           [kafka_pkg]

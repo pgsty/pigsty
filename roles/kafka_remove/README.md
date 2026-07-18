@@ -27,24 +27,24 @@ Steps:
 
 ## Parameters
 
-| Name              | Default        | Description                                             |
-|-------------------|----------------|---------------------------------------------------------|
-| `kafka_safeguard` | `false`        | prevent purging a running kafka cluster when `true`     |
-| `kafka_rm_data`   | `true`         | remove data dir and `/etc/kafka` recovery state         |
-| `kafka_rm_pkg`    | `false`        | uninstall kafka & kafka_exporter packages during removal|
-| `kafka_data`      | `/data/kafka`  | kafka data directory (must match the `kafka` role)      |
+| Name              | Default       | Description                                              |
+|-------------------|---------------|----------------------------------------------------------|
+| `kafka_safeguard` | `false`       | prevent purging a running kafka cluster when `true`      |
+| `kafka_rm_data`   | `true`        | remove data dir and `/etc/kafka` recovery state          |
+| `kafka_rm_pkg`    | `false`       | uninstall kafka & kafka_exporter packages during removal |
+| `kafka_data`      | `/data/kafka` | kafka data directory (must match the `kafka` role)       |
 
 
 ## Tags
 
-| Tag               | Description                                  |
-|-------------------|----------------------------------------------|
-| `kafka_safeguard` | evaluate the safeguard gate                  |
-| `kafka_deregister`| remove monitoring targets from infra         |
-| `kafka`           | stop kafka & kafka_exporter services         |
-| `kafka_config`    | remove service integration and helper files  |
-| `kafka_data`      | remove data dir and `/etc/kafka` state       |
-| `kafka_pkg`       | uninstall kafka-stack packages               |
+| Tag                | Description                                 |
+|--------------------|---------------------------------------------|
+| `kafka_safeguard`  | evaluate the safeguard gate                 |
+| `kafka_deregister` | remove monitoring targets from infra        |
+| `kafka`            | stop kafka & kafka_exporter services        |
+| `kafka_config`     | remove service integration and helper files |
+| `kafka_data`       | remove data dir and `/etc/kafka` state      |
+| `kafka_pkg`        | uninstall kafka-stack packages              |
 
 
 ## Example

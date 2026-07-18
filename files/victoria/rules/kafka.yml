@@ -12,39 +12,40 @@
 groups:
   - name: kafka-rules
     rules:
-      # Producer progress: current broker offsets per topic/partition.
+      # kafka_exporter is deployed redundantly. Every exporter reports the
+      # same logical cluster view, therefore remove scrape identity before
+      # aggregating topic/group data. Never expose these as broker metrics.
       - record: kafka:topic:msg_rate1m
-        expr: clamp_min(sum without (partition) (rate(kafka_topic_partition_current_offset[1m])), 0)
+        expr: >-
+          sum by (job, cls, topic)
+          (max without (ins, ip, instance)
+          (clamp_min(rate(kafka_topic_partition_current_offset[1m]), 0)))
       - record: kafka:topic:msg_rate5m
-        expr: clamp_min(sum without (partition) (rate(kafka_topic_partition_current_offset[5m])), 0)
-
-      - record: kafka:ins:msg_rate1m
+        expr: >-
+          sum by (job, cls, topic)
+          (max without (ins, ip, instance)
+          (clamp_min(rate(kafka_topic_partition_current_offset[5m]), 0)))
+      - record: kafka:cls:msg_rate1m
         expr: sum without (topic) (kafka:topic:msg_rate1m)
-      - record: kafka:ins:msg_rate5m
+      - record: kafka:cls:msg_rate5m
         expr: sum without (topic) (kafka:topic:msg_rate5m)
 
-      # Exporters query the cluster, so deduplicate identical exporter views
-      # before summing topic rates into the logical Kafka cluster rate.
-      - record: kafka:cls:msg_rate1m
-        expr: sum by (job, cls) (max without (ins, ip, instance) (kafka:topic:msg_rate1m))
-      - record: kafka:cls:msg_rate5m
-        expr: sum by (job, cls) (max without (ins, ip, instance) (kafka:topic:msg_rate5m))
-
-      # Consumer progress: committed offsets per group/topic/partition.
-      - record: kafka:topic:csg_rate1m
-        expr: clamp_min(sum without (partition) (rate(kafka_consumergroup_current_offset[1m])), 0)
-      - record: kafka:topic:csg_rate5m
-        expr: clamp_min(sum without (partition) (rate(kafka_consumergroup_current_offset[5m])), 0)
-
-      - record: kafka:ins:csg_rate1m
-        expr: sum without (topic, consumergroup) (kafka:topic:csg_rate1m)
-      - record: kafka:ins:csg_rate5m
-        expr: sum without (topic, consumergroup) (kafka:topic:csg_rate5m)
-
-      - record: kafka:cls:csg_rate1m
-        expr: sum by (job, cls) (max without (ins, ip, instance) (kafka:topic:csg_rate1m))
-      - record: kafka:cls:csg_rate5m
-        expr: sum by (job, cls) (max without (ins, ip, instance) (kafka:topic:csg_rate5m))
+      # Consumer progress and lag preserve both group and topic. Partition is
+      # the only dimension summed; this prevents invalid cross-topic offsets.
+      - record: kafka:csg_topic:commit_rate5m
+        expr: >-
+          sum by (job, cls, consumergroup, topic)
+          (max without (ins, ip, instance)
+          (clamp_min(rate(kafka_consumergroup_current_offset[5m]), 0)))
+      - record: kafka:csg_topic:lag
+        expr: >-
+          sum by (job, cls, consumergroup, topic)
+          (max without (ins, ip, instance)
+          (clamp_min(kafka_consumergroup_lag, 0)))
+      - record: kafka:csg:lag
+        expr: sum without (topic) (kafka:csg_topic:lag)
+      - record: kafka:cls:lag
+        expr: sum without (consumergroup) (kafka:csg:lag)
 
 
   ################################################################
@@ -75,6 +76,21 @@ groups:
       - record: kafka:ins:bytes_out_rate5m
         expr: rate(kafka_server_broker_bytes_out_total{job="kafka"}[5m])
 
+      - record: kafka:ins:request_error_rate5m
+        expr: >-
+          sum without (request, error)
+          (rate(kafka_network_request_errors_total{job="kafka",error!="NONE"}[5m]))
+
+      - record: kafka:cls:under_replicated_partitions
+        expr: >-
+          sum by (job, cls)
+          (kafka_server_replica_manager_under_replicated_partitions{job="kafka"})
+
+      - record: kafka:cls:offline_partitions
+        expr: >-
+          max by (job, cls)
+          (kafka_controller_offline_partition_count{job="kafka"})
+
 
   ################################################################
   #                         Kafka Alert                          #
@@ -93,7 +109,7 @@ groups:
           summary: "CRIT KafkaDown {{ $labels.ins }}@{{ $labels.instance }}"
           description: |
             Kafka JMX endpoint is unreachable for {{ $labels.ins }} (role={{ $labels.role }}, node_id={{ $labels.node_id }}).
-            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+            /ui/d/kafka-instance?var-ins={{ $labels.ins }}
 
       - alert: KafkaExporterDown
         expr: up{job="kafka",role=""} < 1
@@ -113,7 +129,7 @@ groups:
           summary: "WARN KafkaJmxScrapeError {{ $labels.ins }}"
           description: |
             JMX Exporter is reachable but failed to collect one or more Kafka MBeans.
-            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+            /ui/d/kafka-instance?var-ins={{ $labels.ins }}
 
       #==============================================================#
       #                         JVM Health                           #
@@ -126,7 +142,7 @@ groups:
           summary: "WARN KafkaJvmHeapHigh {{ $labels.ins }}"
           description: |
             Kafka JVM heap utilization has remained above 90% for 15 minutes: {{ $value | humanizePercentage }}.
-            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+            /ui/d/kafka-instance?var-ins={{ $labels.ins }}
 
       - alert: KafkaJvmDeadlock
         expr: jvm_threads_deadlocked{job="kafka"} > 0
@@ -136,7 +152,7 @@ groups:
           summary: "CRIT KafkaJvmDeadlock {{ $labels.ins }}"
           description: |
             The Kafka JVM reports {{ $value }} deadlocked thread cycle(s).
-            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+            /ui/d/kafka-instance?var-ins={{ $labels.ins }}
 
       - alert: KafkaRequestHandlerSaturated
         expr: kafka_server_request_handler_idle_ratio{job="kafka"} < 0.10
@@ -146,7 +162,7 @@ groups:
           summary: "WARN KafkaRequestHandlerSaturated {{ $labels.ins }}"
           description: |
             Kafka request handler idle capacity is below 10%: {{ $value | humanizePercentage }}.
-            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+            /ui/d/kafka-instance?var-ins={{ $labels.ins }}
 
       #==============================================================#
       #                     Replication & KRaft                      #
@@ -159,7 +175,7 @@ groups:
           summary: "WARN KafkaUnderReplicatedPartitions {{ $labels.ins }}"
           description: |
             {{ $value }} partition replicas are outside ISR on {{ $labels.ins }}.
-            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+            /ui/d/kafka-instance?var-ins={{ $labels.ins }}
 
       - alert: KafkaUnderMinISR
         expr: kafka_server_replica_manager_under_min_isr_partitions{job="kafka"} > 0
@@ -169,7 +185,7 @@ groups:
           summary: "CRIT KafkaUnderMinISR {{ $labels.ins }}"
           description: |
             {{ $value }} partitions are below min.insync.replicas on {{ $labels.ins }}.
-            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+            /ui/d/kafka-instance?var-ins={{ $labels.ins }}
 
       - alert: KafkaOfflineLogDirectory
         expr: kafka_log_manager_offline_log_directories{job="kafka"} > 0
@@ -179,7 +195,7 @@ groups:
           summary: "CRIT KafkaOfflineLogDirectory {{ $labels.ins }}"
           description: |
             Kafka has marked {{ $value }} log directories offline on {{ $labels.ins }}.
-            /ui/d/kafka-node?var-ins={{ $labels.ins }}
+            /ui/d/kafka-instance?var-ins={{ $labels.ins }}
 
       - alert: KafkaOfflinePartitions
         expr: max by (cls) (kafka_controller_offline_partition_count{job="kafka"}) > 0
@@ -189,7 +205,7 @@ groups:
           summary: "CRIT KafkaOfflinePartitions {{ $labels.cls }}"
           description: |
             The active KRaft controller reports {{ $value }} offline partitions.
-            /ui/d/kafka-node?var-cls={{ $labels.cls }}
+            /ui/d/kafka-overview?var-cls={{ $labels.cls }}
 
       - alert: KafkaControllerCountMismatch
         expr: >-
@@ -201,7 +217,7 @@ groups:
           summary: "CRIT KafkaControllerCountMismatch {{ $labels.cls }}"
           description: |
             A healthy KRaft cluster must expose exactly one active controller; observed {{ $value }}.
-            /ui/d/kafka-node?var-cls={{ $labels.cls }}
+            /ui/d/kafka-overview?var-cls={{ $labels.cls }}
 
       - alert: KafkaFencedBrokers
         expr: max by (cls) (kafka_controller_fenced_broker_count{job="kafka"}) > 0
@@ -211,7 +227,7 @@ groups:
           summary: "WARN KafkaFencedBrokers {{ $labels.cls }}"
           description: |
             The active controller reports {{ $value }} fenced brokers.
-            /ui/d/kafka-node?var-cls={{ $labels.cls }}
+            /ui/d/kafka-overview?var-cls={{ $labels.cls }}
 
       - alert: KafkaUncleanLeaderElection
         expr: increase(kafka_controller_unclean_leader_elections_total{job="kafka"}[5m]) > 0
@@ -220,5 +236,28 @@ groups:
           summary: "CRIT KafkaUncleanLeaderElection {{ $labels.cls }}"
           description: |
             {{ $value }} unclean leader election(s) occurred during the last five minutes; data loss may have occurred.
-            /ui/d/kafka-node?var-cls={{ $labels.cls }}
+            /ui/d/kafka-overview?var-cls={{ $labels.cls }}
+
+      - alert: KafkaNetworkProcessorSaturated
+        expr: kafka_network_processor_idle_ratio{job="kafka"} < 0.10
+        for: 10m
+        labels: { level: 1, severity: WARN, category: kafka }
+        annotations:
+          summary: "WARN KafkaNetworkProcessorSaturated {{ $labels.ins }}"
+          description: |
+            Kafka network processor idle capacity is below 10%: {{ $value | humanizePercentage }}.
+            /ui/d/kafka-instance?var-ins={{ $labels.ins }}
+
+      - alert: KafkaConsumerLagGrowing
+        expr: >-
+          kafka:csg:lag > 100000
+          and on (job, cls, consumergroup)
+          delta(kafka:csg:lag[30m]) > 0
+        for: 30m
+        labels: { level: 1, severity: WARN, category: kafka }
+        annotations:
+          summary: "WARN KafkaConsumerLagGrowing {{ $labels.consumergroup }}"
+          description: |
+            Consumer group lag is above 100k records and still growing after 30 minutes ({{ $value }} records).
+            /ui/d/kafka-consumer?var-cls={{ $labels.cls }}&var-group={{ $labels.consumergroup }}
 ...

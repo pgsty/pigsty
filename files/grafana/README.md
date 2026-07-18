@@ -4,13 +4,14 @@ This directory contains Grafana dashboard definitions for Pigsty monitoring syst
 
 ## Overview
 
-Pigsty provides **57 built-in dashboards** organized by module:
+Pigsty provides **63 built-in dashboards** organized by module:
 
 | Directory       | Count | Description                                                             |
 |-----------------|-------|-------------------------------------------------------------------------|
 | [pgsql](pgsql/) | 29    | PostgreSQL cluster, instance, database, and query monitoring            |
 | [infra](infra/) | 11    | Infrastructure components (VictoriaMetrics, Grafana, Nginx, etcd, etc.) |
-| [node](node/)   | 8     | Host-level metrics (CPU, memory, disk, network, HAProxy, VIP)           |
+| [node](node/)   | 10    | Host-level metrics (CPU, memory, disk, network, HAProxy, VIP)           |
+| [kafka](kafka/) | 4     | Kafka cluster, instance, topic, and consumer monitoring                 |
 | [redis](redis/) | 3     | Redis cluster and instance monitoring                                   |
 | [app](app/)     | 2     | Application dashboards (PostgreSQL logs analysis)                       |
 | [minio](minio/) | 2     | MinIO S3-compatible storage monitoring                                  |
@@ -101,6 +102,15 @@ PGCAT (Catalog Analysis) dashboards:
 | `redis-overview` | Global Redis overview |
 | `redis-cluster`  | Redis cluster view    |
 | `redis-instance` | Single Redis instance |
+
+### Kafka Dashboards
+
+| Dashboard         | Description                                      |
+|-------------------|--------------------------------------------------|
+| `kafka-overview`  | Single KRaft cluster health and workload         |
+| `kafka-instance`  | Broker/controller JVM, request path, and host     |
+| `kafka-topic`     | Topic and partition topology, ISR, and offsets    |
+| `kafka-consumer`  | Consumer group membership, progress, and lag      |
 
 ### MinIO Dashboards
 
