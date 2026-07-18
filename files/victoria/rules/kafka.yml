@@ -64,6 +64,20 @@ groups:
       - record: kafka:ins:jvm_cpu_cores
         expr: rate(process_cpu_seconds_total{job="kafka",role=~".+"}[5m])
 
+      # Saturation of the busiest request-path thread pool (io handler vs
+      # network processor): 1 - idle ratio, in [0, 1]. This is Kafka's native
+      # "load" semantic — the same series the saturation alerts evaluate.
+      - record: kafka:ins:load
+        expr: >-
+          1 - clamp(
+          min by (job, cls, ins, ip, instance, role, node_id) (
+          kafka_server_request_handler_idle_ratio{job="kafka"}
+          or kafka_network_processor_idle_ratio{job="kafka"}
+          ), 0, 1)
+
+      - record: kafka:cls:load
+        expr: avg by (job, cls) (kafka:ins:load)
+
       - record: kafka:ins:jvm_gc_time_rate5m
         expr: sum without (gc) (rate(jvm_gc_collection_seconds_sum{job="kafka"}[5m]))
 

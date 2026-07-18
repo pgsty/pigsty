@@ -15,11 +15,13 @@
       }
     ]
   },
+  "author": "Ruohang Feng (rh@vonng.com)",
   "description": "Kafka KRaft cluster overview: identity, member inventory, reliability, throughput, consumer backlog, alerts, exporters and logs for one cluster selected by cls. Entry point of the Kafka monitoring hierarchy: drill down to Kafka Instance / Topic / Consumer.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
   "id": null,
+  "license": "https://pigsty.io/docs/about/license/",
   "links": [
     {
       "asDropdown": true,
@@ -27,60 +29,10 @@
       "includeVars": true,
       "keepTime": true,
       "tags": [
-        "Pigsty",
-        "KAFKA",
-        "Overview"
+        "KAFKA"
       ],
       "targetBlank": false,
-      "title": "Overview",
-      "tooltip": "",
-      "type": "dashboards",
-      "url": ""
-    },
-    {
-      "asDropdown": true,
-      "icon": "external link",
-      "includeVars": true,
-      "keepTime": true,
-      "tags": [
-        "Pigsty",
-        "KAFKA",
-        "Instance"
-      ],
-      "targetBlank": false,
-      "title": "Instance",
-      "tooltip": "",
-      "type": "dashboards",
-      "url": ""
-    },
-    {
-      "asDropdown": true,
-      "icon": "external link",
-      "includeVars": true,
-      "keepTime": true,
-      "tags": [
-        "Pigsty",
-        "KAFKA",
-        "Topic"
-      ],
-      "targetBlank": false,
-      "title": "Topic",
-      "tooltip": "",
-      "type": "dashboards",
-      "url": ""
-    },
-    {
-      "asDropdown": true,
-      "icon": "external link",
-      "includeVars": true,
-      "keepTime": true,
-      "tags": [
-        "Pigsty",
-        "KAFKA",
-        "Consumer"
-      ],
-      "targetBlank": false,
-      "title": "Consumer",
+      "title": "KAFKA",
       "tooltip": "",
       "type": "dashboards",
       "url": ""
@@ -91,10 +43,10 @@
     {
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
+        "y": 0,
         "x": 0,
-        "y": 0
+        "w": 24,
+        "h": 1
       },
       "id": 1,
       "panels": [],
@@ -102,37 +54,35 @@
       "type": "row"
     },
     {
-      "id": 101,
-      "type": "stat",
-      "title": "",
       "datasource": {
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
       "description": "Identity strip: the Kafka cluster name (`cls` label). All panels on this page are scoped to this cluster; the KAFKA dropdown navigates to sibling dashboards with the same scope.",
-      "gridPos": {
-        "h": 2,
-        "w": 8,
-        "x": 0,
-        "y": 1
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
           },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "max by (cls) (kafka_brokers{job=\"$job\",cls=\"$cls\"})",
-          "instant": true,
-          "range": false,
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A",
-          "format": "table"
-        }
-      ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#4bb39ce0",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "y": 1,
+        "x": 0,
+        "w": 8,
+        "h": 2
+      },
+      "id": 101,
       "options": {
         "colorMode": "background",
         "graphMode": "none",
@@ -151,31 +101,33 @@
         "textMode": "value",
         "wideLayout": true
       },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
           },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#4bb39ce0",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "pluginVersion": "13.0.0"
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (cls) (kafka_brokers{job=\"$job\",cls=\"$cls\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
+        }
+      ],
+      "title": "",
+      "type": "stat"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "description": "Member inventory from JMX targets (`up{role=~\".+\"}`), one row per Kafka process, joined on `ins` with per-instance aggregates:\n\n- **Status**: scrape liveness of the Kafka JVM (green UP / red DOWN).\n- **Role**: static process role — combined (teal), controller (blue), broker (green).\n- **Raft**: live KRaft quorum state from `kafka_server_raft_state == 1` (blue leader / green follower).\n- **Partitions / Leaders**: replicas hosted and partitions led by this broker (`kafka_server_replica_manager_*`).\n- **Heap**: JVM heap utilization (`kafka:ins:jvm_heap_used_ratio`), amber ≥75%, red ≥90%.\n- **Msg/s, In/Out B/s**: 5-minute broker throughput recording rules.\n\nClick Instance to open the Kafka Instance dashboard, IP to open Node Instance.",
+      "description": "Member inventory of this cluster, one row per Kafka process (JMX target): scrape liveness (Alive), live KRaft quorum state (Raft: blue leader / green follower), static role, partition replicas hosted and partitions led (`kafka_server_replica_manager_*`), and JVM heap utilization (`kafka:ins:jvm_heap_used_ratio`, amber ≥75%, red ≥90%). Click Instance to open Kafka Instance, Node IP to open Node Instance.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -186,7 +138,7 @@
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": true,
+            "filterable": false,
             "footer": {
               "reducers": []
             },
@@ -207,174 +159,7 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Instance"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#4bb39ce0",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              },
-              {
-                "id": "custom.filterable",
-                "value": true
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "Kafka Instance : ${__value.raw}",
-                    "url": "/d/kafka-instance?var-ins=${__value.raw}&${__url_time_range}"
-                  }
-                ]
-              },
-              {
-                "id": "custom.width",
-                "value": 130
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "IP"
-            },
-            "properties": [
-              {
-                "id": "color",
-                "value": {
-                  "fixedColor": "#4bb39ce0",
-                  "mode": "fixed"
-                }
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-text"
-                }
-              },
-              {
-                "id": "custom.filterable",
-                "value": true
-              },
-              {
-                "id": "links",
-                "value": [
-                  {
-                    "title": "Node Instance : ${__value.raw}",
-                    "url": "/d/node-instance?var-id=${__value.raw}&${__url_time_range}"
-                  }
-                ]
-              },
-              {
-                "id": "custom.width",
-                "value": 120
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Heap"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "percentunit"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "basic"
-                }
-              },
-              {
-                "id": "thresholds",
-                "value": {
-                  "mode": "absolute",
-                  "steps": [
-                    {
-                      "color": "#4bb39ce0",
-                      "value": null
-                    },
-                    {
-                      "color": "#fcdb72",
-                      "value": 0.75
-                    },
-                    {
-                      "color": "#e02f44",
-                      "value": 0.9
-                    }
-                  ]
-                }
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Msg/s"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "ops"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "In B/s"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "Bps"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Out B/s"
-            },
-            "properties": [
-              {
-                "id": "unit",
-                "value": "Bps"
-              },
-              {
-                "id": "decimals",
-                "value": 1
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Status"
+              "options": "Alive"
             },
             "properties": [
               {
@@ -403,50 +188,6 @@
                         "text": "UP",
                         "color": "#346f36cc",
                         "index": 1
-                      }
-                    }
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byName",
-              "options": "Role"
-            },
-            "properties": [
-              {
-                "id": "custom.width",
-                "value": 96
-              },
-              {
-                "id": "custom.cellOptions",
-                "value": {
-                  "type": "color-background",
-                  "mode": "basic"
-                }
-              },
-              {
-                "id": "mappings",
-                "value": [
-                  {
-                    "type": "value",
-                    "options": {
-                      "combined": {
-                        "text": "combined",
-                        "color": "#4bb39ce0",
-                        "index": 0
-                      },
-                      "controller": {
-                        "text": "controller",
-                        "color": "#3e668f",
-                        "index": 1
-                      },
-                      "broker": {
-                        "text": "broker",
-                        "color": "#346f36cc",
-                        "index": 2
                       }
                     }
                   }
@@ -506,7 +247,93 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Node ID"
+              "options": "Role"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "combined": {
+                        "text": "combined",
+                        "color": "#4bb39ce0",
+                        "index": 0
+                      },
+                      "controller": {
+                        "text": "controller",
+                        "color": "#3e668f",
+                        "index": 1
+                      },
+                      "broker": {
+                        "text": "broker",
+                        "color": "#346f36cc",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Instance"
+            },
+            "properties": [
+              {
+                "id": "custom.minWidth",
+                "value": 200
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Kafka Instance : ${__data.fields.Instance}",
+                    "url": "/d/kafka-instance?var-ins=${__data.fields.Instance}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Node IP"
+            },
+            "properties": [
+              {
+                "id": "custom.minWidth",
+                "value": 200
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Node Instance : ${__data.fields[\"Node IP\"]}",
+                    "url": "/d/node-instance?var-id=${__data.fields[\"Node IP\"]}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "NodeID"
             },
             "properties": [
               {
@@ -523,7 +350,7 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 90
+                "value": 96
               }
             ]
           },
@@ -535,17 +362,60 @@
             "properties": [
               {
                 "id": "custom.width",
-                "value": 80
+                "value": 86
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Heap"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percentunit"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background",
+                  "mode": "basic"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#4bb39ce0",
+                      "value": null
+                    },
+                    {
+                      "color": "#fcdb72",
+                      "value": 0.75
+                    },
+                    {
+                      "color": "#e02f44",
+                      "value": 0.9
+                    }
+                  ]
+                }
               }
             ]
           }
         ]
       },
       "gridPos": {
-        "h": 7,
-        "w": 16,
+        "y": 1,
         "x": 8,
-        "y": 1
+        "w": 16,
+        "h": 7
       },
       "id": 3,
       "options": {
@@ -570,13 +440,13 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "instant": true,
-          "range": false,
+          "expr": "up{job=\"$job\",cls=\"$cls\",role=~\".+\"}",
           "format": "table",
+          "instant": true,
           "interval": "",
           "legendFormat": "",
-          "refId": "A",
-          "expr": "up{job=\"$job\",cls=\"$cls\",role=~\".+\"}"
+          "range": false,
+          "refId": "A"
         },
         {
           "datasource": {
@@ -585,13 +455,13 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "instant": true,
-          "range": false,
+          "expr": "max by (ins, state) (kafka_server_raft_state{job=\"$job\",cls=\"$cls\"} == 1)",
           "format": "table",
+          "instant": true,
           "interval": "",
           "legendFormat": "",
-          "refId": "B",
-          "expr": "max by (ins, state) (kafka_server_raft_state{job=\"$job\",cls=\"$cls\"} == 1)"
+          "range": false,
+          "refId": "B"
         },
         {
           "datasource": {
@@ -600,13 +470,13 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "instant": true,
-          "range": false,
+          "expr": "max by (ins) (kafka:ins:jvm_heap_used_ratio{cls=\"$cls\"})",
           "format": "table",
+          "instant": true,
           "interval": "",
           "legendFormat": "",
-          "refId": "C",
-          "expr": "max by (ins) (kafka:ins:jvm_heap_used_ratio{cls=\"$cls\"})"
+          "range": false,
+          "refId": "C"
         },
         {
           "datasource": {
@@ -615,13 +485,13 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "instant": true,
-          "range": false,
+          "expr": "max by (ins) (kafka_server_replica_manager_partitions{job=\"$job\",cls=\"$cls\"})",
           "format": "table",
+          "instant": true,
           "interval": "",
           "legendFormat": "",
-          "refId": "D",
-          "expr": "max by (ins) (kafka:ins:messages_in_rate5m{cls=\"$cls\"})"
+          "range": false,
+          "refId": "G"
         },
         {
           "datasource": {
@@ -630,60 +500,16 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "instant": true,
-          "range": false,
+          "expr": "max by (ins) (kafka_server_replica_manager_leaders{job=\"$job\",cls=\"$cls\"})",
           "format": "table",
+          "instant": true,
           "interval": "",
           "legendFormat": "",
-          "refId": "E",
-          "expr": "max by (ins) (kafka:ins:bytes_in_rate5m{cls=\"$cls\"})"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "instant": true,
           "range": false,
-          "format": "table",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "F",
-          "expr": "max by (ins) (kafka:ins:bytes_out_rate5m{cls=\"$cls\"})"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "instant": true,
-          "range": false,
-          "format": "table",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "G",
-          "expr": "max by (ins) (kafka_server_replica_manager_partitions{job=\"$job\",cls=\"$cls\"})"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "instant": true,
-          "range": false,
-          "format": "table",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "H",
-          "expr": "max by (ins) (kafka_server_replica_manager_leaders{job=\"$job\",cls=\"$cls\"})"
+          "refId": "H"
         }
       ],
+      "title": "Kafka Instances",
       "transformations": [
         {
           "id": "seriesToColumns",
@@ -703,6 +529,8 @@
               "goos": true,
               "tags": true,
               "Value #B": true,
+              "cls": true,
+              "instance": true,
               "Time 1": true,
               "__name__ 1": true,
               "job 1": true,
@@ -717,177 +545,42 @@
               "job 4": true,
               "Time 5": true,
               "__name__ 5": true,
-              "job 5": true,
-              "Time 6": true,
-              "__name__ 6": true,
-              "job 6": true,
-              "Time 7": true,
-              "__name__ 7": true,
-              "job 7": true,
-              "Time 8": true,
-              "__name__ 8": true,
-              "job 8": true,
-              "cls": true
+              "job 5": true
             },
             "includeByName": {},
             "indexByName": {
               "Value #A": 0,
-              "role": 1,
-              "state": 2,
+              "state": 1,
+              "role": 2,
               "ins": 3,
               "ip": 4,
               "node_id": 5,
               "Value #G": 6,
               "Value #H": 7,
-              "Value #C": 8,
-              "Value #D": 9,
-              "Value #E": 10,
-              "Value #F": 11,
-              "instance": 12,
-              "cls": 13
+              "Value #C": 8
             },
             "renameByName": {
-              "ins": "Instance",
-              "cls": "Cluster",
-              "ip": "IP",
-              "instance": "Target",
+              "Value #A": "Alive",
               "state": "Raft",
-              "Value #A": "Status",
-              "Value #C": "Heap",
-              "Value #D": "Msg/s",
-              "Value #E": "In B/s",
-              "Value #F": "Out B/s",
+              "role": "Role",
+              "ins": "Instance",
+              "ip": "Node IP",
+              "node_id": "NodeID",
               "Value #G": "Partitions",
               "Value #H": "Leaders",
-              "node_id": "Node ID",
-              "role": "Role"
+              "Value #C": "Heap"
             }
           }
         }
       ],
-      "title": "Kafka Instances",
       "type": "table"
     },
     {
-      "id": 2,
-      "type": "stat",
-      "title": "",
       "datasource": {
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
       "description": "Cluster key state, one horizontal strip per fact:\n\n- **Controller**: node id of the active KRaft leader (`kafka_server_raft_current_leader`).\n- **Raft Epoch**: current quorum epoch (`kafka_server_raft_current_epoch`); it increments on every controller election, so a climbing epoch means election churn.\n- **Metadata HW**: metadata log high watermark (`kafka_server_raft_high_watermark`), the committed offset of the cluster metadata log.\n- **JMX Up / Exporter Up**: live scrape targets — Kafka processes (`up{role=~\".+\"}`) and kafka_exporter replicas (`up{role=\"\"}`).\n- **Health**: composite verdict, green only when: exporter reachable, brokers registered, every JMX target up, exactly one active controller, zero offline / under-min-ISR / under-replicated / leaderless partitions.",
-      "gridPos": {
-        "h": 5,
-        "w": 8,
-        "x": 0,
-        "y": 3
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "max(kafka_server_raft_current_leader{job=\"$job\",cls=\"$cls\"})",
-          "instant": true,
-          "range": false,
-          "interval": "",
-          "legendFormat": "Controller",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "max(kafka_server_raft_current_epoch{job=\"$job\",cls=\"$cls\"})",
-          "instant": true,
-          "range": false,
-          "interval": "",
-          "legendFormat": "Raft Epoch",
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "max(kafka_server_raft_high_watermark{job=\"$job\",cls=\"$cls\"})",
-          "instant": true,
-          "range": false,
-          "interval": "",
-          "legendFormat": "Metadata HW",
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "sum(up{job=\"$job\",cls=\"$cls\",role=~\".+\"})",
-          "instant": true,
-          "range": false,
-          "interval": "",
-          "legendFormat": "JMX Up",
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "sum(up{job=\"$job\",cls=\"$cls\",role=\"\"})",
-          "instant": true,
-          "range": false,
-          "interval": "",
-          "legendFormat": "Exporter Up",
-          "refId": "E"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "max by (cls) (up{job=\"$job\",role=\"\",cls=\"$cls\"}) * on (cls) ((max by (cls) (kafka_brokers{job=\"$job\",cls=\"$cls\"}) or on (cls) (0 * max by (cls) (up{job=\"$job\",role=\"\",cls=\"$cls\"}))) > bool 0) * on (cls) ((sum by (cls) (max without (ins, ip, instance) (kafka_topic_partition_under_replicated_partition{job=\"$job\",cls=\"$cls\"})) or on (cls) (0 * max by (cls) (up{job=\"$job\",role=\"\",cls=\"$cls\"}))) == bool 0) * on (cls) ((sum by (cls) (max without (ins, ip, instance) (kafka_topic_partition_leader{job=\"$job\",cls=\"$cls\"}) < bool 0) or on (cls) (0 * max by (cls) (up{job=\"$job\",role=\"\",cls=\"$cls\"}))) == bool 0) * on (cls) (min by (cls) (up{job=\"$job\",role=~\".+\",cls=\"$cls\"})) * on (cls) ((sum by (cls) (kafka_controller_active_controller_count{job=\"$job\",cls=\"$cls\"}) or on (cls) (0 * min by (cls) (up{job=\"$job\",role=~\".+\",cls=\"$cls\"}))) == bool 1) * on (cls) ((max by (cls) (kafka_controller_offline_partition_count{job=\"$job\",cls=\"$cls\"}) or on (cls) (0 * min by (cls) (up{job=\"$job\",role=~\".+\",cls=\"$cls\"}))) == bool 0) * on (cls) ((sum by (cls) (kafka_server_replica_manager_under_min_isr_partitions{job=\"$job\",cls=\"$cls\"}) or on (cls) (0 * min by (cls) (up{job=\"$job\",role=~\".+\",cls=\"$cls\"}))) == bool 0)",
-          "instant": true,
-          "range": false,
-          "interval": "",
-          "legendFormat": "Health",
-          "refId": "F"
-        }
-      ],
-      "options": {
-        "colorMode": "background",
-        "graphMode": "none",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "reduceOptions": {
-          "calcs": [
-            "lastNotNull"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "text": {
-          "titleSize": 14,
-          "valueSize": 16
-        },
-        "textMode": "value_and_name",
-        "wideLayout": true
-      },
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -915,19 +608,19 @@
                 "id": "mappings",
                 "value": [
                   {
-                    "type": "value",
                     "options": {
                       "0": {
-                        "text": "Unhealthy",
                         "color": "#e02f44",
-                        "index": 0
+                        "index": 0,
+                        "text": "Unhealthy"
                       },
                       "1": {
-                        "text": "Healthy",
                         "color": "#4bb39ce0",
-                        "index": 1
+                        "index": 1,
+                        "text": "Healthy"
                       }
-                    }
+                    },
+                    "type": "value"
                   }
                 ]
               }
@@ -947,7 +640,121 @@
           }
         ]
       },
-      "pluginVersion": "13.0.0"
+      "gridPos": {
+        "y": 3,
+        "x": 0,
+        "w": 8,
+        "h": 5
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "text": {
+          "titleSize": 14,
+          "valueSize": 16
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max(kafka_server_raft_current_leader{job=\"$job\",cls=\"$cls\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "Controller",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max(kafka_server_raft_current_epoch{job=\"$job\",cls=\"$cls\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "Raft Epoch",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max(kafka_server_raft_high_watermark{job=\"$job\",cls=\"$cls\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "Metadata HW",
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(up{job=\"$job\",cls=\"$cls\",role=~\".+\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "JMX Up",
+          "range": false,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(up{job=\"$job\",cls=\"$cls\",role=\"\"})",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "Exporter Up",
+          "range": false,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (cls) (up{job=\"$job\",role=\"\",cls=\"$cls\"}) * on (cls) ((max by (cls) (kafka_brokers{job=\"$job\",cls=\"$cls\"}) or on (cls) (0 * max by (cls) (up{job=\"$job\",role=\"\",cls=\"$cls\"}))) > bool 0) * on (cls) ((sum by (cls) (max without (ins, ip, instance) (kafka_topic_partition_under_replicated_partition{job=\"$job\",cls=\"$cls\"})) or on (cls) (0 * max by (cls) (up{job=\"$job\",role=\"\",cls=\"$cls\"}))) == bool 0) * on (cls) ((sum by (cls) (max without (ins, ip, instance) (kafka_topic_partition_leader{job=\"$job\",cls=\"$cls\"}) < bool 0) or on (cls) (0 * max by (cls) (up{job=\"$job\",role=\"\",cls=\"$cls\"}))) == bool 0) * on (cls) (min by (cls) (up{job=\"$job\",role=~\".+\",cls=\"$cls\"})) * on (cls) ((sum by (cls) (kafka_controller_active_controller_count{job=\"$job\",cls=\"$cls\"}) or on (cls) (0 * min by (cls) (up{job=\"$job\",role=~\".+\",cls=\"$cls\"}))) == bool 1) * on (cls) ((max by (cls) (kafka_controller_offline_partition_count{job=\"$job\",cls=\"$cls\"}) or on (cls) (0 * min by (cls) (up{job=\"$job\",role=~\".+\",cls=\"$cls\"}))) == bool 0) * on (cls) ((sum by (cls) (kafka_server_replica_manager_under_min_isr_partitions{job=\"$job\",cls=\"$cls\"}) or on (cls) (0 * min by (cls) (up{job=\"$job\",role=~\".+\",cls=\"$cls\"}))) == bool 0)",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "Health",
+          "range": false,
+          "refId": "F"
+        }
+      ],
+      "title": "",
+      "type": "stat"
     },
     {
       "datasource": {
@@ -981,10 +788,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
+        "y": 8,
         "x": 0,
-        "y": 8
+        "w": 3,
+        "h": 4
       },
       "id": 4,
       "options": {
@@ -1053,10 +860,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
+        "y": 8,
         "x": 3,
-        "y": 8
+        "w": 3,
+        "h": 4
       },
       "id": 5,
       "options": {
@@ -1125,10 +932,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
+        "y": 8,
         "x": 6,
-        "y": 8
+        "w": 3,
+        "h": 4
       },
       "id": 6,
       "options": {
@@ -1197,10 +1004,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
+        "y": 8,
         "x": 9,
-        "y": 8
+        "w": 3,
+        "h": 4
       },
       "id": 7,
       "options": {
@@ -1273,10 +1080,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
+        "y": 8,
         "x": 12,
-        "y": 8
+        "w": 3,
+        "h": 4
       },
       "id": 8,
       "options": {
@@ -1349,10 +1156,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
+        "y": 8,
         "x": 15,
-        "y": 8
+        "w": 3,
+        "h": 4
       },
       "id": 9,
       "options": {
@@ -1433,10 +1240,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
+        "y": 8,
         "x": 18,
-        "y": 8
+        "w": 3,
+        "h": 4
       },
       "id": 10,
       "options": {
@@ -1489,6 +1296,12 @@
             "mode": "thresholds"
           },
           "decimals": 0,
+          "links": [
+            {
+              "title": "Kafka Alerts",
+              "url": "/alerting/list?search=kafka"
+            }
+          ],
           "mappings": [],
           "noValue": "0",
           "thresholds": {
@@ -1504,21 +1317,15 @@
               }
             ]
           },
-          "unit": "short",
-          "links": [
-            {
-              "title": "Kafka Alerts",
-              "url": "/alerting/list?search=kafka"
-            }
-          ]
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 4,
-        "w": 3,
+        "y": 8,
         "x": 21,
-        "y": 8
+        "w": 3,
+        "h": 4
       },
       "id": 11,
       "options": {
@@ -1606,6 +1413,7 @@
           },
           "decimals": 1,
           "mappings": [],
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -1615,8 +1423,7 @@
               }
             ]
           },
-          "unit": "ops",
-          "min": 0
+          "unit": "ops"
         },
         "overrides": [
           {
@@ -1638,10 +1445,10 @@
         ]
       },
       "gridPos": {
-        "h": 6,
-        "w": 12,
+        "y": 12,
         "x": 0,
-        "y": 12
+        "w": 12,
+        "h": 7
       },
       "id": 12,
       "options": {
@@ -1669,71 +1476,11 @@
             "uid": "ds-prometheus"
           },
           "editorMode": "code",
-          "range": true,
-          "interval": "",
           "exemplar": false,
-          "refId": "A",
           "expr": "sum by (cls) (kafka:ins:messages_in_rate5m{cls=\"$cls\"})",
-          "legendFormat": "{{ cls }} msgs in"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "range": true,
           "interval": "",
-          "exemplar": false,
-          "refId": "B",
-          "expr": "sum by (cls) (kafka:ins:bytes_in_rate5m{cls=\"$cls\"})",
-          "legendFormat": "{{ cls }} bytes in"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
+          "legendFormat": "{{ cls }} msgs in",
           "range": true,
-          "interval": "",
-          "exemplar": false,
-          "refId": "C",
-          "expr": "sum by (cls) (kafka:ins:bytes_out_rate5m{cls=\"$cls\"})",
-          "legendFormat": "{{ cls }} bytes out"
-        }
-      ],
-      "title": "Cluster Throughput",
-      "type": "timeseries"
-    },
-    {
-      "id": 102,
-      "type": "state-timeline",
-      "title": "",
-      "datasource": {
-        "type": "prometheus",
-        "uid": "ds-prometheus"
-      },
-      "description": "Instance aliveness timeline: one lane per Kafka process (`up{role=~\".+\"}` by ins) and per kafka_exporter replica (`up{role=\"\"}`). Teal = scraped successfully, red = target down. Distinguishes a transient blip from a sustained outage at a glance; click a lane to open the Kafka Instance dashboard.",
-      "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 12,
-        "y": 12
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "min by (ins) (up{job=\"$job\",cls=\"$cls\",role=~\".+\"})",
-          "instant": false,
-          "range": true,
-          "interval": "",
-          "legendFormat": "{{ ins }}",
           "refId": "A"
         },
         {
@@ -1743,82 +1490,28 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "min by (ins) (up{job=\"$job\",cls=\"$cls\",role=\"\"})",
-          "instant": false,
-          "range": true,
+          "expr": "sum by (cls) (kafka:ins:bytes_in_rate5m{cls=\"$cls\"})",
           "interval": "",
-          "legendFormat": "{{ ins }} exporter",
+          "legendFormat": "{{ cls }} bytes in",
+          "range": true,
           "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (cls) (kafka:ins:bytes_out_rate5m{cls=\"$cls\"})",
+          "interval": "",
+          "legendFormat": "{{ cls }} bytes out",
+          "range": true,
+          "refId": "C"
         }
       ],
-      "options": {
-        "alignValue": "left",
-        "legend": {
-          "displayMode": "list",
-          "placement": "bottom",
-          "showLegend": false
-        },
-        "mergeValues": true,
-        "rowHeight": 0.9,
-        "showValue": "never",
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "custom": {
-            "fillOpacity": 60,
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineWidth": 0,
-            "spanNulls": false
-          },
-          "links": [
-            {
-              "title": "Kafka Instance : ${__field.labels.ins}",
-              "url": "/d/kafka-instance?var-ins=${__field.labels.ins}&${__url_time_range}"
-            }
-          ],
-          "mappings": [
-            {
-              "type": "value",
-              "options": {
-                "0": {
-                  "text": "DOWN",
-                  "color": "#cc4637d9",
-                  "index": 0
-                },
-                "1": {
-                  "text": "UP",
-                  "color": "#4bb39ce0",
-                  "index": 1
-                }
-              }
-            }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#4bb39ce0",
-                "value": null
-              }
-            ]
-          }
-        },
-        "overrides": []
-      },
-      "pluginVersion": "13.0.0"
+      "title": "Cluster Throughput",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -1992,10 +1685,10 @@
         ]
       },
       "gridPos": {
-        "h": 5,
-        "w": 24,
-        "x": 0,
-        "y": 18
+        "y": 12,
+        "x": 12,
+        "w": 12,
+        "h": 7
       },
       "id": 13,
       "options": {
@@ -2061,10 +1754,10 @@
     {
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
+        "y": 19,
         "x": 0,
-        "y": 23
+        "w": 24,
+        "h": 1
       },
       "id": 14,
       "panels": [],
@@ -2118,6 +1811,7 @@
           },
           "decimals": 1,
           "mappings": [],
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -2127,16 +1821,15 @@
               }
             ]
           },
-          "unit": "short",
-          "min": 0
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 8,
+        "y": 20,
         "x": 0,
-        "y": 24
+        "w": 8,
+        "h": 7
       },
       "id": 15,
       "options": {
@@ -2219,129 +1912,16 @@
       "type": "timeseries"
     },
     {
-      "id": 103,
-      "type": "timeseries",
-      "title": "Controller & ISR Churn",
-      "description": "Control-plane stability: KRaft controller elections (`rate(kafka_controller_elections_total)`), broker heartbeat timeouts and fenced brokers (`kafka_controller_timed_out_broker_heartbeats_total`, `kafka_controller_fenced_broker_count`), unclean leader elections (data loss risk!), and cluster-wide ISR shrink/expand rates. All of these belong at zero in steady state — any activity here explains leadership and availability turbulence seen elsewhere.",
       "datasource": {
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 24
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "sum(rate(kafka_controller_elections_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
-          "range": true,
-          "instant": false,
-          "interval": "",
-          "legendFormat": "elections",
-          "refId": "A"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "sum(rate(kafka_controller_timed_out_broker_heartbeats_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
-          "range": true,
-          "instant": false,
-          "interval": "",
-          "legendFormat": "heartbeat timeouts",
-          "refId": "B"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "max(kafka_controller_fenced_broker_count{job=\"$job\",cls=\"$cls\"})",
-          "range": true,
-          "instant": false,
-          "interval": "",
-          "legendFormat": "fenced brokers",
-          "refId": "C"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "sum(rate(kafka_controller_unclean_leader_elections_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
-          "range": true,
-          "instant": false,
-          "interval": "",
-          "legendFormat": "unclean elections",
-          "refId": "D"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "sum(rate(kafka_server_replica_manager_isr_shrinks_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
-          "range": true,
-          "instant": false,
-          "interval": "",
-          "legendFormat": "isr shrinks",
-          "refId": "E"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "expr": "sum(rate(kafka_server_replica_manager_isr_expands_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
-          "range": true,
-          "instant": false,
-          "interval": "",
-          "legendFormat": "isr expands",
-          "refId": "F"
-        }
-      ],
-      "options": {
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "mean",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "bottom",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "desc"
-        }
-      },
+      "description": "Control-plane stability: KRaft controller elections (`rate(kafka_controller_elections_total)`), broker heartbeat timeouts and fenced brokers (`kafka_controller_timed_out_broker_heartbeats_total`, `kafka_controller_fenced_broker_count`), unclean leader elections (data loss risk!), and cluster-wide ISR shrink/expand rates. All of these belong at zero in steady state — any activity here explains leadership and availability turbulence seen elsewhere.",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "palette-classic"
           },
-          "unit": "short",
           "custom": {
             "axisPlacement": "auto",
             "drawStyle": "line",
@@ -2372,11 +1952,124 @@
                 "value": null
               }
             ]
-          }
+          },
+          "unit": "short"
         },
         "overrides": []
       },
-      "pluginVersion": "13.0.0"
+      "gridPos": {
+        "y": 20,
+        "x": 8,
+        "w": 8,
+        "h": 7
+      },
+      "id": 103,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(rate(kafka_controller_elections_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "elections",
+          "range": true,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(rate(kafka_controller_timed_out_broker_heartbeats_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "heartbeat timeouts",
+          "range": true,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max(kafka_controller_fenced_broker_count{job=\"$job\",cls=\"$cls\"})",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "fenced brokers",
+          "range": true,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(rate(kafka_controller_unclean_leader_elections_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "unclean elections",
+          "range": true,
+          "refId": "D"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(rate(kafka_server_replica_manager_isr_shrinks_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "isr shrinks",
+          "range": true,
+          "refId": "E"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(rate(kafka_server_replica_manager_isr_expands_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "isr expands",
+          "range": true,
+          "refId": "F"
+        }
+      ],
+      "title": "Controller & ISR Churn",
+      "type": "timeseries"
     },
     {
       "datasource": {
@@ -2425,6 +2118,7 @@
           },
           "decimals": 1,
           "mappings": [],
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -2434,16 +2128,15 @@
               }
             ]
           },
-          "unit": "short",
-          "min": 0
+          "unit": "short"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 8,
+        "y": 20,
         "x": 16,
-        "y": 24
+        "w": 8,
+        "h": 7
       },
       "id": 16,
       "options": {
@@ -2486,10 +2179,10 @@
     {
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
+        "y": 27,
         "x": 0,
-        "y": 31
+        "w": 24,
+        "h": 1
       },
       "id": 17,
       "panels": [],
@@ -2543,6 +2236,7 @@
           },
           "decimals": 1,
           "mappings": [],
+          "min": 0,
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -2552,16 +2246,15 @@
               }
             ]
           },
-          "unit": "ops",
-          "min": 0
+          "unit": "ops"
         },
         "overrides": []
       },
       "gridPos": {
-        "h": 7,
-        "w": 8,
+        "y": 28,
         "x": 0,
-        "y": 32
+        "w": 8,
+        "h": 7
       },
       "id": 18,
       "options": {
@@ -2616,20 +2309,76 @@
       "type": "timeseries"
     },
     {
-      "id": 104,
-      "type": "timeseries",
-      "title": "Broker Messages In",
-      "description": "Leader append rate per broker (`kafka:ins:messages_in_rate5m`, JMX-authoritative). Uneven lines reveal leader/producer skew: the busiest broker bounds cluster headroom even when the average looks comfortable. Compare with the Leaders column in the member table above.",
       "datasource": {
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "gridPos": {
-        "h": 7,
-        "w": 8,
-        "x": 8,
-        "y": 32
+      "description": "Leader append rate per broker (`kafka:ins:messages_in_rate5m`, JMX-authoritative). Uneven lines reveal leader/producer skew: the busiest broker bounds cluster headroom even when the average looks comfortable. Compare with the Leaders column in the member table above.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "ops"
+        },
+        "overrides": []
       },
+      "gridPos": {
+        "y": 28,
+        "x": 8,
+        "w": 8,
+        "h": 7
+      },
+      "id": 104,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.0.0",
       "targets": [
         {
           "datasource": {
@@ -2639,10 +2388,294 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "kafka:ins:messages_in_rate5m{cls=\"$cls\"}",
-          "range": true,
           "instant": false,
           "interval": "",
           "legendFormat": "{{ ins }}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Broker Messages In",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Total backlog per consumer group: `kafka:csg_topic:lag` (deduplicated, per-topic recording rule) summed by group, topk $topk. This is the exact series the KafkaConsumerLagGrowing alert evaluates (>100k records and still growing after 30m).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "opacity",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "smooth",
+            "lineWidth": 1,
+            "pointSize": 4,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": true,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 1,
+          "mappings": [],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "unit": "locale"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "y": 28,
+        "x": 16,
+        "w": 8,
+        "h": 7
+      },
+      "id": 19,
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "topk($topk, sum by (cls, consumergroup) (kafka:csg_topic:lag{cls=\"$cls\",topic=~\"$topic\",consumergroup=~\"$group\"}))",
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{ cls }} / {{ consumergroup }}",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Consumer Lag by Group",
+      "type": "timeseries"
+    },
+    {
+      "id": 105,
+      "type": "row",
+      "title": "Load",
+      "collapsed": false,
+      "gridPos": {
+        "y": 35,
+        "x": 0,
+        "w": 24,
+        "h": 1
+      },
+      "panels": []
+    },
+    {
+      "id": 106,
+      "type": "timeseries",
+      "title": "Network I/O",
+      "description": "Cluster-wide bytes per second, split by purpose: client traffic (`kafka:ins:bytes_in/out_rate5m` summed) vs inter-broker replication (`kafka_server_broker_replication_bytes_in/out_total` rates summed). Replication roughly tracks client-in × (RF−1); a replication surge without client growth means followers are catching up after an outage or reassignment.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "gridPos": {
+        "y": 36,
+        "x": 0,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(kafka:ins:bytes_in_rate5m{cls=\"$cls\"})",
+          "range": true,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "client in",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(kafka:ins:bytes_out_rate5m{cls=\"$cls\"})",
+          "range": true,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "client out",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(rate(kafka_server_broker_replication_bytes_in_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
+          "range": true,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "replication in",
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(rate(kafka_server_broker_replication_bytes_out_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
+          "range": true,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "replication out",
+          "refId": "D"
+        }
+      ],
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "Bps",
+          "custom": {
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "pluginVersion": "13.0.0"
+    },
+    {
+      "id": 107,
+      "type": "timeseries",
+      "title": "Request Rate",
+      "description": "Cluster-wide API request throughput by request type (`rate(kafka_network_request_total)` summed by request). The mix characterizes the workload: Produce/Fetch dominate data flow, Metadata/Heartbeat/ApiVersions dominate idle or chatty-client clusters. Sudden Metadata storms usually mean clients are rediscovering leadership after a failover.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "gridPos": {
+        "y": 36,
+        "x": 8,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (request) (rate(kafka_network_request_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
+          "range": true,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{ request }}",
           "refId": "A"
         }
       ],
@@ -2706,73 +2739,64 @@
       "pluginVersion": "13.0.0"
     },
     {
+      "id": 108,
+      "type": "timeseries",
+      "title": "Request Errors",
+      "description": "Cluster-wide client-visible failures: failed produce / fetch request rates (`kafka_server_broker_failed_produce/fetch_requests_total`) plus the error-code breakdown (`kafka_network_request_errors_total{error!=\"NONE\"}` summed by error). The error code names the cause directly — NOT_ENOUGH_REPLICAS is under-min-ISR, NOT_LEADER_OR_FOLLOWER accompanies leadership moves, REQUEST_TIMED_OUT indicates saturation.",
       "datasource": {
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "description": "Total backlog per consumer group: `kafka:csg_topic:lag` (deduplicated, per-topic recording rule) summed by group, topk $topk. This is the exact series the KafkaConsumerLagGrowing alert evaluates (>100k records and still growing after 30m).",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 20,
-            "gradientMode": "opacity",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "smooth",
-            "lineWidth": 1,
-            "pointSize": 4,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "showValues": false,
-            "spanNulls": true,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "decimals": 1,
-          "mappings": [],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "green",
-                "value": null
-              }
-            ]
-          },
-          "unit": "locale",
-          "min": 0
-        },
-        "overrides": []
-      },
       "gridPos": {
-        "h": 7,
-        "w": 8,
+        "y": 36,
         "x": 16,
-        "y": 32
+        "w": 8,
+        "h": 7
       },
-      "id": 19,
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(rate(kafka_server_broker_failed_produce_requests_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
+          "range": true,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "failed produce",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum(rate(kafka_server_broker_failed_fetch_requests_total{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
+          "range": true,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "failed fetch",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (error) (rate(kafka_network_request_errors_total{job=\"$job\",cls=\"$cls\",error!=\"NONE\"}[$__rate_interval]))",
+          "range": true,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{ error }}",
+          "refId": "C"
+        }
+      ],
       "options": {
         "legend": {
           "calcs": [
@@ -2790,7 +2814,63 @@
           "sort": "desc"
         }
       },
-      "pluginVersion": "13.0.0",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "ops",
+          "custom": {
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "pluginVersion": "13.0.0"
+    },
+    {
+      "id": 109,
+      "type": "timeseries",
+      "title": "JVM Heap Usage",
+      "description": "JVM heap utilization per broker (`kafka:ins:jvm_heap_used_ratio` = heap used / heap max). Sustained values above 75–90% mean GC pressure and request latency before OOM; one broker diverging from its peers usually maps to skewed partition leadership. The KafkaJvmHeapHigh alert fires above 90% for 15m.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "gridPos": {
+        "y": 43,
+        "x": 0,
+        "w": 8,
+        "h": 7
+      },
       "targets": [
         {
           "datasource": {
@@ -2799,16 +2879,254 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "topk($topk, sum by (cls, consumergroup) (kafka:csg_topic:lag{cls=\"$cls\",topic=~\"$topic\",consumergroup=~\"$group\"}))",
+          "expr": "kafka:ins:jvm_heap_used_ratio{cls=\"$cls\"}",
+          "range": true,
           "instant": false,
           "interval": "",
-          "legendFormat": "{{ cls }} / {{ consumergroup }}",
-          "range": true,
+          "legendFormat": "{{ ins }}",
           "refId": "A"
         }
       ],
-      "title": "Consumer Lag by Group",
-      "type": "timeseries"
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "percentunit",
+          "custom": {
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "max": 1,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "pluginVersion": "13.0.0"
+    },
+    {
+      "id": 110,
+      "type": "timeseries",
+      "title": "Broker CPU Usage",
+      "description": "Kafka JVM CPU consumption per broker in cores (`kafka:ins:jvm_cpu_cores`). Uneven lines expose hot brokers; compare with Broker Messages In and the Leaders column above to attribute the skew to leadership placement or to a heavy client.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "gridPos": {
+        "y": 43,
+        "x": 8,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "kafka:ins:jvm_cpu_cores{cls=\"$cls\",role=~\".+\"}",
+          "range": true,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{ ins }}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "short",
+          "custom": {
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "pluginVersion": "13.0.0"
+    },
+    {
+      "id": 111,
+      "type": "timeseries",
+      "title": "GC Pressure",
+      "description": "Garbage-collection wall-time share per broker (`rate(jvm_gc_collection_seconds_sum)` summed over collectors — seconds of GC per second). Above ~0.05 the broker spends 5% of its time collecting and request latency jitter follows; correlate spikes with heap usage on the left.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "gridPos": {
+        "y": 43,
+        "x": 16,
+        "w": 8,
+        "h": 7
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (ins) (rate(jvm_gc_collection_seconds_sum{job=\"$job\",cls=\"$cls\"}[$__rate_interval]))",
+          "range": true,
+          "instant": false,
+          "interval": "",
+          "legendFormat": "{{ ins }}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "mean",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "unit": "percentunit",
+          "custom": {
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "opacity",
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "pluginVersion": "13.0.0"
     },
     {
       "datasource": {
@@ -3095,10 +3413,10 @@
         ]
       },
       "gridPos": {
-        "h": 10,
-        "w": 15,
+        "y": 50,
         "x": 0,
-        "y": 39
+        "w": 15,
+        "h": 10
       },
       "id": 20,
       "options": {
@@ -3124,12 +3442,12 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "label_join(max without (ins, ip, instance) (kafka_topic_partitions{job=\"$job\",cls=\"$cls\",topic=~\"$topic\"}), \"key\", \" / \", \"cls\", \"topic\")",
+          "format": "table",
           "instant": true,
           "interval": "",
           "legendFormat": "",
           "range": false,
-          "refId": "A",
-          "format": "table"
+          "refId": "A"
         },
         {
           "datasource": {
@@ -3139,12 +3457,12 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "label_join(max by (cls, topic) (max without (ins, ip, instance) (kafka_topic_partition_replicas{job=\"$job\",cls=\"$cls\",topic=~\"$topic\"})), \"key\", \" / \", \"cls\", \"topic\")",
+          "format": "table",
           "instant": true,
           "interval": "",
           "legendFormat": "",
           "range": false,
-          "refId": "B",
-          "format": "table"
+          "refId": "B"
         },
         {
           "datasource": {
@@ -3154,12 +3472,12 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "label_join(min by (cls, topic) (max without (ins, ip, instance) (kafka_topic_partition_in_sync_replica{job=\"$job\",cls=\"$cls\",topic=~\"$topic\"})), \"key\", \" / \", \"cls\", \"topic\")",
+          "format": "table",
           "instant": true,
           "interval": "",
           "legendFormat": "",
           "range": false,
-          "refId": "C",
-          "format": "table"
+          "refId": "C"
         },
         {
           "datasource": {
@@ -3169,12 +3487,12 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "label_join(sum by (cls, topic) (max without (ins, ip, instance) (kafka_topic_partition_under_replicated_partition{job=\"$job\",cls=\"$cls\",topic=~\"$topic\"})), \"key\", \" / \", \"cls\", \"topic\")",
+          "format": "table",
           "instant": true,
           "interval": "",
           "legendFormat": "",
           "range": false,
-          "refId": "D",
-          "format": "table"
+          "refId": "D"
         },
         {
           "datasource": {
@@ -3184,12 +3502,12 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "label_join(sum by (cls, topic) (1 - max without (ins, ip, instance) (kafka_topic_partition_leader_is_preferred{job=\"$job\",cls=\"$cls\",topic=~\"$topic\"})), \"key\", \" / \", \"cls\", \"topic\")",
+          "format": "table",
           "instant": true,
           "interval": "",
           "legendFormat": "",
           "range": false,
-          "refId": "E",
-          "format": "table"
+          "refId": "E"
         },
         {
           "datasource": {
@@ -3199,12 +3517,12 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "label_join(sum by (cls, topic) (max without (ins, ip, instance) (kafka_topic_partition_current_offset{job=\"$job\",cls=\"$cls\",topic=~\"$topic\"})), \"key\", \" / \", \"cls\", \"topic\")",
+          "format": "table",
           "instant": true,
           "interval": "",
           "legendFormat": "",
           "range": false,
-          "refId": "F",
-          "format": "table"
+          "refId": "F"
         },
         {
           "datasource": {
@@ -3214,12 +3532,12 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "label_join(sum by (cls, topic) (max without (ins, ip, instance) (kafka_topic_partition_oldest_offset{job=\"$job\",cls=\"$cls\",topic=~\"$topic\"})), \"key\", \" / \", \"cls\", \"topic\")",
+          "format": "table",
           "instant": true,
           "interval": "",
           "legendFormat": "",
           "range": false,
-          "refId": "G",
-          "format": "table"
+          "refId": "G"
         },
         {
           "datasource": {
@@ -3229,12 +3547,12 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "label_join(sum by (cls, topic) (clamp_min(max without (ins, ip, instance) (kafka_topic_partition_current_offset{job=\"$job\",cls=\"$cls\",topic=~\"$topic\"}) - max without (ins, ip, instance) (kafka_topic_partition_oldest_offset{job=\"$job\",cls=\"$cls\",topic=~\"$topic\"}), 0)), \"key\", \" / \", \"cls\", \"topic\")",
+          "format": "table",
           "instant": true,
           "interval": "",
           "legendFormat": "",
           "range": false,
-          "refId": "H",
-          "format": "table"
+          "refId": "H"
         },
         {
           "datasource": {
@@ -3244,14 +3562,15 @@
           "editorMode": "code",
           "exemplar": false,
           "expr": "kafka:topic:msg_rate5m{cls=\"$cls\",topic=~\"$topic\"}",
+          "format": "table",
           "instant": true,
           "interval": "",
           "legendFormat": "",
           "range": false,
-          "refId": "I",
-          "format": "table"
+          "refId": "I"
         }
       ],
+      "title": "Topic Inventory",
       "transformations": [
         {
           "id": "seriesToColumns",
@@ -3264,124 +3583,122 @@
           "options": {
             "excludeByName": {
               "Time": true,
-              "__name__": true,
-              "job": true,
               "Time 1": true,
-              "__name__ 1": true,
-              "job 1": true,
-              "cls 1": true,
-              "topic 1": true,
-              "key 1": true,
-              "Time 2": true,
-              "__name__ 2": true,
-              "job 2": true,
-              "cls 2": true,
-              "topic 2": true,
-              "key 2": true,
-              "Time 3": true,
-              "__name__ 3": true,
-              "job 3": true,
-              "cls 3": true,
-              "topic 3": true,
-              "key 3": true,
-              "Time 4": true,
-              "__name__ 4": true,
-              "job 4": true,
-              "cls 4": true,
-              "topic 4": true,
-              "key 4": true,
-              "Time 5": true,
-              "__name__ 5": true,
-              "job 5": true,
-              "cls 5": true,
-              "topic 5": true,
-              "key 5": true,
-              "Time 6": true,
-              "__name__ 6": true,
-              "job 6": true,
-              "cls 6": true,
-              "topic 6": true,
-              "key 6": true,
-              "Time 7": true,
-              "__name__ 7": true,
-              "job 7": true,
-              "cls 7": true,
-              "topic 7": true,
-              "key 7": true,
-              "Time 8": true,
-              "__name__ 8": true,
-              "job 8": true,
-              "cls 8": true,
-              "topic 8": true,
-              "key 8": true,
-              "Time 9": true,
-              "__name__ 9": true,
-              "job 9": true,
-              "cls 9": true,
-              "topic 9": true,
-              "key 9": true,
               "Time 10": true,
-              "__name__ 10": true,
-              "job 10": true,
-              "cls 10": true,
-              "topic 10": true,
-              "key 10": true,
               "Time 11": true,
-              "__name__ 11": true,
-              "job 11": true,
-              "cls 11": true,
-              "topic 11": true,
-              "key 11": true,
               "Time 12": true,
-              "__name__ 12": true,
-              "job 12": true,
-              "cls 12": true,
-              "topic 12": true,
-              "key 12": true,
               "Time 13": true,
-              "__name__ 13": true,
-              "job 13": true,
-              "cls 13": true,
-              "topic 13": true,
-              "key 13": true,
               "Time 14": true,
-              "__name__ 14": true,
-              "job 14": true,
-              "cls 14": true,
-              "topic 14": true,
-              "key 14": true,
               "Time 15": true,
-              "__name__ 15": true,
-              "job 15": true,
-              "cls 15": true,
-              "topic 15": true,
-              "key 15": true,
               "Time 16": true,
+              "Time 2": true,
+              "Time 3": true,
+              "Time 4": true,
+              "Time 5": true,
+              "Time 6": true,
+              "Time 7": true,
+              "Time 8": true,
+              "Time 9": true,
+              "__name__": true,
+              "__name__ 1": true,
+              "__name__ 10": true,
+              "__name__ 11": true,
+              "__name__ 12": true,
+              "__name__ 13": true,
+              "__name__ 14": true,
+              "__name__ 15": true,
               "__name__ 16": true,
-              "job 16": true,
+              "__name__ 2": true,
+              "__name__ 3": true,
+              "__name__ 4": true,
+              "__name__ 5": true,
+              "__name__ 6": true,
+              "__name__ 7": true,
+              "__name__ 8": true,
+              "__name__ 9": true,
+              "cls": true,
+              "cls 1": true,
+              "cls 10": true,
+              "cls 11": true,
+              "cls 12": true,
+              "cls 13": true,
+              "cls 14": true,
+              "cls 15": true,
               "cls 16": true,
-              "topic 16": true,
-              "key 16": true,
+              "cls 2": true,
+              "cls 3": true,
+              "cls 4": true,
+              "cls 5": true,
+              "cls 6": true,
+              "cls 7": true,
+              "cls 8": true,
+              "cls 9": true,
+              "job": true,
+              "job 1": true,
+              "job 10": true,
+              "job 11": true,
+              "job 12": true,
+              "job 13": true,
+              "job 14": true,
+              "job 15": true,
+              "job 16": true,
+              "job 2": true,
+              "job 3": true,
+              "job 4": true,
+              "job 5": true,
+              "job 6": true,
+              "job 7": true,
+              "job 8": true,
+              "job 9": true,
               "key": true,
-              "cls": true
+              "key 1": true,
+              "key 10": true,
+              "key 11": true,
+              "key 12": true,
+              "key 13": true,
+              "key 14": true,
+              "key 15": true,
+              "key 16": true,
+              "key 2": true,
+              "key 3": true,
+              "key 4": true,
+              "key 5": true,
+              "key 6": true,
+              "key 7": true,
+              "key 8": true,
+              "key 9": true,
+              "topic 1": true,
+              "topic 10": true,
+              "topic 11": true,
+              "topic 12": true,
+              "topic 13": true,
+              "topic 14": true,
+              "topic 15": true,
+              "topic 16": true,
+              "topic 2": true,
+              "topic 3": true,
+              "topic 4": true,
+              "topic 5": true,
+              "topic 6": true,
+              "topic 7": true,
+              "topic 8": true,
+              "topic 9": true
             },
             "includeByName": {},
             "indexByName": {
-              "cls": 0,
-              "topic": 1,
               "Value #A": 2,
               "Value #B": 3,
               "Value #C": 4,
               "Value #D": 5,
               "Value #E": 6,
+              "Value #F": 9,
+              "Value #G": 10,
               "Value #H": 7,
               "Value #I": 8,
-              "Value #F": 9,
-              "Value #G": 10
+              "cls": 0,
+              "topic": 1
             },
             "renameByName": {
-              "cls": "Cluster",
-              "topic": "Topic",
               "Value #A": "Partitions",
               "Value #B": "RF",
               "Value #C": "MinISR",
@@ -3390,160 +3707,21 @@
               "Value #F": "EndOffset",
               "Value #G": "OldestOffset",
               "Value #H": "OffsetSpan",
-              "Value #I": "Append/s"
+              "Value #I": "Append/s",
+              "cls": "Cluster",
+              "topic": "Topic"
             }
           }
         }
       ],
-      "title": "Topic Inventory",
       "type": "table"
     },
     {
-      "id": 100,
-      "type": "table",
-      "title": "Consumer Groups",
-      "description": "Consumer groups on this cluster with member count, consumed topics, total backlog and commit rate. Click a group to open the Kafka Consumer dashboard.",
       "datasource": {
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "gridPos": {
-        "h": 10,
-        "w": 9,
-        "x": 15,
-        "y": 39
-      },
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "instant": true,
-          "range": false,
-          "format": "table",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "A",
-          "expr": "max by (consumergroup) (max without (ins, ip, instance) (kafka_consumergroup_members{job=\"$job\",cls=\"$cls\",consumergroup=~\"$group\"}))"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "instant": true,
-          "range": false,
-          "format": "table",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "B",
-          "expr": "count by (consumergroup) (count by (consumergroup, topic) (max without (ins, ip, instance) (kafka_consumergroup_current_offset{job=\"$job\",cls=\"$cls\",consumergroup=~\"$group\"})))"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "instant": true,
-          "range": false,
-          "format": "table",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "C",
-          "expr": "sum by (consumergroup) (kafka:csg_topic:lag{cls=\"$cls\",consumergroup=~\"$group\"})"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "exemplar": false,
-          "instant": true,
-          "range": false,
-          "format": "table",
-          "interval": "",
-          "legendFormat": "",
-          "refId": "D",
-          "expr": "sum by (consumergroup) (kafka:csg_topic:commit_rate5m{cls=\"$cls\",consumergroup=~\"$group\"})"
-        }
-      ],
-      "transformations": [
-        {
-          "id": "seriesToColumns",
-          "options": {
-            "byField": "consumergroup"
-          }
-        },
-        {
-          "id": "organize",
-          "options": {
-            "excludeByName": {
-              "Time": true,
-              "__name__": true,
-              "job": true,
-              "cls": true,
-              "Time 1": true,
-              "Time 2": true,
-              "Time 3": true,
-              "Time 4": true,
-              "__name__ 1": true,
-              "__name__ 2": true,
-              "__name__ 3": true,
-              "__name__ 4": true,
-              "job 1": true,
-              "job 2": true,
-              "job 3": true,
-              "job 4": true,
-              "cls 1": true,
-              "cls 2": true,
-              "cls 3": true,
-              "cls 4": true
-            },
-            "includeByName": {},
-            "indexByName": {
-              "consumergroup": 0,
-              "Value #A": 1,
-              "Value #B": 2,
-              "Value #C": 3,
-              "Value #D": 4
-            },
-            "renameByName": {
-              "consumergroup": "Group",
-              "Value #A": "Members",
-              "Value #B": "Topics",
-              "Value #C": "Lag",
-              "Value #D": "Commit/s"
-            }
-          }
-        }
-      ],
-      "options": {
-        "cellHeight": "sm",
-        "showHeader": true,
-        "footer": {
-          "show": false,
-          "reducer": [
-            "sum"
-          ],
-          "countRows": false,
-          "fields": ""
-        },
-        "sortBy": [
-          {
-            "displayName": "Lag",
-            "desc": true
-          }
-        ]
-      },
-      "pluginVersion": "13.0.0",
+      "description": "Consumer groups on this cluster with member count, consumed topics, total backlog and commit rate. Click a group to open the Kafka Consumer dashboard.",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3650,15 +3828,155 @@
             ]
           }
         ]
-      }
+      },
+      "gridPos": {
+        "y": 50,
+        "x": 15,
+        "w": 9,
+        "h": 10
+      },
+      "id": 100,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {
+          "countRows": false,
+          "fields": "",
+          "reducer": [
+            "sum"
+          ],
+          "show": false
+        },
+        "showHeader": true,
+        "sortBy": [
+          {
+            "desc": true,
+            "displayName": "Lag"
+          }
+        ]
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "max by (consumergroup) (max without (ins, ip, instance) (kafka_consumergroup_members{job=\"$job\",cls=\"$cls\",consumergroup=~\"$group\"}))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "count by (consumergroup) (count by (consumergroup, topic) (max without (ins, ip, instance) (kafka_consumergroup_current_offset{job=\"$job\",cls=\"$cls\",consumergroup=~\"$group\"})))",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (consumergroup) (kafka:csg_topic:lag{cls=\"$cls\",consumergroup=~\"$group\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "C"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "exemplar": false,
+          "expr": "sum by (consumergroup) (kafka:csg_topic:commit_rate5m{cls=\"$cls\",consumergroup=~\"$group\"})",
+          "format": "table",
+          "instant": true,
+          "interval": "",
+          "legendFormat": "",
+          "range": false,
+          "refId": "D"
+        }
+      ],
+      "title": "Consumer Groups",
+      "transformations": [
+        {
+          "id": "seriesToColumns",
+          "options": {
+            "byField": "consumergroup"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "Time 1": true,
+              "Time 2": true,
+              "Time 3": true,
+              "Time 4": true,
+              "__name__": true,
+              "__name__ 1": true,
+              "__name__ 2": true,
+              "__name__ 3": true,
+              "__name__ 4": true,
+              "cls": true,
+              "cls 1": true,
+              "cls 2": true,
+              "cls 3": true,
+              "cls 4": true,
+              "job": true,
+              "job 1": true,
+              "job 2": true,
+              "job 3": true,
+              "job 4": true
+            },
+            "includeByName": {},
+            "indexByName": {
+              "Value #A": 1,
+              "Value #B": 2,
+              "Value #C": 3,
+              "Value #D": 4,
+              "consumergroup": 0
+            },
+            "renameByName": {
+              "Value #A": "Members",
+              "Value #B": "Topics",
+              "Value #C": "Lag",
+              "Value #D": "Commit/s",
+              "consumergroup": "Group"
+            }
+          }
+        }
+      ],
+      "type": "table"
     },
     {
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
+        "y": 60,
         "x": 0,
-        "y": 49
+        "w": 24,
+        "h": 1
       },
       "id": 21,
       "panels": [],
@@ -3689,7 +4007,6 @@
           },
           "mappings": [
             {
-              "type": "value",
               "options": {
                 "0": {
                   "color": "#e02f44",
@@ -3701,7 +4018,8 @@
                   "index": 1,
                   "text": "Up"
                 }
-              }
+              },
+              "type": "value"
             }
           ],
           "thresholds": {
@@ -3722,10 +4040,10 @@
         "overrides": []
       },
       "gridPos": {
-        "h": 6,
-        "w": 8,
+        "y": 61,
         "x": 0,
-        "y": 50
+        "w": 8,
+        "h": 6
       },
       "id": 22,
       "options": {
@@ -3865,10 +4183,10 @@
         ]
       },
       "gridPos": {
-        "h": 6,
-        "w": 8,
+        "y": 61,
         "x": 8,
-        "y": 50
+        "w": 8,
+        "h": 6
       },
       "id": 23,
       "options": {
@@ -4030,10 +4348,10 @@
         ]
       },
       "gridPos": {
-        "h": 6,
-        "w": 8,
+        "y": 61,
         "x": 16,
-        "y": 50
+        "w": 8,
+        "h": 6
       },
       "id": 24,
       "options": {
@@ -4118,10 +4436,10 @@
     {
       "collapsed": false,
       "gridPos": {
-        "h": 1,
-        "w": 24,
+        "y": 67,
         "x": 0,
-        "y": 56
+        "w": 24,
+        "h": 1
       },
       "id": 25,
       "panels": [],
@@ -4280,10 +4598,10 @@
         ]
       },
       "gridPos": {
-        "h": 6,
-        "w": 12,
+        "y": 68,
         "x": 0,
-        "y": 57
+        "w": 12,
+        "h": 6
       },
       "id": 26,
       "interval": "1s",
@@ -4471,10 +4789,10 @@
         ]
       },
       "gridPos": {
-        "h": 6,
-        "w": 12,
+        "y": 68,
         "x": 12,
-        "y": 57
+        "w": 12,
+        "h": 6
       },
       "id": 27,
       "interval": "1s",
@@ -4515,11 +4833,12 @@
         "type": "victoriametrics-logs-datasource",
         "uid": "ds-vlogs"
       },
+      "description": "Raw Kafka server logs from VictoriaLogs: LogsQL `job:syslog (unit:kafka OR app:kafka)` filtered to the member IPs of this scope (log streams carry node identity, so filtering is by ip, not by kafka cls). Fields: level, ip, unit, message.",
       "gridPos": {
-        "h": 16,
-        "w": 16,
+        "y": 74,
         "x": 0,
-        "y": 63
+        "w": 16,
+        "h": 16
       },
       "id": 28,
       "options": {
@@ -4555,19 +4874,19 @@
         }
       ],
       "title": "Kafka Service Logs",
-      "type": "logs",
-      "description": "Raw Kafka server logs from VictoriaLogs: LogsQL `job:syslog (unit:kafka OR app:kafka)` filtered to the member IPs of this scope (log streams carry node identity, so filtering is by ip, not by kafka cls). Fields: level, ip, unit, message."
+      "type": "logs"
     },
     {
       "datasource": {
         "type": "victoriametrics-logs-datasource",
         "uid": "ds-vlogs"
       },
+      "description": "Raw kafka_exporter logs from VictoriaLogs (`unit:kafka_exporter`), filtered to member IPs. Connection errors here explain gaps in topic/consumer panels while broker JMX metrics continue.",
       "gridPos": {
-        "h": 16,
-        "w": 8,
+        "y": 74,
         "x": 16,
-        "y": 63
+        "w": 8,
+        "h": 16
       },
       "id": 29,
       "options": {
@@ -4603,8 +4922,7 @@
         }
       ],
       "title": "Kafka Exporter Logs",
-      "type": "logs",
-      "description": "Raw kafka_exporter logs from VictoriaLogs (`unit:kafka_exporter`), filtered to member IPs. Connection errors here explain gaps in topic/consumer panels while broker JMX metrics continue."
+      "type": "logs"
     }
   ],
   "preload": false,
@@ -4619,11 +4937,7 @@
   "templating": {
     "list": [
       {
-        "current": {
-          "selected": false,
-          "text": "kafka",
-          "value": "kafka"
-        },
+        "current": {},
         "hide": 2,
         "label": "job",
         "name": "job",
@@ -4689,11 +5003,7 @@
         "type": "query"
       },
       {
-        "current": {
-          "selected": false,
-          "text": ".*",
-          "value": ".*"
-        },
+        "current": {},
         "hide": 2,
         "label": "topic",
         "name": "topic",
@@ -4709,11 +5019,7 @@
         "type": "constant"
       },
       {
-        "current": {
-          "selected": false,
-          "text": ".*",
-          "value": ".*"
-        },
+        "current": {},
         "hide": 2,
         "label": "group",
         "name": "group",
@@ -4729,11 +5035,7 @@
         "type": "constant"
       },
       {
-        "current": {
-          "selected": false,
-          "text": "20",
-          "value": "20"
-        },
+        "current": {},
         "hide": 2,
         "label": "topk",
         "name": "topk",
