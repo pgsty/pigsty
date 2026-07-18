@@ -1,6 +1,6 @@
 # Role: kafka
 
-> Deploy Apache Kafka 4.x cluster in native dynamic KRaft mode
+> Deploy Apache Kafka 4.1+ clusters in native dynamic KRaft mode
 
 | **Module**        | [KAFKA](https://pigsty.io/docs/kafka)                      |
 |-------------------|------------------------------------------------------------|
@@ -10,7 +10,7 @@
 
 ## Overview
 
-The `kafka` role deploys production-ready Kafka 4.x clusters with:
+The `kafka` role deploys Kafka 4.1+ clusters with:
 
 - **Dynamic KRaft** quorum: no ZooKeeper, no static `controller.quorum.voters`
 - **Bootstrap manifest** freezing cluster identity, initial controllers, and replication policy
@@ -47,8 +47,6 @@ Every lifecycle run must select every member of exactly one `kafka_cluster`:
 roles/kafka/
 ├── defaults/
 │   └── main.yml              # Public API: 15 persistent variables
-├── handlers/
-│   └── main.yml              # Intentionally empty: restarts are owned by launch.yml
 ├── files/
 │   ├── kafka_health.py       # Role-owned health predicate (pigsty-kafka-health)
 │   └── kafka_provision.py    # Declarative provision helper (pigsty-kafka-provision)
@@ -100,7 +98,7 @@ kafka (full role)
 ├── kafka_config               # Configuration & storage
 │   ├── kafka_dir              # Create data & config directories
 │   ├── kafka_meta             # Inspect on-disk KRaft metadata identity
-│   ├── kafka_manifest         # Load / reconstruct / create bootstrap manifest
+│   ├── kafka_manifest         # Resolve / create bootstrap manifest
 │   ├── kafka_security         # Secrets, Pigsty-CA certs, keystores, admin channels
 │   ├── kafka_fingerprint      # Static-config fingerprint (restart trigger)
 │   ├── kafka_format           # Format uninitialized storage (dynamic quorum)

@@ -31,7 +31,7 @@ def quorum(ns):
                   client_args(ns) + ["describe", "--status"])
     leader = re.search(r"(?m)^LeaderId:\s*(-?\d+)", out)
     max_lag = re.search(r"(?m)^MaxFollowerLag:\s*(\d+)", out)
-    max_lag_time = re.search(r"(?m)^MaxFollowerLagTimeMs:\s*(\d+)", out)
+    max_lag_time = re.search(r"(?m)^MaxFollowerLagTimeMs:\s*(-1|\d+)", out)
     voters = {int(v) for v in re.findall(r"ReplicaKey\(id=(\d+)", out)}
     if not voters:
         line = re.search(r"(?m)^CurrentVoters:\s*(\[.*\])$", out)

@@ -17,7 +17,7 @@
   ignore_errors: true
   vars:
     #kafka_safeguard: false            # set true to halt removal (safety switch)
-    #kafka_rm_data: true               # remove data dir & bootstrap manifest? true by default
+    #kafka_rm_data: true               # remove data dir & /etc/kafka recovery state? true by default
     kafka_rm_pkg: false                # uninstall kafka packages? false by default, explicit override required
   roles:
     - { role: node_id      ,when: kafka_cluster is defined and kafka_seq is defined }
@@ -29,8 +29,8 @@
 #--------------------------------------------------------------#
 #  Remove kafka cluster `kf-main` (always with an exact full-cluster -l limit)
 #     ./kafka-rm.yml -l kf-main
-#         -e kafka_rm_data=true      # remove data dir & bootstrap manifest (default)
-#         -e kafka_rm_data=false     # keep data on disk, remove services & config only
+#         -e kafka_rm_data=true      # remove data dir & /etc/kafka recovery state (default)
+#         -e kafka_rm_data=false     # keep data and recovery state; remove service integration only
 #         -e kafka_rm_pkg=true       # also uninstall the kafka-stack packages
 #         -e kafka_safeguard=true    # abort: refuse to remove anything
 #  It will abort if `kafka_safeguard` is set to `true` explicitly.
@@ -46,8 +46,8 @@
 # kafka_safeguard  : abort when kafka_safeguard=true
 # kafka_deregister : remove kafka / kafka_exporter victoria targets from infra
 # kafka            : stop & disable kafka and kafka_exporter services
-# kafka_config     : remove config, systemd units, and helper scripts
-# kafka_data       : remove data dir & bootstrap manifest  (disable with kafka_rm_data=false)
+# kafka_config     : remove exporter config, systemd env/units, and helper scripts
+# kafka_data       : remove data dir & /etc/kafka recovery state (disable with kafka_rm_data=false)
 # kafka_pkg        : uninstall kafka-stack packages         (enable  with kafka_rm_pkg=true)
 #--------------------------------------------------------------#
 ...

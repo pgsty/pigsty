@@ -44,6 +44,12 @@
       {%-   endif -%}
       {%- endfor -%}
       {{ flags }}
+    kafka_role_flags: >-
+      {%- set flags = [] -%}
+      {%- for host in kafka_members -%}
+      {%-   set _ = flags.append(hostvars[host].kafka_role is defined) -%}
+      {%- endfor -%}
+      {{ flags }}
   vars:
     kafka_members: >-
       {{ hostvars | dict2items | selectattr('value.kafka_cluster', 'defined')
@@ -84,6 +90,7 @@
       - kafka_node_ids | unique | length == kafka_node_ids | length
       - kafka_controller_nodes | length > 0
       - kafka_broker_nodes | length > 0
+      - kafka_role_flags | unique | length == 1
       - kafka_rack_flags | unique | length == 1
       - (kafka_data | regex_search('^/[^\\s]+$')) is not none
       - kafka_data not in ['/', '/data', '/var', '/etc', '/opt', '/usr', '/home', '/root', '/pg']
@@ -91,9 +98,10 @@
       - kafka_parameters.keys() | select('match', '^(process.roles|node.id|controller.quorum\\..*|listeners|advertised.listeners|listener.security.protocol.map|inter.broker.listener.name|controller.listener.names|log.dirs|metadata.log.dir|min.insync.replicas|default.replication.factor|offsets.topic.replication.factor|transaction.state.log.replication.factor|transaction.state.log.min.isr|share.coordinator.state.topic.replication.factor|share.coordinator.state.topic.min.isr|broker.rack|authorizer.class.name|super.users|allow.everyone.if.no.acl.found|sasl\\..*|ssl\\..*|listener\\..*)$') | list | length == 0
     fail_msg: >-
       Invalid Kafka API or topology. Use an explicit -l selecting every member
-      of exactly one kafka_cluster; rack must be configured on all broker-capable
-      nodes or none; role-owned topology/listener/security/storage/replication
-      keys are reserved.
+      of exactly one kafka_cluster; kafka_role must be declared on every member
+      or omitted from every member; rack must be configured on all broker-capable
+      nodes or none; role-owned topology/listener/security/storage/replication keys
+      are reserved.
 
 #--------------------------------------------------------------#
 # Print Kafka Identity                            [kafka_print]

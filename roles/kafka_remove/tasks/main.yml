@@ -43,17 +43,16 @@
   loop: [ kafka_exporter, kafka ]
 
 #--------------------------------------------------------------#
-# Remove Config, Units & Helpers                  [kafka_config]
+# Remove Runtime Integration                     [kafka_config]
 #--------------------------------------------------------------#
-- name: remove kafka configuration, units, and helpers
+- name: remove kafka runtime integration
   when: not kafka_safeguard | bool
   tags: kafka_config
   ignore_errors: true
   block:
-    - name: remove kafka config, default env, unit, and helper files
+    - name: remove kafka exporter config, default env, units, and helpers
       file: path={{ item }} state=absent
       loop:
-        - /etc/kafka
         - /etc/kafka_exporter
         - /etc/default/kafka
         - /etc/default/kafka_exporter
@@ -65,15 +64,18 @@
       systemd: daemon_reload=yes
 
 #--------------------------------------------------------------#
-# Remove Kafka Data & Manifest                      [kafka_data]
+# Remove Kafka Data & Recovery State                 [kafka_data]
 #--------------------------------------------------------------#
-# the data dir is the cluster identity (the node manifest/secret copies under
-# /etc/kafka go with kafka_config): wiped only when kafka_rm_data is enabled
-- name: remove kafka data directory
+# /etc/kafka contains the node manifest and secret copies required to re-adopt
+# retained storage, so it follows the same explicit data-removal gate
+- name: remove kafka data and recovery state
   when: not kafka_safeguard | bool and kafka_rm_data | bool
   tags: kafka_data
   ignore_errors: true
-  file: path={{ kafka_data }} state=absent
+  file: path={{ item }} state=absent
+  loop:
+    - "{{ kafka_data }}"
+    - /etc/kafka
 
 #--------------------------------------------------------------#
 # Uninstall Kafka Packages                           [kafka_pkg]
