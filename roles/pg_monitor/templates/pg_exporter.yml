@@ -1,9 +1,9 @@
 ---
 #==============================================================#
 # Desc      :   pg_exporter metrics collector definition
-# Ver       :   PostgreSQL 10 ~ 18+ and pgbouncer 1.9~1.25+
+# Ver       :   PostgreSQL 10 ~ 19+ and pgbouncer 1.9~1.25+
 # Ctime     :   2019-12-09
-# Mtime     :   2025-12-30
+# Mtime     :   2026-07-20
 # Homepage  :   https://pigsty.io/docs/pg_exporter
 # Author    :   Ruohang Feng (rh@vonng.com)
 # License   :   Apache-2.0 @ https://github.com/pgsty/pg_exporter
@@ -407,7 +407,7 @@ pg_slot_17:
        CASE WHEN pg_is_in_recovery() THEN pg_last_wal_replay_lsn() ELSE pg_current_wal_lsn() END - restart_lsn AS retained_bytes,
        safe_wal_size, CASE wal_status WHEN 'reserved' THEN 0 WHEN 'extended' THEN 1 WHEN 'unreserved' THEN 2 WHEN 'lost' THEN 3 ELSE -1 END AS wal_status,
        spill_txns,spill_count,spill_bytes,stream_txns,stream_count,stream_bytes,total_txns,total_bytes,extract(EPOCH FROM stats_reset) AS reset_time,
-       extract(EPOCH FROM inactive_since) AS inactive_since, CASE invalidation_reason WHEN 'wal_removed' THEN 1 WHEN 'rows_removed' THEN 2 WHEN 'wal_level_insufficient' THEN 3 ELSE 0 END AS invalidation_reason 
+       extract(EPOCH FROM inactive_since) AS inactive_since, CASE invalidation_reason WHEN 'wal_removed' THEN 1 WHEN 'rows_removed' THEN 2 WHEN 'wal_level_insufficient' THEN 3 WHEN 'idle_timeout' THEN 4 ELSE 0 END AS invalidation_reason
     FROM pg_replication_slots s LEFT OUTER JOIN pg_stat_replication_slots ss ON s.slot_name = ss.slot_name;
 
   ttl: {{ ttl_norm }}
@@ -442,7 +442,7 @@ pg_slot_17:
     - total_txns:          { usage: COUNTER  ,description: Number of decoded xacts sent to the decoding output plugin for this slot }
     - total_bytes:         { usage: COUNTER  ,description: Number of decoded bytes sent to the decoding output plugin for this slot }
     - reset_time:          { usage: GAUGE    ,description: When statistics were last reset }
-    - invalidation_reason: { usage: GAUGE    ,description: ok=0, wal_removed=1, rows_removed=2, wal_level_insufficient=3 }
+    - invalidation_reason: { usage: GAUGE    ,description: "ok=0, wal_removed=1, rows_removed=2, wal_level_insufficient=3, idle_timeout=4" }
     - inactive_since:      { usage: GAUGE    ,description: The time when the slot became inactive }
 
 pg_slot_16:
@@ -603,9 +603,9 @@ pg_recv_13:
   query: |-
     SELECT 
       coalesce(sender_host, (regexp_match(conninfo, '.*host=(\S+).*'))[1]) AS sender_host, coalesce(sender_port::TEXT, (regexp_match(conninfo, '.*port=(\S+).*'))[1]) AS sender_port, coalesce(slot_name, 'NULL') AS slot_name,
-      pid, CASE status WHEN 'streaming' THEN 0 WHEN 'startup' THEN 1 WHEN 'catchup' THEN 2 WHEN 'backup' THEN 3 WHEN 'stopping' THEN 4 ELSE -1 END AS state,
+      pid, CASE status WHEN 'streaming' THEN 0 WHEN 'startup' THEN 1 WHEN 'catchup' THEN 2 WHEN 'backup' THEN 3 WHEN 'stopping' THEN 4 WHEN 'connecting' THEN 5 ELSE -1 END AS state,
       receive_start_lsn - '0/0' AS init_lsn,receive_start_tli AS init_tli,
-      flushed_lsn - '0/0' AS flush_lsn,written_lsn - '0/0'AS write_lsn, received_tli AS flush_tli, latest_end_lsn - '0/0' AS reported_lsn,
+      flushed_lsn - '0/0' AS flush_lsn,written_lsn - '0/0' AS write_lsn, received_tli AS flush_tli, latest_end_lsn - '0/0' AS reported_lsn,
       last_msg_send_time AS msg_send_time,last_msg_receipt_time AS msg_recv_time,latest_end_time AS reported_time,now() AS time FROM pg_stat_wal_receiver;
 
   ttl: {{ ttl_norm }}
@@ -616,7 +616,7 @@ pg_recv_13:
     - sender_port:         { usage: LABEL   ,description: Port number of the PostgreSQL instance this WAL receiver is connected to. }
     - slot_name:           { usage: LABEL   ,description: Replication slot name used by this WAL receiver }
     - pid:                 { usage: GAUGE   ,description: Process ID of the WAL receiver process }
-    - state:               { usage: GAUGE   ,description: Encoded activity status of the WAL receiver process 0-4 for streaming|startup|catchup|backup|stopping }
+    - state:               { usage: GAUGE   ,description: Encoded activity status of the WAL receiver process 0-5 for streaming|startup|catchup|backup|stopping|connecting }
     - init_lsn:            { usage: COUNTER ,description: First write-ahead log location used when WAL receiver is started }
     - init_tli:            { usage: COUNTER ,description: First timeline number used when WAL receiver is started }
     - flush_lsn:           { usage: COUNTER ,description: Last write-ahead log location already received and flushed to disk }
@@ -694,9 +694,69 @@ pg_recv_10:
 #==============================================================#
 # 0260 pg_sub
 #==============================================================#
+pg_sub_19:
+  name: pg_sub
+  desc: PostgreSQL subscription statistics (19+)
+  query: |-
+    SELECT
+      s2.subname, s2.subid AS id, s1.pid, s1.received_lsn, s1.reported_lsn,
+      s1.msg_send_time, s1.msg_recv_time, s1.reported_time,
+      (s1.pid IS NOT NULL)::int AS has_worker,
+      coalesce(s2.apply_error_count, 0) AS apply_error_count,
+      coalesce(s2.sync_table_error_count, 0) AS sync_table_error_count,
+      coalesce(s2.sync_seq_error_count, 0) AS sync_seq_error_count,
+      coalesce(s2.sync_table_error_count, 0) + coalesce(s2.sync_seq_error_count, 0) AS sync_error_count,
+      coalesce(s2.confl_insert_exists, 0) AS confl_insert_exists,
+      coalesce(s2.confl_update_origin_differs, 0) AS confl_update_origin_differs,
+      coalesce(s2.confl_update_exists, 0) AS confl_update_exists,
+      coalesce(s2.confl_update_deleted, 0) AS confl_update_deleted,
+      coalesce(s2.confl_update_missing, 0) AS confl_update_missing,
+      coalesce(s2.confl_delete_origin_differs, 0) AS confl_delete_origin_differs,
+      coalesce(s2.confl_delete_missing, 0) AS confl_delete_missing,
+      coalesce(s2.confl_multiple_unique_conflicts, 0) AS confl_multiple_unique_conflicts,
+      extract(EPOCH FROM s2.stats_reset) AS reset_time
+    FROM pg_stat_subscription_stats s2
+    LEFT OUTER JOIN
+      (SELECT
+        subname, subid, pid,
+        received_lsn - '0/0' AS received_lsn, latest_end_lsn - '0/0' AS reported_lsn,
+        extract(epoch from last_msg_send_time) AS msg_send_time,
+        extract(epoch from last_msg_receipt_time) AS msg_recv_time,
+        extract(epoch from latest_end_time) AS reported_time
+      FROM pg_stat_subscription
+      WHERE relid IS NULL AND leader_pid IS NULL AND coalesce(worker_type, 'apply') = 'apply') s1
+    USING(subid);
+
+  ttl: {{ ttl_norm }}
+  min_version: 190000
+  tags: [ cluster ]
+  metrics:
+    - subname:                 { usage: LABEL   ,description: Name of this subscription }
+    - id:                      { usage: GAUGE   ,description: OID of the subscription }
+    - pid:                     { usage: GAUGE   ,description: Process ID of the subscription leader apply worker }
+    - has_worker:              { usage: GAUGE   ,description: "1 if a leader apply worker row exists in pg_stat_subscription, otherwise 0" }
+    - received_lsn:            { usage: COUNTER ,description: Last write-ahead log location received }
+    - reported_lsn:            { usage: COUNTER ,description: Last write-ahead log location reported to origin WAL sender }
+    - msg_send_time:           { usage: GAUGE   ,description: Send time of last message received from origin WAL sender }
+    - msg_recv_time:           { usage: GAUGE   ,description: Receipt time of last message received from origin WAL sender }
+    - reported_time:           { usage: GAUGE   ,description: Time of last write-ahead log location reported to origin WAL sender }
+    - apply_error_count:       { usage: COUNTER ,description: Number of times an error occurred while applying changes }
+    - sync_table_error_count:  { usage: COUNTER ,description: Number of times an error occurred during the initial table synchronization }
+    - sync_seq_error_count:    { usage: COUNTER ,description: Number of times an error occurred during sequence synchronization }
+    - sync_error_count:        { usage: COUNTER ,description: Sum of sync_table_error_count and sync_seq_error_count. Drop-in replacement for the PG16-18 sync_error_count metric; on PG19+ it also includes sequence-sync errors }
+    - confl_insert_exists:     { usage: COUNTER ,description: Number of insert_exists conflicts while applying changes }
+    - confl_update_origin_differs: { usage: COUNTER ,description: Number of update_origin_differs conflicts while applying changes }
+    - confl_update_exists:     { usage: COUNTER ,description: Number of update_exists conflicts while applying changes }
+    - confl_update_deleted:    { usage: COUNTER ,description: Number of update_deleted conflicts while applying changes }
+    - confl_update_missing:    { usage: COUNTER ,description: Number of update_missing conflicts while applying changes }
+    - confl_delete_origin_differs: { usage: COUNTER ,description: Number of delete_origin_differs conflicts while applying changes }
+    - confl_delete_missing:    { usage: COUNTER ,description: Number of delete_missing conflicts while applying changes }
+    - confl_multiple_unique_conflicts: { usage: COUNTER ,description: Number of multiple_unique_conflicts conflicts while applying changes }
+    - reset_time:              { usage: GAUGE   ,description: Time at which these subscription statistics were last reset }
+
 pg_sub_16:
   name: pg_sub
-  desc: PostgreSQL subscription statistics (16+)
+  desc: PostgreSQL subscription statistics (16-18)
   query: |-
     SELECT 
       s1.subname, subid AS id, pid, received_lsn, reported_lsn,
@@ -715,6 +775,7 @@ pg_sub_16:
 
   ttl: {{ ttl_norm }}
   min_version: 160000
+  max_version: 190000
   tags: [ cluster ]
   metrics:
     - subname:             { usage: LABEL   ,description: Name of this subscription }
@@ -1150,7 +1211,36 @@ pg_recovery_prefetch:
 
 
 #==============================================================#
-# 0370 pg_slru
+# 0370 pg_recovery_state
+#==============================================================#
+pg_recovery_state:
+  name: pg_recovery_state
+  desc: PostgreSQL recovery state metrics from pg_stat_recovery (19+)
+  query: |-
+    SELECT promote_triggered,
+      last_replayed_read_lsn - '0/0' AS last_replayed_read_lsn, last_replayed_end_lsn - '0/0' AS last_replayed_end_lsn,
+      last_replayed_tli, replay_end_lsn - '0/0' AS replay_end_lsn, replay_end_tli,
+      extract(EPOCH FROM recovery_last_xact_time) AS recovery_last_xact_time,
+      extract(EPOCH FROM current_chunk_start_time) AS current_chunk_start_time,
+      CASE pause_state WHEN 'not paused' THEN 0 WHEN 'pause requested' THEN 1 WHEN 'paused' THEN 2 ELSE NULL END AS pause_state
+    FROM pg_stat_recovery;
+  ttl: {{ ttl_norm }}
+  min_version: 190000
+  tags: [ cluster, replica ]
+  metrics:
+    - promote_triggered:        { usage: GAUGE   ,description: True if a promotion has been triggered }
+    - last_replayed_read_lsn:   { usage: COUNTER ,description: Start WAL location of the last successfully replayed WAL record }
+    - last_replayed_end_lsn:    { usage: COUNTER ,description: End WAL location of the last successfully replayed WAL record }
+    - last_replayed_tli:        { usage: GAUGE   ,description: Timeline of the last successfully replayed WAL record }
+    - replay_end_lsn:           { usage: COUNTER ,description: End-plus-one WAL location of the record currently being replayed }
+    - replay_end_tli:           { usage: GAUGE   ,description: Timeline of the WAL record currently being replayed }
+    - recovery_last_xact_time:  { usage: GAUGE   ,description: Unix epoch time of the last transaction commit or abort replayed during recovery }
+    - current_chunk_start_time: { usage: GAUGE   ,description: Unix epoch time when startup observed replay caught up with the latest received WAL chunk }
+    - pause_state:              { usage: GAUGE   ,description: "Recovery pause state encoded as 0 not paused, 1 pause requested, 2 paused" }
+
+
+#==============================================================#
+# 0380 pg_slru
 #==============================================================#
 pg_slru_13:
   name: pg_slru
@@ -1172,7 +1262,7 @@ pg_slru_13:
 
 
 #==============================================================#
-# 0380 pg_shmem
+# 0390 pg_shmem
 #==============================================================#
 # pg_shmem require su privilege to work. Disable it or create auxiliary function with su before use:
 # CREATE OR REPLACE FUNCTION monitor.pg_shmem() RETURNS SETOF pg_shmem_allocations AS $$ SELECT * FROM pg_shmem_allocations;$$ LANGUAGE SQL SECURITY DEFINER;
@@ -1192,9 +1282,24 @@ pg_shmem:
 
 
 #==============================================================#
-# 0390 pg_wal
+# 0400 pg_wal
 #==============================================================#
 # some metrics are moving to pg_stat_io
+pg_wal_19:
+  name: pg_wal
+  desc: PostgreSQL WAL statistics since v19
+  query: SELECT wal_records AS records, wal_fpi AS fpi, wal_bytes AS bytes, wal_fpi_bytes AS fpi_bytes, wal_buffers_full AS buffers_full, extract(EPOCH FROM stats_reset) AS reset_time FROM pg_stat_wal;
+  ttl: {{ ttl_norm }}
+  tags: [ cluster ]
+  min_version: 190000
+  metrics:
+    - records:      { usage: COUNTER              ,description: Total number of WAL records generated }
+    - fpi:          { usage: COUNTER              ,description: Total number of WAL full page images generated }
+    - bytes:        { usage: COUNTER              ,description: Total amount of WAL generated in bytes }
+    - fpi_bytes:    { usage: COUNTER              ,description: Total amount of WAL full page images generated in bytes }
+    - buffers_full: { usage: COUNTER              ,description: Number of times WAL data was written to disk because WAL buffers became full }
+    - reset_time:   { usage: GAUGE                ,description: When statistics were last reset }
+
 pg_wal_18:
   name: pg_wal
   desc: PostgreSQL WAL statistics since v18 with some col removed
@@ -1202,6 +1307,7 @@ pg_wal_18:
   ttl: {{ ttl_norm }}
   tags: [ cluster ]
   min_version: 180000
+  max_version: 190000
   metrics:
     - records:      { usage: COUNTER              ,description: Total number of WAL records generated }
     - fpi:          { usage: COUNTER              ,description: Total number of WAL full page images generated }
@@ -1301,7 +1407,33 @@ pg_xact:
 
 
 #==============================================================#
-# 0450 pg_lock
+# 0450 pg_xact_age
+#==============================================================#
+pg_xact_age:
+  name: pg_xact_age
+  desc: PostgreSQL open transaction age snapshot histograms by database
+  query: |-
+    SELECT datname,
+           greatest(0, extract(epoch FROM now() - xact_start)) AS seconds,
+           CASE WHEN state LIKE 'idle in transaction%' THEN greatest(0, extract(epoch FROM now() - xact_start)) END AS idle_seconds
+    FROM pg_stat_activity WHERE pid <> pg_backend_pid() AND backend_type = 'client backend' AND datname IS NOT NULL AND xact_start IS NOT NULL;
+  ttl: {{ ttl_norm }}
+  min_version: 100000
+  tags: [ cluster ]
+  metrics:
+    - datname:      { usage: LABEL     ,description: Name of the database this backend is connected to }
+    # 1-3-10 log grid from 1s to ~28h; sub-second ages are sampling noise for snapshots.
+    # seconds covers every open transaction, including implicit autocommit ones in
+    # flight, so _count is the current open-transaction count; low buckets absorb
+    # that healthy churn.
+    - seconds:      { usage: HISTOGRAM ,bucket: [1, 3, 10, 30, 100, 300, 1000, 3000, 10000, 30000, 100000] ,description: Open transaction age snapshot in seconds }
+    # idle_seconds covers the idle-in-transaction subset; capped at 3000s (~50min)
+    # since anything older is uniformly critical and lands in +Inf.
+    - idle_seconds: { usage: HISTOGRAM ,bucket: [1, 3, 10, 30, 100, 300, 1000, 3000] ,description: Idle-in-transaction age snapshot in seconds }
+
+
+#==============================================================#
+# 0460 pg_lock
 #==============================================================#
 pg_lock:
   name: pg_lock
@@ -1320,7 +1452,25 @@ pg_lock:
 
 
 #==============================================================#
-# 0460 pg_query
+# 0470 pg_lock_stat
+#==============================================================#
+pg_lock_stat:
+  name: pg_lock_stat
+  desc: PostgreSQL cluster-wide lock statistics by lock type (19+)
+  query: |-
+    SELECT locktype, waits, wait_time, fastpath_exceeded FROM pg_stat_lock;
+  ttl: {{ ttl_norm }}
+  min_version: 190000
+  tags: [ cluster ]
+  metrics:
+    - locktype:          { usage: LABEL   ,description: Type of the lockable object }
+    - waits:             { usage: COUNTER ,description: Number of times a lock of this type was acquired after waiting longer than deadlock_timeout because of a conflicting lock }
+    - wait_time:         { usage: COUNTER ,scale: 1e-3 ,description: "Total time spent waiting for locks of this type in seconds, only counting waits longer than deadlock_timeout (scaled from PG milliseconds)" }
+    - fastpath_exceeded: { usage: COUNTER ,description: Number of times a lock of this type could not be acquired via fast path because the slot limit was exceeded }
+
+
+#==============================================================#
+# 0480 pg_query
 #==============================================================#
 pg_query_17:
   name: pg_query
@@ -1501,7 +1651,7 @@ pg_indexing:
 pg_clustering:
   name: pg_clustering
   desc: PostgreSQL cluster or vacuum full progress (v12+)
-  query: SELECT datname, pid, relid::RegClass AS relname, param4 AS tup_scan, CASE WHEN param6 > 0 THEN 1.0 * param7 / param6 ELSE 0 END AS progress FROM pg_stat_get_progress_info('cluster') s LEFT JOIN pg_database d ON s.datid = d.oid;
+  query: SELECT datname, pid, relid::RegClass AS relname, heap_tuples_scanned AS tup_scan, CASE WHEN heap_blks_total > 0 THEN 1.0 * heap_blks_scanned / heap_blks_total ELSE 0 END AS progress FROM pg_stat_progress_cluster;
   ttl: {{ ttl_norm }}
   min_version: 120000
   tags: [ cluster, primary ]
@@ -1733,7 +1883,7 @@ pg_db_10:
 pg_db_confl_16:
   name: pg_db_confl
   desc: PostgreSQL database conflicts metrics for PG16+
-  query: SELECT * FROM pg_stat_database_conflicts;
+  query: SELECT datid, datname, confl_tablespace, confl_lock, confl_snapshot, confl_bufferpin, confl_deadlock, confl_active_logicalslot FROM pg_stat_database_conflicts;
   ttl: {{ ttl_norm }}
   min_version: 160000
   tags: [ cluster, replica ]
@@ -1750,7 +1900,7 @@ pg_db_confl_16:
 pg_db_confl_15:
   name: pg_db_confl
   desc: PostgreSQL database conflicts metrics for pg 9.1 - 15
-  query: SELECT * FROM pg_stat_database_conflicts;
+  query: SELECT datid, datname, confl_tablespace, confl_lock, confl_snapshot, confl_bufferpin, confl_deadlock FROM pg_stat_database_conflicts;
   ttl: {{ ttl_norm }}
   min_version: 90100
   max_version: 160000
@@ -1794,6 +1944,45 @@ pg_subrel:
     - subname:              { usage: LABEL  ,description: Name of the subscription }
     - state:                { usage: LABEL  ,description: State of table in subscription, i=initialize, d=data copy, s=sync, r=ready }
     - count:                { usage: GAUGE  ,description: Count of relation in this subscription and corresponding state }
+
+
+#==============================================================#
+# 0660 pg_vacuum_score
+#==============================================================#
+pg_vacuum_score:
+  name: pg_vacuum_score
+  desc: PostgreSQL current database autovacuum score summary from pg_stat_autovacuum_scores (19+)
+  query: |-
+    SELECT CURRENT_CATALOG AS datname,
+      COALESCE(max(score), 0) AS max_score,
+      COALESCE(max(xid_score), 0) AS max_xid_score,
+      COALESCE(max(mxid_score), 0) AS max_mxid_score,
+      COALESCE(max(vacuum_score), 0) AS max_vacuum_score,
+      COALESCE(max(vacuum_insert_score), 0) AS max_vacuum_insert_score,
+      COALESCE(max(analyze_score), 0) AS max_analyze_score,
+      count(*) AS table_count,
+      count(*) FILTER (WHERE do_vacuum OR do_analyze) AS candidate_count,
+      count(*) FILTER (WHERE do_vacuum) AS vacuum_candidate_count,
+      count(*) FILTER (WHERE do_analyze) AS analyze_candidate_count,
+      count(*) FILTER (WHERE for_wraparound) AS wraparound_candidate_count
+    FROM pg_stat_autovacuum_scores;
+  ttl: {{ ttl_norm }}
+  timeout: 1
+  min_version: 190000
+  tags: [ primary ]
+  metrics:
+    - datname:                    { usage: LABEL ,description: Name of the current database }
+    - max_score:                  { usage: GAUGE ,description: Maximum autovacuum priority score across tables in the current database }
+    - max_xid_score:              { usage: GAUGE ,description: Maximum transaction ID age component score across tables in the current database }
+    - max_mxid_score:             { usage: GAUGE ,description: Maximum multixact ID age component score across tables in the current database }
+    - max_vacuum_score:           { usage: GAUGE ,description: Maximum vacuum component score across tables in the current database }
+    - max_vacuum_insert_score:    { usage: GAUGE ,description: Maximum vacuum insert component score across tables in the current database }
+    - max_analyze_score:          { usage: GAUGE ,description: Maximum analyze component score across tables in the current database }
+    - table_count:                { usage: GAUGE ,description: "Number of tables represented in pg_stat_autovacuum_scores for the current database, including TOAST tables" }
+    - candidate_count:            { usage: GAUGE ,description: Number of tables that autovacuum would vacuum or analyze at query time }
+    - vacuum_candidate_count:     { usage: GAUGE ,description: Number of tables that autovacuum would vacuum at query time }
+    - analyze_candidate_count:    { usage: GAUGE ,description: Number of tables that autovacuum would analyze at query time }
+    - wraparound_candidate_count: { usage: GAUGE ,description: Number of tables that autovacuum would vacuum for wraparound prevention at query time }
 
 
 #==============================================================#
