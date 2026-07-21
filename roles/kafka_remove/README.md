@@ -31,7 +31,7 @@ Steps:
 |-------------------|---------------|----------------------------------------------------------|
 | `kafka_safeguard` | `false`       | prevent purging a running kafka cluster when `true`      |
 | `kafka_rm_data`   | `true`        | remove data dir and `/etc/kafka` recovery state          |
-| `kafka_rm_pkg`    | `false`       | uninstall kafka & kafka_exporter packages during removal |
+| `kafka_rm_pkg`    | `false`       | uninstall kafka & kafka-exporter packages during removal |
 | `kafka_data`      | `/data/kafka` | kafka data directory (must match the `kafka` role)       |
 
 

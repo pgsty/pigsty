@@ -1512,7 +1512,7 @@ INSERT INTO pigsty.default_var VALUES
 (733, 'redis_sentinel_monitor', '[]', 'REDIS', 'REDIS', 'master[]', 'C', 'sentinel master list, works on sentinel cluster only', NULL),
 (750, 'redis_safeguard', 'false', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'prevent purging running redis instance?', NULL),
 (751, 'redis_rm_data', 'true', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'remove redis data dir? (/data/redis/...)', NULL),
-(752, 'redis_rm_pkg', 'false', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'uninstall redis & redis_exporter packages?', NULL),
+(752, 'redis_rm_pkg', 'false', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'uninstall redis & redis-exporter packages?', NULL),
 
 -- PGSQL PARAMETERS
 (801, 'pg_mode', '"pgsql"', 'PGSQL', 'PG_ID', 'enum', 'C', 'pgsql cluster mode: pgsql,citus,gpsql,mssql,mysql,ivory,polar', NULL),

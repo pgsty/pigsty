@@ -115,7 +115,7 @@ Override with:
 | Monitoring   | `/infra/targets/redis/<cluster>-<node>.yml` |
 | Logging      | `/etc/vector/redis.yaml`                    |
 | Data         | `redis_fs_main` (default `/data/redis/`; legacy `redis_fs_main=/data` is compat-mapped to `/data/redis`) |
-| Packages     | `redis`, `redis_exporter` (if enabled)      |
+| Packages     | `redis`, `redis-exporter` (if enabled)      |
 
 
 ## See Also
