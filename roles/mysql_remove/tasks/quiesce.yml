@@ -1,0 +1,20 @@
+---
+#--------------------------------------------------------------#
+# Quiesce MySQL access                        [mysql_rm_quiesce]
+#--------------------------------------------------------------#
+- name: check mysql backup idle
+  tags: [ mysql_rm_quiesce, mysql_backup ]
+  assert:
+    that: not mysql_rm_backup_service_active | bool
+    fail_msg: mysql removal is blocked while mysql-backup.service is running.
+
+- name: stop mysql router
+  tags: [ mysql_rm_quiesce, mysql_access, mysql_router ]
+  when: mysql_rm_router_loaded | bool
+  systemd: name={{ mysql_router_service }} state=stopped enabled=no daemon_reload=yes
+
+- name: stop mysql backup timer
+  tags: [ mysql_rm_quiesce, mysql_backup ]
+  when: mysql_rm_backup_timer_loaded | bool
+  systemd: name={{ mysql_backup_timer }} state=stopped enabled=no daemon_reload=yes
+...

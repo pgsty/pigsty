@@ -1,0 +1,84 @@
+// Managed by Pigsty. Remove one healthy SECONDARY without force or data loss.
+shell.options.useWizards = false;
+
+function secret(path) {
+  return os.loadTextFile(path).replace(/[\r\n]+$/, "");
+}
+
+const clusterName = {{ mysql_cluster | to_json }};
+const adminUser = {{ mysql_cluster_username | to_json }};
+const adminPassword = secret({{ mysql_cluster_password_file | to_json }});
+const caFile = {{ mysql_tls_ca | to_json }};
+const port = 3306;
+const target = {{ mysql_local_address | to_json }};
+const members = [
+{% for host in groups[mysql_cluster] | sort %}
+  {{ host | to_json }}{% if not loop.last %},{% endif %}
+{% endfor %}
+];
+
+function endpoint(host) { return host + ":" + port; }
+function connection(host) {
+  return {
+    scheme: "mysql", user: adminUser, password: adminPassword,
+    host: host, port: port, "ssl-mode": "VERIFY_CA", "ssl-ca": caFile
+  };
+}
+function topology(cluster) {
+  const status = cluster.status({extended: 1});
+  if (!status.defaultReplicaSet || !status.defaultReplicaSet.topology) {
+    throw new Error("cluster metadata or quorum is unavailable");
+  }
+  return status.defaultReplicaSet.topology;
+}
+
+const candidates = members.filter(host => host !== target).concat([target]);
+let cluster;
+for (let i = 0; i < candidates.length && !cluster; i += 1) {
+  try {
+    shell.setSession(mysql.getSession(connection(candidates[i])));
+    cluster = dba.getCluster(clusterName);
+  } catch (ignored) {}
+}
+if (!cluster) { throw new Error("no declared member exposes the expected cluster"); }
+
+const before = topology(cluster);
+const expected = members.map(endpoint).sort();
+const discovered = Object.keys(before).sort();
+const targetKey = endpoint(target);
+const remaining = expected.filter(key => key !== targetKey);
+const primary = discovered.filter(function (key) {
+  return before[key].status === "ONLINE" && before[key].memberRole === "PRIMARY";
+});
+const secondaries = discovered.filter(function (key) {
+  return before[key].status === "ONLINE" && before[key].memberRole === "SECONDARY";
+});
+const resumed = JSON.stringify(discovered) === JSON.stringify(remaining);
+
+if (resumed) {
+  if (primary.length !== 1 || secondaries.length !== 1) {
+    throw new Error("detached-member resume requires one ONLINE PRIMARY and one ONLINE SECONDARY");
+  }
+} else {
+  if (JSON.stringify(discovered) !== JSON.stringify(expected)) {
+    throw new Error("cluster metadata does not exactly match the declared members");
+  }
+  if (primary.length !== 1 || secondaries.length !== 2 ||
+      !before[targetKey] || before[targetKey].status !== "ONLINE" ||
+      before[targetKey].memberRole !== "SECONDARY") {
+    throw new Error("removal requires one ONLINE PRIMARY, two ONLINE SECONDARY members, and a SECONDARY target");
+  }
+
+  const primaryHost = primary[0].slice(0, primary[0].lastIndexOf(":"));
+  const primarySession = mysql.getSession(connection(primaryHost));
+  shell.setSession(primarySession);
+  cluster = dba.getCluster(clusterName);
+  cluster.removeInstance(connection(target), {force: false, timeout: 60});
+
+  const after = topology(cluster);
+  if (JSON.stringify(Object.keys(after).sort()) !== JSON.stringify(remaining)) {
+    throw new Error("target remains in cluster metadata after removeInstance");
+  }
+  primarySession.close();
+}
+print(JSON.stringify({pigstyRemoved: true, resumed: resumed, cluster: clusterName, instance: targetKey}));

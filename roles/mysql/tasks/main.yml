@@ -1,0 +1,45 @@
+---
+#--------------------------------------------------------------#
+# MYSQL
+#--------------------------------------------------------------#
+# Fixed MySQL 8.4 platform: check, install, bootstrap, access, provision,
+# backup, and monitor. Destructive retirement lives in mysql_remove.
+- import_tasks: check.yml
+  tags: [ always, mysql_check ]
+
+- import_tasks: install.yml
+  tags: mysql_install
+
+- import_tasks: cert.yml
+  tags: [ mysql_bootstrap, mysql_cert ]
+
+- import_tasks: config.yml
+  tags: [ mysql_bootstrap, mysql_config ]
+
+- import_tasks: launch.yml
+  tags: [ mysql_bootstrap, mysql_launch ]
+
+- import_tasks: cluster.yml
+  when: mysql_is_ha | bool
+  tags: [ mysql_bootstrap, mysql_cluster ]
+
+- import_tasks: router.yml
+  tags: [ mysql_access, mysql_router ]
+
+- import_tasks: provision.yml
+  tags: mysql_provision
+
+- import_tasks: backup.yml
+  tags: mysql_backup
+
+- import_tasks: monitor.yml
+  tags: [ mysql_monitor, monitor ]
+
+- name: mysql init done
+  tags: mysql_done
+  connection: local
+  debug:
+    msg: >-
+      mysql://{{ mysql_local_address }}:3306 | {{ mysql_instance }} | {{ mysql_topology }}{% if mysql_is_ha | bool %}
+      | router={{ mysql_local_address }}:6446/6447{% endif %}
+...

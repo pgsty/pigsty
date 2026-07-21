@@ -1,0 +1,130 @@
+---
+#--------------------------------------------------------------#
+# MySQL Identity & Contract                         [mysql_check]
+#--------------------------------------------------------------#
+- name: check mysql identity
+  assert:
+    that:
+      - mysql_cluster is defined and mysql_cluster is match('^[A-Za-z0-9_][A-Za-z0-9_.-]{0,62}$')
+      - mysql_cluster in groups and inventory_hostname in groups[mysql_cluster]
+      - groups[mysql_cluster] | length in [1, 3]
+      - mysql_seq is defined and mysql_seq | int in [1, 2, 3]
+      - groups[mysql_cluster] | map('extract', hostvars, 'mysql_seq') | map('int') | sort == range(1, groups[mysql_cluster] | length + 1) | list
+      - groups[mysql_cluster] | difference(ansible_play_hosts_all) | length == 0
+      - groups[mysql_cluster] | select('match', '^[A-Za-z0-9_.-]+$') | list | length == groups[mysql_cluster] | length
+      - >-
+        (os_arch == 'x86_64' and ((os_package == 'rpm' and os_version | int in [8,9,10]) or
+        (os_package == 'deb' and os_version | int in [12,13,22,24]))) or
+        (os_arch == 'aarch64' and os_package == 'rpm' and os_version | int in [9,10])
+    fail_msg: >-
+      MySQL requires one complete 1-node or 3-node cluster with sequential
+      mysql_seq values and an admitted native-package platform.
+
+- name: check mysql credentials and backup
+  no_log: true
+  assert:
+    that:
+      - mysql_root_password | string | length > 0 and (mysql_root_password | string) is not search('[\r\n]') and mysql_root_password | string is not match('^CHANGE_ME')
+      - mysql_monitor_password | string | length > 0 and (mysql_monitor_password | string) is not search('[\r\n]') and mysql_monitor_password | string is not match('^CHANGE_ME')
+      - mysql_cluster_password | string | length > 0 and (mysql_cluster_password | string) is not search('[\r\n]') and mysql_cluster_password | string is not match('^CHANGE_ME')
+      - mysql_databases | type_debug == 'list' and mysql_users | type_debug == 'list'
+      - mysql_backup_method | default('local') == 'local' and mysql_backup_repo is mapping
+      - mysql_backup_repo.get('local', {}).get('path', '') is match('^/[^\r\n]+$')
+      - mysql_backup_repo.get('local', {}).get('retention', '') | string is match('^[1-9][0-9]{0,3}$')
+    fail_msg: MySQL credentials, business declarations, or backup settings are invalid.
+
+- name: check mysql databases
+  assert:
+    that:
+      - item is mapping
+      - item.keys() | difference(['name','encoding','collate','encrypt']) | length == 0
+      - item.name is match('^[A-Za-z0-9_$-]+$')
+      - item.name | lower not in ['mysql','information_schema','performance_schema','sys']
+      - item.encoding | default('utf8mb4') is match('^[A-Za-z0-9_]+$')
+      - item.collate | default('utf8mb4_0900_ai_ci') is match('^[A-Za-z0-9_]+$')
+      - item.encrypt is not defined or item.encrypt | type_debug == 'bool'
+    fail_msg: Invalid mysql_databases item.
+  loop: "{{ mysql_databases }}"
+
+- name: check mysql users
+  no_log: true
+  assert:
+    that:
+      - item is mapping
+      - item.keys() | difference(['name','host','password','connlimit','priv']) | length == 0
+      - item.name is match('^[A-Za-z0-9_.$-]+$')
+      - item.name not in ['root', mysql_monitor_username, mysql_cluster_username, mysql_backup_username]
+      - item.host | default('%') is match('^[A-Za-z0-9_.:%-]+$')
+      - item.password is defined and item.password | string | length > 0 and (item.password | string) is not search('[\r\n]')
+      - item.connlimit | default(0) | string is match('^[0-9]+$')
+      - item.priv | default({}) is mapping
+      - item.priv | default({}) | dict2items | rejectattr('key', 'match', '^[A-Za-z0-9_$*-]+\.[A-Za-z0-9_$*-]+$') | list | length == 0
+      - item.priv | default({}) | dict2items | rejectattr('value', 'match', '^[A-Za-z_ ,]+$') | list | length == 0
+    fail_msg: Invalid mysql_users item.
+  loop: "{{ mysql_users }}"
+
+#--------------------------------------------------------------#
+# Existing State                                    [mysql_check]
+#--------------------------------------------------------------#
+- name: inspect mysql lifecycle state
+  stat: { path: "{{ item }}", follow: false, get_attributes: false, get_checksum: false, get_mime: false }
+  loop: [ "{{ mysql_data }}/mysql", "{{ mysql_initialized_marker }}", "{{ mysql_data }}/.pigsty-mysql-retired", /usr/sbin/mysqld, /etc/pki/ca.crt, "{{ mysql_cluster_password_file }}", "{{ mysql_data }}" ]
+  register: mysql_state
+
+- name: derive mysql lifecycle state
+  set_fact:
+    mysql_preinstall_system_database: "{{ mysql_state.results[0] }}"
+    mysql_preinstall_owned_marker: "{{ mysql_state.results[1] }}"
+    mysql_server_binary: "{{ mysql_state.results[3] }}"
+    mysql_node_ca: "{{ mysql_state.results[4] }}"
+    mysql_cluster_password_state: "{{ mysql_state.results[5] }}"
+    mysql_datadir_state: "{{ mysql_state.results[6] }}"
+    mysql_preinstall_bootstrap_incomplete: "{{ mysql_state.results[0].stat.exists and not mysql_state.results[5].stat.exists }}"
+
+- name: check mysql lifecycle guards
+  assert:
+    that:
+      - not mysql_state.results[2].stat.exists
+      - mysql_node_ca.stat.exists and mysql_node_ca.stat.isreg and not mysql_node_ca.stat.islnk
+      - not mysql_datadir_state.stat.exists or (mysql_datadir_state.stat.isdir and not mysql_datadir_state.stat.islnk)
+      - not mysql_preinstall_system_database.stat.exists or (mysql_preinstall_owned_marker.stat.exists and mysql_preinstall_owned_marker.stat.isreg)
+      - not mysql_cluster_password_state.stat.exists or (mysql_cluster_password_state.stat.isreg and not mysql_cluster_password_state.stat.islnk and mysql_cluster_password_state.stat.pw_name == 'root' and mysql_cluster_password_state.stat.gr_name == 'root' and mysql_cluster_password_state.stat.mode == '0600')
+    fail_msg: MySQL requires node_ca, protected secrets, no retirement guard, and a Pigsty-owned datadir.
+
+- name: read mysql datadir identity
+  when: mysql_preinstall_system_database.stat.exists
+  slurp: { src: "{{ mysql_initialized_marker }}" }
+  register: mysql_owned_marker_raw
+  no_log: true
+
+- name: check mysql datadir identity
+  when: mysql_preinstall_system_database.stat.exists
+  assert:
+    that: mysql_owned_marker_raw.content | b64decode | from_json in [mysql_initialized_marker_identity, mysql_initialized_marker_legacy_identity]
+    fail_msg: Existing MySQL data belongs to another Pigsty cluster, instance, or topology.
+  no_log: true
+
+- name: read existing mysql cluster password
+  when: mysql_is_ha | bool and mysql_preinstall_system_database.stat.exists and mysql_cluster_password_state.stat.exists
+  slurp: { src: "{{ mysql_cluster_password_file }}" }
+  register: mysql_existing_cluster_password
+  no_log: true
+
+- name: reject implicit mysql cluster password rotation
+  when: mysql_is_ha | bool and mysql_preinstall_system_database.stat.exists and mysql_cluster_password_state.stat.exists
+  assert:
+    that: (mysql_existing_cluster_password.content | b64decode | regex_replace('[\r\n]+$', '')) == (mysql_cluster_password | string)
+    fail_msg: mysql_cluster_password cannot be rotated by ordinary reconciliation; restore the existing secret or use a dedicated rotation procedure.
+    quiet: true
+
+- name: inspect existing mysql version
+  when: mysql_server_binary.stat.exists
+  command: /usr/sbin/mysqld --version
+  register: mysql_existing_version
+  changed_when: false
+  check_mode: false
+
+- name: check existing mysql version
+  when: mysql_server_binary.stat.exists
+  assert: { that: "mysql_existing_version.stdout is search('8\\.4\\.')", fail_msg: "Pigsty MySQL is fixed to native 8.4." }
+...

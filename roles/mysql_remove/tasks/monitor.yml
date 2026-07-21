@@ -1,0 +1,15 @@
+---
+#--------------------------------------------------------------#
+# Deregister MySQL                            [mysql_deregister]
+#--------------------------------------------------------------#
+- name: stop mysqld exporter
+  tags: [ mysql_monitor, mysql_exporter ]
+  when: mysql_rm_exporter_loaded | bool
+  systemd: name={{ mysql_exporter_service }} state=stopped enabled=no daemon_reload=yes
+
+- name: remove mysql victoria targets
+  tags: [ mysql_deregister, deregister, rm_metrics ]
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['infra'] | default([]) }}"
+  file: path=/infra/targets/mysql/{{ mysql_instance }}.yml state=absent
+...

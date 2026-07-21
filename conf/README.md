@@ -35,6 +35,7 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c vibe             # 1-node vibe coding devbox
 ./configure -c infra            # 1-node Infra only config template
 ./configure -c docker           # 1-node docker coding environment
+./configure -c demo/mysql       # Experimental MySQL 8.4 standalone + 3-node InnoDB Cluster
 ```
 
 Pigsty will use the `meta.yml` single node config template if you do not specify a conf.
@@ -118,6 +119,7 @@ In addition to the main templates, Pigsty provides a set of demo templates for d
 * [demo/saas.yml](demo/saas.yml) : feature-rich 1-node template with all extensions.
 * [demo/wool.yml](demo/wool.yml) : low-cost Aliyun ECS demo template.
 * [demo/demo.yml](demo/demo.yml) : config file for the pigsty [public demo](https://demo.pigsty.io)
+* [demo/mysql.yml](demo/mysql.yml) : experimental MySQL 8.4 standalone + 3-node InnoDB Cluster example
 
 ----------
 

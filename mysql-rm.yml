@@ -1,0 +1,55 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   mysql-rm.yml
+# Desc      :   detach mysql instance/cluster from pigsty
+# Ctime     :   2026-07-17
+# Mtime     :   2026-07-19
+# Path      :   mysql-rm.yml
+# Docs      :   https://pigsty.io/docs/pilot/mysql
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: MYSQL REMOVE
+  become: true
+  hosts: all
+  gather_facts: no
+  any_errors_fatal: true
+  roles:
+    - { role: node_id      ,tags: [id,node-id] } # get node identity (always)
+    - { role: mysql_remove ,tags: mysql_remove } # detach mysql instance/cluster
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+#  Preview one exact SECONDARY replacement/removal:
+#    ./mysql-rm.yml -l <instance> --check \
+#      -e mysql_safeguard=false -e mysql_rm_confirm=<instance>
+#
+#  Remove one exact ONLINE SECONDARY from InnoDB Cluster:
+#    ./mysql-rm.yml -l <instance> \
+#      -e mysql_safeguard=false -e mysql_rm_confirm=<instance>
+#
+#  Stop and deregister one whole standalone/HA cluster:
+#    ./mysql-rm.yml -l <cluster> \
+#      -e mysql_safeguard=false -e mysql_rm_confirm=<cluster>
+#
+#  mysql-rm.yml writes a persistent retirement guard before stopping mysqld but
+#  never removes datadir, backup, configuration, certificate, package, metadata
+#  schema, or Router identity. Guard removal or destructive retirement uses a
+#  separately approved runbook with recent-backup verification and exact-name
+#  confirmation. A one-member HA removal is a same-address replacement workflow:
+#  Pigsty does not support a persistent two-member MySQL topology or address
+#  changes during ordinary replacement.
+#--------------------------------------------------------------#
+# Tasks
+#--------------------------------------------------------------#
+# mysql_rm_check      : validate identity, scope, safeguard, and runtime state
+# mysql_rm_quiesce    : stop Router ingress and the daily backup timer
+# mysql_rm_member     : remove one ONLINE SECONDARY with AdminAPI force=false
+# mysql_rm_service    : stop MySQL secondaries before the runtime primary
+# mysql_deregister    : stop exporter and remove VictoriaMetrics targets
+# mysql_rm_done       : report preserved local state and next action
+#--------------------------------------------------------------#
+...

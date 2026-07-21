@@ -1,0 +1,51 @@
+---
+#--------------------------------------------------------------#
+# Remove MySQL member                          [mysql_rm_member]
+#--------------------------------------------------------------#
+- name: render mysql remove script
+  tags: mysql_rm_member
+  when:
+    - mysql_rm_cluster_size | int == 3
+    - not mysql_rm_whole_cluster | bool
+  template: src=mysql-remove-member.js.j2 dest={{ mysql_remove_script }} owner=root group=root mode=0600
+
+- name: preview mysql member removal
+  tags: mysql_rm_member
+  when:
+    - ansible_check_mode
+    - mysql_rm_cluster_size | int == 3
+    - not mysql_rm_whole_cluster | bool
+  debug:
+    msg: >-
+      AdminAPI will {{ 'verify the already-detached' if mysql_rm_member_detached | bool else 'remove ONLINE SECONDARY' }}
+      {{ mysql_instance }} with force=false and protect its preserved datadir
+
+- name: remove mysql member
+  tags: mysql_rm_member
+  when:
+    - not ansible_check_mode
+    - mysql_rm_cluster_size | int == 3
+    - not mysql_rm_whole_cluster | bool
+  command: "{{ mysql_shell_binary }} --js --file {{ mysql_remove_script }}"
+  register: mysql_rm_member_result
+  changed_when: mysql_rm_member_result.stdout is search('"pigstyRemoved":true')
+  failed_when: >-
+    mysql_rm_member_result.rc != 0 or
+    '"pigstyRemoved":true' not in mysql_rm_member_result.stdout
+  no_log: true
+
+- name: verify mysql member removal
+  tags: mysql_rm_member
+  when:
+    - not ansible_check_mode
+    - mysql_rm_member_result.changed | default(false)
+  command: >-
+    mysql --defaults-extra-file={{ mysql_root_config }} --protocol=socket
+    --batch --raw --skip-column-names -e
+    "SELECT COUNT(*) FROM performance_schema.replication_group_members
+    WHERE MEMBER_ID=@@server_uuid AND MEMBER_STATE<>'OFFLINE'"
+  register: mysql_rm_member_verify
+  changed_when: false
+  failed_when: mysql_rm_member_verify.stdout | trim != '0'
+  no_log: true
+...

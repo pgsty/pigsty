@@ -1,0 +1,64 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   mysql.yml
+# Desc      :   reconcile native MySQL 8.4 LTS cluster/instance
+# Ctime     :   2026-07-16
+# Mtime     :   2026-07-19
+# Path      :   mysql.yml
+# Docs      :   https://pigsty.io/docs/pilot/mysql
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: MYSQL
+  become: true
+  hosts: all
+  gather_facts: no
+  any_errors_fatal: true
+  roles:
+    - { role: node_id ,tags: [id,node-id] ,when: mysql_cluster is defined and mysql_seq is defined } # get node identity
+    - { role: mysql   ,tags: mysql        ,when: mysql_cluster is defined and mysql_seq is defined } # reconcile mysql
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+#  Reconcile a complete standalone or HA cluster:
+#    ./mysql.yml -l <cluster> --check  # preview without service mutation
+#    ./mysql.yml -l <cluster>          # approved real run; 1 or 3 members
+#
+#  Replace one HA member:
+#    ./mysql-rm.yml -l <secondary> --check -e mysql_safeguard=false \
+#      -e mysql_rm_confirm=<secondary>
+#    ./mysql-rm.yml -l <secondary> -e mysql_safeguard=false \
+#      -e mysql_rm_confirm=<secondary> # explicit approval required
+#    # replace the machine at the same service address, then reconcile all 3 nodes
+#    ./mysql.yml -l <cluster> --check
+#    ./mysql.yml -l <cluster>
+#
+#  mysql_cluster and mysql_seq are required identity fields. mysql_seq is only
+#  the first-bootstrap order; primary/secondary state is always discovered at
+#  runtime. Ordinary reruns reconcile config, accounts, cluster, Router,
+#  backup, and monitoring without removing metadata or initialized data.
+#
+#  Repository prerequisite: node_repo_modules: node,infra,mysql
+#--------------------------------------------------------------#
+# Tasks
+#--------------------------------------------------------------#
+# mysql_check             : validate identity, platform, and lifecycle guards
+# mysql_install           : install fixed MySQL 8.4 platform packages
+# mysql_bootstrap         : reconcile certificate, config, launch, and cluster
+#   - mysql_cert          : issue and install MySQL/Router leaf certificates
+#   - mysql_config        : render config and initialize only an empty datadir
+#   - mysql_launch        : launch MySQL and reconcile platform accounts
+#   - mysql_cluster       : reconcile InnoDB Cluster through AdminAPI
+# mysql_access            : reconcile local access layer
+#   - mysql_router        : bootstrap and launch local Router on HA members
+# mysql_provision         : reconcile declared business databases and users
+# mysql_backup            : configure daily full backup
+# mysql_monitor           : setup exporter and Victoria registration
+#   - mysql_exporter      : configure and launch mysqld_exporter
+#   - mysql_register      : register mysqld_exporter VictoriaMetrics target
+# mysql_done              : print final instance summary
+#--------------------------------------------------------------#
+...

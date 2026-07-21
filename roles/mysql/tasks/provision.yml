@@ -1,0 +1,17 @@
+---
+#--------------------------------------------------------------#
+# Provision MySQL                               [mysql_provision]
+#--------------------------------------------------------------#
+- name: render mysql provision sql
+  tags: [ mysql_platform_user, mysql_db, mysql_user ]
+  template: { src: mysql-provision.sql.j2, dest: "{{ mysql_provision_script }}", owner: root, group: root, mode: '0600' }
+  no_log: true
+
+- name: reconcile mysql platform and business objects
+  tags: [ mysql_platform_user, mysql_db, mysql_user ]
+  when: not ansible_check_mode and (not mysql_is_ha | bool or mysql_runtime_member.stdout == 'PRIMARY\tONLINE')
+  shell: mysql --defaults-extra-file={{ mysql_root_config }} < {{ mysql_provision_script }}
+  args: { executable: /bin/bash }
+  changed_when: false
+  no_log: true
+...

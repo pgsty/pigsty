@@ -1,0 +1,89 @@
+---
+#--------------------------------------------------------------#
+# MySQL Router                                    [mysql_router]
+#--------------------------------------------------------------#
+- name: disable standalone mysql router
+  tags: mysql_router_launch
+  when: not mysql_is_ha | bool
+  systemd: name=mysqlrouter state=stopped enabled=no
+
+- name: inspect mysql router bootstrap
+  tags: mysql_router_bootstrap
+  when: mysql_is_ha | bool
+  command: { argv: [grep, -Eq, '^\[metadata_cache:', /etc/mysqlrouter/mysqlrouter.conf] }
+  register: mysql_router_metadata
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: bootstrap mysql router
+  tags: mysql_router_bootstrap
+  when: mysql_is_ha | bool and not ansible_check_mode and mysql_router_metadata.rc != 0
+  command:
+    argv:
+      - mysqlrouter
+      - --force
+      - "--bootstrap={{ mysql_cluster_username }}@{{ mysql_local_address }}:3306"
+      - --user=mysqlrouter
+      - "--report-host={{ mysql_local_address }}"
+      - "--account-host={{ mysql_local_address }}"
+      - --conf-base-port=0
+      - --conf-use-gr-notifications
+      - --disable-rest
+      - --disable-rw-split
+      - --strict
+      - --ssl-mode=VERIFY_CA
+      - "--ssl-ca={{ mysql_tls_ca }}"
+      - --server-ssl-mode=REQUIRED
+      - --server-ssl-verify=VERIFY_CA
+      - "--server-ssl-ca={{ mysql_tls_ca }}"
+      - --client-ssl-mode=REQUIRED
+      - "--client-ssl-cert={{ mysql_tls_cert }}"
+      - "--client-ssl-key={{ mysql_tls_key }}"
+      - --conf-set-option=routing:bootstrap_x_rw.bind_address=127.0.0.1
+      - --conf-set-option=routing:bootstrap_x_ro.bind_address=127.0.0.1
+  args: { stdin: "{{ mysql_cluster_password }}", stdin_add_newline: true }
+  register: mysql_router_bootstrap
+  changed_when: true
+  throttle: 1
+  no_log: true
+
+- name: launch mysql router
+  tags: mysql_router_launch
+  when: mysql_is_ha | bool
+  systemd:
+    name: mysqlrouter
+    state: "{{ 'restarted' if mysql_router_bootstrap.changed | default(false) or mysql_cert_copy_result.changed | default(false) else 'started' }}"
+    enabled: true
+  throttle: 1
+
+- name: verify mysql router endpoints
+  tags: mysql_router_verify
+  when: mysql_is_ha | bool and (not ansible_check_mode or mysql_router_metadata.rc == 0)
+  command: >-
+    mysql --defaults-extra-file={{ mysql_cluster_config }} --port={{ item.port }} --batch --raw --skip-column-names -e
+    "SELECT CONCAT_WS(CHAR(9),IF(@@GLOBAL.read_only={{ item.read_only }},'{{ item.role }}','INVALID'),@@GLOBAL.group_replication_group_name,@@GLOBAL.report_host)"
+  loop:
+    - { port: 6446, read_only: 0, role: PRIMARY }
+    - { port: 6447, read_only: 1, role: SECONDARY }
+  register: mysql_router_verify
+  retries: 12
+  delay: 5
+  until: mysql_router_verify.rc == 0
+  changed_when: false
+  check_mode: false
+  no_log: true
+
+- name: check mysql router endpoints
+  tags: mysql_router_verify
+  when: mysql_is_ha | bool and (not ansible_check_mode or mysql_router_metadata.rc == 0)
+  assert:
+    that:
+      - mysql_router_verify.results[0].stdout.split('\t')[0] == 'PRIMARY'
+      - mysql_router_verify.results[1].stdout.split('\t')[0] == 'SECONDARY'
+      - mysql_router_verify.results[0].stdout.split('\t')[2] in mysql_member_addresses
+      - mysql_router_verify.results[1].stdout.split('\t')[2] in mysql_member_addresses
+      - mysql_router_verify.results[0].stdout.split('\t')[1] == mysql_gr_group_name
+      - mysql_router_verify.results[1].stdout.split('\t')[1] == mysql_gr_group_name
+    fail_msg: Router 6446/6447 must reach the declared PRIMARY/SECONDARY and MGR UUID.
+...

@@ -1,0 +1,50 @@
+// Managed by Pigsty: prepare one MySQL 8.4 instance for InnoDB Cluster.
+shell.options.useWizards = false;
+
+function secret(path) { return os.loadTextFile(path).replace(/[\r\n]+$/, ""); }
+const root = mysql.getSession({scheme: "mysql", user: "root",
+  password: secret({{ mysql_root_password_file | to_json }}), host: "127.0.0.1",
+  port: 3306, "ssl-mode": "VERIFY_CA", "ssl-ca": {{ mysql_tls_ca | to_json }}});
+shell.setSession(root);
+
+const user = {{ mysql_cluster_username | to_json }};
+const host = "%";
+const account = "'" + user + "'@'" + host + "'";
+const memberHosts = [
+{% for member in groups[mysql_cluster] | sort %}
+  {{ member | to_json }}{% if not loop.last %},{% endif %}
+{% endfor %}
+].sort();
+const exists = Number(root.runSql(
+  "SELECT COUNT(*) FROM mysql.user WHERE User=? AND Host=?", [user, host]
+).fetchOne()[0]);
+const metadata = Number(root.runSql(
+  "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='mysql_innodb_cluster_metadata'"
+).fetchOne()[0]);
+let changed = false;
+
+if (exists === 0 && metadata === 0) {
+  dba.configureInstance(null, {
+    clusterAdmin: account,
+    clusterAdminPassword: secret({{ mysql_cluster_password_file | to_json }}),
+    clusterAdminPasswordExpiration: "NEVER",
+    mycnfPath: {{ mysql_conf | to_json }},
+    outputMycnfPath: {{ mysql_adminapi_output_config | to_json }}, restart: false
+  });
+  root.runSql("SET SESSION sql_log_bin=0");
+  root.runSql("ALTER USER " + account + " REQUIRE SSL PASSWORD EXPIRE NEVER");
+  changed = true;
+}
+
+const rows = root.runSql(
+  "SELECT Host,ssl_type FROM mysql.user WHERE User=? ORDER BY Host", [user]
+).fetchAll();
+const actualHosts = rows.map(row => String(row[0])).sort();
+const tlsOnly = rows.every(row => String(row[1]) === "ANY");
+const currentLayout = actualHosts.length === 1 && actualHosts[0] === host;
+const legacyLayout = JSON.stringify(actualHosts) === JSON.stringify(memberHosts);
+if (!tlsOnly || (!currentLayout && !legacyLayout)) {
+  throw new Error("dbuser_cluster must be TLS-only and use either @% or the exact declared member addresses");
+}
+root.close();
+print(JSON.stringify({pigstyChanged: changed, instance: {{ mysql_instance | to_json }}}));

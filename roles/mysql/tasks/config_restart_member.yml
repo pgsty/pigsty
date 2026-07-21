@@ -1,0 +1,45 @@
+---
+# Serialized by the cluster coordinator: secondaries first, primary last.
+- name: "inspect mysql role {{ mysql_restart_member }}"
+  tags: mysql_launch
+  delegate_to: "{{ mysql_restart_member }}"
+  command: >-
+    mysql --defaults-extra-file={{ mysql_root_config }} --protocol=socket --socket={{ mysql_sock }} --batch --raw --skip-column-names -e
+    "SELECT COALESCE((SELECT MEMBER_ROLE FROM performance_schema.replication_group_members WHERE MEMBER_ID=@@server_uuid),'NONE')"
+  register: mysql_rolling_member_role
+  changed_when: false
+  no_log: true
+
+- name: "check mysql role {{ mysql_restart_member }}"
+  tags: mysql_launch
+  assert:
+    that: hostvars[mysql_restart_member].mysql_pre_restart_ha_state.stdout is search('\t' ~ mysql_rolling_member_role.stdout ~ '$')
+    fail_msg: Runtime role changed after restart planning; rerun discovery instead of using stale order.
+
+- name: "restart mysql member {{ mysql_restart_member }}"
+  tags: mysql_launch
+  delegate_to: "{{ mysql_restart_member }}"
+  systemd: name={{ mysql_service }} state=restarted
+
+- name: "wait mysql member {{ mysql_restart_member }}"
+  tags: mysql_launch
+  delegate_to: "{{ mysql_restart_member }}"
+  wait_for: host=127.0.0.1 port=3306 state=started timeout=90
+
+- name: "wait mysql recovery {{ mysql_restart_member }}"
+  tags: mysql_launch
+  delegate_to: "{{ mysql_restart_member }}"
+  command: >-
+    mysql --defaults-extra-file={{ mysql_root_config }} --protocol=socket --socket={{ mysql_sock }} --batch --raw --skip-column-names -e
+    "SELECT IF((SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='mysql_innodb_cluster_metadata')=0,'UNCONFIGURED',
+    CONCAT_WS(CHAR(9),COALESCE((SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID=@@server_uuid),'OFFLINE'),
+    (SELECT COUNT(*) FROM performance_schema.replication_group_members WHERE MEMBER_STATE='ONLINE'),
+    (SELECT COUNT(*) FROM performance_schema.replication_group_members WHERE MEMBER_STATE='ONLINE' AND MEMBER_ROLE='PRIMARY'),
+    (SELECT COUNT(*) FROM performance_schema.replication_group_members WHERE MEMBER_STATE='ONLINE' AND MEMBER_ROLE='SECONDARY')))"
+  register: mysql_rolling_member_recovery
+  changed_when: false
+  retries: 60
+  delay: 5
+  until: mysql_rolling_member_recovery.stdout in ['UNCONFIGURED', 'ONLINE\t3\t1\t2']
+  no_log: true
+...

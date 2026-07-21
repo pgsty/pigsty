@@ -1,0 +1,18 @@
+[Unit]
+Description=Pigsty MySQL daily full backup for {{ mysql_instance }}
+Documentation=https://pigsty.io/docs/pilot/mysql
+After=network-online.target {{ mysql_service }}.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+UMask=0077
+EnvironmentFile={{ mysql_backup_config }}
+ExecStart={{ mysql_backup_script }}
+TimeoutStartSec=infinity
+SyslogIdentifier=mysql-backup-{{ mysql_instance }}
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

@@ -1,0 +1,118 @@
+---
+#--------------------------------------------------------------#
+# Configure MySQL                                  [mysql_config]
+#--------------------------------------------------------------#
+- name: create mysql systemd directory
+  tags: mysql_config_file
+  when: os_package == 'rpm'
+  file: path={{ mysql_systemd_dropin | dirname }} state=directory owner=root group=root mode=0755
+
+- name: configure mysql systemd override
+  tags: mysql_config_file
+  when: os_package == 'rpm'
+  copy:
+    dest: "{{ mysql_systemd_dropin }}"
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      # Managed by Pigsty. Local edits will be overwritten.
+      [Service]
+      ExecStart=
+      ExecStart=/usr/sbin/mysqld --defaults-file={{ mysql_conf }}
+  register: mysql_systemd_config_result
+
+- name: render mysql config
+  tags: mysql_config_file
+  template:
+    src: my.cnf.j2
+    dest: "{{ mysql_conf }}"
+    owner: root
+    group: mysql
+    mode: '0640'
+    validate: mysqld --defaults-file=%s --validate-config --tmpdir=/tmp --secure-file-priv=NULL --skip-log-bin
+  register: mysql_config_result
+
+- name: inspect mysql runtime tls
+  tags: mysql_config_file
+  when: mysql_preinstall_system_database.stat.exists
+  command: >-
+    mysql --no-defaults --user=root --protocol=socket --socket={{ mysql_sock }} --batch --raw --skip-column-names -e
+    "SELECT VALUE FROM performance_schema.tls_channel_status WHERE CHANNEL='mysql_main' AND PROPERTY='Enabled'"
+  environment: { MYSQL_PWD: "{{ mysql_root_password }}" }
+  register: mysql_runtime_tls
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  no_log: true
+
+- name: inspect mysql pending restart
+  tags: mysql_config_file
+  when: mysql_preinstall_system_database.stat.exists
+  shell: |
+    pid=$(systemctl show {{ mysql_service }} --property=MainPID --value)
+    [ "${pid:-0}" -gt 0 ] 2>/dev/null || exit 0
+    for path in {{ mysql_conf }} {{ mysql_tls_cert }} {{ mysql_tls_key }} {{ mysql_systemd_dropin }}; do
+      if [ -e "$path" ] && [ "$path" -nt "/proc/$pid" ]; then
+        echo pending
+        exit 0
+      fi
+    done
+  args: { executable: /bin/bash }
+  register: mysql_pending_restart
+  changed_when: false
+  check_mode: false
+
+- name: derive mysql restart requirement
+  tags: mysql_config_file
+  set_fact:
+    mysql_restart_required: >-
+      {{ mysql_config_result.changed or
+         (mysql_public_config_dir_result.changed | default(false)) or
+         (mysql_systemd_config_result.changed | default(false)) or
+         (mysql_runtime_tls.rc | default(1) == 0 and mysql_runtime_tls.stdout != 'Yes') or
+         (mysql_pending_restart.stdout | default('') == 'pending') or
+         (mysql_cert_copy_result.changed | default(false)) or
+         (mysql_apparmor_ca_result.changed | default(false)) }}
+
+#--------------------------------------------------------------#
+# Initialize Empty Datadir                           [mysql_init]
+#--------------------------------------------------------------#
+- name: inspect mysql system database
+  tags: mysql_init
+  stat: { path: "{{ mysql_data }}/mysql", follow: false }
+  register: mysql_system_database
+
+- name: inspect empty mysql datadir
+  tags: mysql_init
+  when: not mysql_system_database.stat.exists
+  find: { paths: "{{ mysql_data }}", recurse: true, hidden: true, file_type: any }
+  register: mysql_uninitialized_files
+
+- name: check empty mysql datadir
+  tags: mysql_init
+  when: not mysql_system_database.stat.exists
+  assert: { that: "mysql_uninitialized_files.files | length == 0", fail_msg: "MySQL datadir is non-empty and unmanaged; refusing initialization." }
+
+- name: initialize mysql datadir
+  tags: mysql_init
+  when: not mysql_system_database.stat.exists and not ansible_check_mode
+  command:
+    argv: [mysqld, "--defaults-file={{ mysql_conf }}", --initialize-insecure, --user=mysql, --skip-log-bin, "--relay-log={{ mysql_run_dir }}/initialize-relay", --tmpdir=/tmp, --secure-file-priv=NULL, "--log-error={{ mysql_log_dir }}/initialize.log"]
+
+- name: mark initialized mysql datadir
+  tags: mysql_init
+  when: not mysql_preinstall_system_database.stat.exists and not ansible_check_mode
+  copy: dest={{ mysql_initialized_marker }} content={{ mysql_initialized_marker_identity | to_json }} owner=mysql group=mysql mode=0600
+
+- name: create mysql runtime directories
+  tags: mysql_init
+  file: path={{ item }} state=directory owner=mysql group=mysql mode=0750
+  loop: [ "{{ mysql_data }}/binlog", "{{ mysql_data }}/tmp", "{{ mysql_secure_file_dir }}" ]
+
+- name: restore mysql datadir context
+  tags: mysql_init
+  when: os_package == 'rpm'
+  command: restorecon -RF {{ mysql_data }} {{ mysql_secure_file_dir }}
+  changed_when: false
+...

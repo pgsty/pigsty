@@ -1,0 +1,47 @@
+---
+#--------------------------------------------------------------#
+# MySQL Exporter                                  [mysql_monitor]
+#--------------------------------------------------------------#
+- name: configure mysql exporter
+  tags: mysql_exporter
+  when: mysql_exporter_enabled | bool
+  block:
+    - name: create mysql exporter systemd directory
+      file: path={{ mysql_exporter_systemd_dropin | dirname }} state=directory owner=root group=root mode=0755
+    - name: render mysql exporter config
+      no_log: true
+      template: src={{ item.src }} dest={{ item.dest }} owner=root group={{ item.group }} mode={{ item.mode }}
+      loop:
+        - { src: mysqld_exporter.cnf.j2     ,dest: "{{ mysql_exporter_config }}"         ,group: prometheus ,mode: '0640' }
+        - { src: mysqld_exporter.service.j2 ,dest: "{{ mysql_exporter_systemd_dropin }}" ,group: root       ,mode: '0644' }
+      register: mysql_exporter_config_result
+    - name: launch mysql exporter
+      systemd: name=mysqld_exporter state={{ 'restarted' if mysql_exporter_config_result.changed else 'started' }} enabled=yes daemon_reload=yes
+
+- name: disable mysql exporter
+  tags: mysql_exporter
+  when: not mysql_exporter_enabled | bool
+  systemd: name=mysqld_exporter state=stopped enabled=no
+  failed_when: false
+
+#--------------------------------------------------------------#
+# Register Metrics                              [mysql_register]
+#--------------------------------------------------------------#
+- name: register mysql targets
+  tags: [ mysql_register, register, add_metrics ]
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['infra'] | default([]) }}"
+  copy:
+    dest: "/infra/targets/mysql/{{ mysql_instance }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
+    content: |
+      # {{ mysql_instance }} @ {{ mysql_local_address }}
+      {% if mysql_exporter_enabled | bool %}
+      - labels: { cls: {{ mysql_cluster | to_json }}, ins: {{ mysql_instance | to_json }}, ip: {{ mysql_local_address | to_json }}, topology: {{ mysql_topology | to_json }} }
+        targets: [ {{ (mysql_local_address ~ ':9104') | to_json }} ]
+      {% else %}
+      []
+      {% endif %}
+...

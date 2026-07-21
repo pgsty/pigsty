@@ -1,0 +1,124 @@
+---
+#--------------------------------------------------------------#
+# Launch MySQL                                    [mysql_launch]
+#--------------------------------------------------------------#
+- name: inspect mysql restart safety
+  tags: mysql_safety
+  when: mysql_is_ha | bool and mysql_preinstall_system_database.stat.exists and not mysql_preinstall_bootstrap_incomplete | bool and mysql_restart_required | bool
+  command: >-
+    mysql --no-defaults --user=root --protocol=socket --socket={{ mysql_sock }} --batch --raw --skip-column-names -e
+    "SELECT CONCAT_WS(CHAR(9),(SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='mysql_innodb_cluster_metadata'),
+    (SELECT COUNT(*) FROM performance_schema.replication_group_members WHERE MEMBER_STATE='ONLINE'),
+    (SELECT COUNT(*) FROM performance_schema.replication_group_members WHERE MEMBER_STATE='ONLINE' AND MEMBER_ROLE='PRIMARY'),
+    (SELECT COUNT(*) FROM performance_schema.replication_group_members WHERE MEMBER_STATE='ONLINE' AND MEMBER_ROLE='SECONDARY'),
+    COALESCE((SELECT MEMBER_ROLE FROM performance_schema.replication_group_members WHERE MEMBER_ID=@@server_uuid),'NONE'))"
+  environment: { MYSQL_PWD: "{{ mysql_root_password }}" }
+  register: mysql_pre_restart_ha_state
+  changed_when: false
+  check_mode: false
+  no_log: true
+
+- name: derive mysql bootstrap state
+  tags: mysql_safety
+  when: mysql_pre_restart_ha_state is defined and not mysql_pre_restart_ha_state.skipped | default(false)
+  set_fact:
+    mysql_preinstall_bootstrap_incomplete: "{{ mysql_preinstall_bootstrap_incomplete | bool or mysql_pre_restart_ha_state.stdout == '0\t0\t0\t0\tNONE' }}"
+
+- name: check mysql restart safety
+  tags: mysql_safety
+  when: mysql_is_ha | bool and mysql_preinstall_system_database.stat.exists and not mysql_preinstall_bootstrap_incomplete | bool and mysql_restart_required | bool
+  assert:
+    that: mysql_pre_restart_ha_state.stdout == '0\t0\t0\t0\tNONE' or mysql_pre_restart_ha_state.stdout is match('^1\t3\t1\t2\t(PRIMARY|SECONDARY)$')
+    fail_msg: Refusing to restart a degraded or no-quorum MySQL cluster.
+
+- name: launch mysql
+  systemd:
+    name: "{{ mysql_service }}"
+    state: "{{ 'restarted' if mysql_preinstall_system_database.stat.exists and mysql_restart_required | bool and (not mysql_is_ha | bool or mysql_preinstall_bootstrap_incomplete | bool) else 'started' }}"
+    enabled: true
+    daemon_reload: "{{ (mysql_systemd_config_result.changed | default(false)) or (mysql_pending_restart.stdout | default('') == 'pending') }}"
+
+- name: restart mysql secondaries
+  when:
+    - not ansible_check_mode and mysql_is_coordinator | bool and mysql_is_ha | bool
+    - hostvars[mysql_restart_member].mysql_preinstall_system_database.stat.exists
+    - not hostvars[mysql_restart_member].mysql_preinstall_bootstrap_incomplete | bool
+    - hostvars[mysql_restart_member].mysql_restart_required | bool
+    - hostvars[mysql_restart_member].mysql_pre_restart_ha_state.stdout is not search('\tPRIMARY$')
+  include_tasks: config_restart_member.yml
+  loop: "{{ groups[mysql_cluster] | sort }}"
+  loop_control: { loop_var: mysql_restart_member }
+
+- name: restart mysql primary
+  when:
+    - not ansible_check_mode and mysql_is_coordinator | bool and mysql_is_ha | bool
+    - hostvars[mysql_restart_member].mysql_preinstall_system_database.stat.exists
+    - not hostvars[mysql_restart_member].mysql_preinstall_bootstrap_incomplete | bool
+    - hostvars[mysql_restart_member].mysql_restart_required | bool
+    - hostvars[mysql_restart_member].mysql_pre_restart_ha_state.stdout is search('\tPRIMARY$')
+  include_tasks: config_restart_member.yml
+  loop: "{{ groups[mysql_cluster] | sort }}"
+  loop_control: { loop_var: mysql_restart_member }
+
+- name: wait for mysql
+  when: not ansible_check_mode
+  wait_for: host=127.0.0.1 port=3306 state=started timeout=90
+
+#--------------------------------------------------------------#
+# Establish Local Root                               [mysql_root]
+#--------------------------------------------------------------#
+- name: reconcile mysql root password
+  tags: mysql_root
+  when: not ansible_check_mode
+  shell: |
+    set -euo pipefail
+    mysql_root() { MYSQL_PWD="$MYSQL_ROOT_PASSWORD" mysql --no-defaults --connect-expired-password --protocol=socket --socket={{ mysql_sock }} --user=root -NBe 'SELECT 1' >/dev/null 2>&1; }
+    mysql_root && exit 0
+    MYSQL_PWD='' mysql --no-defaults --connect-expired-password --protocol=socket --socket={{ mysql_sock }} --user=root -NBe 'SELECT 1' >/dev/null 2>&1 || {
+      echo 'Existing root password differs from the declared secret; refusing an implicit reset.' >&2; exit 1;
+    }
+    MYSQL_PWD='' mysql --no-defaults --protocol=socket --socket={{ mysql_sock }} --user=root <<'SQL'
+    SET SESSION sql_mode='NO_BACKSLASH_ESCAPES';
+    SET SESSION sql_log_bin=0;
+    ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mysql_root_password_sql }}';
+    SQL
+    mysql_root
+    echo pigstyChanged=true
+  args: { executable: /bin/bash }
+  vars: { mysql_root_password_sql: "{{ mysql_root_password | string | replace(\"'\", \"''\") }}" }
+  environment: { MYSQL_ROOT_PASSWORD: "{{ mysql_root_password }}" }
+  register: mysql_root_reconcile
+  changed_when: "'pigstyChanged=true' in mysql_root_reconcile.stdout"
+  no_log: true
+
+- name: render mysql credentials
+  tags: mysql_root
+  no_log: true
+  block:
+    - name: render mysql client files
+      template: src={{ item.src }} dest={{ item.dest }} owner=root group=root mode=0600
+      loop:
+        - { src: mysql-client.cnf.j2         ,dest: "{{ mysql_root_config }}" }
+        - { src: mysql-cluster-client.cnf.j2 ,dest: "{{ mysql_cluster_config }}" }
+    - name: store mysql password files
+      copy: dest={{ item.dest }} content={{ item.value }} owner=root group=root mode=0600
+      loop:
+        - { dest: "{{ mysql_root_password_file }}"    ,value: "{{ mysql_root_password }}" }
+        - { dest: "{{ mysql_cluster_password_file }}" ,value: "{{ mysql_cluster_password }}" }
+
+#--------------------------------------------------------------#
+# Prepare AdminAPI                                [mysql_adminapi]
+#--------------------------------------------------------------#
+- name: configure mysql instance for adminapi
+  tags: mysql_adminapi
+  when: mysql_is_ha | bool
+  block:
+    - name: render mysql instance configure script
+      template: src=mysql-instance-configure.js.j2 dest={{ mysql_instance_check_script }} owner=root group=root mode=0600
+    - name: run mysql instance configure script
+      when: not ansible_check_mode
+      command: mysqlsh --js --file {{ mysql_instance_check_script }}
+      register: mysql_adminapi_instance_check
+      changed_when: "'\"pigstyChanged\":true' in mysql_adminapi_instance_check.stdout"
+      no_log: true
+...

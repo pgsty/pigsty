@@ -1,0 +1,66 @@
+---
+# MySQL is a fixed Pigsty 8.4 platform. Version and ports are literal in the
+# templates/tasks instead of inventory variables.
+
+# Derived identity. Pigsty uses inventory_hostname as the service address;
+# mysql_seq=1 is the bootstrap coordinator, never a permanent runtime primary.
+mysql_instance: "{{ mysql_cluster }}-{{ mysql_seq }}"
+mysql_topology: "{{ 'standalone' if groups[mysql_cluster] | length == 1 else 'innodb_cluster' }}"
+mysql_is_ha: "{{ groups[mysql_cluster] | length == 3 }}"
+mysql_is_coordinator: "{{ mysql_seq | int == 1 }}"
+mysql_local_address: "{{ inventory_hostname }}"
+mysql_member_addresses: "{{ groups[mysql_cluster] }}"
+mysql_gr_group_name: "{{ mysql_cluster | to_uuid }}"
+
+# Resource-derived defaults, following Pigsty tuning style. A quarter of node
+# memory is safe on mixed Pigsty nodes.
+mysql_buffer_pool_mb: "{{ [((node_mem_mb | int * 0.25) | round(0, 'floor') | int), 256] | max }}"
+mysql_redo_log_mb: "{{ [[((mysql_buffer_pool_mb | int * 0.5) | round(0, 'floor') | int), 128] | max, 4096] | min }}"
+
+# Platform identities
+mysql_monitor_username: dbuser_monitor
+mysql_cluster_username: dbuser_cluster
+mysql_backup_username: dbuser_backup
+
+# Native packages
+mysql_service: "{{ 'mysqld' if os_package == 'rpm' else 'mysql' }}"
+mysql_systemd_dropin: "/etc/systemd/system/{{ mysql_service }}.service.d/pigsty.conf"
+
+# MySQL FHS
+mysql_data: /var/lib/mysql
+mysql_log_dir: /var/log/mysql
+mysql_run_dir: /var/run/mysqld
+mysql_sock: /var/run/mysqld/mysqld.sock
+mysql_secure_file_dir: /var/lib/mysql-files
+mysql_conf_dir: "{{ '/etc/my.cnf.d' if os_package == 'rpm' else '/etc/mysql/mysql.conf.d' }}"
+mysql_conf: "{{ mysql_conf_dir }}/pigsty.cnf"
+mysql_secret_dir: /etc/mysql/pigsty
+mysql_root_config: "{{ mysql_secret_dir }}/root.cnf"
+mysql_cluster_config: "{{ mysql_secret_dir }}/cluster.cnf"
+mysql_root_password_file: "{{ mysql_secret_dir }}/root-password"
+mysql_cluster_password_file: "{{ mysql_secret_dir }}/cluster-password"
+mysql_cluster_manage_script: "{{ mysql_secret_dir }}/cluster-manage.js"
+mysql_instance_check_script: "{{ mysql_secret_dir }}/instance-configure.js"
+mysql_adminapi_output_config: "{{ mysql_run_dir }}/pigsty-adminapi.cnf"
+mysql_provision_script: "{{ mysql_secret_dir }}/provision.sql"
+mysql_initialized_marker: "{{ mysql_data }}/.pigsty-mysql-initialized"
+mysql_initialized_marker_identity: { version: 1, cluster: "{{ mysql_cluster }}", instance: "{{ mysql_instance }}", topology: "{{ mysql_topology }}" }
+mysql_initialized_marker_legacy_identity: { format_version: 1, cluster: "{{ mysql_cluster }}", instance: "{{ mysql_instance }}", topology: "{{ mysql_topology }}" }
+
+# Pigsty PKI: node_ca owns the trusted CA; MySQL installs leaf certs only.
+mysql_pki_dir: "{{ playbook_dir }}/files/pki"
+mysql_tls_ca: /etc/pki/ca.crt
+mysql_tls_dir: /etc/mysql/pki
+mysql_tls_cert: "{{ mysql_tls_dir }}/server.crt"
+mysql_tls_key: "{{ mysql_tls_dir }}/server.key"
+
+# Backup
+mysql_backup_config: "{{ mysql_secret_dir }}/backup.env"
+mysql_xtrabackup_config: "{{ mysql_secret_dir }}/xtrabackup.cnf"
+mysql_backup_script: /usr/local/bin/mysql-backup
+mysql_backup_state_dir: /var/lib/pigsty/mysql-backup
+
+# Exporter
+mysql_exporter_config: /etc/mysqld_exporter.cnf
+mysql_exporter_systemd_dropin: /etc/systemd/system/mysqld_exporter.service.d/pigsty.conf
+...

@@ -1,0 +1,68 @@
+# Managed by Pigsty: native MySQL 8.4
+{% set repl_workers = [[node_cpu | int, 2] | max, 16] | min %}
+[mysqld]
+user = mysql
+datadir = {{ mysql_data }}
+port = 3306
+bind_address = 0.0.0.0
+report_host = {{ mysql_local_address }}
+socket = {{ mysql_sock }}
+pid_file = {{ mysql_run_dir }}/mysqld.pid
+tmpdir = {{ mysql_data }}/tmp
+secure_file_priv = {{ mysql_secure_file_dir }}
+
+# identity, durability, GTID
+server_id = {{ mysql_seq }}
+log_bin = {{ mysql_data }}/binlog/mysql-bin
+relay_log = {{ mysql_data }}/binlog/relay-bin
+relay_log_recovery = ON
+binlog_expire_logs_seconds = 604800
+gtid_mode = ON
+enforce_gtid_consistency = ON
+skip_replica_start = ON
+replica_parallel_workers = {{ repl_workers }}
+
+# TLS
+require_secure_transport = ON
+ssl_ca = {{ mysql_tls_ca }}
+ssl_cert = {{ mysql_tls_cert }}
+ssl_key = {{ mysql_tls_key }}
+mysqlx_bind_address = {{ '0.0.0.0' if mysql_is_ha | bool else '127.0.0.1' }}
+
+{% if mysql_is_ha | bool %}
+# single-primary Group Replication; mysql_seq is never a runtime role
+plugin_load_add = group_replication.so;mysql_clone.so
+loose-group_replication_group_name = {{ mysql_gr_group_name }}
+loose-group_replication_communication_stack = XCOM
+loose-group_replication_local_address = {{ mysql_local_address }}:33061
+loose-group_replication_group_seeds = {{ mysql_member_addresses | map('regex_replace', '$', ':33061') | join(',') }}
+loose-group_replication_ip_allowlist = {{ mysql_member_addresses | join(',') }}
+loose-group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
+loose-group_replication_exit_state_action = OFFLINE_MODE
+loose-group_replication_start_on_boot = OFF
+loose-group_replication_ssl_mode = VERIFY_CA
+loose-group_replication_recovery_use_ssl = ON
+loose-group_replication_recovery_ssl_ca = {{ mysql_tls_ca }}
+loose-group_replication_recovery_ssl_cert = {{ mysql_tls_cert }}
+loose-group_replication_recovery_ssl_key = {{ mysql_tls_key }}
+loose-group_replication_recovery_ssl_verify_server_cert = ON
+{% endif %}
+
+# resource-derived InnoDB baseline
+innodb_buffer_pool_size = {{ mysql_buffer_pool_mb }}M
+innodb_redo_log_capacity = {{ mysql_redo_log_mb }}M
+
+# logs
+log_error = {{ mysql_log_dir }}/error.log
+log_error_services = log_filter_internal; log_sink_internal; log_sink_syseventlog
+syseventlog.facility = daemon
+syseventlog.include_pid = ON
+syseventlog.tag = {{ mysql_instance }}
+slow_query_log = ON
+slow_query_log_file = {{ mysql_log_dir }}/slow.log
+long_query_time = 1
+
+[client]
+socket = {{ mysql_sock }}
+ssl-mode = VERIFY_CA
+ssl-ca = {{ mysql_tls_ca }}

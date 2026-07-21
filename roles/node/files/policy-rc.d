@@ -1,7 +1,7 @@
 #!/bin/sh
 
 # List of service names that should not be started by deb install/update
-STOP_SERVICES="nginx loki dnsmasq haproxy keepalived docker vector minio etcd postgresql pgbouncer patroni redis-server postgresql-common postgresql-19 postgresql-18 postgresql-17 postgresql-16 postgresql-15 postgresql-14 postgresql-13 postgresql-12 postgresql-11 postgresql-10"
+STOP_SERVICES="nginx loki dnsmasq haproxy keepalived docker vector minio etcd mysql mysqld mysqlrouter mysqld_exporter postgresql pgbouncer patroni redis-server postgresql-common postgresql-19 postgresql-18 postgresql-17 postgresql-16 postgresql-15 postgresql-14 postgresql-13 postgresql-12 postgresql-11 postgresql-10"
 
 # policy-rc.d is called as either:
 #   policy-rc.d [--quiet] <service> <action>

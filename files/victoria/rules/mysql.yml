@@ -2,41 +2,539 @@
 #==============================================================#
 # File      :   mysql.yml
 # Ctime     :   2023-08-17
-# Mtime     :   2023-08-17
-# Desc      :   Rules for mysql (placeholder)
+# Mtime     :   2026-07-16
+# Desc      :   Recording and alert rules for MySQL
 # Path      :   /infra/rules/mysql.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
-# This is a prometheus rules/alert placeholder example for MySQL
 
 groups:
 
-  ################################################################
-  #                        MySQL Rules                           #
-  ################################################################
+  #--------------------------------------------------------------#
+  # MySQL recording rules
+  #--------------------------------------------------------------#
   - name: mysql-rules
+    interval: 30s
     rules:
 
-  ################################################################
-  #                         MySQL Alert                          #
-  ################################################################
-  - name: mysql-alert
+      # Exporter transport, mysqld health, and declared inventory. `up` is the
+      # exporter scrape result; `mysql_up` is the database connection result.
+      - record: mysql:ins:exporter_up
+        expr: up{job="mysql"}
+
+      - record: mysql:ins:up
+        expr: mysql_up{job="mysql"}
+
+      - record: mysql:ins:uptime
+        expr: mysql_global_status_uptime{job="mysql"}
+
+      - record: mysql:cls:instances
+        expr: count by (cls, topology) (up{job="mysql"})
+
+      - record: mysql:cls:up
+        expr: >-
+          sum by (cls, topology) (mysql:ins:up)
+          or (0 * count by (cls, topology) (up{job="mysql"}))
+
+      # Workload
+      - record: mysql:ins:qps
+        expr: rate(mysql_global_status_questions{job="mysql"}[1m])
+
+      - record: mysql:ins:tps
+        expr: sum without (command) (rate(mysql_global_status_commands_total{job="mysql",command=~"commit|rollback"}[1m]))
+
+      - record: mysql:ins:read_qps
+        expr: sum without (command) (rate(mysql_global_status_commands_total{job="mysql",command=~"select|show.*"}[1m]))
+
+      - record: mysql:ins:write_qps
+        expr: sum without (command) (rate(mysql_global_status_commands_total{job="mysql",command=~"insert|update|delete|replace|load"}[1m]))
+
+      - record: mysql:ins:row_ops
+        expr: rate(mysql_global_status_innodb_row_ops_total{job="mysql"}[1m])
+
+      # Performance Schema statement summaries. These appear when the
+      # eventsstatementssum collector is enabled (Pigsty default).
+      - record: mysql:ins:statement_rate
+        expr: sum without (digest, schema) (rate(mysql_perf_schema_events_statements_sum_total{job="mysql"}[5m]))
+
+      - record: mysql:ins:statement_latency
+        # mysqld_exporter 0.19 converts SUM_TIMER_WAIT from picoseconds to
+        # cumulative seconds before exposition; do not scale it a second time.
+        expr: sum without (digest, schema) (rate(mysql_perf_schema_events_statements_sum_timer_wait{job="mysql"}[5m])) / clamp_min(mysql:ins:statement_rate, 0.001)
+
+      - record: mysql:ins:rows_examined_per_query
+        expr: sum without (digest, schema) (rate(mysql_perf_schema_events_statements_sum_rows_examined{job="mysql"}[5m])) / clamp_min(mysql:ins:statement_rate, 0.001)
+
+      # Sessions and connectivity
+      - record: mysql:ins:connections
+        expr: mysql_global_status_threads_connected{job="mysql"}
+
+      - record: mysql:ins:connection_usage
+        expr: mysql_global_status_threads_connected{job="mysql"} / clamp_min(mysql_global_variables_max_connections{job="mysql"}, 1)
+
+      - record: mysql:ins:connection_rate
+        expr: rate(mysql_global_status_connections{job="mysql"}[1m])
+
+      - record: mysql:ins:threads_running
+        expr: mysql_global_status_threads_running{job="mysql"}
+
+      - record: mysql:ins:threads_cached
+        expr: mysql_global_status_threads_cached{job="mysql"}
+
+      - record: mysql:ins:slow_queries
+        expr: rate(mysql_global_status_slow_queries{job="mysql"}[5m])
+
+      - record: mysql:ins:slow_query_ratio
+        expr: mysql:ins:slow_queries / clamp_min(mysql:ins:qps, 0.001)
+
+      - record: mysql:ins:aborted_connects
+        expr: rate(mysql_global_status_aborted_connects{job="mysql"}[5m])
+
+      - record: mysql:ins:aborted_clients
+        expr: rate(mysql_global_status_aborted_clients{job="mysql"}[5m])
+
+      - record: mysql:ins:connection_errors
+        expr: sum without (error) (rate(mysql_global_status_connection_errors_total{job="mysql"}[5m]))
+
+      # Network
+      - record: mysql:ins:rx_bytes
+        expr: rate(mysql_global_status_bytes_received{job="mysql"}[1m])
+
+      - record: mysql:ins:tx_bytes
+        expr: rate(mysql_global_status_bytes_sent{job="mysql"}[1m])
+
+      # Query efficiency and caches
+      - record: mysql:ins:tmp_tables
+        expr: rate(mysql_global_status_created_tmp_tables{job="mysql"}[5m])
+
+      - record: mysql:ins:tmp_disk_tables
+        expr: rate(mysql_global_status_created_tmp_disk_tables{job="mysql"}[5m])
+
+      - record: mysql:ins:tmp_disk_ratio
+        expr: mysql:ins:tmp_disk_tables / clamp_min(mysql:ins:tmp_tables, 0.001)
+
+      - record: mysql:ins:full_joins
+        expr: rate(mysql_global_status_select_full_join{job="mysql"}[5m])
+
+      - record: mysql:ins:full_scans
+        expr: rate(mysql_global_status_select_scan{job="mysql"}[5m])
+
+      - record: mysql:ins:sort_merge_passes
+        expr: rate(mysql_global_status_sort_merge_passes{job="mysql"}[5m])
+
+      - record: mysql:ins:table_open_cache_hit_ratio
+        expr: rate(mysql_global_status_table_open_cache_hits{job="mysql"}[5m]) / clamp_min(rate(mysql_global_status_table_open_cache_hits{job="mysql"}[5m]) + rate(mysql_global_status_table_open_cache_misses{job="mysql"}[5m]), 0.001)
+
+      - record: mysql:ins:open_files_usage
+        expr: mysql_global_status_open_files{job="mysql"} / clamp_min(mysql_global_variables_open_files_limit{job="mysql"}, 1)
+
+      - record: mysql:ins:statement_errors
+        expr: sum without (digest, schema) (rate(mysql_perf_schema_events_statements_sum_errors{job="mysql"}[5m]))
+
+      - record: mysql:ins:no_index_queries
+        expr: sum without (digest, schema) (rate(mysql_perf_schema_events_statements_sum_no_index_used{job="mysql"}[5m]))
+
+      # InnoDB memory and I/O
+      - record: mysql:ins:buffer_pool_hit_ratio
+        expr: clamp_min(1 - rate(mysql_global_status_innodb_buffer_pool_reads{job="mysql"}[5m]) / clamp_min(rate(mysql_global_status_innodb_buffer_pool_read_requests{job="mysql"}[5m]), 1), 0)
+
+      - record: mysql:ins:buffer_pool_usage
+        expr: mysql_global_status_innodb_buffer_pool_bytes_data{job="mysql"} / clamp_min(mysql_global_variables_innodb_buffer_pool_size{job="mysql"}, 1)
+
+      - record: mysql:ins:buffer_pool_dirty_ratio
+        expr: mysql_global_status_innodb_buffer_pool_bytes_dirty{job="mysql"} / clamp_min(mysql_global_status_innodb_buffer_pool_bytes_data{job="mysql"}, 1)
+
+      - record: mysql:ins:buffer_pool_waits
+        expr: rate(mysql_global_status_innodb_buffer_pool_wait_free{job="mysql"}[5m])
+
+      - record: mysql:ins:data_read_bytes
+        expr: rate(mysql_global_status_innodb_data_read{job="mysql"}[1m])
+
+      - record: mysql:ins:data_write_bytes
+        expr: rate(mysql_global_status_innodb_data_written{job="mysql"}[1m])
+
+      - record: mysql:ins:data_reads
+        expr: rate(mysql_global_status_innodb_data_reads{job="mysql"}[1m])
+
+      - record: mysql:ins:data_writes
+        expr: rate(mysql_global_status_innodb_data_writes{job="mysql"}[1m])
+
+      - record: mysql:ins:data_fsyncs
+        expr: rate(mysql_global_status_innodb_data_fsyncs{job="mysql"}[1m])
+
+      # InnoDB redo, locks, and purge health
+      - record: mysql:ins:redo_bytes
+        expr: rate(mysql_global_status_innodb_os_log_written{job="mysql"}[1m])
+
+      - record: mysql:ins:redo_utilization
+        expr: clamp_min(mysql_global_status_innodb_redo_log_current_lsn{job="mysql"} - mysql_global_status_innodb_redo_log_checkpoint_lsn{job="mysql"}, 0) / clamp_min(mysql_global_status_innodb_redo_log_capacity_resized{job="mysql"}, 1)
+
+      - record: mysql:ins:log_waits
+        expr: rate(mysql_global_status_innodb_log_waits{job="mysql"}[5m])
+
+      - record: mysql:ins:row_lock_waits
+        expr: rate(mysql_global_status_innodb_row_lock_waits{job="mysql"}[5m])
+
+      - record: mysql:ins:row_lock_time
+        expr: rate(mysql_global_status_innodb_row_lock_time{job="mysql"}[5m]) / 1000
+
+      - record: mysql:ins:deadlocks
+        expr: rate(mysql_info_schema_innodb_metrics_lock_lock_deadlocks_total{job="mysql"}[5m])
+
+      - record: mysql:ins:history_list_length
+        expr: mysql_info_schema_innodb_metrics_transaction_trx_rseg_history_len{job="mysql"}
+
+      - record: mysql:ins:binlog_bytes
+        expr: sum without (log_file) (mysql_binlog_size_bytes{job="mysql"})
+
+      # Select only the row describing the exporter target itself. Every GR
+      # member exposes all members, so member_host must match the target ip.
+      - record: mysql:ins:gr_member
+        expr: >-
+          mysql_perf_schema_replication_group_member_info{job="mysql"}
+          and on (job, cls, ins, member_host)
+          label_replace(mysql_up{job="mysql"} == 1, "member_host", "$1", "ip", "(.*)")
+
+      - record: mysql:ins:gr_online
+        expr: max by (job, cls, ins, ip, instance, topology) (mysql:ins:gr_member{member_state="ONLINE"})
+
+      - record: mysql:ins:gr_primary
+        expr: max by (job, cls, ins, ip, instance, topology) (mysql:ins:gr_member{member_state="ONLINE",member_role="PRIMARY"})
+
+      - record: mysql:ins:gr_secondary
+        expr: max by (job, cls, ins, ip, instance, topology) (mysql:ins:gr_member{member_state="ONLINE",member_role="SECONDARY"})
+
+      - record: mysql:cls:gr_online_members
+        expr: >-
+          sum by (cls, topology) (mysql:ins:gr_online)
+          or (0 * count by (cls, topology) (up{job="mysql",topology="innodb_cluster"}))
+
+      - record: mysql:cls:gr_primary_members
+        expr: >-
+          sum by (cls, topology) (mysql:ins:gr_primary)
+          or (0 * count by (cls, topology) (up{job="mysql",topology="innodb_cluster"}))
+
+      - record: mysql:cls:gr_quorum
+        expr: mysql:cls:gr_online_members > bool mysql:cls:instances / 2
+
+      - record: mysql:cls:gr_single_primary
+        expr: mysql:cls:gr_primary_members == bool 1
+
+      # Health: 2 healthy, 1 degraded but writable, 0 critical/unwritable.
+      - record: mysql:cls:health
+        expr: >-
+          mysql:cls:gr_quorum * mysql:cls:gr_single_primary
+          * (1 + (mysql:cls:gr_online_members == bool mysql:cls:instances))
+          or 2 * mysql:cls:up{topology="standalone"}
+
+      # Group Replication certification, applier, and flow control.
+      - record: mysql:ins:gr_certifier_queue
+        expr: mysql_perf_schema_transactions_in_queue{job="mysql"}
+
+      - record: mysql:ins:gr_applier_queue
+        expr: mysql_perf_schema_transactions_remote_in_applier_queue{job="mysql"}
+
+      - record: mysql:ins:gr_conflict_rate
+        expr: rate(mysql_perf_schema_conflicts_detected_total{job="mysql"}[5m])
+
+      - record: mysql:ins:gr_checked_rate
+        expr: rate(mysql_perf_schema_transactions_checked_total{job="mysql"}[5m])
+
+      - record: mysql:ins:gr_applied_rate
+        expr: rate(mysql_perf_schema_transactions_remote_applied_total{job="mysql"}[5m])
+
+      # MySQL 8.4 exposes the GR queue depths and configured flow-control
+      # thresholds, but no throttle-active/time counters through mysqld_exporter.
+      - record: mysql:ins:gr_certifier_queue_ratio
+        expr: mysql:ins:gr_certifier_queue / clamp_min(mysql_global_variables_group_replication_flow_control_certifier_threshold{job="mysql"}, 1)
+
+      - record: mysql:ins:gr_applier_queue_ratio
+        expr: mysql:ins:gr_applier_queue / clamp_min(mysql_global_variables_group_replication_flow_control_applier_threshold{job="mysql"}, 1)
+
+
+  #--------------------------------------------------------------#
+  # MySQL alert rules
+  #--------------------------------------------------------------#
+  - name: mysql-alerts
+    interval: 30s
     rules:
 
-      #==============================================================#
-      #                          Aliveness                           #
-      #==============================================================#
+      - alert: MySQLExporterDown
+        expr: mysql:ins:exporter_up < 1
+        for: 2m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLExporterDown {{ $labels.ins }}@{{ $labels.instance }}"
+          description: |
+            mysqld_exporter is unavailable for {{ $labels.ins }} at {{ $labels.instance }}.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
 
-      # database server down
-      - alert: MySQLDown
-        expr: mysql_up < 1
+      - alert: MySQLInstanceDown
+        expr: mysql:ins:exporter_up == 1 and on (job, cls, ins, ip, instance, topology) mysql:ins:up < 1
         for: 1m
         labels: { level: 0, severity: CRIT, category: mysql }
         annotations:
-          summary: "CRIT MySQLDown {{ $labels.ins }}@{{ $labels.instance }}"
+          summary: "CRIT MySQLInstanceDown {{ $labels.ins }}@{{ $labels.instance }}"
           description: |
-            mysql_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
+            mysqld_exporter is reachable but cannot connect to MySQL on {{ $labels.ins }}.
             /ui/d/mysql-instance?var-ins={{ $labels.ins }}
 
+      - alert: MySQLCollectorError
+        expr: mysql_exporter_collector_success{job="mysql"} < 1
+        for: 5m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLCollectorError {{ $labels.ins }} {{ $labels.collector }}"
+          description: |
+            mysqld_exporter collector {{ $labels.collector }} has failed for 5 minutes.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLRecentlyRestarted
+        expr: mysql:ins:uptime < 600
+        for: 2m
+        labels: { level: 2, severity: INFO, category: mysql }
+        annotations:
+          summary: "INFO MySQLRecentlyRestarted {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} has been up for only {{ $value | humanizeDuration }}.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLConnectionsHigh
+        expr: mysql:ins:connection_usage > 0.80 and mysql:ins:connection_usage <= 0.95
+        for: 10m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLConnectionsHigh {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} is using {{ $value | humanizePercentage }} of max_connections.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLConnectionsCritical
+        expr: mysql:ins:connection_usage > 0.95
+        for: 3m
+        labels: { level: 0, severity: CRIT, category: mysql }
+        annotations:
+          summary: "CRIT MySQLConnectionsCritical {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} is using {{ $value | humanizePercentage }} of max_connections.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLConnectionErrors
+        expr: mysql:ins:connection_errors > 0.1
+        for: 10m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLConnectionErrors {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} has {{ $value | printf "%.2f" }} connection errors per second.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLAbortedConnections
+        expr: mysql:ins:aborted_connects > 1 or mysql:ins:aborted_clients > 1
+        for: 10m
+        labels: { level: 2, severity: INFO, category: mysql }
+        annotations:
+          summary: "INFO MySQLAbortedConnections {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} has {{ $value | printf "%.2f" }} aborted connections per second.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLSlowQueries
+        expr: mysql:ins:slow_query_ratio > 0.01 and mysql:ins:qps > 10
+        for: 10m
+        labels: { level: 2, severity: INFO, category: mysql }
+        annotations:
+          summary: "INFO MySQLSlowQueries {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} slow-query ratio is {{ $value | humanizePercentage }}.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLDiskTemporaryTablesHigh
+        expr: mysql:ins:tmp_disk_ratio > 0.25 and mysql:ins:tmp_tables > 1
+        for: 15m
+        labels: { level: 2, severity: INFO, category: mysql }
+        annotations:
+          summary: "INFO MySQLDiskTemporaryTablesHigh {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} creates {{ $value | humanizePercentage }} of temporary tables on disk.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLFullJoinsHigh
+        expr: mysql:ins:full_joins > 1
+        for: 15m
+        labels: { level: 2, severity: INFO, category: mysql }
+        annotations:
+          summary: "INFO MySQLFullJoinsHigh {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} executes {{ $value | printf "%.2f" }} joins without indexes per second.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLBufferPoolHitLow
+        expr: mysql:ins:buffer_pool_hit_ratio < 0.95 and mysql:ins:qps > 100
+        for: 15m
+        labels: { level: 2, severity: INFO, category: mysql }
+        annotations:
+          summary: "INFO MySQLBufferPoolHitLow {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} buffer-pool hit ratio is {{ $value | humanizePercentage }} under sustained load.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLBufferPoolWaits
+        expr: mysql:ins:buffer_pool_waits > 0
+        for: 5m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLBufferPoolWaits {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} waits for free InnoDB buffer-pool pages at {{ $value | printf "%.2f" }}/s.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLInnoDBLogWaits
+        expr: mysql:ins:log_waits > 0
+        for: 5m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLInnoDBLogWaits {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} waits for InnoDB redo space at {{ $value | printf "%.2f" }}/s.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLRedoCapacityHigh
+        expr: mysql:ins:redo_utilization > 0.80
+        for: 10m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLRedoCapacityHigh {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} redo checkpoint age uses {{ $value | humanizePercentage }} of capacity.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLDeadlocksHigh
+        expr: mysql:ins:deadlocks > 0
+        for: 5m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLDeadlocks {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} reports {{ $value | printf "%.3f" }} deadlocks per second.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLHistoryListLarge
+        expr: mysql:ins:history_list_length > 1000000
+        for: 15m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLHistoryListLarge {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} InnoDB history-list length is {{ $value | humanize }}; purge may be blocked.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+
+      - alert: MySQLClusterNoPrimary
+        expr: mysql:cls:gr_primary_members{topology="innodb_cluster"} < 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: mysql }
+        annotations:
+          summary: "CRIT MySQLClusterNoPrimary {{ $labels.cls }}"
+          description: |
+            The InnoDB Cluster has no ONLINE primary. Normal automation will not
+            perform complete-outage recovery or force a new primary.
+            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
+
+      - alert: MySQLClusterMultiplePrimary
+        expr: mysql:cls:gr_primary_members{topology="innodb_cluster"} > 1
+        for: 30s
+        labels: { level: 0, severity: CRIT, category: mysql }
+        annotations:
+          summary: "CRIT MySQLClusterMultiplePrimary {{ $labels.cls }}"
+          description: |
+            Single-primary invariant is violated: {{ $value }} ONLINE primary members.
+            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
+
+      - alert: MySQLClusterQuorumLost
+        expr: mysql:cls:gr_quorum{topology="innodb_cluster"} < 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: mysql }
+        annotations:
+          summary: "CRIT MySQLClusterQuorumLost {{ $labels.cls }}"
+          description: |
+            Fewer than a majority of declared members are ONLINE; writes must remain unavailable.
+            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
+
+      - alert: MySQLClusterMemberOffline
+        expr: >-
+          mysql:ins:up{topology="innodb_cluster"} == 1
+          unless on (job, cls, ins, ip, instance, topology)
+          mysql:ins:gr_online == 1
+        for: 5m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLClusterMemberOffline {{ $labels.ins }}"
+          description: |
+            mysqld is reachable but its local Group Replication member is not ONLINE.
+            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
+
+      - alert: MySQLGRQueueHigh
+        expr: mysql:ins:gr_certifier_queue > 1000 or mysql:ins:gr_applier_queue > 1000
+        for: 10m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLGRQueueHigh {{ $labels.ins }}"
+          description: |
+            A GR certification or applier queue has exceeded 1000 transactions.
+            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
+
+      - alert: MySQLGRQueueCritical
+        expr: mysql:ins:gr_certifier_queue > 10000 or mysql:ins:gr_applier_queue > 10000
+        for: 5m
+        labels: { level: 0, severity: CRIT, category: mysql }
+        annotations:
+          summary: "CRIT MySQLGRQueueCritical {{ $labels.ins }}"
+          description: |
+            A GR certification or applier queue has exceeded 10000 transactions.
+            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
+
+      - alert: MySQLGRFlowControlHigh
+        expr: mysql:ins:gr_certifier_queue_ratio > 0.80 or mysql:ins:gr_applier_queue_ratio > 0.80
+        for: 10m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLGRFlowControlHigh {{ $labels.ins }}"
+          description: |
+            A Group Replication queue has remained above 80% of its configured flow-control threshold.
+            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
+
+      - alert: MySQLPrimaryReadOnly
+        expr: >-
+          mysql_global_variables_read_only{job="mysql"} > 0
+          and on (job, cls, ins, ip, instance, topology) mysql:ins:gr_primary == 1
+        for: 5m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLPrimaryReadOnly {{ $labels.ins }}"
+          description: |
+            The runtime GR primary reports read_only enabled.
+            /ui/d/mysql-cluster?var-cls={{ $labels.cls }}
+
+      - alert: MySQLSecondaryWritable
+        expr: >-
+          mysql_global_variables_super_read_only{job="mysql"} < 1
+          and on (job, cls, ins, ip, instance, topology) mysql:ins:gr_secondary == 1
+        for: 2m
+        labels: { level: 0, severity: CRIT, category: mysql }
+        annotations:
+          summary: "CRIT MySQLSecondaryWritable {{ $labels.ins }}"
+          description: |
+            A runtime GR secondary reports super_read_only disabled.
+            /ui/d/mysql-cluster?var-cls={{ $labels.cls }}
+
+      - alert: MySQLExporterScrapeSlow
+        expr: max without (collector) (mysql_exporter_collector_duration_seconds{job="mysql"}) > 5
+        for: 10m
+        labels: { level: 2, severity: INFO, category: mysql }
+        annotations:
+          summary: "INFO MySQLExporterScrapeSlow {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} exporter collectors take {{ $value | humanizeDuration }}.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
 ...

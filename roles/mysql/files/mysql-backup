@@ -1,0 +1,112 @@
+#!/usr/bin/env bash
+# Pigsty MySQL 8.4 daily prepared full backup on local storage.
+set -Eeuo pipefail
+umask 077
+
+CONFIG="${MYSQL_BACKUP_CONFIG:-/etc/mysql/pigsty/backup.env}"
+[[ -f "$CONFIG" && ! -L "$CONFIG" && -r "$CONFIG" ]] || {
+  echo "mysql-backup: unreadable configuration: $CONFIG" >&2; exit 2;
+}
+# shellcheck disable=SC1090
+. "$CONFIG"
+
+LOCK_FILE="$MYSQL_BACKUP_STATE_DIR/backup.lock"
+LAST_SIZE=0
+ACTIVE=0
+TEMP_DIR=""
+
+log() {
+  echo "mysql-backup[$MYSQL_INSTANCE]: $*" >&2
+  logger -t "mysql-backup-$MYSQL_INSTANCE" -- "$*" 2>/dev/null || true
+}
+
+on_exit() {
+  local rc=$?
+  trap - EXIT
+  set +e
+  if (( ACTIVE )); then
+    log "failed with exit code $rc; previous committed backup was preserved"
+  fi
+  [[ -z "$TEMP_DIR" || ! -d "$TEMP_DIR" ]] || find -P "$TEMP_DIR" -xdev -depth -delete
+  exit "$rc"
+}
+trap on_exit EXIT
+
+mkdir -p "$MYSQL_BACKUP_STATE_DIR"
+exec 9>"$LOCK_FILE"
+flock -n 9 || { log "skipped: another backup is running"; exit 0; }
+
+BACKUP_ID="$(date -u +%Y%m%dT%H%M%SZ)"
+ACTIVE=1
+
+METADATA_SQL="SELECT CONCAT_WS('|',@@server_uuid,@@version,@@global.read_only,COALESCE((SELECT MEMBER_ROLE FROM performance_schema.replication_group_members WHERE MEMBER_ID=@@server_uuid),'NONE'),COALESCE((SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID=@@server_uuid),'NONE'))"
+METADATA="$(mysql --defaults-extra-file="$MYSQL_XTRABACKUP_CNF" --protocol=socket --socket="$MYSQL_SOCKET" --batch --raw --skip-column-names -e "$METADATA_SQL")"
+IFS='|' read -r SERVER_UUID SERVER_VERSION SERVER_READ_ONLY MEMBER_ROLE MEMBER_STATE <<< "$METADATA"
+[[ "$SERVER_VERSION" == 8.4.* ]] || { log "refusing non-8.4 source"; exit 1; }
+if [[ "$MYSQL_TOPOLOGY" == standalone ]]; then
+  ELIGIBLE=$(( SERVER_READ_ONLY == 0 ))
+else
+  [[ "$MEMBER_ROLE" == PRIMARY && "$MEMBER_STATE" == ONLINE && "$SERVER_READ_ONLY" == 0 ]] && ELIGIBLE=1 || ELIGIBLE=0
+fi
+if (( ! ELIGIBLE )); then
+  ACTIVE=0
+  log "skipped: local member is not the writable runtime primary"
+  exit 0
+fi
+
+require_commit_eligibility() {
+  local current
+  current="$(mysql --defaults-extra-file="$MYSQL_XTRABACKUP_CNF" --protocol=socket --socket="$MYSQL_SOCKET" --batch --raw --skip-column-names -e "$METADATA_SQL")"
+  [[ "$current" == "$METADATA" ]] || {
+    log "source identity or runtime role changed before commit"; return 1;
+  }
+}
+
+prune_local() {
+  local cluster_dir="$1" excess victim
+  local -a committed=()
+  while IFS= read -r victim; do
+    [[ "$(basename "$victim")" =~ ^[0-9]{8}T[0-9]{6}Z$ ]] || continue
+    [[ -f "$victim/backup.ok" && -f "$victim/xtrabackup_checkpoints" ]] || continue
+    grep -Fxq "committed full backup $(basename "$victim")" "$victim/backup.ok" || continue
+    grep -Eq '^backup_type[[:space:]]*=[[:space:]]*full-prepared$' "$victim/xtrabackup_checkpoints" || continue
+    committed+=("$victim")
+  done < <(find -P "$cluster_dir" -mindepth 1 -maxdepth 1 -type d -print | sort)
+  excess=$(( ${#committed[@]} - MYSQL_BACKUP_RETENTION ))
+  (( excess > 0 )) || return 0
+  for victim in "${committed[@]:0:excess}"; do
+    [[ "$(dirname "$(realpath -e "$victim")")" == "$(realpath -e "$cluster_dir")" ]] || return 1
+    log "pruning committed local backup $(basename "$victim")"
+    find -P "$victim" -xdev -depth -delete
+  done
+}
+
+CLUSTER_DIR="$MYSQL_BACKUP_BASE/$MYSQL_CLUSTER"
+BASE_CANONICAL="$(realpath -e "$MYSQL_BACKUP_BASE")"
+DATA_CANONICAL="$(realpath -e "$MYSQL_DATA")"
+[[ "$BASE_CANONICAL" != "$DATA_CANONICAL" && "$BASE_CANONICAL" != "$DATA_CANONICAL/"* && "$DATA_CANONICAL" != "$BASE_CANONICAL/"* ]] || {
+  log "local backup path overlaps the live datadir"; exit 1;
+}
+[[ ! -L "$CLUSTER_DIR" ]] || { log "local cluster backup path is a symlink"; exit 1; }
+mkdir -p "$CLUSTER_DIR"
+CLUSTER_CANONICAL="$(realpath -e "$CLUSTER_DIR")"
+[[ "$(dirname "$CLUSTER_CANONICAL")" == "$BASE_CANONICAL" ]] || { log "unsafe local cluster backup path"; exit 1; }
+PARTIAL_DIR="$CLUSTER_DIR/$BACKUP_ID.partial"
+TEMP_DIR="$PARTIAL_DIR"
+FINAL_DIR="$CLUSTER_DIR/$BACKUP_ID"
+[[ ! -e "$PARTIAL_DIR" && ! -e "$FINAL_DIR" ]] || { log "backup id collision"; exit 1; }
+WORK_LOG="$MYSQL_BACKUP_STATE_DIR/$BACKUP_ID.log"
+xtrabackup --defaults-extra-file="$MYSQL_XTRABACKUP_CNF" --backup --target-dir="$PARTIAL_DIR" >"$WORK_LOG" 2>&1
+xtrabackup --prepare --target-dir="$PARTIAL_DIR" >>"$WORK_LOG" 2>&1
+grep -Eq '^backup_type[[:space:]]*=[[:space:]]*full-prepared$' "$PARTIAL_DIR/xtrabackup_checkpoints"
+mv "$WORK_LOG" "$PARTIAL_DIR/backup.log"
+LAST_SIZE="$(du -sb "$PARTIAL_DIR" | cut -f1)"
+require_commit_eligibility
+printf 'committed full backup %s\n' "$BACKUP_ID" > "$PARTIAL_DIR/backup.ok"
+mv "$PARTIAL_DIR" "$FINAL_DIR"
+ln -s "$BACKUP_ID" "$CLUSTER_DIR/.latest.$$"
+mv -Tf "$CLUSTER_DIR/.latest.$$" "$CLUSTER_DIR/latest"
+prune_local "$CLUSTER_DIR" || log "warning: retention cleanup failed"
+
+ACTIVE=0
+log "committed full backup $BACKUP_ID ($MYSQL_BACKUP_METHOD, $LAST_SIZE bytes)"

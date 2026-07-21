@@ -1,0 +1,74 @@
+---
+#--------------------------------------------------------------#
+# Issue MySQL Certificate                           [mysql_cert]
+#--------------------------------------------------------------#
+- name: issue mysql certificate
+  tags: mysql_cert_issue
+  become: false
+  connection: local
+  vars: { ansible_python_interpreter: "{{ ansible_playbook_python }}" }
+  block:
+    - name: create mysql pki directories
+      file: path={{ item }} state=directory mode=0755
+      loop: [ "{{ mysql_pki_dir }}/mysql", "{{ mysql_pki_dir }}/csr" ]
+
+    - name: generate mysql private key
+      openssl_privatekey: path={{ mysql_pki_dir }}/mysql/{{ mysql_instance }}.key mode=0600
+
+    - name: generate mysql signing request
+      openssl_csr:
+        path: "{{ mysql_pki_dir }}/csr/{{ mysql_instance }}.csr"
+        privatekey_path: "{{ mysql_pki_dir }}/mysql/{{ mysql_instance }}.key"
+        common_name: "{{ mysql_instance }}"
+        organization_name: pigsty
+        organizational_unit_name: mysql
+        subject_alt_name: [ "DNS:localhost", "DNS:{{ mysql_cluster }}", "DNS:{{ mysql_instance }}", "IP:127.0.0.1", "{{ ('IP:' if mysql_local_address is match('^[0-9.]+$') else 'DNS:') ~ mysql_local_address }}" ]
+
+    - name: sign mysql certificate
+      openssl_certificate:
+        path: "{{ mysql_pki_dir }}/mysql/{{ mysql_instance }}.crt"
+        csr_path: "{{ mysql_pki_dir }}/csr/{{ mysql_instance }}.csr"
+        provider: ownca
+        ownca_path: "{{ mysql_pki_dir }}/ca/ca.crt"
+        ownca_privatekey_path: "{{ mysql_pki_dir }}/ca/ca.key"
+        ownca_not_after: "+{{ cert_validity | default('7300d') }}"
+        mode: '0644'
+
+#--------------------------------------------------------------#
+# Copy MySQL Certificate                            [mysql_cert]
+#--------------------------------------------------------------#
+- name: create mysql tls directory
+  tags: mysql_cert_copy
+  file: path={{ mysql_tls_dir }} state=directory owner=root group=root mode=0755
+
+- name: inspect installed mysql certificate content
+  tags: mysql_cert_copy
+  stat: { path: "{{ item }}", follow: false, get_attributes: false, get_checksum: true, checksum_algorithm: sha1, get_mime: false }
+  loop: [ "{{ mysql_tls_cert }}", "{{ mysql_tls_key }}" ]
+  register: mysql_cert_installed
+
+- name: copy mysql certificate
+  tags: mysql_cert_copy
+  copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  loop:
+    - { src: "{{ mysql_pki_dir }}/mysql/{{ mysql_instance }}.crt" ,dest: "{{ mysql_tls_cert }}" ,owner: mysql ,group: mysqlrouter ,mode: '0644' }
+    - { src: "{{ mysql_pki_dir }}/mysql/{{ mysql_instance }}.key" ,dest: "{{ mysql_tls_key }}"  ,owner: mysql ,group: mysqlrouter ,mode: '0640' }
+  register: mysql_cert_copy_result
+
+- name: inspect mysql apparmor profile
+  tags: mysql_cert_copy
+  when: os_package == 'deb'
+  stat: { path: /etc/apparmor.d/usr.sbin.mysqld, follow: false, get_attributes: false, get_checksum: false, get_mime: false }
+  register: mysql_apparmor_profile
+
+- name: allow mysql to read node ca
+  tags: mysql_cert_copy
+  when: os_package == 'deb' and mysql_apparmor_profile.stat.exists
+  lineinfile: path=/etc/apparmor.d/local/usr.sbin.mysqld line='  /etc/pki/ca.crt r,' create=yes owner=root group=root mode=0644
+  register: mysql_apparmor_ca_result
+
+- name: reload mysql apparmor profile
+  tags: mysql_cert_copy
+  when: mysql_apparmor_ca_result.changed | default(false)
+  command: apparmor_parser -r /etc/apparmor.d/usr.sbin.mysqld
+...

@@ -1,0 +1,129 @@
+// Managed by Pigsty: conservative MySQL 8.4 InnoDB Cluster reconciliation.
+// No force, metadata removal, overwrite clone, switchover, or complete-outage path.
+shell.options.useWizards = false;
+
+function secret(path) { return os.loadTextFile(path).replace(/[\r\n]+$/, ""); }
+const clusterName = {{ mysql_cluster | to_json }};
+const groupName = {{ mysql_gr_group_name | to_json }};
+const password = secret({{ mysql_cluster_password_file | to_json }});
+const ca = {{ mysql_tls_ca | to_json }};
+const members = [
+{% for host in groups[mysql_cluster] | sort %}
+  {host: {{ host | to_json }}, seq: {{ hostvars[host].mysql_seq | int }}}{% if not loop.last %},{% endif %}
+{% endfor %}
+].sort((a, b) => a.seq - b.seq);
+
+function conn(member) {
+  return {scheme: "mysql", user: {{ mysql_cluster_username | to_json }}, password: password,
+    host: member.host, port: 3306, "ssl-mode": "VERIFY_CA", "ssl-ca": ca};
+}
+function endpoint(member) { return member.host + ":3306"; }
+function scalar(session, sql) { return session.runSql(sql).fetchOne()[0]; }
+function inspect(member) {
+  const s = mysql.getSession(conn(member));
+  const state = {
+    schemas: Number(scalar(s, "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name NOT IN ('mysql','information_schema','performance_schema','sys')")),
+    metadata: Number(scalar(s, "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='mysql_innodb_cluster_metadata'")),
+    channels: Number(scalar(s, "SELECT COUNT(*) FROM performance_schema.replication_connection_configuration WHERE channel_name NOT IN ('group_replication_recovery','group_replication_applier')")),
+    gtid: String(scalar(s, "SELECT @@GLOBAL.gtid_executed")),
+    group: String(scalar(s, "SELECT @@GLOBAL.group_replication_group_name")),
+    gr: Number(scalar(s, "SELECT COUNT(*) FROM performance_schema.replication_group_members WHERE MEMBER_STATE<>'OFFLINE'"))
+  };
+  s.close();
+  return state;
+}
+function fresh(state) {
+  return state.schemas === 0 && state.metadata === 0 &&
+    state.channels === 0 && state.gtid.length === 0 && state.gr === 0;
+}
+function view(cluster) {
+  const r = cluster.status({extended: 1}).defaultReplicaSet;
+  if (!r || !r.topology) { throw new Error("cluster metadata has no quorum; complete-outage recovery is manual"); }
+  if (["OK", "OK_NO_TOLERANCE", "OK_PARTIAL", "OK_NO_TOLERANCE_PARTIAL"].indexOf(r.status) < 0) {
+    throw new Error("cluster status " + r.status + " is not safe for automatic reconciliation");
+  }
+  const expected = members.map(endpoint);
+  Object.keys(r.topology).forEach(key => {
+    if (expected.indexOf(key) < 0) { throw new Error("undeclared cluster member " + key); }
+  });
+  return r;
+}
+// Find metadata on any declared member. If none exists, every member must be
+// reachable and fresh before seq=1 may create a new cluster.
+let seed = null;
+let seedSession = null;
+let inspected = 0;
+for (const member of members) {
+  try {
+    const s = mysql.getSession(conn(member));
+    inspected += 1;
+    if (Number(scalar(s, "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='mysql_innodb_cluster_metadata'")) === 1) {
+      seed = member; seedSession = s; break;
+    }
+    s.close();
+  } catch (ignored) {}
+}
+if (!seed) {
+  if (inspected !== members.length) { throw new Error("not every member is reachable; refusing a second cluster"); }
+  seed = members[0];
+  seedSession = mysql.getSession(conn(seed));
+}
+shell.setSession(seedSession);
+
+let cluster;
+let changed = false;
+const seedState = inspect(seed);
+if (seedState.metadata === 0) {
+  members.forEach(member => {
+    const state = inspect(member);
+    if (!fresh(state)) { throw new Error(endpoint(member) + " is not a fresh Clone target"); }
+  });
+  cluster = dba.createCluster(clusterName, {
+    communicationStack: "XCOM", memberSslMode: "VERIFY_CA", groupName: groupName,
+    localAddress: seed.host + ":33061", ipAllowlist: members.map(m => m.host).join(','),
+    consistency: "BEFORE_ON_PRIMARY_FAILOVER", exitStateAction: "OFFLINE_MODE",
+    autoRejoinTries: 3, manualStartOnBoot: false
+  });
+  changed = true;
+  members.slice(1).forEach(member => cluster.addInstance(conn(member), {
+    recoveryMethod: "clone", recoveryProgress: 0,
+    localAddress: member.host + ":33061", ipAllowlist: members.map(m => m.host).join(',')
+  }));
+} else {
+  const names = seedSession.runSql("SELECT cluster_name FROM mysql_innodb_cluster_metadata.clusters").fetchAll();
+  if (names.length !== 1 || String(names[0][0]) !== clusterName) { throw new Error("metadata cluster does not match inventory"); }
+  try { cluster = dba.getCluster(clusterName); }
+  catch (e) { throw new Error("complete-outage recovery is manual: " + e.message); }
+
+  const r = view(cluster);
+  if (Object.keys(r.topology).filter(k => r.topology[k].status === "ONLINE").length < 2) {
+    throw new Error("fewer than two members are ONLINE");
+  }
+  members.forEach(member => {
+    const key = endpoint(member);
+    const state = inspect(member);
+    if (state.group !== groupName) { throw new Error(key + " has a foreign Group Replication UUID"); }
+    if (r.topology[key] && ["ONLINE", "RECOVERING"].indexOf(r.topology[key].status) >= 0) { return; }
+    if (r.topology[key]) {
+      const options = {recoveryMethod: "incremental", recoveryProgress: 0,
+        localAddress: member.host + ":33061", ipAllowlist: members.map(m => m.host).join(',')};
+      cluster.rejoinInstance(conn(member), Object.assign({dryRun: true}, options));
+      cluster.rejoinInstance(conn(member), options);
+    } else {
+      if (!fresh(state)) { throw new Error(key + " is not a fresh replacement"); }
+      cluster.addInstance(conn(member), {recoveryMethod: "clone", recoveryProgress: 0,
+        localAddress: member.host + ":33061", ipAllowlist: members.map(m => m.host).join(',')});
+    }
+    changed = true;
+  });
+}
+
+const expected = members.map(endpoint).sort();
+const metadata = seedSession.runSql("SELECT address FROM mysql_innodb_cluster_metadata.v2_instances ORDER BY address")
+  .fetchAll().map(row => String(row[0])).sort();
+const foreign = metadata.filter(x => expected.indexOf(x) < 0);
+if (foreign.length) { throw new Error("metadata contains undeclared instances: " + foreign.join(',')); }
+const missing = expected.filter(x => metadata.indexOf(x) < 0);
+if (missing.length) { cluster.rescan({addInstances: missing}); changed = true; }
+seedSession.close();
+print(JSON.stringify({pigstyChanged: changed, cluster: clusterName}));

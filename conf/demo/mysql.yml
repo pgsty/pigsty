@@ -1,0 +1,76 @@
+---
+#==============================================================#
+# File      :   mysql.yml
+# Desc      :   MySQL 8.4 LTS standalone and three-node HA template
+# Ctime     :   2026-07-16
+# Mtime     :   2026-07-19
+# Docs      :   https://pigsty.io/docs/pilot/mysql
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+# Canonical four-node MySQL platform example:
+#   my-meta: one standalone member
+#   my-test: three-member InnoDB Cluster in single-primary mode
+#
+# This file is a template, not the active deployment inventory. Replace every
+# CHANGE_ME value and review the target addresses before configure or playbooks;
+# MySQL preflight rejects any canonical CHANGE_ME credential left in place.
+# Native Oracle 8.4 packages are admitted on x86_64 and EL9/EL10 aarch64. Oracle's
+# APT repository currently has no arm64 component, so Ubuntu/Debian ARM is rejected.
+#
+# Read-only template preview (does not rewrite active pigsty.yml):
+#   ansible-playbook -i conf/demo/mysql.yml mysql.yml -l my-meta --check
+#   ansible-playbook -i conf/demo/mysql.yml mysql.yml -l my-test --check
+# Each limit must include every declared member of the selected cluster group;
+# partial HA member limits are rejected before any package or service change.
+# After explicit approval to update active inventory, run ./configure -c demo/mysql,
+# then repeat node.yml/mysql.yml --check with the same explicit limits.
+# node.yml owns the shared trusted CA at /etc/pki/ca.crt; mysql.yml installs
+# only MySQL/Router leaf certificates and requires node_ca to be complete.
+#
+# Real playbooks install/start services and require explicit approval.
+
+all:
+  children:
+    infra:
+      hosts:
+        10.10.10.10: { infra_seq: 1 }
+
+    my-meta:
+      hosts:
+        10.10.10.10: { mysql_seq: 1 }
+      vars: { mysql_cluster: my-meta, node_cluster: my-meta }
+
+    my-test:
+      hosts:
+        10.10.10.11: { mysql_seq: 1 }
+        10.10.10.12: { mysql_seq: 2 }
+        10.10.10.13: { mysql_seq: 3 }
+      vars: { mysql_cluster: my-test, node_cluster: my-test }
+
+  vars:
+    version: v4.4.0
+    admin_ip: 10.10.10.10
+    region: default                    # default | china; china uses USTC for MySQL
+
+    repo_enabled: false               # use signed upstream repositories directly
+    node_repo_modules: node,infra,mysql
+    # For a Pigsty local/offline repository, enable repo and cache the complete
+    # atomic platform set before provisioning targets:
+    # repo_enabled: true
+    # repo_extra_packages: [mysql]
+
+    nodename_overwrite: false
+    node_tune: oltp
+
+    mysql_root_password: CHANGE_ME_MYSQL_ROOT
+    mysql_monitor_password: CHANGE_ME_MYSQL_MONITOR
+    mysql_cluster_password: CHANGE_ME_MYSQL_CLUSTER
+    # Fixed MySQL 8.4, auto-tuned memory, daily local backup, and exporter are defaults.
+
+    # Pigsty infrastructure credentials; replace before deployment.
+    grafana_admin_password: CHANGE_ME_GRAFANA_ADMIN
+    grafana_view_password: CHANGE_ME_GRAFANA_VIEW
+    haproxy_admin_password: CHANGE_ME_HAPROXY
+...

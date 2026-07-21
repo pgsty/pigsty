@@ -1,0 +1,35 @@
+SET SESSION sql_mode='NO_BACKSLASH_ESCAPES';
+
+CREATE USER IF NOT EXISTS '{{ mysql_monitor_username }}'@'127.0.0.1'
+  IDENTIFIED BY '{{ mysql_monitor_password | string | replace("'", "''") }}' REQUIRE SSL;
+ALTER USER '{{ mysql_monitor_username }}'@'127.0.0.1'
+  IDENTIFIED BY '{{ mysql_monitor_password | string | replace("'", "''") }}' REQUIRE SSL WITH MAX_USER_CONNECTIONS 3;
+GRANT PROCESS, REPLICATION CLIENT ON *.* TO '{{ mysql_monitor_username }}'@'127.0.0.1';
+GRANT SELECT ON performance_schema.* TO '{{ mysql_monitor_username }}'@'127.0.0.1';
+
+CREATE USER IF NOT EXISTS '{{ mysql_backup_username }}'@'localhost'
+  IDENTIFIED BY '{{ mysql_cluster_password | string | replace("'", "''") }}';
+ALTER USER '{{ mysql_backup_username }}'@'localhost'
+  IDENTIFIED BY '{{ mysql_cluster_password | string | replace("'", "''") }}';
+GRANT BACKUP_ADMIN, PROCESS, RELOAD, LOCK TABLES, REPLICATION CLIENT ON *.* TO '{{ mysql_backup_username }}'@'localhost';
+GRANT SELECT ON performance_schema.log_status TO '{{ mysql_backup_username }}'@'localhost';
+GRANT SELECT ON performance_schema.keyring_component_status TO '{{ mysql_backup_username }}'@'localhost';
+GRANT SELECT ON performance_schema.replication_group_members TO '{{ mysql_backup_username }}'@'localhost';
+
+{% for db in mysql_databases %}
+CREATE DATABASE IF NOT EXISTS `{{ db.name }}` CHARACTER SET {{ db.encoding | default('utf8mb4') }}
+  COLLATE {{ db.collate | default('utf8mb4_0900_ai_ci') }} DEFAULT ENCRYPTION='{{ 'Y' if db.encrypt | default(false) | bool else 'N' }}';
+{% endfor %}
+
+{% for user in mysql_users %}
+CREATE USER IF NOT EXISTS '{{ user.name }}'@'{{ user.host | default('%') }}'
+  IDENTIFIED BY '{{ user.password | string | replace("'", "''") }}';
+ALTER USER '{{ user.name }}'@'{{ user.host | default('%') }}'
+  IDENTIFIED BY '{{ user.password | string | replace("'", "''") }}'
+  WITH MAX_USER_CONNECTIONS {{ user.connlimit | default(0) | int }};
+{% for scope, privileges in user.priv | default({}) | dictsort %}
+{% set scope_database = scope.split('.')[0] %}
+{% set scope_table = scope.split('.')[1] %}
+GRANT {{ privileges }} ON {{ '*' if scope_database == '*' else '`' ~ scope_database ~ '`' }}.{{ '*' if scope_table == '*' else '`' ~ scope_table ~ '`' }} TO '{{ user.name }}'@'{{ user.host | default('%') }}';
+{% endfor %}
+{% endfor %}

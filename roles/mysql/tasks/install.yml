@@ -1,0 +1,74 @@
+---
+#--------------------------------------------------------------#
+# Install Native MySQL 8.4                         [mysql_install]
+#--------------------------------------------------------------#
+- name: guard fresh deb datadir during package install
+  tags: mysql_pkg
+  when: os_package == 'deb' and not mysql_preinstall_system_database.stat.exists and not ansible_check_mode
+  block:
+    - file: path={{ mysql_data }} state=directory owner=root group=root mode=0750
+    - copy: dest={{ mysql_data }}/.pigsty-mysql-installing content='Pigsty owns this pending MySQL initialization' owner=root group=root mode=0600
+
+- name: install mysql rpm platform packages
+  tags: mysql_pkg
+  when: os_package == 'rpm'
+  # EL10 AppStream also provides MySQL-compatible packages. Keep the native
+  # MySQL/Percona transaction from being resolved through MariaDB modules.
+  dnf:
+    name:
+      - mysql-community-server
+      - mysql-community-client
+      - mysql-shell
+      - mysql-router-community
+      - percona-xtrabackup-84
+      - mysqld_exporter
+      - perl-DBD-MySQL
+    state: present
+    exclude: [ 'mariadb*', 'mysql8.4*' ]
+
+- name: install mysql deb platform packages
+  tags: mysql_pkg
+  when: os_package == 'deb'
+  environment: { DEBIAN_FRONTEND: noninteractive }
+  package:
+    name: [ mysql-server, mysql-client, mysql-shell, mysql-router-community, percona-xtrabackup-84, mysqld-exporter ]
+    state: present
+
+- name: release fresh deb datadir after package install
+  tags: mysql_pkg
+  when: os_package == 'deb' and not mysql_preinstall_system_database.stat.exists and not ansible_check_mode
+  file: path={{ mysql_data }}/.pigsty-mysql-installing state=absent
+
+- name: end fresh mysql check mode after package preview
+  tags: mysql_pkg
+  when: ansible_check_mode and not mysql_preinstall_system_database.stat.exists
+  meta: end_host
+
+- name: check mysql 8.4 platform
+  tags: mysql_pkg
+  command: mysqld --version
+  register: mysql_version
+  changed_when: false
+  failed_when: mysql_version.rc != 0 or mysql_version.stdout is not search('8\.4\.')
+
+- name: create mysql public config directory
+  tags: mysql_dir
+  file: path={{ mysql_secret_dir | dirname }} state=directory owner=root group=root mode=0755
+  register: mysql_public_config_dir_result
+
+- name: create mysql directories
+  tags: mysql_dir
+  file: path={{ item.path }} state=directory owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  loop:
+    - { path: "{{ mysql_data }}"                       ,owner: mysql ,group: mysql ,mode: '0750' }
+    - { path: "{{ mysql_log_dir }}"                    ,owner: mysql ,group: mysql ,mode: '0750' }
+    - { path: "{{ mysql_run_dir }}"                    ,owner: mysql ,group: mysql ,mode: '0755' }
+    - { path: "{{ mysql_conf_dir }}"                   ,owner: root  ,group: root  ,mode: '0755' }
+    - { path: "{{ mysql_secret_dir }}"                 ,owner: root  ,group: root  ,mode: '0700' }
+
+- name: restore mysql selinux context
+  tags: mysql_dir
+  when: os_package == 'rpm'
+  command: restorecon -RF {{ mysql_data }} {{ mysql_log_dir }}
+  changed_when: false
+...

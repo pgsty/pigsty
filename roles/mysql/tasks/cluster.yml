@@ -1,0 +1,45 @@
+---
+#--------------------------------------------------------------#
+# Reconcile InnoDB Cluster                       [mysql_cluster]
+#--------------------------------------------------------------#
+- name: render mysql cluster script
+  tags: mysql_cluster_manage
+  when: mysql_is_coordinator | bool
+  template: src=mysql-cluster-manage.js.j2 dest={{ mysql_cluster_manage_script }} owner=root group=root mode=0600
+
+- name: reconcile mysql cluster
+  tags: mysql_cluster_manage
+  when: mysql_is_coordinator | bool and not ansible_check_mode
+  command: mysqlsh --js --file {{ mysql_cluster_manage_script }}
+  register: mysql_cluster_manage_result
+  changed_when: "'\"pigstyChanged\":true' in mysql_cluster_manage_result.stdout"
+  no_log: true
+
+- name: preview mysql cluster reconciliation
+  tags: mysql_cluster_manage
+  when: mysql_is_coordinator | bool and ansible_check_mode
+  debug: { msg: "AdminAPI will create only from three fresh members, incrementally rejoin known members, and Clone only a fresh replacement; force and complete-outage recovery are excluded." }
+
+- name: discover mysql runtime role
+  tags: mysql_cluster_verify
+  command: >-
+    mysql --defaults-extra-file={{ mysql_root_config }} --protocol=socket --socket={{ mysql_sock }} --batch --raw --skip-column-names -e
+    "SELECT CONCAT_WS(CHAR(9),MEMBER_ROLE,MEMBER_STATE) FROM performance_schema.replication_group_members WHERE MEMBER_ID=@@server_uuid"
+  register: mysql_runtime_member
+  retries: "{{ 1 if ansible_check_mode else 60 }}"
+  delay: "{{ 0 if ansible_check_mode else 5 }}"
+  until: mysql_runtime_member.stdout in ['PRIMARY\tONLINE', 'SECONDARY\tONLINE']
+  changed_when: false
+  check_mode: false
+
+- name: check mysql runtime topology
+  tags: mysql_cluster_verify
+  when:
+    - mysql_is_coordinator | bool
+    - not ansible_check_mode or (groups[mysql_cluster] | map('extract', hostvars, 'mysql_preinstall_system_database') | map(attribute='stat.exists') | min)
+  assert:
+    that:
+      - groups[mysql_cluster] | map('extract', hostvars, 'mysql_runtime_member') | map(attribute='stdout') | select('equalto', 'PRIMARY\tONLINE') | list | length == 1
+      - groups[mysql_cluster] | map('extract', hostvars, 'mysql_runtime_member') | map(attribute='stdout') | select('equalto', 'SECONDARY\tONLINE') | list | length == 2
+    fail_msg: MySQL runtime topology must be exactly one PRIMARY and two ONLINE SECONDARY members.
+...

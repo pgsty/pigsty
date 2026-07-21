@@ -1,0 +1,54 @@
+---
+#--------------------------------------------------------------#
+# Stop MySQL service                          [mysql_rm_service]
+#--------------------------------------------------------------#
+- name: mark mysql retired
+  tags: [ mysql_rm_service, mysql_safety ]
+  when:
+    - mysql_rm_datadir_state.stat.exists
+    - >-
+      mysql_rm_whole_cluster | bool or ansible_check_mode or
+      mysql_rm_member_result.changed | default(false)
+  copy:
+    dest: "{{ mysql_retired_marker }}"
+    content: >-
+      {{ {'format_version': 1,
+          'cluster': mysql_cluster,
+          'instance': mysql_instance,
+          'scope': ('cluster' if mysql_rm_whole_cluster | bool else 'member')} |
+         to_nice_json }}
+    owner: root
+    group: "{{ mysql_group }}"
+    mode: '0600'
+
+- name: stop removed mysql member
+  tags: mysql_rm_service
+  when:
+    - not mysql_rm_whole_cluster | bool
+    - mysql_rm_mysql_loaded | bool
+  systemd: name={{ mysql_service }} state=stopped enabled=no daemon_reload=yes
+
+- name: stop mysql secondaries
+  tags: mysql_rm_service
+  when:
+    - mysql_rm_whole_cluster | bool
+    - mysql_rm_runtime_role == 'SECONDARY'
+    - mysql_rm_mysql_loaded | bool
+  systemd: name={{ mysql_service }} state=stopped enabled=no daemon_reload=yes
+
+- name: stop mysql primary
+  tags: mysql_rm_service
+  when:
+    - mysql_rm_whole_cluster | bool
+    - mysql_rm_runtime_role == 'PRIMARY'
+    - mysql_rm_mysql_loaded | bool
+  systemd: name={{ mysql_service }} state=stopped enabled=no daemon_reload=yes
+
+- name: stop standalone mysql
+  tags: mysql_rm_service
+  when:
+    - mysql_rm_whole_cluster | bool
+    - mysql_rm_runtime_role == 'NONE'
+    - mysql_rm_mysql_loaded | bool
+  systemd: name={{ mysql_service }} state=stopped enabled=no daemon_reload=yes
+...

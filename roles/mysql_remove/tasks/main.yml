@@ -1,0 +1,46 @@
+---
+#--------------------------------------------------------------#
+# Check MySQL Remove                            [mysql_rm_check]
+#--------------------------------------------------------------#
+- import_tasks: check.yml
+  tags: [ always, mysql_rm_check ]
+
+#--------------------------------------------------------------#
+# Quiesce MySQL                               [mysql_rm_quiesce]
+#--------------------------------------------------------------#
+- import_tasks: quiesce.yml
+  tags: [ mysql_rm_quiesce ]
+
+#--------------------------------------------------------------#
+# Remove MySQL Member                          [mysql_rm_member]
+#--------------------------------------------------------------#
+- import_tasks: member.yml
+  tags: [ mysql_rm_member, mysql_cluster ]
+
+#--------------------------------------------------------------#
+# Stop MySQL Service                          [mysql_rm_service]
+#--------------------------------------------------------------#
+- import_tasks: service.yml
+  tags: [ mysql_rm_service, mysql_launch ]
+
+#--------------------------------------------------------------#
+# Deregister MySQL                            [mysql_deregister]
+#--------------------------------------------------------------#
+- import_tasks: monitor.yml
+  tags: [ mysql_deregister, mysql_monitor, deregister ]
+
+#--------------------------------------------------------------#
+# Summary                                        [mysql_rm_done]
+#--------------------------------------------------------------#
+- name: mysql remove done
+  tags: mysql_rm_done
+  connection: local
+  debug:
+    msg: >-
+      {{ mysql_rm_expected_confirm }} {{ 'would be detached' if ansible_check_mode else 'detached' }};
+      datadir, backup, config, certificates, packages, and metadata schema remain
+      untouched{% if ansible_check_mode %}; retirement and service changes were
+      previewed only{% elif mysql_rm_datadir_state.stat.exists %}; ordinary
+      mysql.yml is blocked by the persistent retirement marker{% else %}; no
+      mysql datadir was present{% endif %}
+...

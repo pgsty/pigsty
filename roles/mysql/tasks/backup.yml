@@ -1,0 +1,34 @@
+---
+#--------------------------------------------------------------#
+# MySQL Daily Full Backup                          [mysql_backup]
+#--------------------------------------------------------------#
+- name: create mysql backup directories
+  tags: mysql_backup_install
+  file: path={{ item.path }} state=directory owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+  when: not item.local | default(false) | bool or mysql_backup_enabled | bool
+  loop:
+    - { path: "{{ mysql_backup_state_dir }}"  ,owner: root ,group: root  ,mode: '0700' }
+    - { path: "{{ mysql_backup_repo.get('local', {}).get('path', '/data/backups/mysql') }}" ,owner: root ,group: mysql ,mode: '0750' ,local: true }
+
+- name: install mysql backup tool
+  tags: mysql_backup_install
+  copy: src=mysql-backup dest={{ mysql_backup_script }} owner=root group=root mode=0755
+
+- name: render mysql backup configuration
+  tags: mysql_backup_config
+  no_log: true
+  template: src={{ item.src }} dest={{ item.dest }} owner=root group=root mode={{ item.mode }}
+  loop:
+    - { src: xtrabackup.cnf.j2       ,dest: "{{ mysql_xtrabackup_config }}" ,mode: '0600' }
+    - { src: mysql-backup.env.j2     ,dest: "{{ mysql_backup_config }}"    ,mode: '0600' }
+    - { src: mysql-backup.service.j2 ,dest: /etc/systemd/system/mysql-backup.service ,mode: '0644' }
+    - { src: mysql-backup.timer.j2   ,dest: /etc/systemd/system/mysql-backup.timer   ,mode: '0644' }
+
+- name: reconcile mysql daily backup
+  tags: mysql_backup_timer
+  systemd:
+    name: mysql-backup.timer
+    state: "{{ 'started' if mysql_backup_enabled | bool else 'stopped' }}"
+    enabled: "{{ mysql_backup_enabled | bool }}"
+    daemon_reload: true
+...

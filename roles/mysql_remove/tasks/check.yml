@@ -1,0 +1,178 @@
+---
+#--------------------------------------------------------------#
+# Check MySQL removal                            [mysql_rm_check]
+#--------------------------------------------------------------#
+- name: check mysql remove identity
+  tags: [ always, mysql_rm_check ]
+  assert:
+    that:
+      - mysql_cluster is defined and mysql_cluster | string | length > 0
+      - mysql_cluster in groups and inventory_hostname in groups[mysql_cluster]
+      - mysql_seq is defined and mysql_seq | string is match('^[1-9][0-9]*$')
+    fail_msg: mysql remove requires mysql_cluster group membership and mysql_seq.
+
+- name: derive mysql remove identity
+  tags: [ always, mysql_rm_check ]
+  connection: local
+  set_fact:
+    mysql_instance: "{{ mysql_cluster }}-{{ mysql_seq }}"
+    mysql_local_address: "{{ inventory_hostname }}"
+    mysql_rm_cluster_members: "{{ groups[mysql_cluster] | sort }}"
+    mysql_rm_selected_members: "{{ groups[mysql_cluster] | intersect(ansible_play_hosts_all) | sort }}"
+
+- name: derive mysql remove scope
+  tags: [ always, mysql_rm_check ]
+  connection: local
+  set_fact:
+    mysql_rm_cluster_size: "{{ mysql_rm_cluster_members | length }}"
+    mysql_rm_whole_cluster: "{{ mysql_rm_selected_members | length == mysql_rm_cluster_members | length }}"
+    mysql_rm_initialized_identity: { version: 1, cluster: "{{ mysql_cluster }}", instance: "{{ mysql_instance }}", topology: "{{ 'standalone' if mysql_rm_cluster_members | length == 1 else 'innodb_cluster' }}" }
+    mysql_rm_initialized_legacy_identity: { format_version: 1, cluster: "{{ mysql_cluster }}", instance: "{{ mysql_instance }}", topology: "{{ 'standalone' if mysql_rm_cluster_members | length == 1 else 'innodb_cluster' }}" }
+    mysql_rm_expected_confirm: >-
+      {{ mysql_cluster if mysql_rm_selected_members | length == mysql_rm_cluster_members | length else mysql_instance }}
+
+- name: check mysql remove scope and confirmation
+  tags: [ always, mysql_rm_check ]
+  assert:
+    that:
+      - mysql_rm_cluster_size | int in [1, 3]
+      - mysql_rm_selected_members | length in [1, mysql_rm_cluster_size | int]
+      - mysql_rm_cluster_size | int == 1 or mysql_rm_selected_members | length != 2
+      - groups[mysql_cluster] | map('extract', hostvars, 'mysql_seq') | map('int') | list | sort == range(1, mysql_rm_cluster_size | int + 1) | list
+      - not mysql_safeguard | bool
+      - mysql_rm_confirm | string == mysql_rm_expected_confirm
+    fail_msg: >-
+      mysql_remove accepts one standalone, one member or all members of a
+      three-node cluster; set mysql_safeguard=false and mysql_rm_confirm to
+      the exact target {{ mysql_rm_expected_confirm }}.
+
+- name: inspect mysql removal guards
+  tags: [ always, mysql_rm_check ]
+  stat: { path: "{{ item }}", follow: false, get_attributes: false, get_checksum: false, get_mime: false }
+  loop: [ "{{ mysql_data }}", "{{ mysql_retired_marker }}", "{{ mysql_data }}/mysql", "{{ mysql_initialized_marker }}" ]
+  register: mysql_rm_guard_state
+
+- name: derive mysql removal guards
+  tags: [ always, mysql_rm_check ]
+  set_fact:
+    mysql_rm_datadir_state: "{{ mysql_rm_guard_state.results[0] }}"
+    mysql_rm_retired_marker_state: "{{ mysql_rm_guard_state.results[1] }}"
+    mysql_rm_system_database_state: "{{ mysql_rm_guard_state.results[2] }}"
+    mysql_rm_initialized_marker_state: "{{ mysql_rm_guard_state.results[3] }}"
+
+- name: check mysql removal guards
+  tags: [ always, mysql_rm_check ]
+  assert:
+    that:
+      - not mysql_rm_datadir_state.stat.exists or (mysql_rm_datadir_state.stat.isdir and not mysql_rm_datadir_state.stat.islnk)
+      - not mysql_rm_retired_marker_state.stat.exists or (mysql_rm_retired_marker_state.stat.isreg and not mysql_rm_retired_marker_state.stat.islnk and mysql_rm_retired_marker_state.stat.pw_name == 'root' and mysql_rm_retired_marker_state.stat.gr_name == mysql_group and mysql_rm_retired_marker_state.stat.mode == '0600')
+      - not mysql_rm_system_database_state.stat.exists or (mysql_rm_system_database_state.stat.isdir and not mysql_rm_system_database_state.stat.islnk)
+      - not mysql_rm_system_database_state.stat.exists or (mysql_rm_initialized_marker_state.stat.exists and mysql_rm_initialized_marker_state.stat.isreg and not mysql_rm_initialized_marker_state.stat.islnk and mysql_rm_initialized_marker_state.stat.pw_name == 'mysql' and mysql_rm_initialized_marker_state.stat.gr_name == mysql_group and mysql_rm_initialized_marker_state.stat.mode == '0600')
+    fail_msg: mysql removal requires safe paths and a Pigsty ownership marker for every initialized datadir.
+
+- name: read mysql removal ownership
+  tags: [ always, mysql_rm_check ]
+  when: mysql_rm_system_database_state.stat.exists
+  slurp: { src: "{{ mysql_initialized_marker }}" }
+  register: mysql_rm_initialized_marker_raw
+  no_log: true
+
+- name: check mysql removal ownership
+  tags: [ always, mysql_rm_check ]
+  when: mysql_rm_system_database_state.stat.exists
+  assert:
+    that: mysql_rm_initialized_marker_raw.content | b64decode | from_json in [mysql_rm_initialized_identity, mysql_rm_initialized_legacy_identity]
+    fail_msg: mysql removal refuses a datadir owned by another Pigsty cluster, instance, or topology.
+    quiet: true
+
+- name: inspect mysql services
+  tags: [ always, mysql_rm_check ]
+  service_facts:
+
+- name: inspect mysql units
+  tags: [ always, mysql_rm_check ]
+  command: { argv: [systemctl, show, "{{ item }}", --property=LoadState, --value] }
+  loop: [ "{{ mysql_service }}.service", "{{ mysql_router_service }}.service", "{{ mysql_exporter_service }}.service", "{{ mysql_backup_service }}", "{{ mysql_backup_timer }}" ]
+  register: mysql_rm_unit_state
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: derive mysql service state
+  tags: [ always, mysql_rm_check ]
+  set_fact:
+    mysql_rm_mysql_loaded: "{{ mysql_rm_unit_state.results[0].stdout | default('') | trim == 'loaded' }}"
+    mysql_rm_router_loaded: "{{ mysql_rm_unit_state.results[1].stdout | default('') | trim == 'loaded' }}"
+    mysql_rm_exporter_loaded: "{{ mysql_rm_unit_state.results[2].stdout | default('') | trim == 'loaded' }}"
+    mysql_rm_backup_service_loaded: "{{ mysql_rm_unit_state.results[3].stdout | default('') | trim == 'loaded' }}"
+    mysql_rm_backup_timer_loaded: "{{ mysql_rm_unit_state.results[4].stdout | default('') | trim == 'loaded' }}"
+    mysql_rm_mysql_active: "{{ (ansible_facts.services | default({})).get(mysql_service ~ '.service', {}).get('state', '') == 'running' }}"
+    mysql_rm_router_active: "{{ (ansible_facts.services | default({})).get(mysql_router_service ~ '.service', {}).get('state', '') == 'running' }}"
+    mysql_rm_exporter_active: "{{ (ansible_facts.services | default({})).get(mysql_exporter_service ~ '.service', {}).get('state', '') == 'running' }}"
+    mysql_rm_backup_service_active: "{{ (ansible_facts.services | default({})).get(mysql_backup_service, {}).get('state', '') == 'running' }}"
+
+- name: reject unmanaged mysql processes
+  tags: [ always, mysql_rm_check ]
+  command: { argv: [pgrep, -x, "{{ item.name }}"] }
+  loop:
+    - { name: mysqld, active: "{{ mysql_rm_mysql_active }}" }
+    - { name: mysqlrouter, active: "{{ mysql_rm_router_active }}" }
+    - { name: mysqld_exporter, active: "{{ mysql_rm_exporter_active }}" }
+  register: mysql_rm_process_probe
+  changed_when: false
+  failed_when: mysql_rm_process_probe.rc not in [0, 1] or (mysql_rm_process_probe.rc == 0 and not item.active | bool)
+  check_mode: false
+  loop_control: { label: "{{ item.name }}" }
+
+- name: inspect mysql root client
+  tags: [ always, mysql_rm_check ]
+  when: mysql_rm_mysql_active | bool
+  stat: { path: "{{ mysql_root_config }}", follow: false, get_attributes: false, get_checksum: false, get_mime: false }
+  register: mysql_rm_root_config
+
+- name: check mysql root client
+  tags: [ always, mysql_rm_check ]
+  when: mysql_rm_mysql_active | bool
+  assert:
+    that:
+      - mysql_rm_root_config.stat.exists and mysql_rm_root_config.stat.isreg and not mysql_rm_root_config.stat.islnk
+      - mysql_rm_root_config.stat.pw_name == 'root' and mysql_rm_root_config.stat.mode in ['0400', '0600']
+    fail_msg: active MySQL lacks a protected root client.
+
+- name: inspect mysql runtime role
+  tags: [ always, mysql_rm_check ]
+  when: mysql_rm_mysql_active | bool
+  command: >-
+    mysql --defaults-extra-file={{ mysql_root_config }} --protocol=socket --batch --raw --skip-column-names -e
+    "SELECT CONCAT_WS(CHAR(9), COUNT(*), COALESCE(SUM(MEMBER_STATE='ONLINE'),0),
+    COALESCE(SUM(MEMBER_STATE='ONLINE' AND MEMBER_ROLE='PRIMARY'),0),
+    COALESCE(SUM(MEMBER_STATE='ONLINE' AND MEMBER_ROLE='SECONDARY'),0),
+    COALESCE(MAX(CASE WHEN MEMBER_ID=@@server_uuid THEN MEMBER_ROLE END),'NONE'),
+    COALESCE(MAX(CASE WHEN MEMBER_ID=@@server_uuid THEN MEMBER_STATE END),'OFFLINE'))
+    FROM performance_schema.replication_group_members"
+  register: mysql_rm_runtime_query
+  changed_when: false
+  check_mode: false
+  no_log: true
+
+- name: derive mysql runtime state
+  tags: [ always, mysql_rm_check ]
+  set_fact:
+    mysql_rm_runtime_fields: "{{ (mysql_rm_runtime_query.stdout | trim).split('\t') if mysql_rm_runtime_query.stdout is defined else ['0', '0', '0', '0', 'NONE', 'OFFLINE'] }}"
+    mysql_rm_runtime_role: "{{ ((mysql_rm_runtime_query.stdout | trim).split('\t') if mysql_rm_runtime_query.stdout is defined else ['0', '0', '0', '0', 'NONE', 'OFFLINE'])[4] }}"
+
+- name: classify mysql member removal state
+  tags: [ always, mysql_rm_check ]
+  set_fact:
+    mysql_rm_member_detached: "{{ mysql_rm_runtime_fields == ['1', '0', '0', '0', '', 'OFFLINE'] }}"
+
+- name: check mysql member removal state
+  tags: [ always, mysql_rm_check ]
+  when: mysql_rm_cluster_size | int == 3 and not mysql_rm_whole_cluster | bool
+  assert:
+    that:
+      - mysql_rm_mysql_active | bool
+      - >-
+        mysql_rm_runtime_fields == ['3', '3', '1', '2', 'SECONDARY', 'ONLINE'] or
+        mysql_rm_member_detached | bool
+    fail_msg: single-member removal requires a healthy ONLINE SECONDARY or an already-detached OFFLINE target.
