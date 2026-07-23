@@ -49,7 +49,9 @@ all:
 
         pg_hba_rules:   # https://pigsty.io/docs/pgsql/config/hba
           - { user: all ,db: all ,addr: intra ,auth: pwd ,title: 'everyone intranet access with password' ,order: 800 }
-        pg_crontab: []  # pgBackRest is disabled during PG19 beta trial
+
+        pg_crontab:     # make a full backup every day at 1am
+          - '00 01 * * * /pg/bin/pg-backup full'
 
         # define (OPTIONAL) L2 VIP that bind to primary
         #pg_vip_enabled: true
@@ -144,7 +146,6 @@ all:
     pg_version: 19                      # PostgreSQL 19 beta
     pg_conf: oltp.yml                   # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
     pg_safeguard: false                 # prevent purging running postgres instance?
-    pg_packages: [ pgsql-core, patroni, pgbouncer, pg-exporter, vip-manager ] # PG19 beta minimal runtime packages
     pg_extensions: []                   # do not install extension packages during PG19 beta trial
     repo_modules: node,infra,pgsql,beta # add PGDG testing repo when building a local repo
     repo_extra_packages: [ pgsql-core ] # only mirror PG19 beta core packages
@@ -152,8 +153,8 @@ all:
     #----------------------------------------------#
     # BACKUP : https://pigsty.io/docs/pgsql/backup
     #----------------------------------------------#
-    pgbackrest_enabled: false           # pgBackRest 2.58 does not support PG19 beta1 control/catalog yet
-    pgbackrest_exporter_enabled: false  # disabled with pgBackRest during PG19 beta trial
+    pgbackrest_enabled: true            # pgBackRest 2.59 supports PostgreSQL 19 beta2
+    pgbackrest_exporter_enabled: true   # expose pgBackRest metrics to the monitoring system
     #pgbackrest_method: minio
     #pgbackrest_repo:
     #  minio:
