@@ -93,7 +93,7 @@ unsure where they belong; we will route them to the appropriate repository.
 
 Pigsty packages and orchestrates many upstream projects: PostgreSQL,
 Patroni, pgBouncer, HAProxy, etcd, MinIO, Grafana, VictoriaMetrics,
-Prometheus components, Ansible, and 531 PostgreSQL extensions.
+Prometheus components, Ansible, and 555 PostgreSQL extensions.
 Vulnerabilities in upstream code should be reported to the upstream project
 first. If an upstream vulnerability affects Pigsty deployments, please let
 us know as well, so we can track it, rebuild packages, or ship mitigations.
@@ -108,7 +108,7 @@ us know as well, so we can track it, rebuild packages, or ship mitigations.
 
 ### PostgreSQL Extensions
 
-Pigsty distributes 531 PostgreSQL extensions, many of them built and
+Pigsty distributes 555 PostgreSQL extensions, many of them built and
 packaged by us. The dividing line:
 
 - A flaw in an extension's **own code** should be reported to the extension's

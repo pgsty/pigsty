@@ -233,7 +233,7 @@ Quick reference documentation for looking up specific technical details. Bookmar
 - `playbook.md` - Ansible playbook reference with all available playbooks, tags, and execution examples
 - `port.md` - Port allocation table showing all services and their default ports
 - `fhs.md` - Filesystem hierarchy standard explaining directory structure and file locations
-- `extension.md` - Complete catalog of 531 PostgreSQL extensions with installation instructions
+- `extension.md` - Complete catalog of 555 PostgreSQL extensions with installation instructions
 
 ---
 
@@ -339,7 +339,7 @@ Monitoring system configuration and dashboard usage.
 Complete PGSQL module parameter reference. All configuration options with descriptions and defaults.
 
 #### Ext `/docs/pgsql/ext/`
-PostgreSQL extension management. Pigsty supports 531 extensions out of the box.
+PostgreSQL extension management. Pigsty supports 555 extensions out of the box.
 
 - `start.md` - Quick start guide for extension installation
 - `intro.md` - Introduction to PostgreSQL extension ecosystem
@@ -470,7 +470,7 @@ Docker runtime module for deploying containerized applications alongside Pigsty 
 ---
 
 ### PIG `/docs/pig/`
-PIG v1.4.2 package manager for PostgreSQL extensions. Command-line tool for discovering, installing, and managing the 531 extensions available in the Pigsty ecosystem.
+PIG v1.5.1 package manager for PostgreSQL extensions. Command-line tool for discovering, installing, and managing the 555 extensions available in the Pigsty ecosystem.
 
 ---
 

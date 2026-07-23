@@ -23,7 +23,7 @@ Your feedback and ideas help make PostgreSQL more accessible and powerful for ev
 
 ### Suggest Extensions
 
-Pigsty supports 531 PostgreSQL extensions. If you need an extension that's not included:
+Pigsty supports 555 PostgreSQL extensions. If you need an extension that's not included:
 
 - Open an issue describing the extension and your use case
 - Include links to the extension's repository/documentation

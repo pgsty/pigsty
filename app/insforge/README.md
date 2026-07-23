@@ -10,7 +10,7 @@ It provides authentication, database APIs, storage, model gateway, edge function
 Design your database schema and frontend, and skip backend development entirely.
 
 Self-hosted InsForge with Pigsty enjoys full PostgreSQL monitoring, IaC, PITR, and high availability,
-with the latest PG 17/18 kernels and [531](https://pigsty.io/ext/list) PostgreSQL extensions ready to use.
+with the latest PG 17/18 kernels and [555](https://pigsty.io/ext/list) PostgreSQL extensions ready to use.
 
 
 -------
