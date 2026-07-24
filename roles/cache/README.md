@@ -100,7 +100,7 @@ cache                          # Full role execution
 
 | Variable    | Default        | Description                              |
 |-------------|----------------|------------------------------------------|
-| `version`   | `v4.4.0`       | Pigsty version string                    |
+| `version`   | `v4.5.0`       | Pigsty version string                    |
 | `repo_home` | `/www`         | Repository base directory (symlink)      |
 | `repo_name` | `pigsty`       | Repository name                          |
 
@@ -110,7 +110,7 @@ The `cache_pkg_name` supports these placeholders:
 
 | Placeholder  | Example     | Description                |
 |--------------|-------------|----------------------------|
-| `${version}` | `v4.4.0`    | Pigsty version             |
+| `${version}` | `v4.5.0`    | Pigsty version             |
 | `${os}`      | `el9`, `u26`, `d12` | OS code from node_id |
 | `${arch}`    | `x86_64`, `aarch64` | CPU architecture     |
 
@@ -129,12 +129,12 @@ dist/<version>/pigsty-pkg-<version>.<os>.<arch>.tgz
 
 | Platform     | Output Filename                                 |
 |--------------|-------------------------------------------------|
-| EL9 x86_64   | `dist/v4.4.0/pigsty-pkg-v4.4.0.el9.x86_64.tgz`  |
-| EL8 aarch64  | `dist/v4.4.0/pigsty-pkg-v4.4.0.el8.aarch64.tgz` |
-| Ubuntu 22.04 | `dist/v4.4.0/pigsty-pkg-v4.4.0.u22.x86_64.tgz`  |
-| Ubuntu 24.04 | `dist/v4.4.0/pigsty-pkg-v4.4.0.u24.x86_64.tgz`  |
-| Ubuntu 26.04 | `dist/v4.4.0/pigsty-pkg-v4.4.0.u26.x86_64.tgz`  |
-| Debian 12    | `dist/v4.4.0/pigsty-pkg-v4.4.0.d12.x86_64.tgz`  |
+| EL9 x86_64   | `dist/v4.5.0/pigsty-pkg-v4.5.0.el9.x86_64.tgz`  |
+| EL8 aarch64  | `dist/v4.5.0/pigsty-pkg-v4.5.0.el8.aarch64.tgz` |
+| Ubuntu 22.04 | `dist/v4.5.0/pigsty-pkg-v4.5.0.u22.x86_64.tgz`  |
+| Ubuntu 24.04 | `dist/v4.5.0/pigsty-pkg-v4.5.0.u24.x86_64.tgz`  |
+| Ubuntu 26.04 | `dist/v4.5.0/pigsty-pkg-v4.5.0.u26.x86_64.tgz`  |
+| Debian 12    | `dist/v4.5.0/pigsty-pkg-v4.5.0.d12.x86_64.tgz`  |
 
 ### Tarball Contents
 
@@ -188,7 +188,7 @@ This is **not** executed on:
 ```bash
 # Extract to /www (repo_home) on target node
 # /www is typically symlinked to /data/nginx
-tar -xzf pigsty-pkg-v4.4.0.el9.x86_64.tgz -C /www
+tar -xzf pigsty-pkg-v4.5.0.el9.x86_64.tgz -C /www
 
 # Verify extraction
 ls -la /www/pigsty/
@@ -198,7 +198,7 @@ ls -la /www/pigsty/
 
 ```bash
 # Use offline package during bootstrap
-./bootstrap -p /path/to/pigsty-pkg-v4.4.0.el9.x86_64.tgz
+./bootstrap -p /path/to/pigsty-pkg-v4.5.0.el9.x86_64.tgz
 
 # or if your already put it to /tmp/pkg.tgz
 ./bootstrap   # /tmp/pkg.tgz is used by default
@@ -244,7 +244,7 @@ ls -la /www/pigsty/
 ./cache.yml -l infra -t cache_info
 
 # Specify custom version
-./cache.yml -l infra -e version=v4.4.0
+./cache.yml -l infra -e version=v4.5.0
 
 # Cache multiple repos
 ./cache.yml -l infra -e cache_repo=pigsty,minio
