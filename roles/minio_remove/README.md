@@ -2,10 +2,10 @@
 
 > Remove MinIO Instance from Node
 
-| **Module**        | [MINIO](https://pigsty.io/docs/minio)       |
-|-------------------|---------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/minio/admin          |
-| **Related Roles** | [`minio`](../minio)                         |
+| **Module**        | [MINIO](https://pigsty.io/docs/minio) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/minio/admin    |
+| **Related Roles** | `minio`                               |
 
 
 ## Overview
@@ -25,9 +25,9 @@ The `minio_remove` role removes MinIO instances:
 
 ## Playbooks
 
-| Playbook                             | Description           |
-|--------------------------------------|-----------------------|
-| [`minio-rm.yml`](../../minio-rm.yml) | Remove MinIO instance |
+| Playbook       | Description           |
+|----------------|-----------------------|
+| `minio-rm.yml` | Remove MinIO instance |
 
 
 ## File Structure
@@ -118,5 +118,5 @@ The role uses a graceful shutdown sequence:
 
 ## See Also
 
-- [`minio`](../minio): Deploy MinIO cluster
+- `minio`: Deploy MinIO cluster
 - [MinIO Admin](https://pigsty.io/docs/minio/admin): Administration guide

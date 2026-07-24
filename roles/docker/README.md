@@ -2,10 +2,10 @@
 
 > Deploy Docker Container Runtime
 
-| **Module**        | [DOCKER](https://pigsty.io/docs/docker)     |
-|-------------------|---------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/docker/              |
-| **Related Roles** | [`node`](../node), [`infra`](../infra)      |
+| **Module**        | [DOCKER](https://pigsty.io/docs/docker) |
+|-------------------|-----------------------------------------|
+| **Docs**          | https://pigsty.io/docs/docker/          |
+| **Related Roles** | `node`, `infra`                         |
 
 
 ## Overview
@@ -25,9 +25,9 @@ Docker is used to run stateless applications alongside Pigsty.
 
 ## Playbooks
 
-| Playbook                           | Description          |
-|------------------------------------|----------------------|
-| [`docker.yml`](../../docker.yml)   | Deploy Docker        |
+| Playbook     | Description   |
+|--------------|---------------|
+| `docker.yml` | Deploy Docker |
 
 
 ## File Structure
@@ -162,19 +162,28 @@ The role generates `/etc/docker/daemon.json`:
 {
   "data-root": "/data/docker",
   "exec-opts": ["native.cgroupdriver=systemd"],
+  "storage-driver": "overlay2",
   "log-driver": "json-file",
   "log-opts": { "max-size": "100m" },
-  "storage-driver": "overlay2",
-  "metrics-addr" : "0.0.0.0:9323",
-  "experimental" : true,
-  "max-concurrent-downloads": 8,
-  "registry-mirrors" : []
+  "metrics-addr": "<inventory-host>:9323",
+  "experimental": true,
+  "registry-mirrors": [],
+  "default-ulimits": {
+    "nofile": {
+      "Hard": 1048576,
+      "Soft": 1048576,
+      "Name": "nofile"
+    }
+  },
+  "max-concurrent-downloads": 8
 }
 ```
+
+When `proxy_env` is defined, the role also renders Docker's `proxies` block.
 
 
 ## See Also
 
-- [`node`](../node): Node provisioning
-- [`infra`](../infra): Infrastructure deployment
+- `node`: Node provisioning
+- `infra`: Infrastructure deployment
 - [Docker Guide](https://pigsty.io/docs/docker/): Configuration documentation

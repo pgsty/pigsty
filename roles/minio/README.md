@@ -2,10 +2,10 @@
 
 > Deploy MinIO S3-Compatible Object Storage
 
-| **Module**        | [MINIO](https://pigsty.io/docs/minio)                  |
-|-------------------|--------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/minio/                          |
-| **Related Roles** | [`minio_remove`](../minio_remove), [`ca`](../ca)       |
+| **Module**        | [MINIO](https://pigsty.io/docs/minio) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/minio/         |
+| **Related Roles** | `minio_remove`, `ca`                  |
 
 
 ## Overview
@@ -25,10 +25,10 @@ MinIO is used for pgBackRest remote backup storage with S3 protocol.
 
 ## Playbooks
 
-| Playbook                             | Description           |
-|--------------------------------------|-----------------------|
-| [`minio.yml`](../../minio.yml)       | Deploy MinIO cluster  |
-| [`minio-rm.yml`](../../minio-rm.yml) | Remove MinIO cluster  |
+| Playbook       | Description          |
+|----------------|----------------------|
+| `minio.yml`    | Deploy MinIO cluster |
+| `minio-rm.yml` | Remove MinIO cluster |
 
 
 ## File Structure
@@ -184,7 +184,7 @@ MinIO uses TLS certificates signed by Pigsty CA:
 
 ## See Also
 
-- [`minio_remove`](../minio_remove): Remove MinIO deployment
-- [`ca`](../ca): Certificate Authority
-- [`pg_pitr`](../pg_pitr): pgBackRest (uses MinIO for S3 backups)
+- `minio_remove`: Remove MinIO deployment
+- `ca`: Certificate Authority
+- `pg_pitr`: pgBackRest (uses MinIO for S3 backups)
 - [MinIO Guide](https://pigsty.io/docs/minio/): Configuration documentation

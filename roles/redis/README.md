@@ -1,38 +1,43 @@
 # Role: redis
 
-> Deploy Redis Standalone, Cluster, or Sentinel
+> Deploy Redis Instances and Monitoring
 
-| **Module**        | [REDIS](https://pigsty.io/docs/redis)                |
-|-------------------|------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/redis/                        |
-| **Related Roles** | [`redis_remove`](../redis_remove), [`node`](../node) |
+| **Module**        | [REDIS](https://pigsty.io/docs/redis) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/redis/         |
+| **Related Roles** | `redis_remove`, `node`                |
 
 
 ## Overview
 
-The `redis` role deploys **Redis** instances in various modes:
+The `redis` role deploys and manages **Redis** instances:
 
 - Install Redis packages
 - Configure Redis node (directories, limits)
 - Deploy Redis exporter for monitoring
-- Create Redis instances (standalone/cluster/sentinel)
+- Create standalone, cluster-enabled, or Sentinel instances
 - Register to monitoring system
 
 **Idempotent**: Re-running the playbook will update config and restart services.
 Only nodes with `redis_cluster` defined will be affected.
 
-Redis supports three deployment modes:
+The role supports three instance modes:
+
 - **Standalone**: Single instance or master-replica
-- **Cluster**: Native Redis cluster with sharding
-- **Sentinel**: High availability with automatic failover
+- **Cluster**: Enable Redis Cluster mode on each instance
+- **Sentinel**: Launch Redis Sentinel instances
+
+The role does not create or join a native cluster, and it does not generate
+Sentinel monitor declarations. The current implementation does not consume
+`redis_cluster_replicas` or `redis_sentinel_monitor`.
 
 
 ## Playbooks
 
-| Playbook                             | Description           |
-|--------------------------------------|-----------------------|
-| [`redis.yml`](../../redis.yml)       | Deploy Redis cluster  |
-| [`redis-rm.yml`](../../redis-rm.yml) | Remove Redis cluster  |
+| Playbook       | Description            |
+|----------------|------------------------|
+| `redis.yml`    | Deploy Redis instances |
+| `redis-rm.yml` | Remove Redis cluster   |
 
 
 ## File Structure
@@ -91,16 +96,16 @@ redis (full role)
 
 ### Mode Configuration
 
-| Variable             | Default      | Description                       |
-|----------------------|--------------|-----------------------------------|
-| `redis_mode`         | `standalone` | Mode: standalone/cluster/sentinel |
-| `redis_conf`         | `redis.conf` | Config template name              |
-| `redis_bind_address` | `0.0.0.0`    | Listen address                    |
+| Variable             | Default      | Description                                |
+|----------------------|--------------|--------------------------------------------|
+| `redis_mode`         | `standalone` | Instance mode: standalone/cluster/sentinel |
+| `redis_conf`         | `redis.conf` | Config template name                       |
+| `redis_bind_address` | `0.0.0.0`    | Listen address                             |
 
 ### Filesystem
 
-| Variable        | Default       | Description                                                                 |
-|-----------------|---------------|-----------------------------------------------------------------------------|
+| Variable        | Default       | Description                                                                                        |
+|-----------------|---------------|----------------------------------------------------------------------------------------------------|
 | `redis_fs_main` | `/data/redis` | Redis data root directory; instance dirs are created under it (`/data` is rejected at deploy-time) |
 
 ### Resource Limits
@@ -162,26 +167,33 @@ redis_instances:
 
 ### Native Cluster
 
-Distributed cluster with automatic sharding:
+Enable cluster mode and define instances as usual:
 
 ```yaml
 redis_mode: cluster
-redis_cluster_replicas: 1
+redis_instances:
+  6379: {}
 ```
+
+After deployment, create or join the topology explicitly with `redis-cli --cluster`.
+The role does not run cluster bootstrap or resharding commands.
 
 ### Sentinel
 
-HA mode with automatic failover:
+Launch a Sentinel instance:
 
 ```yaml
 redis_mode: sentinel
-redis_sentinel_monitor:
-  - { name: mymaster, host: 10.10.10.10, port: 6379, quorum: 2 }
+redis_instances:
+  26379: {}
 ```
+
+The bundled template does not render monitored masters. Configure Sentinel
+monitor targets separately before relying on automatic failover.
 
 
 ## See Also
 
-- [`redis_remove`](../redis_remove): Remove Redis deployment
-- [`node`](../node): Node provisioning
+- `redis_remove`: Remove Redis deployment
+- `node`: Node provisioning
 - [Redis Guide](https://pigsty.io/docs/redis/): Configuration documentation

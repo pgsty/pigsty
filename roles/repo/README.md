@@ -2,10 +2,10 @@
 
 > Build and Serve Local Software Repository
 
-| **Module**        | [INFRA](https://pigsty.io/docs/infra)              |
-|-------------------|----------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/infra/repo                  |
-| **Related Roles** | [`infra`](../infra), [`cache`](../cache)          |
+| **Module**        | [INFRA](https://pigsty.io/docs/infra) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/infra/repo     |
+| **Related Roles** | `infra`, `cache`                      |
 
 
 ## Overview
@@ -27,9 +27,9 @@ This enables:
 
 ## Playbooks
 
-| Playbook                       | Description                         |
-|--------------------------------|-------------------------------------|
-| [`infra.yml`](../../infra.yml) | Full infrastructure (includes repo) |
+| Playbook    | Description                         |
+|-------------|-------------------------------------|
+| `infra.yml` | Full infrastructure (includes repo) |
 
 
 ## File Structure
@@ -86,27 +86,28 @@ repo                           # Full role execution
 |-----------------|----------------------------|--------------------------------------|
 | `repo_enabled`  | `true`                     | Enable local repo creation           |
 | `repo_name`     | `pigsty`                   | Repository name                      |
-| `repo_home`     | `/www`                     | Repo base directory (symlink)        |
+| `repo_home`     | `/www`                     | Repository base directory            |
 | `repo_endpoint` | `http://${admin_ip}:80`    | Access URL for the repository        |
 | `repo_remove`   | `true`                     | Remove existing upstream repo files  |
 | `repo_modules`  | `infra,node,pgsql`         | Which modules to include in repo     |
 
-> Note: `/www` is a symbolic link to `/data/nginx` for FHS compatibility.
+> Note: On a fresh installation, the role creates `/www` as a symbolic link to
+> `/data/nginx`. An existing directory or symlink is preserved.
 
 ### Package Sources
 
-| Variable             | Default | Description                              |
-|----------------------|---------|------------------------------------------|
-| `repo_upstream`      | `[...]` | Upstream repo definitions (OS-specific)  |
-| `repo_packages`      | `[...]` | Package list to download                 |
-| `repo_extra_packages`| `[]`    | Additional packages to include           |
-| `repo_url_packages`  | `[]`    | Direct URL downloads (binaries, etc.)    |
+| Variable              | Default | Description                             |
+|-----------------------|---------|-----------------------------------------|
+| `repo_upstream`       | `[...]` | Upstream repo definitions (OS-specific) |
+| `repo_packages`       | `[...]` | Package list to download                |
+| `repo_extra_packages` | `[]`    | Additional packages to include          |
+| `repo_url_packages`   | `[]`    | Direct URL downloads (binaries, etc.)   |
 
 
 ## Repository Structure
 
 ```
-/www/                         # Symlink -> /data/nginx
+/www/                         # Usually a symlink -> /data/nginx on fresh installs
 └── pigsty/                   # repo_name
     ├── *.rpm                 # RPM packages (EL)
     ├── *.deb                 # DEB packages (Debian/Ubuntu)
@@ -205,8 +206,8 @@ The cleanup happens in the `repo_create` task before `createrepo_c` or `dpkg-sca
 
 ## See Also
 
-- [`infra`](../infra): Infrastructure deployment
-- [`cache`](../cache): Create offline package cache
-- [`node`](../node): Node preparation (uses repo)
+- `infra`: Infrastructure deployment
+- `cache`: Create offline package cache
+- `node`: Node preparation (uses repo)
 - [Offline Install](https://pigsty.io/docs/setup/offline): Offline installation guide
 - [Repo Config](https://pigsty.io/docs/infra/repo): Detailed configuration guide

@@ -2,22 +2,23 @@
 
 > Remove PostgreSQL Cluster/Instance from Nodes
 
-| **Module**        | [PGSQL](https://pigsty.io/docs/pgsql)                             |
-|-------------------|-------------------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/pgsql/admin/#remove-cluster                |
-| **Related Roles** | [`pgsql`](../pgsql), [`pg_id`](../pg_id), [`node_id`](../node_id) |
+| **Module**        | [PGSQL](https://pigsty.io/docs/pgsql)              |
+|-------------------|----------------------------------------------------|
+| **Docs**          | https://pigsty.io/docs/pgsql/admin/#remove-cluster |
+| **Related Roles** | `pgsql`, `pg_id`, `node_id`                        |
 
 
 ## Overview
 
 The `pg_remove` role is a **DANGEROUS** role that removes PostgreSQL clusters or instances from target nodes. 
-It performs the reverse operation of the [`pgsql`](../pgsql) role, cleaning up:
+It performs the reverse operation of the `pgsql` role, cleaning up:
 
 - Monitoring targets (Victoria Metrics, Grafana datasources, Vector logs)
 - Exporters (pg_exporter, pgbouncer_exporter, pgbackrest_exporter)
 - Access layer (HAProxy services, VIP, DNS records, pgBouncer)
+- PostgreSQL OS-user crontab
 - PostgreSQL instances (Patroni, Postgres)
-- Backup data (pgBackRest repo)
+- Backup data (pgBackRest stanza and cluster-local backup directory)
 - Data directories
 - PostgreSQL packages
 
@@ -26,9 +27,9 @@ It performs the reverse operation of the [`pgsql`](../pgsql) role, cleaning up:
 
 ## Playbooks
 
-| Playbook                             | Description                        |
-|--------------------------------------|------------------------------------|
-| [`pgsql-rm.yml`](../../pgsql-rm.yml) | Remove PostgreSQL cluster/instance |
+| Playbook       | Description                        |
+|----------------|------------------------------------|
+| `pgsql-rm.yml` | Remove PostgreSQL cluster/instance |
 
 
 ## File Structure
@@ -51,7 +52,7 @@ roles/pg_remove/
     ├── pg_service.yml        # [pg_service] Remove HAProxy services
     ├── pgbouncer.yml         # [pgbouncer] Remove pgBouncer
     ├── postgres.yml          # [postgres] Stop and remove Patroni/Postgres
-    ├── pgbackrest.yml        # [pgbackrest] Remove backup repo
+    ├── pgbackrest.yml        # [pgbackrest] Remove stanza/local backup
     └── uninstall.yml         # [pg_pkg] Uninstall packages
 ```
 
@@ -79,6 +80,8 @@ pg_remove (full role)
 │   ├── vip                    # Remove VIP manager
 │   ├── pg_service / haproxy   # Remove HAProxy services
 │   └── pgbouncer              # Remove pgBouncer
+│
+├── pg_crontab                 # Remove postgres OS-user crontab
 │
 ├── pg_bootstrap               # Remove PostgreSQL
 │   └── postgres / patroni     # Stop Patroni and Postgres
@@ -116,12 +119,12 @@ pg_remove (full role)
 
 ### Control Variables
 
-| Variable       | Default | Description                             |
-|----------------|---------|-----------------------------------------|
-| `pg_safeguard` | `false` | Safeguard to prevent accidental removal |
-| `pg_rm_data`   | `true`  | Remove PostgreSQL data directories      |
-| `pg_rm_backup` | `true`  | Remove pgBackRest backup (primary only) |
-| `pg_rm_pkg`    | `true`  | Uninstall PostgreSQL packages           |
+| Variable       | Default | Description                                          |
+|----------------|---------|------------------------------------------------------|
+| `pg_safeguard` | `false` | Safeguard to prevent accidental removal              |
+| `pg_rm_data`   | `true`  | Remove PostgreSQL data directories                   |
+| `pg_rm_backup` | `true`  | Remove the stanza and cluster-local backup directory |
+| `pg_rm_pkg`    | `true`  | Uninstall PostgreSQL packages                        |
 
 ### Identity (Reference)
 
@@ -163,16 +166,17 @@ The removal process follows a specific order to ensure clean teardown:
 
 1. **Monitoring** - Deregister from monitoring systems first
 2. **Access Layer** - Remove services, VIP, DNS, pgBouncer
-3. **Replicas** - Remove replica instances before primary
-4. **Primary** - Remove primary instance
-5. **Metadata** - Clean up DCS (etcd) entries
-6. **Backup** - Remove pgBackRest repo (optional)
-7. **Data** - Remove data directories (optional)
-8. **Packages** - Uninstall software (optional)
+3. **Crontab** - Remove PostgreSQL OS-user jobs
+4. **Replicas** - Remove replica instances before primary
+5. **Primary** - Remove primary instance
+6. **Metadata** - Clean up DCS (etcd) entries
+7. **Backup** - Remove the stanza and cluster-local backup directory (optional)
+8. **Data** - Remove data directories (optional)
+9. **Packages** - Uninstall software (optional)
 
 
 ## See Also
 
-- [`pgsql`](../pgsql): Deploy PostgreSQL cluster
-- [`pg_id`](../pg_id): Get PostgreSQL identity
+- `pgsql`: Deploy PostgreSQL cluster
+- `pg_id`: Get PostgreSQL identity
 - [Admin Guide](https://pigsty.io/docs/pgsql/admin): Cluster administration

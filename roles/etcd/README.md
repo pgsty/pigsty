@@ -2,10 +2,10 @@
 
 > Deploy ETCD Distributed Key-Value Store Cluster
 
-| **Module**        | [ETCD](https://pigsty.io/docs/etcd)                                 |
-|-------------------|---------------------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/etcd/                                        |
-| **Related Roles** | [`etcd_remove`](../etcd_remove), [`pgsql`](../pgsql), [`ca`](../ca) |
+| **Module**        | [ETCD](https://pigsty.io/docs/etcd) |
+|-------------------|-------------------------------------|
+| **Docs**          | https://pigsty.io/docs/etcd/        |
+| **Related Roles** | `etcd_remove`, `pgsql`, `ca`        |
 
 
 ## Overview
@@ -24,10 +24,10 @@ ETCD is used by Patroni for PostgreSQL HA consensus.
 
 ## Playbooks
 
-| Playbook                           | Description         |
-|------------------------------------|---------------------|
-| [`etcd.yml`](../../etcd.yml)       | Deploy ETCD cluster |
-| [`etcd-rm.yml`](../../etcd-rm.yml) | Remove ETCD cluster |
+| Playbook      | Description         |
+|---------------|---------------------|
+| `etcd.yml`    | Deploy ETCD cluster |
+| `etcd-rm.yml` | Remove ETCD cluster |
 
 
 ## File Structure
@@ -89,20 +89,25 @@ etcd (full role)
 
 ### Configuration
 
-| Variable         | Default      | Description             |
-|------------------|--------------|-------------------------|
-| `etcd_port`      | `2379`       | Client port             |
-| `etcd_peer_port` | `2380`       | Peer port               |
-| `etcd_data`      | `/data/etcd` | Data directory          |
-| `etcd_init`      | `new`        | Init mode: new/existing |
-| `etcd_learner`   | `false`      | Add as learner node     |
+| Variable                  | Default      | Description                   |
+|---------------------------|--------------|-------------------------------|
+| `etcd_port`               | `2379`       | Client port                   |
+| `etcd_peer_port`          | `2380`       | Peer port                     |
+| `etcd_data`               | `/data/etcd` | Data directory                |
+| `etcd_init`               | `new`        | Init mode: new/existing       |
+| `etcd_learner`            | `false`      | Add as learner node           |
+| `etcd_election_timeout`   | `1000`       | Election timeout in ms        |
+| `etcd_heartbeat_interval` | `100`        | Heartbeat interval in ms      |
+
+The backend quota is fixed at 8 GiB in the managed configuration.
 
 ### Security
 
-| Variable             | Default     | Description                |
-|----------------------|-------------|----------------------------|
-| `etcd_root_password` | `Etcd.Root` | Root user password         |
-| `etcd_safeguard`     | `false`     | Prevent accidental removal |
+| Variable             | Default     | Description        |
+|----------------------|-------------|--------------------|
+| `etcd_root_password` | `Etcd.Root` | Root user password |
+
+Removal protection is controlled by `etcd_safeguard` in the `etcd_remove` role.
 
 
 ## Cluster Topology
@@ -147,6 +152,6 @@ To add a new member:
 
 ## See Also
 
-- [`etcd_remove`](../etcd_remove): Remove ETCD cluster
-- [`pgsql`](../pgsql): PostgreSQL (uses ETCD for HA)
+- `etcd_remove`: Remove ETCD cluster
+- `pgsql`: PostgreSQL (uses ETCD for HA)
 - [ETCD Guide](https://pigsty.io/docs/etcd/): Configuration documentation

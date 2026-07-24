@@ -2,10 +2,10 @@
 
 > Deploy JuiceFS Multi-Instance Filesystem with PostgreSQL/MinIO Backends
 
-| **Module**        | [JUICE](https://pigsty.io/docs/juice)                     |
-|-------------------|-----------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/juice                              |
-| **Related Roles** | [`pgsql`](../pgsql), [`infra`](../infra), [`vibe`](../vibe) |
+| **Module**        | [JUICE](https://pigsty.io/docs/juice) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/juice          |
+| **Related Roles** | `pgsql`, `infra`, `vibe`              |
 
 
 ## Overview
@@ -32,7 +32,7 @@ Each instance is managed as an independent systemd unit:
 
 | Playbook                     | Description                     |
 |------------------------------|---------------------------------|
-| [`juice.yml`](../../juice.yml) | Deploy/manage JuiceFS instances |
+| `juice.yml` | Deploy/manage JuiceFS instances |
 
 
 ## File Structure

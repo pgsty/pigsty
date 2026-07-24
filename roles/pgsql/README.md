@@ -2,10 +2,10 @@
 
 > Deploy Production-Ready PostgreSQL HA Cluster with Patroni
 
-| **Module**        | [PGSQL](https://pigsty.io/docs/pgsql)                                                                                                                                |
-|-------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/pgsql                                                                                                                                         |
-| **Related Roles** | [`pg_id`](../pg_id), [`pg_remove`](../pg_remove), [`pg_monitor`](../pg_monitor), [`pg_pitr`](../pg_pitr), [`pg_exporters`](../pg_exporters), [`haproxy`](../haproxy) |
+| **Module**        | [PGSQL](https://pigsty.io/docs/pgsql)                                    |
+|-------------------|--------------------------------------------------------------------------|
+| **Docs**          | https://pigsty.io/docs/pgsql                                             |
+| **Related Roles** | `pg_id`, `pg_remove`, `pg_monitor`, `pg_pitr`, `pg_exporters`, `haproxy` |
 
 
 ## Overview
@@ -22,12 +22,12 @@ The `pgsql` role is the **core role** for deploying PostgreSQL clusters in Pigst
 
 ## Playbooks
 
-| Playbook                                 | Description                                      |
-|------------------------------------------|--------------------------------------------------|
-| [`pgsql.yml`](../../pgsql.yml)           | Full cluster deployment (id + pgsql + monitor)   |
-| [`pgsql-user.yml`](../../pgsql-user.yml) | Manage business users only                       |
-| [`pgsql-db.yml`](../../pgsql-db.yml)     | Manage databases only                            |
-| [`pgsql-rm.yml`](../../pgsql-rm.yml)     | Remove cluster (use [`pg_remove`](../pg_remove)) |
+| Playbook         | Description                                    |
+|------------------|------------------------------------------------|
+| `pgsql.yml`      | Full cluster deployment (id + pgsql + monitor) |
+| `pgsql-user.yml` | Manage business users only                     |
+| `pgsql-db.yml`   | Manage databases only                          |
+| `pgsql-rm.yml`   | Remove cluster (use `pg_remove`)               |
 
 
 ## File Structure
@@ -50,6 +50,7 @@ roles/pgsql/
 │   ├── user.yml              # [pg_user] Provision business users
 │   ├── database.yml          # [pg_db] Provision business databases
 │   ├── pgbackrest.yml        # [pgbackrest] Setup backup
+│   ├── crontab.yml           # [pg_crontab] Configure postgres crontab
 │   ├── pgbouncer.yml         # [pgbouncer] Deploy connection pooler
 │   ├── vip.yml               # [pg_vip] Configure L2 VIP
 │   ├── dns.yml               # [pg_dns] Register DNS names
@@ -134,6 +135,8 @@ pgsql (full role)
 │       ├── pgbackrest_init    # Initialize stanza
 │       └── pgbackrest_backup  # Initial full backup
 │
+├── pg_crontab                 # Configure postgres crontab
+│
 └── pg_access                  # Access layer setup
     ├── pgbouncer              # Connection pooling
     │   ├── pgbouncer_dir      # Create directories
@@ -183,11 +186,15 @@ pgsql (full role)
 
 ### Identity (Required)
 
-| Variable     | Level        | Description                                    |
-|--------------|--------------|------------------------------------------------|
-| `pg_cluster` | **CLUSTER**  | Cluster name (required)                        |
-| `pg_role`    | **INSTANCE** | Instance role: `primary`, `replica`, `offline` |
-| `pg_seq`     | **INSTANCE** | Instance sequence number                       |
+| Variable     | Level        | Description                                             |
+|--------------|--------------|---------------------------------------------------------|
+| `pg_cluster` | **CLUSTER**  | Cluster name (required)                                 |
+| `pg_role`    | **INSTANCE** | `primary`, `replica`, `standby`, `offline`, or `delayed` |
+| `pg_seq`     | **INSTANCE** | Instance sequence number                                |
+| `pg_mode`    | **CLUSTER**  | PostgreSQL distribution mode; default `pgsql`           |
+
+Supported `pg_mode` values are `pgsql`, `citus`, `mssql`, `mysql`, `ivory`,
+`pgtde`, `polar`, `gpsql`, `agens`, `oriole`, and `pgedge`.
 
 ### Installation
 
@@ -245,6 +252,12 @@ pg_rto_plan:  # [ttl, loop, retry, start, margin, inter, fastinter, downinter, r
 | `pgbackrest_method`  | `local` | Repo method: local/minio |
 | `pgbackrest_repo`    | `{...}` | Repository configuration |
 
+### Maintenance
+
+| Variable     | Default | Description                              |
+|--------------|---------|------------------------------------------|
+| `pg_crontab` | `[]`    | Crontab entries for the database OS user |
+
 ### Access
 
 | Variable             | Default        | Description      |
@@ -270,8 +283,8 @@ Full parameter list: [PGSQL Configuration](https://pigsty.io/docs/pgsql/config)
 
 ## See Also
 
-- [`pg_id`](../pg_id): Get PostgreSQL identity information
-- [`pg_remove`](../pg_remove): Remove PostgreSQL cluster
-- [`pg_monitor`](../pg_monitor): Setup monitoring exporters
-- [`pg_pitr`](../pg_pitr): Point-in-time recovery
-- [`pg_exporters`](../pg_exporters): Remote monitoring setup
+- `pg_id`: Get PostgreSQL identity information
+- `pg_remove`: Remove PostgreSQL cluster
+- `pg_monitor`: Setup monitoring exporters
+- `pg_pitr`: Point-in-time recovery
+- `pg_exporters`: Remote monitoring setup

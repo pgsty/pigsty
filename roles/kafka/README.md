@@ -2,10 +2,10 @@
 
 > Deploy Apache Kafka 4.1+ clusters in native dynamic KRaft mode
 
-| **Module**        | [KAFKA](https://pigsty.io/docs/kafka)                      |
-|-------------------|------------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/kafka                               |
-| **Related Roles** | [`node_id`](../node_id), [`kafka_remove`](../kafka_remove) |
+| **Module**        | [KAFKA](https://pigsty.io/docs/kafka) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/kafka          |
+| **Related Roles** | `node_id`, `kafka_remove`             |
 
 
 ## Overview
@@ -23,15 +23,15 @@ The `kafka` role deploys Kafka 4.1+ clusters with:
   registered to VictoriaMetrics on infra nodes
 
 The role converges one cluster to its declared state in a single idempotent pass and
-never wipes an existing cluster: teardown lives in [`kafka_remove`](../kafka_remove).
+never wipes an existing cluster: teardown lives in `kafka_remove`.
 
 
 ## Playbooks
 
-| Playbook       | Description                                            |
-|----------------|--------------------------------------------------------|
-| `kafka.yml`    | Init / converge kafka cluster (id + kafka)             |
-| `kafka-rm.yml` | Remove cluster (use [`kafka_remove`](../kafka_remove)) |
+| Playbook       | Description                                |
+|----------------|--------------------------------------------|
+| `kafka.yml`    | Init / converge kafka cluster (id + kafka) |
+| `kafka-rm.yml` | Remove cluster (use `kafka_remove`)        |
 
 Every lifecycle run must select every member of exactly one `kafka_cluster`:
 
@@ -211,6 +211,6 @@ Full parameter reference: [KAFKA Configuration](https://pigsty.io/docs/kafka/con
 
 ## See Also
 
-- [`kafka_remove`](../kafka_remove): Remove kafka cluster (`kafka_safeguard` protected)
-- [`node_id`](../node_id): Node identity & package alias resolution
+- `kafka_remove`: Remove kafka cluster (`kafka_safeguard` protected)
+- `node_id`: Node identity & package alias resolution
 - [KAFKA Docs](https://pigsty.io/docs/kafka): Config, playbook, admin, monitor, FAQ

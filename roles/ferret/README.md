@@ -2,10 +2,10 @@
 
 > Deploy FerretDB MongoDB-Compatible Interface
 
-| **Module**        | [FERRET](https://pigsty.io/docs/ferret)        |
-|-------------------|------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/ferret/                 |
-| **Related Roles** | [`pgsql`](../pgsql), [`ca`](../ca)             |
+| **Module**        | [FERRET](https://pigsty.io/docs/ferret) |
+|-------------------|-----------------------------------------|
+| **Docs**          | https://pigsty.io/docs/ferret/          |
+| **Related Roles** | `pgsql`, `ca`                           |
 
 
 ## Overview
@@ -24,9 +24,9 @@ FerretDB provides MongoDB wire protocol compatibility using PostgreSQL as the ba
 
 ## Playbooks
 
-| Playbook                             | Description            |
-|--------------------------------------|------------------------|
-| [`mongo.yml`](../../mongo.yml)       | Deploy FerretDB        |
+| Playbook    | Description     |
+|-------------|-----------------|
+| `mongo.yml` | Deploy FerretDB |
 
 
 ## File Structure
@@ -148,6 +148,6 @@ To remove an existing FerretDB deployment:
 
 ## See Also
 
-- [`pgsql`](../pgsql): PostgreSQL cluster (backend storage)
-- [`ca`](../ca): Certificate Authority
+- `pgsql`: PostgreSQL cluster (backend storage)
+- `ca`: Certificate Authority
 - [FerretDB Guide](https://pigsty.io/docs/ferret/): Configuration documentation

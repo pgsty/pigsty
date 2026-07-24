@@ -2,11 +2,11 @@
 
 > Conservative MySQL member/cluster retirement for Pigsty
 
-| **Playbook** | [`mysql-rm.yml`](../../mysql-rm.yml) |
-|--------------|--------------------------------------|
-| **Safeguard** | `mysql_safeguard=true` |
+| **Playbook**     | `mysql-rm.yml`                                    |
+|------------------|---------------------------------------------------|
+| **Safeguard**    | `mysql_safeguard=true`                            |
 | **Confirmation** | exact `mysql_rm_confirm` instance or cluster name |
-| **Data policy** | preserve all local state |
+| **Data policy**  | preserve all local state                          |
 
 `mysql_remove` is the separately gated scale-in and retirement path for the
 native MySQL 8.4 platform. It is intentionally narrower than `pg_remove`:

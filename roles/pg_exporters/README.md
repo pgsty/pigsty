@@ -5,7 +5,7 @@
 | **Module**        | [PGSQL](https://pigsty.io/docs/pgsql)                   |
 |-------------------|---------------------------------------------------------|
 | **Docs**          | https://pigsty.io/docs/pgsql/monitor/#remote-monitoring |
-| **Related Roles** | [`pg_monitor`](../pg_monitor), [`infra`](../infra)      |
+| **Related Roles** | `pg_monitor`, `infra`                                   |
 
 
 ## Overview
@@ -23,9 +23,9 @@ This is useful for:
 
 ## Playbooks
 
-| Playbook                                       | Description                        |
-|------------------------------------------------|------------------------------------|
-| [`pgsql-monitor.yml`](../../pgsql-monitor.yml) | Setup remote PostgreSQL monitoring |
+| Playbook            | Description                        |
+|---------------------|------------------------------------|
+| `pgsql-monitor.yml` | Setup remote PostgreSQL monitoring |
 
 
 ## File Structure
@@ -39,7 +39,8 @@ roles/pg_exporters/
 ├── tasks/
 │   ├── main.yml              # Entry point: iterate over pg_exporters
 │   ├── pg_exporter.yml       # Setup individual exporter
-│   └── register_grafana.yml  # Register datasources
+│   ├── register_grafana.yml  # Iterate over Grafana datasources
+│   └── register_grafana_db.yml # Register one Grafana datasource
 └── templates/
     ├── pg_exporter.yml       # Collector configuration
     ├── pg_exporter.env       # Environment variables
@@ -178,6 +179,6 @@ Remote monitoring has limitations compared to local monitoring:
 
 ## See Also
 
-- [`pg_monitor`](../pg_monitor): Local PostgreSQL monitoring
-- [`infra`](../infra): Infrastructure monitoring stack
+- `pg_monitor`: Local PostgreSQL monitoring
+- `infra`: Infrastructure monitoring stack
 - [Remote Monitoring](https://pigsty.io/docs/pgsql/monitor/#remote-monitoring): Documentation

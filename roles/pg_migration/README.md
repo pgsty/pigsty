@@ -5,7 +5,7 @@
 | **Module**        | [PGSQL](https://pigsty.io/docs/pgsql)  |
 |-------------------|----------------------------------------|
 | **Docs**          | https://pigsty.io/docs/pgsql/migration |
-| **Related Roles** | [`pgsql`](../pgsql)                    |
+| **Related Roles** | `pgsql`                                |
 
 
 ## Overview
@@ -23,9 +23,9 @@ The actual migration is executed manually by operators following the generated p
 
 ## Playbooks
 
-| Playbook                                           | Description             |
-|----------------------------------------------------|-------------------------|
-| [`pgsql-migration.yml`](../../pgsql-migration.yml) | Generate migration plan |
+| Playbook              | Description             |
+|-----------------------|-------------------------|
+| `pgsql-migration.yml` | Generate migration plan |
 
 
 ## File Structure
@@ -99,24 +99,22 @@ pg_migration
 
 ### Optional Parameters
 
-| Variable      | Default       | Description                 |
-|---------------|---------------|-----------------------------|
-| `context_dir` | `~/migration` | Migration context directory |
-| `src_list`    | `[]`          | Source replica IPs          |
-| `src_dns`     | (none)        | Source DNS name             |
-| `src_vip`     | (none)        | Source VIP address          |
-| `dst_dns`     | (none)        | Destination DNS name        |
-| `dst_vip`     | (none)        | Destination VIP address     |
+| Variable      | Default       | Description                    |
+|---------------|---------------|--------------------------------|
+| `context_dir` | `~/migration` | Migration context directory    |
+| `src_pg`      | generated     | Source administrative URL      |
+| `dst_pg`      | generated     | Destination administrative URL |
+| `sub_conn`    | generated     | Subscription connection string |
 
 ### Credential Parameters
 
-| Variable                  | Default             | Description          |
-|---------------------------|---------------------|----------------------|
-| `pg_dbsu`                 | `postgres`          | Database superuser   |
-| `pg_replication_username` | `replicator`        | Replication user     |
-| `pg_replication_password` | `DBUser.Replicator` | Replication password |
-| `pg_admin_username`       | `dbuser_dba`        | Admin user           |
-| `pg_admin_password`       | `DBUser.DBA`        | Admin password       |
+| Variable                  | Default      | Description                     |
+|---------------------------|--------------|---------------------------------|
+| `pg_replication_username` | `replicator` | User embedded in `sub_conn`     |
+| `pg_admin_username`       | `dbuser_dba` | User embedded in generated URLs |
+
+The role does not inject passwords. Authentication follows standard libpq
+resolution (`.pgpass`, environment/service settings, or explicit connection strings).
 
 
 ## Generated Scripts
@@ -215,6 +213,6 @@ pg_migration
 
 ## See Also
 
-- [`pgsql`](../pgsql): Deploy PostgreSQL cluster
+- `pgsql`: Deploy PostgreSQL cluster
 - [Migration Guide](https://pigsty.io/docs/pgsql/migration): Detailed migration documentation
 - [Logical Replication](https://www.postgresql.org/docs/current/logical-replication.html): PostgreSQL documentation

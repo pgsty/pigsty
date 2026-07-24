@@ -2,10 +2,10 @@
 
 > Point-In-Time Recovery for PostgreSQL Clusters
 
-| **Module**        | [PGSQL](https://pigsty.io/docs/pgsql)                             |
-|-------------------|-------------------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/pgsql/pitr                                 |
-| **Related Roles** | [`pgsql`](../pgsql), [`pg_id`](../pg_id), [`node_id`](../node_id) |
+| **Module**        | [PGSQL](https://pigsty.io/docs/pgsql) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/pgsql/pitr     |
+| **Related Roles** | `pgsql`, `pg_id`, `node_id`           |
 
 
 ## Overview
@@ -24,9 +24,9 @@ The `pg_pitr` role performs **Point-In-Time Recovery** (PITR) for PostgreSQL clu
 
 ## Playbooks
 
-| Playbook                                 | Description           |
-|------------------------------------------|-----------------------|
-| [`pgsql-pitr.yml`](../../pgsql-pitr.yml) | Execute PITR recovery |
+| Playbook         | Description           |
+|------------------|-----------------------|
+| `pgsql-pitr.yml` | Execute PITR recovery |
 
 
 ## File Structure
@@ -76,9 +76,12 @@ pg_pitr (full role)
 │
 └── up                         # Startup phase
     ├── etcd                   # Clean DCS metadata
+    │   └── pg_meta            # Remove cluster metadata
     └── start                  # Start services
-        ├── start_postgres     # Start PostgreSQL
-        └── start_patroni      # Start Patroni
+        ├── primary            # Start the primary
+        ├── resume             # Resume Patroni HA
+        └── replica            # Start replicas
+            └── clonefrom      # Disable clonefrom before launch
 ```
 
 ### Usage Examples
@@ -145,6 +148,10 @@ pg_pitr:
 
   # Backup existing data before restore?
   backup: false
+
+  # Restore destination and recovered PostgreSQL port
+  data: /pg/data
+  port: 5432
 ```
 
 ### Recovery Target Types
@@ -185,7 +192,7 @@ pg_pitr:
 3. Execute PITR              [pitr]
    ├── Generate Config       [config]
    ├── Backup Existing       [backup] (optional)
-   │   └── Move /pg/data to /pg/data-backup
+   │   └── Move <data> to <data>-backup
    ├── Restore Data          [restore]
    │   └── pgbackrest restore
    ├── Start Recovery        [recovery]
@@ -207,7 +214,7 @@ The role can optionally backup existing data before restore:
 
 ```yaml
 pg_pitr:
-  backup: true  # Moves /pg/data to /pg/data-backup
+  backup: true  # Moves the restore destination to <data>-backup
 ```
 
 
@@ -226,18 +233,18 @@ pg_pitr:
 # Check backup info
 pgbackrest --stanza=pg-meta info
 
-# Check WAL archives
-pgbackrest --stanza=pg-meta archive-info
-
-# Verify restore target exists
-pgbackrest --stanza=pg-meta restore --dry-run \
-  --target="2025-12-25 12:00:00+00" --type=time
+# Inspect backup and archive metadata
+pgbackrest --stanza=pg-meta info --output=json
 ```
+
+pgBackRest does not provide a restore dry-run. Confirm that the target falls
+within the available backup/WAL range, then test the restore on a non-production
+cluster.
 
 
 ## See Also
 
-- [`pgsql`](../pgsql): Deploy PostgreSQL cluster
+- `pgsql`: Deploy PostgreSQL cluster
 - [Backup Guide](https://pigsty.io/docs/pgsql/backup): Backup configuration
 - [Restore Guide](https://pigsty.io/docs/pgsql/backup/restore): Detailed restore procedures
 - [pgBackRest Docs](https://pgbackrest.org/user-guide.html): pgBackRest documentation

@@ -2,10 +2,10 @@
 
 > Derive PostgreSQL Cluster Identity and Membership Information
 
-| **Module**        | [PGSQL](https://pigsty.io/docs/pgsql)                                                              |
-|-------------------|----------------------------------------------------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/pgsql/config/#identity                                                      |
-| **Related Roles** | [`pgsql`](../pgsql), [`node_id`](../node_id), [`pg_remove`](../pg_remove), [`pg_pitr`](../pg_pitr) |
+| **Module**        | [PGSQL](https://pigsty.io/docs/pgsql)         |
+|-------------------|-----------------------------------------------|
+| **Docs**          | https://pigsty.io/docs/pgsql/config/#identity |
+| **Related Roles** | `pgsql`, `node_id`, `pg_remove`, `pg_pitr`    |
 
 
 ## Overview
@@ -24,13 +24,13 @@ This role is a **prerequisite** for most PostgreSQL operations and always runs w
 
 This role is included in most PGSQL playbooks:
 
-| Playbook                                 | Description            |
-|------------------------------------------|------------------------|
-| [`pgsql.yml`](../../pgsql.yml)           | Full deployment        |
-| [`pgsql-rm.yml`](../../pgsql-rm.yml)     | Cluster removal        |
-| [`pgsql-pitr.yml`](../../pgsql-pitr.yml) | Point-in-time recovery |
-| [`pgsql-user.yml`](../../pgsql-user.yml) | User management        |
-| [`pgsql-db.yml`](../../pgsql-db.yml)     | Database management    |
+| Playbook         | Description            |
+|------------------|------------------------|
+| `pgsql.yml`      | Full deployment        |
+| `pgsql-rm.yml`   | Cluster removal        |
+| `pgsql-pitr.yml` | Point-in-time recovery |
+| `pgsql-user.yml` | User management        |
+| `pgsql-db.yml`   | Database management    |
 
 
 ## File Structure
@@ -155,6 +155,10 @@ identity and topology declarations in the final `assert pgsql identity` task:
 - every member must have a non-negative integer `pg_seq`, unique within `pg_cluster`
 - a cluster can declare at most one `primary`
 
+`root` is reserved by etcd. PostgreSQL configuration uses `pg_cluster` as an
+etcd user and role name and updates the password of an existing user. Allowing
+`pg_cluster: root` could therefore modify the privileged etcd root account.
+
 A cluster without a declared `primary` still prints `[WARN: NO CLUSTER LEADER]`.
 Multiple declared primaries print `[WARN: MULTIPLE LEADER]` before the final
 assertion rejects the topology.
@@ -181,6 +185,6 @@ The `pg_mode` parameter affects cluster behavior:
 
 ## See Also
 
-- [`node_id`](../node_id): Node identity derivation
-- [`pgsql`](../pgsql): PostgreSQL cluster deployment
+- `node_id`: Node identity derivation
+- `pgsql`: PostgreSQL cluster deployment
 - [Identity Parameters](https://pigsty.io/docs/pgsql/config/#identity): Configuration documentation

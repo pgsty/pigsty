@@ -2,10 +2,10 @@
 
 > Remove Kafka Cluster & Instances from Node
 
-| **Module**        | [KAFKA](https://pigsty.io/docs/kafka)       |
-|-------------------|---------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/kafka/admin          |
-| **Related Roles** | [`kafka`](../kafka)                         |
+| **Module**        | [KAFKA](https://pigsty.io/docs/kafka) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/kafka/admin    |
+| **Related Roles** | `kafka`                               |
 
 
 ## Overview

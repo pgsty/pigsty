@@ -2,10 +2,10 @@
 
 > Remove Redis Instances from Node
 
-| **Module**        | [REDIS](https://pigsty.io/docs/redis)       |
-|-------------------|---------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/redis/admin          |
-| **Related Roles** | [`redis`](../redis)                         |
+| **Module**        | [REDIS](https://pigsty.io/docs/redis) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/redis/admin    |
+| **Related Roles** | `redis`                               |
 
 
 ## Overview
@@ -26,9 +26,9 @@ Supports removing single instance (via `redis_port`) or entire node.
 
 ## Playbooks
 
-| Playbook                             | Description           |
-|--------------------------------------|-----------------------|
-| [`redis-rm.yml`](../../redis-rm.yml) | Remove Redis instance |
+| Playbook       | Description           |
+|----------------|-----------------------|
+| `redis-rm.yml` | Remove Redis instance |
 
 
 ## File Structure
@@ -69,11 +69,11 @@ redis_remove (full role)
 
 ## Key Variables
 
-| Variable          | Default | Description                    |
-|-------------------|---------|--------------------------------|
-| `redis_safeguard` | `false` | Prevent accidental removal     |
-| `redis_rm_data`   | `true`  | Remove data directories        |
-| `redis_rm_pkg`    | `false` | Uninstall Redis packages       |
+| Variable          | Default       | Description                               |
+|-------------------|---------------|-------------------------------------------|
+| `redis_safeguard` | `false`       | Prevent accidental removal                |
+| `redis_rm_data`   | `true`        | Remove data directories                   |
+| `redis_rm_pkg`    | `false`       | Uninstall Redis packages                  |
 | `redis_fs_main`   | `/data/redis` | Redis data root directory used by cleanup |
 
 
@@ -110,15 +110,15 @@ Override with:
 
 ## Removal Scope
 
-| Component    | What's Removed                              |
-|--------------|---------------------------------------------|
-| Monitoring   | `/infra/targets/redis/<cluster>-<node>.yml` |
-| Logging      | `/etc/vector/redis.yaml`                    |
-| Data         | `redis_fs_main` (default `/data/redis/`; legacy `redis_fs_main=/data` is compat-mapped to `/data/redis`) |
-| Packages     | `redis`, `redis-exporter` (if enabled)      |
+| Component  | What's Removed                                                                                           |
+|------------|----------------------------------------------------------------------------------------------------------|
+| Monitoring | `/infra/targets/redis/<cluster>-<node>.yml`                                                              |
+| Logging    | `/etc/vector/redis.yaml`                                                                                 |
+| Data       | `redis_fs_main` (default `/data/redis/`; legacy `redis_fs_main=/data` is compat-mapped to `/data/redis`) |
+| Packages   | `redis`, `redis-exporter` (if enabled)                                                                   |
 
 
 ## See Also
 
-- [`redis`](../redis): Deploy Redis cluster
+- `redis`: Deploy Redis cluster
 - [Redis Admin](https://pigsty.io/docs/redis/admin): Administration guide

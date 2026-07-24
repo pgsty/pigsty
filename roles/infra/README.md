@@ -2,10 +2,10 @@
 
 > Deploy Pigsty Infrastructure Components on Admin Nodes
 
-| **Module**        | [INFRA](https://pigsty.io/docs/infra)                                        |
-|-------------------|------------------------------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/infra/                                                |
-| **Related Roles** | [`repo`](../repo), [`ca`](../ca), [`node`](../node), [`haproxy`](../haproxy) |
+| **Module**        | [INFRA](https://pigsty.io/docs/infra) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/infra/         |
+| **Related Roles** | `repo`, `ca`, `node`, `haproxy`       |
 
 
 ## Overview
@@ -25,10 +25,10 @@ The `infra` role deploys the Pigsty infrastructure stack on admin nodes:
 
 ## Playbooks
 
-| Playbook                             | Description                    |
-|--------------------------------------|--------------------------------|
-| [`infra.yml`](../../infra.yml)       | Full infrastructure deployment |
-| [`infra-rm.yml`](../../infra-rm.yml) | Remove infrastructure          |
+| Playbook       | Description                    |
+|----------------|--------------------------------|
+| `infra.yml`    | Full infrastructure deployment |
+| `infra-rm.yml` | Remove infrastructure          |
 
 
 ## File Structure
@@ -53,12 +53,17 @@ roles/infra/
 │   ├── blackbox.yml          # [blackbox] Blackbox exporter
 │   ├── grafana.yml           # [grafana] Grafana setup
 │   └── register.yml          # [infra_register] Self-registration
-├── templates/
-│   ├── nginx.conf.j2         # Nginx main config
-│   ├── dnsmasq.conf.j2       # Dnsmasq config
-│   ├── vmalert.yml.j2        # VMAlert config
-│   ├── alertmanager.yml.j2   # Alertmanager config
-│   └── ...
+└── templates/
+    ├── dns/
+    │   └── dnsmasq.conf      # Dnsmasq config
+    ├── nginx/
+    │   └── nginx.conf.j2     # Nginx main config
+    ├── victoria/
+    │   ├── vmalert.env       # VMAlert environment
+    │   └── vmalert.svc       # VMAlert systemd service
+    ├── prometheus/
+    │   └── alertmanager.yml  # Alertmanager config
+    └── ...
 ```
 
 
@@ -224,7 +229,7 @@ Full parameter list: [INFRA Configuration](https://pigsty.io/docs/infra/param)
 
 ## See Also
 
-- [`repo`](../repo): Software repository
-- [`ca`](../ca): Certificate authority
-- [`node`](../node): Node provisioning
+- `repo`: Software repository
+- `ca`: Certificate authority
+- `node`: Node provisioning
 - [INFRA Architecture](https://pigsty.io/docs/infra/arch): Architecture documentation

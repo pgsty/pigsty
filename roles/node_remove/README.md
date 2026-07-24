@@ -2,10 +2,10 @@
 
 > Remove Node Components and Deregister from Monitoring
 
-| **Module**        | [NODE](https://pigsty.io/docs/node)                                           |
-|-------------------|-------------------------------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/node/admin                                             |
-| **Related Roles** | [`node`](../node), [`node_id`](../node_id), [`node_monitor`](../node_monitor) |
+| **Module**        | [NODE](https://pigsty.io/docs/node) |
+|-------------------|-------------------------------------|
+| **Docs**          | https://pigsty.io/docs/node/admin   |
+| **Related Roles** | `node`, `node_id`, `node_monitor`   |
 
 
 ## Overview
@@ -15,14 +15,14 @@ The `node_remove` role removes node components and deregisters nodes from monito
 - **Deregister**: Remove from Victoria Metrics, Nginx, Vector
 - **Stop Services**: node_exporter, keepalived_exporter, HAProxy, Vector
 - **Remove DNS**: VIP DNS records
-- **Cleanup**: Configuration files, profile scripts
+- **Cleanup**: Configuration files, crontab, profile scripts
 
 
 ## Playbooks
 
-| Playbook                           | Description              |
-|------------------------------------|--------------------------|
-| [`node-rm.yml`](../../node-rm.yml) | Remove node components   |
+| Playbook      | Description            |
+|---------------|------------------------|
+| `node-rm.yml` | Remove node components |
 
 
 ## File Structure
@@ -64,41 +64,43 @@ node_remove (full role)
 │
 ├── vector                         # Stop Vector service
 │
+├── node_crontab                   # Restore the default system crontab
+│
 └── profile                        # Remove shell profile scripts
 ```
 
 
 ## Key Variables
 
-| Variable       | Default        | Description                     |
-|----------------|----------------|---------------------------------|
-| `nodename`     | (auto)         | Node name (from node_id)        |
-| `node_cluster` | `nodes`        | Node cluster name (for VIP DNS) |
-| `vip_enabled`  | `false`        | Whether VIP is enabled          |
-| `vip_address`  | (none)         | VIP address to deregister       |
-| `vector_data`  | `/data/vector` | Vector data directory           |
+| Variable                 | Default        | Description                          |
+|--------------------------|----------------|--------------------------------------|
+| `nodename`               | (auto)         | Node name (from node_id)             |
+| `node_cluster`           | `nodes`        | Node cluster name (for VIP DNS)      |
+| `vip_enabled`            | `false`        | Whether VIP is enabled               |
+| `vip_address`            | (none)         | VIP address to deregister            |
+| `vector_data`            | `/data/vector` | Vector data directory                |
+| `node_crontab_overwrite` | `true`         | Restore `/etc/crontab` during removal |
 
 
 ## Removal Scope
 
-The role removes:
-
-| Component        | What's Removed                                  |
-|------------------|-------------------------------------------------|
-| Node Target      | `/infra/targets/node/<ip>.yml`                  |
-| Docker Target    | `/infra/targets/docker/<ip>.yml`                |
-| Ping Target      | `/infra/targets/ping/<ip>.yml`                  |
-| VIP Ping Target  | `/infra/targets/ping/<vip>---<ip>.yml`          |
-| VIP DNS          | `/etc/dnsmasq.d/pigsty/<cluster>.vip`           |
-| HAProxy Nginx    | `/etc/nginx/conf.d/haproxy/upstream-<name>.conf`|
-| HAProxy Nginx    | `/etc/nginx/conf.d/haproxy/location-<name>.conf`|
-| Vector Config    | `/etc/vector/node.yaml`                         |
-| Vector Data      | `/data/vector`                                  |
-| Profile Scripts  | `/etc/profile.d/node.sh`, `node.alias.sh`       |
+| Component       | Action                                           |
+|-----------------|--------------------------------------------------|
+| Node Target     | `/infra/targets/node/<ip>.yml`                   |
+| Docker Target   | `/infra/targets/docker/<ip>.yml`                 |
+| Ping Target     | `/infra/targets/ping/<ip>.yml`                   |
+| VIP Ping Target | `/infra/targets/ping/<vip>---<ip>.yml`           |
+| VIP DNS         | `/etc/dnsmasq.d/pigsty/<cluster>.vip`            |
+| HAProxy Nginx   | `/etc/nginx/conf.d/haproxy/upstream-<name>.conf` |
+| HAProxy Nginx   | `/etc/nginx/conf.d/haproxy/location-<name>.conf` |
+| Vector Config   | `/etc/vector/node.yaml`                          |
+| Vector Data     | `/data/vector`                                   |
+| System Crontab  | `/etc/crontab` (restored when overwrite is enabled) |
+| Profile Scripts | `/etc/profile.d/node.sh`, `node.alias.sh`        |
 
 
 ## See Also
 
-- [`node`](../node): Node provisioning
-- [`node_monitor`](../node_monitor): Node monitoring setup
-- [`pg_remove`](../pg_remove): PostgreSQL removal
+- `node`: Node provisioning
+- `node_monitor`: Node monitoring setup
+- `pg_remove`: PostgreSQL removal

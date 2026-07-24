@@ -2,10 +2,10 @@
 
 > Setup PostgreSQL Monitoring Exporters and Register to Infra
 
-| **Module**        | [PGSQL](https://pigsty.io/docs/pgsql)                                       |
-|-------------------|-----------------------------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/pgsql/monitor                                        |
-| **Related Roles** | [`pgsql`](../pgsql), [`pg_exporters`](../pg_exporters), [`infra`](../infra) |
+| **Module**        | [PGSQL](https://pigsty.io/docs/pgsql) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/pgsql/monitor  |
+| **Related Roles** | `pgsql`, `pg_exporters`, `infra`      |
 
 
 ## Overview
@@ -25,10 +25,10 @@ It also registers the cluster to infrastructure monitoring:
 
 ## Playbooks
 
-| Playbook                                       | Description                                             |
-|------------------------------------------------|---------------------------------------------------------|
-| [`pgsql.yml`](../../pgsql.yml)                 | Full deployment (includes monitoring setup)             |
-| [`pgsql-monitor.yml`](../../pgsql-monitor.yml) | Remote monitoring via [`pg_exporters`](../pg_exporters) |
+| Playbook            | Description                                 |
+|---------------------|---------------------------------------------|
+| `pgsql.yml`         | Full deployment (includes monitoring setup) |
+| `pgsql-monitor.yml` | Remote monitoring via `pg_exporters`        |
 
 
 ## File Structure
@@ -204,7 +204,7 @@ Registers each database as a Grafana PostgreSQL datasource:
 
 ## See Also
 
-- [`pgsql`](../pgsql): Deploy PostgreSQL cluster
-- [`pg_exporters`](../pg_exporters): Remote PostgreSQL monitoring
-- [`infra`](../infra): Infrastructure monitoring stack
+- `pgsql`: Deploy PostgreSQL cluster
+- `pg_exporters`: Remote PostgreSQL monitoring
+- `infra`: Infrastructure monitoring stack
 - [Monitoring Guide](https://pigsty.io/docs/pgsql/monitor): PGSQL monitoring

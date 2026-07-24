@@ -2,10 +2,10 @@
 
 > Create and Manage Self-Signed Certificate Authority
 
-| **Module**        | [INFRA](https://pigsty.io/docs/infra)    |
-|-------------------|------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/infra/cert        |
-| **Related Roles** | [`infra`](../infra), [`pgsql`](../pgsql) |
+| **Module**        | [INFRA](https://pigsty.io/docs/infra) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/infra/cert     |
+| **Related Roles** | `infra`, `pgsql`                      |
 
 
 ## Overview
@@ -17,10 +17,13 @@ The `ca` role creates a **self-signed Certificate Authority (CA)** for Pigsty:
 - Create PKI directory structure for all modules
 
 The CA is used to sign certificates for:
+
 - PostgreSQL server/client SSL
 - Patroni REST API
 - etcd cluster communication
 - MinIO cluster communication
+- Kafka cluster communication
+- MySQL cluster communication
 - Nginx HTTPS (self-signed fallback)
 - Infrastructure services
 - FerretDB/MongoDB TLS
@@ -28,10 +31,10 @@ The CA is used to sign certificates for:
 
 ## Playbooks
 
-| Playbook                       | Description                              |
-|--------------------------------|------------------------------------------|
-| [`infra.yml`](../../infra.yml) | Infrastructure deployment (includes CA)  |
-| [`cert.yml`](../../cert.yml)   | Issue additional certificates with CA    |
+| Playbook    | Description                             |
+|-------------|-----------------------------------------|
+| `infra.yml` | Infrastructure deployment (includes CA) |
+| `cert.yml`  | Issue additional certificates with CA   |
 
 
 ## File Structure
@@ -83,7 +86,7 @@ ca (full role)
 
 | Variable         | Default      | Description                                |
 |------------------|--------------|--------------------------------------------|
-| `ca_create`      | `true`       | Create CA if not exists, or abort          |
+| `ca_create`      | `true`       | Allow creation of a missing CA private key |
 | `ca_cn`          | `pigsty-ca`  | CA certificate common name                 |
 | `cert_validity`  | `7300d`      | Default validity for issued certificates   |
 
@@ -92,7 +95,7 @@ ca (full role)
 Controls CA creation behavior:
 
 - `true` (default): Create new CA if `files/pki/ca/ca.key` doesn't exist
-- `false`: Abort if CA files don't exist (use external CA)
+- `false`: Require an existing CA private key; create the certificate if missing
 
 ### ca_cn
 
@@ -118,6 +121,8 @@ files/pki/
 │   └── *.crt, *.key          # Miscellaneous certificates (cert.yml output)
 ├── etcd/
 │   └── *.crt, *.key          # ETCD server certificates
+├── kafka/
+│   └── *.crt, *.key          # Kafka server certificates
 ├── pgsql/
 │   └── *.crt, *.key          # PostgreSQL server certificates
 ├── minio/
@@ -126,8 +131,10 @@ files/pki/
 │   └── *.crt, *.key          # Infrastructure certificates
 ├── nginx/
 │   └── *.crt, *.key          # Nginx HTTPS certificates
-└── mongo/
-    └── *.crt, *.key          # FerretDB/MongoDB certificates
+├── mongo/
+│   └── *.crt, *.key          # FerretDB/MongoDB certificates
+└── mysql/
+    └── *.crt, *.key          # MySQL server certificates
 ```
 
 > **Security Note**: The `files/pki/ca/` directory contains sensitive CA private key. Ensure proper backup and access control. The CA key should never be exposed or committed to version control.
@@ -152,9 +159,13 @@ files/pki/
 CA key exists?  CA cert exists?  Action
 ───────────────────────────────────────
 No              No               Create new CA key and cert
+No              Yes              Create a new key; keep the existing cert*
 Yes             No               Create cert using existing key
 Yes             Yes              Reuse existing CA (no changes)
 ```
+
+`*` This state produces a mismatched pair. Always provide the CA key and
+certificate together.
 
 ### ca_create = false
 
@@ -162,14 +173,14 @@ Yes             Yes              Reuse existing CA (no changes)
 CA key exists?  CA cert exists?  Action
 ───────────────────────────────────────
 Yes             Yes              Reuse existing CA
+Yes             No               Create cert using existing key
 No              *                ABORT (fail the playbook)
-*               No               ABORT (fail the playbook)
 ```
 
 
-## Using External CA
+## Using an Existing CA
 
-To use your own enterprise or public CA:
+To provide an existing CA key pair:
 
 1. Set `ca_create: false` in your configuration:
 
@@ -198,7 +209,7 @@ To use your own enterprise or public CA:
 
 ## Issuing Additional Certificates
 
-Use [`cert.yml`](../../cert.yml) to issue additional certificates with the CA:
+Use `cert.yml` to issue additional certificates with the CA:
 
 ```bash
 # Issue a client certificate for database user
@@ -273,8 +284,8 @@ chmod 644 files/pki/ca/ca.crt
 
 ## See Also
 
-- [`infra`](../infra): Infrastructure deployment
-- [`pgsql`](../pgsql): PostgreSQL deployment (uses CA)
-- [`etcd`](../etcd): ETCD deployment (uses CA)
-- [`minio`](../minio): MinIO deployment (uses CA)
+- `infra`: Infrastructure deployment
+- `pgsql`: PostgreSQL deployment (uses CA)
+- `etcd`: ETCD deployment (uses CA)
+- `minio`: MinIO deployment (uses CA)
 - [Certificate Guide](https://pigsty.io/docs/infra/cert): SSL/TLS configuration

@@ -2,10 +2,10 @@
 
 > Deploy HAProxy Load Balancer for Service Exposure
 
-| **Module**        | [NODE](https://pigsty.io/docs/node)            |
-|-------------------|------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/node/haproxy            |
-| **Related Roles** | [`node`](../node), [`pgsql`](../pgsql)         |
+| **Module**        | [NODE](https://pigsty.io/docs/node) |
+|-------------------|-------------------------------------|
+| **Docs**          | https://pigsty.io/docs/node/haproxy |
+| **Related Roles** | `node`, `pgsql`                     |
 
 
 ## Overview
@@ -24,9 +24,9 @@ HAProxy is used by PostgreSQL clusters for connection pooling and load balancing
 
 ## Playbooks
 
-| Playbook                     | Description                          |
-|------------------------------|--------------------------------------|
-| [`node.yml`](../../node.yml) | Node provisioning (includes HAProxy) |
+| Playbook   | Description                          |
+|------------|--------------------------------------|
+| `node.yml` | Node provisioning (includes HAProxy) |
 
 
 ## File Structure
@@ -217,7 +217,7 @@ This is handled silently - if SELinux tools are not available, these steps are s
 
 ## Platform Support
 
-This role supports **RHEL/Rocky 8-10**, **Ubuntu 22-24**, and **Debian 12-13**.
+This role supports **RHEL/Rocky 8-10**, **Ubuntu 22/24/26**, and **Debian 12-13**.
 
 The systemd service file is installed to `{{ systemd_dir }}/haproxy.service`,
 where `systemd_dir` is determined by the `node_id` role based on OS detection.
@@ -225,6 +225,6 @@ where `systemd_dir` is determined by the `node_id` role based on OS detection.
 
 ## See Also
 
-- [`node`](../node): Node provisioning
-- [`pgsql`](../pgsql): PostgreSQL cluster
+- `node`: Node provisioning
+- `pgsql`: PostgreSQL cluster
 - [HAProxy Guide](https://pigsty.io/docs/node/haproxy): Configuration documentation

@@ -2,10 +2,10 @@
 
 > Create Offline Package Cache Tarball for Distribution
 
-| **Module**        | [INFRA](https://pigsty.io/docs/infra)  |
-|-------------------|----------------------------------------|
-| **Docs**          | https://pigsty.io/docs/setup/offline   |
-| **Related Roles** | [`repo`](../repo), [`infra`](../infra) |
+| **Module**        | [INFRA](https://pigsty.io/docs/infra) |
+|-------------------|---------------------------------------|
+| **Docs**          | https://pigsty.io/docs/setup/offline  |
+| **Related Roles** | `repo`, `infra`                       |
 
 
 ## Overview
@@ -37,9 +37,9 @@ Before running the cache role:
 
 ## Playbooks
 
-| Playbook                       | Description                    |
-|--------------------------------|--------------------------------|
-| [`cache.yml`](../../cache.yml) | Create offline package tarball |
+| Playbook    | Description                    |
+|-------------|--------------------------------|
+| `cache.yml` | Create offline package tarball |
 
 ```bash
 # Create offline package from infra node
@@ -254,7 +254,7 @@ ls -la /www/pigsty/
 
 ## See Also
 
-- [`repo`](../repo): Build local repository (must run before cache)
-- [`infra`](../infra): Full infrastructure deployment
+- `repo`: Build local repository (must run before cache)
+- `infra`: Full infrastructure deployment
 - [Offline Installation](https://pigsty.io/docs/setup/offline): Complete offline setup guide
 - [Bootstrap](https://pigsty.io/docs/setup/install/#bootstrap): Bootstrap process documentation

@@ -2,10 +2,10 @@
 
 > Deploy Development Tools (Code Server, JupyterLab, Claude Code, optional Codex)
 
-| **Module**        | [VIBE](https://pigsty.io/docs/vibe)    |
-|-------------------|----------------------------------------|
-| **Docs**          | https://pigsty.io/docs/vibe/           |
-| **Related Roles** | [`node`](../node), [`juice`](../juice) |
+| **Module**        | [VIBE](https://pigsty.io/docs/vibe) |
+|-------------------|-------------------------------------|
+| **Docs**          | https://pigsty.io/docs/vibe/        |
+| **Related Roles** | `node`, `juice`                     |
 
 
 ## Overview
@@ -21,7 +21,7 @@ The `vibe` role deploys an integrated development environment:
 
 ## Quick Start
 
-Use [`conf/vibe.yml`](../../conf/vibe.yml) for a complete AI coding sandbox:
+Use `conf/vibe.yml` for a complete AI coding sandbox:
 
 ```bash
 ./configure -c vibe
@@ -33,9 +33,9 @@ Use [`conf/vibe.yml`](../../conf/vibe.yml) for a complete AI coding sandbox:
 
 ## Playbooks
 
-| Playbook                     | Description              |
-|------------------------------|--------------------------|
-| [`vibe.yml`](../../vibe.yml) | Deploy development tools |
+| Playbook   | Description              |
+|------------|--------------------------|
+| `vibe.yml` | Deploy development tools |
 
 
 ## Tags
@@ -157,10 +157,10 @@ Disable components:
 
 ## Access
 
-| Service     | Via Nginx                  | Direct                |
-|-------------|----------------------------|-----------------------|
-| Code Server | `https://<host>/code/`     | `http://<host>:8443/` |
-| JupyterLab  | `https://<host>/jupyter/`  | `http://<host>:8888/` |
+| Service     | Via Nginx                 | Direct                           |
+|-------------|---------------------------|----------------------------------|
+| Code Server | `https://<host>/code/`    | `http://127.0.0.1:8443/` (local) |
+| JupyterLab  | `https://<host>/jupyter/` | `http://<host>:8888/jupyter/`    |
 
 
 ## Authentication
@@ -180,7 +180,7 @@ claude_env:
 
 ## See Also
 
-- [`node`](../node): Node provisioning
-- [`infra`](../infra): Nginx reverse proxy
-- [`juice`](../juice): JuiceFS distributed filesystem
-- [`conf/vibe.yml`](../../conf/vibe.yml): Complete sandbox template
+- `node`: Node provisioning
+- `infra`: Nginx reverse proxy
+- `juice`: JuiceFS distributed filesystem
+- `conf/vibe.yml`: Complete sandbox template

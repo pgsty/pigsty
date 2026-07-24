@@ -2,12 +2,12 @@
 
 > Deploy native MySQL 8.4 standalone or three-node InnoDB Cluster
 
-| **Module**   | MYSQL (PILOT)                                                            |
-|--------------|--------------------------------------------------------------------------|
-| **Playbook** | [`mysql.yml`](../../mysql.yml)                                           |
-| **Removal**  | [`mysql-rm.yml`](../../mysql-rm.yml), [`mysql_remove`](../mysql_remove/) |
-| **Example**  | [`conf/demo/mysql.yml`](../../conf/demo/mysql.yml)                       |
-| **Stack**    | MySQL 8.4, Group Replication, MySQL Router, XtraBackup, mysqld_exporter  |
+| **Module**   | MYSQL (PILOT)                                                           |
+|--------------|-------------------------------------------------------------------------|
+| **Playbook** | `mysql.yml`                                                             |
+| **Removal**  | `mysql-rm.yml`, `mysql_remove`                                          |
+| **Example**  | `conf/demo/mysql.yml`                                                   |
+| **Stack**    | MySQL 8.4, Group Replication, MySQL Router, XtraBackup, mysqld_exporter |
 
 
 ## Overview
@@ -32,7 +32,7 @@ MYSQL remains a PILOT module. Ordinary reconciliation refuses unknown datadirs,
 foreign InnoDB Cluster metadata, partial HA inventory limits, destructive Clone
 over non-fresh members, and complete-outage recovery.
 
-The native package gate admits the declared x86_64 DEB/RPM matrix and EL9
+The native package gate admits the declared x86_64 DEB/RPM matrix and EL9/EL10
 ARM64. Ubuntu/Debian ARM64 is intentionally rejected because Oracle's APT
 repository currently publishes the 8.4 component for `amd64`, not `arm64`.
 

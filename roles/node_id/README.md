@@ -2,10 +2,10 @@
 
 > Derive Node Identity and Operating System Information
 
-| **Module**        | [NODE](https://pigsty.io/docs/node)                                                                        |
-|-------------------|------------------------------------------------------------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/node/                                                                               |
-| **Related Roles** | [`node`](../node), [`node_monitor`](../node_monitor), [`node_remove`](../node_remove), [`pg_id`](../pg_id) |
+| **Module**        | [NODE](https://pigsty.io/docs/node)            |
+|-------------------|------------------------------------------------|
+| **Docs**          | https://pigsty.io/docs/node/                   |
+| **Related Roles** | `node`, `node_monitor`, `node_remove`, `pg_id` |
 
 
 ## Overview
@@ -26,13 +26,13 @@ It runs on **target hosts** to gather facts, then processes them on the **contro
 
 This role is included in most playbooks as a prerequisite:
 
-| Playbook                         | Description            |
-|----------------------------------|------------------------|
-| [`node.yml`](../../node.yml)     | Full node provisioning |
-| [`pgsql.yml`](../../pgsql.yml)   | PostgreSQL deployment  |
-| [`redis.yml`](../../redis.yml)   | Redis deployment       |
-| [`etcd.yml`](../../etcd.yml)     | ETCD deployment        |
-| [`minio.yml`](../../minio.yml)   | MinIO deployment       |
+| Playbook    | Description            |
+|-------------|------------------------|
+| `node.yml`  | Full node provisioning |
+| `pgsql.yml` | PostgreSQL deployment  |
+| `redis.yml` | Redis deployment       |
+| `etcd.yml`  | ETCD deployment        |
+| `minio.yml` | MinIO deployment       |
 
 
 ## File Structure
@@ -118,7 +118,7 @@ The role runs with `tags: [always, node-id]`, ensuring it executes regardless of
 | `nodename_exchange`  | `false` | Exchange nodename among play hosts     |
 
 > **Note**: `nodename_overwrite` and `nodename_exchange` are defined here but
-> used by the [`node`](../node) role. They control whether the derived nodename
+> used by the `node` role. They control whether the derived nodename
 > is applied to the system hostname and shared across hosts via `/etc/hosts`.
 
 
@@ -168,6 +168,6 @@ the role falls back to: `el10` (rpm), `u24` (ubuntu), `d12` (debian).
 
 ## See Also
 
-- [`node`](../node): Node provisioning
-- [`pg_id`](../pg_id): PostgreSQL identity derivation
+- `node`: Node provisioning
+- `pg_id`: PostgreSQL identity derivation
 - [NODE Configuration](https://pigsty.io/docs/node/config): Configuration documentation

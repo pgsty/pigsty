@@ -5,7 +5,7 @@
 | **Module**        | [ETCD](https://pigsty.io/docs/etcd) |
 |-------------------|-------------------------------------|
 | **Docs**          | https://pigsty.io/docs/etcd/admin   |
-| **Related Roles** | [`etcd`](../etcd)                   |
+| **Related Roles** | `etcd`                              |
 
 
 ## Overview
@@ -23,9 +23,9 @@ The `etcd_remove` role removes ETCD instances from a cluster:
 
 ## Playbooks
 
-| Playbook                           | Description           |
-|------------------------------------|-----------------------|
-| [`etcd-rm.yml`](../../etcd-rm.yml) | Remove ETCD instance  |
+| Playbook      | Description          |
+|---------------|----------------------|
+| `etcd-rm.yml` | Remove ETCD instance |
 
 
 ## File Structure
@@ -115,5 +115,5 @@ If graceful leave fails, the role continues with forced removal.
 
 ## See Also
 
-- [`etcd`](../etcd): Deploy ETCD cluster
+- `etcd`: Deploy ETCD cluster
 - [ETCD Admin](https://pigsty.io/docs/etcd/admin): Administration guide

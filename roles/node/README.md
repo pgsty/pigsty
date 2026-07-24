@@ -2,10 +2,10 @@
 
 > Provision and Configure Linux Nodes for Pigsty
 
-| **Module**        | [NODE](https://pigsty.io/docs/node)                                                                                  |
-|-------------------|----------------------------------------------------------------------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/node/                                                                                         |
-| **Related Roles** | [`node_id`](../node_id), [`node_monitor`](../node_monitor), [`node_remove`](../node_remove), [`haproxy`](../haproxy) |
+| **Module**        | [NODE](https://pigsty.io/docs/node)                 |
+|-------------------|-----------------------------------------------------|
+| **Docs**          | https://pigsty.io/docs/node/                        |
+| **Related Roles** | `node_id`, `node_monitor`, `node_remove`, `haproxy` |
 
 
 ## Overview
@@ -24,10 +24,10 @@ The `node` role provisions Linux nodes with proper configuration for running Pig
 
 ## Playbooks
 
-| Playbook                           | Description                  |
-|------------------------------------|------------------------------|
-| [`node.yml`](../../node.yml)       | Full node provisioning       |
-| [`node-rm.yml`](../../node-rm.yml) | Remove node components       |
+| Playbook      | Description            |
+|---------------|------------------------|
+| `node.yml`    | Full node provisioning |
+| `node-rm.yml` | Remove node components |
 
 
 ## File Structure
@@ -45,16 +45,15 @@ roles/node/
 │   ├── dns.yml               # [node_hosts, node_resolv] DNS config
 │   ├── sec.yml               # [node_sec] Security settings
 │   ├── cert.yml              # [node_ca] CA certificates
-│   ├── pkg.yml               # [node_repo, node_pkg] Package management
-│   ├── tune.yml              # [node_tune] Kernel tuning
+│   ├── pkg.yml               # [node_repo, node_pkg, node_uv] Packages
+│   ├── tune.yml              # [node_feature, node_kernel, node_tune, node_sysctl]
 │   ├── admin.yml             # [node_admin] Admin user setup
-│   ├── time.yml              # [node_time] Time synchronization
+│   ├── time.yml              # [node_timezone, node_ntp, node_crontab]
 │   └── vip.yml               # [node_vip] Keepalived VIP
 └── templates/
-    ├── hosts.j2              # /etc/hosts template
-    ├── resolv.conf.j2        # /etc/resolv.conf template
+    ├── chrony.conf.j2        # Chrony configuration
     ├── keepalived.conf.j2    # Keepalived configuration
-    └── ...
+    └── tuned-*.conf          # Tuned profiles
 ```
 
 
@@ -66,7 +65,6 @@ roles/node/
 node (full role)
 │
 ├── node_name                  # Set hostname
-│
 ├── node_hosts                 # Configure /etc/hosts
 ├── node_resolv                # Configure /etc/resolv.conf
 │
@@ -76,28 +74,39 @@ node (full role)
 │
 ├── node_ca                    # Install CA certificates
 │
-├── node_repo                  # Configure package repos
+├── node_repo / node_install   # Configure package repos
+│   ├── node_repo_remove       # Remove existing repos
+│   ├── node_repo_add          # Add upstream repos
+│   └── node_repo_cache        # Refresh package cache
 ├── node_pkg                   # Install packages
+│   ├── node_pkg_default       # Install default packages
+│   └── node_pkg_extra         # Install extra packages
 ├── node_uv                    # Setup uv python venv
 │
-├── node_tune                  # System tuning
-│   ├── node_feature           # CPU/kernel features
-│   ├── node_kernel            # Kernel modules
-│   ├── node_sysctl            # Sysctl parameters
-│   └── node_hugepage          # Hugepages setup
+├── node_feature               # CPU/kernel features
+├── node_kernel                # Kernel modules
+├── node_tune                  # Tuned profile
+│   └── node_tune_active       # Activate tuned profile
+├── node_sysctl                # Sysctl parameters
 │
-├── node_admin                 # Admin configuration
-│   ├── node_profile           # Shell profile
-│   ├── node_ulimit            # Resource limits
-│   ├── node_data              # Data directories
-│   └── node_admin_user        # Admin user creation
+├── node_profile               # Shell profile
+├── node_alias                 # Shell aliases
+├── node_pip                   # Python packages
+├── node_ulimit                # Resource limits
+├── node_data                  # Data directories
+├── node_admin                 # Admin user
+│   ├── node_admin_pk_list     # Extra public keys
+│   └── node_admin_pk_current  # Current user's public key
 │
-├── node_time                  # Time configuration
-│   ├── node_timezone          # Timezone setup
-│   ├── node_ntp               # NTP synchronization
-│   └── node_cron              # Crontab entries
+├── node_timezone              # Timezone
+├── node_ntp                   # NTP synchronization
+│   ├── node_ntp_install       # Install chrony
+│   ├── node_ntp_config        # Render chrony config
+│   └── node_ntp_launch        # Start chrony
+├── node_crontab               # Crontab entries
 │
 └── node_vip                   # VIP configuration (optional)
+    ├── vip_check              # Validate VIP parameters
     ├── vip_config             # Keepalived config
     ├── vip_launch             # Start keepalived
     └── vip_reload             # Reload keepalived
@@ -116,26 +125,26 @@ node (full role)
 
 ### DNS
 
-| Variable                 | Default | Description               |
-|--------------------------|---------|---------------------------|
-| `node_write_etc_hosts`   | `true`  | Write /etc/hosts          |
-| `node_default_etc_hosts` | `[]`    | Static /etc/hosts entries |
-| `node_dns_servers`       | `[]`    | DNS servers               |
+| Variable                 | Default                      | Description                 |
+|--------------------------|------------------------------|-----------------------------|
+| `node_write_etc_hosts`   | `true`                       | Write `/etc/hosts`          |
+| `node_default_etc_hosts` | `['${admin_ip} i.pigsty']`  | Static `/etc/hosts` entries |
+| `node_dns_servers`       | `['${admin_ip}']`            | DNS servers                 |
 
 ### Security
 
-| Variable             | Default | Description                                                       |
-|----------------------|---------|-------------------------------------------------------------------|
-| `node_selinux_mode`  | `enum`  | set selinux mode: enforcing,permissive,disabled                   |
-| `node_firewall_mode` | `enum`  | firewall mode: zone (default), off (disable), none (skip & self-managed) |
+| Variable             | Default      | Description                                         |
+|----------------------|--------------|-----------------------------------------------------|
+| `node_selinux_mode`  | `permissive` | SELinux mode: enforcing, permissive, disabled       |
+| `node_firewall_mode` | `zone`       | Firewall mode: zone, off, none (self-managed)       |
 
 
 ### Packages
 
-| Variable            | Default | Description            |
-|---------------------|---------|------------------------|
-| `node_repo_modules` | `local` | Repo modules to enable |
-| `node_packages`     | `[]`    | Packages to install    |
+| Variable            | Default           | Description            |
+|---------------------|-------------------|------------------------|
+| `node_repo_modules` | `local`           | Repo modules to enable |
+| `node_packages`     | `[openssh-server]` | Packages to install    |
 
 ### UV Python
 
@@ -205,7 +214,7 @@ Full parameter list: [NODE Configuration](https://pigsty.io/docs/node/config)
 
 ## Platform Support
 
-This role supports **RHEL/Rocky 8-10**, **Ubuntu 22-24**, and **Debian 12-13**.
+This role supports **RHEL/Rocky 8-10**, **Ubuntu 22/24/26**, and **Debian 12-13**.
 
 Some features have OS-specific implementations:
 - **THP Disable**: Handled by tuned profiles (cross-platform)
@@ -258,7 +267,7 @@ ufw delete allow 5432/tcp
 
 ## See Also
 
-- [`node_id`](../node_id): Node identity derivation
-- [`node_monitor`](../node_monitor): Node monitoring setup
-- [`node_remove`](../node_remove): Remove node components
-- [`haproxy`](../haproxy): Load balancer setup
+- `node_id`: Node identity derivation
+- `node_monitor`: Node monitoring setup
+- `node_remove`: Remove node components
+- `haproxy`: Load balancer setup

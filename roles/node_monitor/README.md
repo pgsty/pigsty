@@ -2,10 +2,10 @@
 
 > Setup Node Monitoring Exporters and Register to Infra
 
-| **Module**        | [NODE](https://pigsty.io/docs/node)                                                              |
-|-------------------|--------------------------------------------------------------------------------------------------|
-| **Docs**          | https://pigsty.io/docs/node/monitor                                                              |
-| **Related Roles** | [`node`](../node), [`node_id`](../node_id), [`node_remove`](../node_remove), [`infra`](../infra) |
+| **Module**        | [NODE](https://pigsty.io/docs/node)       |
+|-------------------|-------------------------------------------|
+| **Docs**          | https://pigsty.io/docs/node/monitor       |
+| **Related Roles** | `node`, `node_id`, `node_remove`, `infra` |
 
 
 ## Overview
@@ -24,9 +24,9 @@ It also registers the node to infrastructure monitoring:
 
 ## Playbooks
 
-| Playbook                     | Description                                  |
-|------------------------------|----------------------------------------------|
-| [`node.yml`](../../node.yml) | Full node provisioning (includes monitoring) |
+| Playbook   | Description                                  |
+|------------|----------------------------------------------|
+| `node.yml` | Full node provisioning (includes monitoring) |
 
 
 ## File Structure
@@ -44,8 +44,10 @@ roles/node_monitor/
 │   ├── main.yml                  # Entry point
 │   └── vector.yml                # Vector configuration
 └── templates/
-    ├── vector.toml.j2            # Vector configuration
-    └── node.yaml                 # Vector node log config
+    ├── vector.yaml               # Vector main configuration
+    ├── vector.env                # Vector environment
+    ├── vector.svc                # Vector systemd service
+    └── node.yaml                 # Vector node log source
 ```
 
 
@@ -69,10 +71,14 @@ node_monitor (from node.yml)
 │   └── vip_exporter_launch        # Start service
 │
 ├── node_register                  # Register to monitoring
-│   └── add_metrics                # Register to Victoria Metrics
+│   ├── add_metrics                # Register to Victoria Metrics
+│   └── add_logs                   # Register Vector log source
 │
 └── vector                         # Vector log agent
-    ├── vector_config              # Generate config
+    ├── vector_install             # Install Vector
+    ├── vector_clean               # Purge data when requested
+    ├── vector_config              # Generate config and log source
+    │   └── vector_dir             # Create config/data directories
     └── vector_launch              # Start service
 ```
 
@@ -175,22 +181,22 @@ Vector collects logs from journald and forwards them to Victoria Logs:
 
 **Log Fields Collected**:
 
-| Field     | Description                           |
-|-----------|---------------------------------------|
-| `_time`   | Timestamp in RFC3339 format           |
-| `message` | Log message content                   |
+| Field     | Description                                |
+|-----------|--------------------------------------------|
+| `_time`   | Timestamp in RFC3339 format                |
+| `message` | Log message content                        |
 | `app`     | Application identifier (SYSLOG_IDENTIFIER) |
-| `unit`    | Systemd unit name (without .service)  |
-| `pid`     | Process ID                            |
-| `level`   | Syslog level (info, warn, err, etc.)  |
-| `ip`      | Node IP address                       |
-| `ins`     | Node instance name (nodename)         |
-| `cls`     | Node cluster name (node_cluster)      |
-| `job`     | Log job identifier (`syslog`)         |
+| `unit`    | Systemd unit name (without .service)       |
+| `pid`     | Process ID                                 |
+| `level`   | Syslog level (info, warn, err, etc.)       |
+| `ip`      | Node IP address                            |
+| `ins`     | Node instance name (nodename)              |
+| `cls`     | Node cluster name (node_cluster)           |
+| `job`     | Log job identifier (`syslog`)              |
 
 
 ## See Also
 
-- [`node`](../node): Node provisioning
-- [`node_remove`](../node_remove): Remove node components
-- [`infra`](../infra): Infrastructure monitoring stack
+- `node`: Node provisioning
+- `node_remove`: Remove node components
+- `infra`: Infrastructure monitoring stack
