@@ -159,15 +159,19 @@ The role prints warnings for cluster configuration issues:
 
 The `pg_mode` parameter affects cluster behavior:
 
-| Mode    | Description                       |
-|---------|-----------------------------------|
-| `pgsql` | Standard PostgreSQL cluster       |
-| `citus` | Citus distributed cluster         |
-| `gpsql` | Greenplum cluster                 |
-| `mssql` | Babelfish (SQL Server compatible) |
-| `mysql` | MySQL compatible mode             |
-| `ivory` | IvorySQL (Oracle compatible)      |
-| `polar` | PolarDB compatible                |
+| Mode     | Description                       |
+|----------|-----------------------------------|
+| `pgsql`  | Standard PostgreSQL cluster       |
+| `citus`  | Citus distributed cluster         |
+| `mssql`  | Babelfish (SQL Server compatible) |
+| `mysql`  | MySQL compatible mode             |
+| `ivory`  | IvorySQL (Oracle compatible)      |
+| `pgtde`  | Percona PostgreSQL with pg_tde    |
+| `polar`  | PolarDB compatible                |
+| `gpsql`  | Greenplum cluster                 |
+| `agens`  | AgensGraph                        |
+| `oriole` | OrioleDB                          |
+| `pgedge` | pgEdge Distributed PostgreSQL     |
 
 
 ## See Also

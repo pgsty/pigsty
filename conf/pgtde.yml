@@ -3,14 +3,14 @@
 # File      :   pgtde.yml
 # Desc      :   PG TDE with Percona PostgreSQL 1-node template
 # Ctime     :   2025-07-04
-# Mtime     :   2026-07-08
+# Mtime     :   2026-07-23
 # Docs      :   https://pigsty.io/docs/conf/pgtde
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
 # This is the config template for Percona PostgreSQL Distribution
-# With pg_tde extension, which is compatible with PostgreSQL 18.1
+# with pg_tde, currently based on PostgreSQL 18
 # tutorial: https://pigsty.io/docs/pgsql/kernel/percona
 #
 # Usage:
@@ -31,6 +31,7 @@ all:
       hosts:
         10.10.10.10: { pg_seq: 1, pg_role: primary }
       vars:
+        pg_mode: pgtde
         pg_cluster: pg-meta
         pg_users:
           - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin   ] ,comment: pigsty admin user }
@@ -46,8 +47,8 @@ all:
         pg_crontab:     # https://pigsty.io/docs/pgsql/admin/crontab
           - '00 01 * * * /pg/bin/pg-backup full'
 
-        # Percona PostgreSQL TDE Ad Hoc Settings
-        pg_packages: [ percona-main, pgsql-common ]  # install percona postgres packages
+        # Percona PostgreSQL TDE Kernel Settings
+        pg_packages: [ pgtde, pgsql-common ]  # install Pigsty private-prefix Percona packages
         pg_libs: 'pg_tde, pgaudit, pg_stat_statements, pg_stat_monitor, auto_explain'
 
   vars:
@@ -64,7 +65,7 @@ all:
     # NODE : https://pigsty.io/docs/node/param
     #----------------------------------------------#
     nodename_overwrite: false             # do not overwrite node hostname on single node mode
-    node_repo_modules: node,infra,pgsql,percona
+    node_repo_modules: node,infra,pgsql
     node_tune: oltp
 
     #----------------------------------------------#

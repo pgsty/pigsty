@@ -1515,7 +1515,7 @@ INSERT INTO pigsty.default_var VALUES
 (752, 'redis_rm_pkg', 'false', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'uninstall redis & redis-exporter packages?', NULL),
 
 -- PGSQL PARAMETERS
-(801, 'pg_mode', '"pgsql"', 'PGSQL', 'PG_ID', 'enum', 'C', 'pgsql cluster mode: pgsql,citus,gpsql,mssql,mysql,ivory,polar', NULL),
+(801, 'pg_mode', '"pgsql"', 'PGSQL', 'PG_ID', 'enum', 'C', 'pgsql cluster mode: pgsql,citus,mssql,mysql,ivory,pgtde,polar,gpsql,agens,oriole,pgedge', NULL),
 (802, 'pg_cluster', NULL, 'PGSQL', 'PG_ID', 'string', 'C', 'pgsql cluster name, REQUIRED identity parameter', NULL),
 (803, 'pg_seq', NULL, 'PGSQL', 'PG_ID', 'int', 'I', 'pgsql instance seq number, REQUIRED identity parameter', NULL),
 (804, 'pg_role', '"replica"', 'PGSQL', 'PG_ID', 'enum', 'I', 'pgsql role, REQUIRED, could be primary,replica,offline', NULL),
