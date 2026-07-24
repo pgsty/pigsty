@@ -91,9 +91,9 @@ The role runs with `tags: [always, pg-id]`, ensuring it executes regardless of t
 
 | Variable     | Level    | Description                                    |
 |--------------|----------|------------------------------------------------|
-| `pg_cluster` | CLUSTER  | Cluster name (required)                        |
-| `pg_role`    | INSTANCE | Instance role: `primary`, `replica`, `offline` |
-| `pg_seq`     | INSTANCE | Instance sequence number                       |
+| `pg_cluster` | CLUSTER  | Cluster name: `[A-Za-z0-9-]+`, except `root`                         |
+| `pg_role`    | INSTANCE | Instance role: `primary`, `replica`, `standby`, `offline`, `delayed` |
+| `pg_seq`     | INSTANCE | Non-negative integer, unique within the same cluster                 |
 
 ### Optional Identity
 
@@ -145,14 +145,19 @@ REPLICATE PRIMARY pg-test-1 @ 10.10.10.11 -> pg-test-2 , postgres://10.10.10.12:
 ```
 
 
-## Warnings
+## Identity Validation
 
-The role prints warnings for cluster configuration issues:
+After printing the derived PostgreSQL identity, the role rejects invalid
+identity and topology declarations in the final `assert pgsql identity` task:
 
-| Warning                     | Meaning                                    |
-|-----------------------------|--------------------------------------------|
-| `[WARN: NO CLUSTER LEADER]` | No instance with `pg_role: primary`        |
-| `[WARN: MULTIPLE LEADER]`   | Multiple instances with `pg_role: primary` |
+- `pg_cluster` must match `^[A-Za-z0-9-]+$` and cannot be `root`
+- `pg_role` must use the supported role enumeration
+- every member must have a non-negative integer `pg_seq`, unique within `pg_cluster`
+- a cluster can declare at most one `primary`
+
+A cluster without a declared `primary` still prints `[WARN: NO CLUSTER LEADER]`.
+Multiple declared primaries print `[WARN: MULTIPLE LEADER]` before the final
+assertion rejects the topology.
 
 
 ## Cluster Modes

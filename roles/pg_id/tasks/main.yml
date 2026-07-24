@@ -48,4 +48,19 @@
           {%if pg_weight is defined and pg_weight != 100 %} [W:{{ pg_weight }}]{% endif %}
            , postgres://{{ inventory_hostname }}:{{ pg_port }}/postgres
 
+    # make sure identity parameters are properly set
+    - name: assert pgsql identity
+      connection: local
+      assert:
+        that:
+          - pg_cluster is string and pg_cluster is match('^[A-Za-z0-9-]+$') and pg_cluster != 'root'
+          - pg_meta | json_query('[].pg_role') | length == pg_cluster_size
+          - pg_meta | json_query('[].pg_role') | difference(['primary', 'replica', 'standby', 'offline', 'delayed']) | length == 0
+          - pg_meta | json_query('[].pg_seq') | map('string') | select('match', '^-?[0-9]+$') | list | length == pg_cluster_size
+          - pg_meta | json_query('[].pg_seq') | map('int') | list | min >= 0
+          - pg_meta | json_query('[].pg_seq') | map('int') | list | unique | length == pg_cluster_size
+          - pg_primary_list | length <= 1
+        fail_msg: >-
+          Invalid pgsql identity: members={{ pg_meta | json_query('[].{host: inventory_hostname, seq: pg_seq, role: pg_role}') }}
+
 ...
