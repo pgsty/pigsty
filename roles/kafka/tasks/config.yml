@@ -175,6 +175,14 @@
 - name: install kafka health predicate
   copy: src=kafka_health.py dest=/usr/local/bin/pigsty-kafka-health owner=root group=root mode=0755
 
+# regression fixtures for the health parsers: a parser bug (e.g. the anchored
+# regex that once ignored tab-indented partition lines) fails the role here,
+# before any lifecycle decision trusts the predicate
+- name: verify kafka health predicate selftest
+  when: not ansible_check_mode
+  command: /usr/local/bin/pigsty-kafka-health selftest
+  changed_when: false
+
 - name: render kafka runtime configuration
   template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner | default('kafka') }} group={{ item.owner | default('kafka') }} mode={{ item.mode }}
   loop:

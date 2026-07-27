@@ -49,9 +49,14 @@ def quorum(ns):
             bool(voters) and caught_up), voters, out
 
 
+def topic_lines_present(out):
+    """kafka-topics.sh filter output indents partition lines with a tab."""
+    return re.search(r"(?m)^\s*Topic:\s", out) is not None
+
+
 def topic_filter(ns, flag):
     rc, out = run("kafka-topics.sh", client_args(ns) + ["--describe", flag])
-    return rc == 0 and not re.search(r"(?m)^Topic:\s", out), out
+    return rc == 0 and not topic_lines_present(out), out
 
 
 def listener_reachable(bootstrap_servers):
@@ -92,10 +97,7 @@ def cluster_min_isr(ns):
     return int(found.group(1)) if found else 1
 
 
-def partitions(ns):
-    rc, out = run("kafka-topics.sh", client_args(ns) + ["--describe"])
-    if rc:
-        raise RuntimeError(out)
+def parse_partitions(out):
     topic_min = {}
     result = []
     for line in out.splitlines():
@@ -116,6 +118,14 @@ def partitions(ns):
             result.append({"topic": topic, "partition": int(part.group(1)),
                            "replicas": parse(replicas.group(1)),
                            "isr": parse(isr.group(1))})
+    return topic_min, result
+
+
+def partitions(ns):
+    rc, out = run("kafka-topics.sh", client_args(ns) + ["--describe"])
+    if rc:
+        raise RuntimeError(out)
+    topic_min, result = parse_partitions(out)
     default_min = cluster_min_isr(ns)
     for item in result:
         item["min_isr"] = topic_min.get(item["topic"], default_min)
@@ -130,7 +140,48 @@ def brokers(ns):
         r"\(id:\s*(\d+).*?isFenced:\s*(true|false)\)", out)}
 
 
+def selftest():
+    """Regression fixtures for the output-parsing predicates.
+
+    kafka-topics.sh indents partition detail lines with a leading tab; an
+    anchored `^Topic:` regex once classified every degraded cluster as healthy
+    (all three partition filter checks silently passed). These fixtures replay
+    that captured output so any parser regression fails the role at deploy time.
+    """
+    degraded = (
+        "\tTopic: test.spread\tPartition: 1\tLeader: 3\tReplicas: 3,4\t"
+        "Isr: 3\tElr: 4\tLastKnownElr: \n"
+        "\tTopic: test.spread\tPartition: 2\tLeader: 1\tReplicas: 4,1\t"
+        "Isr: 1\tElr: 4\tLastKnownElr: \n")
+    banner = ("The consumer rebalance protocol (KIP-848) is production-ready! "
+              "Set group.protocol=consumer to try it out.\n")
+    describe = (
+        "Topic: test.events\tTopicId: fWGbjHduTpq\tPartitionCount: 2\t"
+        "ReplicationFactor: 3\tConfigs: min.insync.replicas=2\n"
+        "\tTopic: test.events\tPartition: 0\tLeader: 3\tReplicas: 3,1,2\tIsr: 3,1,2\n"
+        "\tTopic: test.events\tPartition: 1\tLeader: 1\tReplicas: 1,2,3\tIsr: 1,2\n")
+    topic_min, parts = parse_partitions(describe)
+    cases = [
+        ("tab-indented partition lines fail the filter checks",
+         topic_lines_present(degraded)),
+        ("column-zero topic headers fail the filter checks",
+         topic_lines_present("Topic: t\tTopicId: x\tPartitionCount: 1\n")),
+        ("empty filter output stays healthy", not topic_lines_present("")),
+        ("warning banners alone stay healthy", not topic_lines_present(banner)),
+        ("describe parsing keeps per-topic min isr", topic_min == {"test.events": 2}),
+        ("describe parsing sees every partition", len(parts) == 2),
+        ("describe parsing keeps isr membership",
+         parts and parts[1]["isr"] == {1, 2} and parts[1]["replicas"] == {1, 2, 3}),
+    ]
+    failed = [name for name, ok in cases if not ok]
+    print(json.dumps({"healthy": not failed, "checks": len(cases),
+                      "failed": failed}, sort_keys=True))
+    return 1 if failed else 0
+
+
 def main():
+    if len(sys.argv) > 1 and sys.argv[1] == "selftest":
+        return selftest()
     parser = argparse.ArgumentParser()
     parser.add_argument("mode", choices=("cluster", "pre", "post"))
     parser.add_argument("--bootstrap-server", required=True)
