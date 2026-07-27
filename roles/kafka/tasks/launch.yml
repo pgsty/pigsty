@@ -32,13 +32,18 @@
       until:
         - kafka_controller_converge_internal.rc == 0
         - "'LeaderId:' in kafka_controller_converge_internal.stdout"
+    # the manifest is a birth certificate: this assert guards the initial
+    # bootstrap only, live quorum membership is authoritative once commissioned
     - name: verify frozen initial controller directory identities
-      when: inventory_hostname == kafka_initial_admin_host_internal
+      when:
+        - inventory_hostname == kafka_initial_admin_host_internal
+        - not (kafka_manifest_internal.commissioned | default(true) | bool)
       assert:
         that: item.directory_id in kafka_controller_converge_internal.stdout
         fail_msg: >-
           Controller node.id {{ item.node_id }} directory identity is absent from
-          the live quorum. Use explicit remove-controller/add-controller recovery.
+          the live quorum. Wipe the interrupted bootstrap with kafka-rm.yml
+          before retrying.
       loop: "{{ kafka_manifest_internal.initial_controllers }}"
     - name: start pure broker services after quorum convergence
       when: kafka_role == 'broker'
@@ -72,6 +77,20 @@
     - name: clear pending restart already satisfied by converge
       when: kafka_service_active_internal.rc != 0
       set_fact: { kafka_restart_required_internal: false }
+
+#--------------------------------------------------------------#
+# Join Controllers Into The Dynamic Quorum        [kafka_launch]
+#--------------------------------------------------------------#
+# replacement or newly declared controller-capable nodes were formatted with
+# --no-initial-controllers: each catches up as an observer and is promoted via
+# add-controller one at a time, in both converge and rolling lifecycles
+- name: join controllers one at a time
+  when:
+    - not ansible_check_mode
+    - inventory_hostname == kafka_admin_host_internal
+  include_tasks: join.yml
+  loop: "{{ kafka_cluster_join_required_internal }}"
+  loop_control: { loop_var: roll_host, label: "{{ roll_host }}" }
 
 #--------------------------------------------------------------#
 # Admit New Brokers One At A Time                 [kafka_launch]

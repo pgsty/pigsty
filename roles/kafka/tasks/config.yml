@@ -32,6 +32,7 @@
     kafka_storage_formatted_internal: "{{ kafka_meta_part | trim | length > 0 }}"
     kafka_meta_cluster_id_internal: "{{ kafka_meta_part | regex_findall('(?m)^cluster\\.id=([^\\n]+)') | first | default('') }}"
     kafka_meta_node_id_internal: "{{ kafka_meta_part | regex_findall('(?m)^node\\.id=([^\\n]+)') | first | default('') }}"
+    kafka_meta_directory_id_internal: "{{ kafka_meta_part | regex_findall('(?m)^directory\\.id=([^\\n]+)') | first | default('') }}"
     kafka_node_manifest_internal: "{{ (kafka_manifest_part | from_yaml) if kafka_manifest_part | trim | length > 0 else {} }}"
   vars:
     kafka_meta_part: "{{ (kafka_meta_raw_internal.stdout.split('#--PIGSTY-MANIFEST--#'))[0] }}"
@@ -136,24 +137,25 @@
       Bootstrap manifest, inventory, requested security mode, or formatted
       cluster/node identity conflicts. Live identity is never rewritten automatically.
 
-# a wiped controller must never silently reformat its frozen directory identity,
-# and a node absent from initial_controllers is a membership change; only an
-# interrupted, never-commissioned bootstrap may resume formatting
-- name: reject unsafe reuse or implicit admission of an unformatted controller
+# the manifest is a birth certificate: once commissioned, live quorum
+# membership is authoritative and a wiped controller-capable node rejoins
+# through the dynamic-quorum join flow (fresh format, observer catch-up, gated
+# add-controller in launch); an interrupted, never-commissioned bootstrap may
+# only resume formatting its original initial controllers
+- name: reject unformatted controller outside its bootstrap cohort
   when:
     - kafka_has_controller | bool
     - not kafka_storage_formatted_internal
     - kafka_any_formatted_internal | bool
+    - not (kafka_manifest_internal.commissioned | default(true) | bool)
   assert:
     that:
-      - not (kafka_manifest_internal.commissioned | default(true) | bool)
       - kafka_manifest_internal.initial_controllers
         | selectattr('node_id', 'equalto', kafka_seq | int) | list | length == 1
     fail_msg: >-
-      Unformatted controller node.id {{ kafka_seq }} cannot be formatted by a
-      normal run. Use an explicit remove/format/catch-up/add-controller recovery
-      workflow. Only a manifest created by an interrupted, never-commissioned
-      bootstrap may resume formatting its original initial controllers.
+      Unformatted controller node.id {{ kafka_seq }} is not part of this
+      uncommissioned bootstrap cohort. Fix the inventory, or wipe the cluster
+      with kafka-rm.yml before a deliberate rebuild.
 
 # node copies are written before any storage is formatted, so an interrupted
 # bootstrap can always resume with the same frozen identities
@@ -290,7 +292,9 @@
           '--cluster-id', kafka_manifest_internal.cluster_id,
           '--config', '/etc/kafka/server.properties'] +
          (['--initial-controllers', kafka_initial_controllers_arg]
-          if kafka_has_controller | bool else ['--no-initial-controllers']) +
+          if (kafka_has_controller | bool and
+              not (kafka_manifest_internal.commissioned | default(true) | bool))
+          else ['--no-initial-controllers']) +
          (kafka_storage_scram_args_internal | default([])) }}
   register: kafka_format_result_internal
 
@@ -331,6 +335,57 @@
   changed_when: false
   failed_when: false
 
+# the live voter set (ids + directory ids) decides which controller-capable
+# nodes still need a dynamic-quorum join; probed once per cluster on the anchor
+- name: inspect live quorum voters
+  when:
+    - not ansible_check_mode
+    - inventory_hostname == kafka_admin_host_internal
+    - kafka_manifest_internal.commissioned | default(false) | bool
+  become_user: kafka
+  command: >-
+    /opt/kafka/bin/kafka-metadata-quorum.sh
+    --bootstrap-controller {{ kafka_controller_bootstrap_internal }}
+    --command-config /etc/kafka/controller.properties describe --status
+  register: kafka_quorum_status_internal
+  changed_when: false
+  failed_when: false
+
+# a controller-capable node needs a join when its storage was formatted fresh
+# this run, or when its on-disk directory identity is absent from the live
+# CurrentVoters line (an interrupted join left it running as a mere observer)
+- name: identify controllers that require quorum join
+  vars:
+    kafka_quorum_probe: "{{ hostvars[kafka_admin_host_internal].kafka_quorum_status_internal | default({}) }}"
+    kafka_quorum_voters_line: "{{ kafka_quorum_probe.stdout | default('') | regex_search('CurrentVoters:.*') | default('') }}"
+  set_fact:
+    kafka_quorum_join_required_internal: >-
+      {{ kafka_has_controller | bool and
+         kafka_manifest_internal.commissioned | default(true) | bool and
+         kafka_quorum_probe.rc | default(1) == 0 and
+         (kafka_storage_new_internal | default(false) | bool or
+          (kafka_storage_formatted_internal | bool and
+           kafka_meta_directory_id_internal | length > 0 and
+           kafka_meta_directory_id_internal not in kafka_quorum_voters_line)) }}
+
+# a stale voter entry left by a dead predecessor never catches up and would
+# stall the converge health gate: fail fast and point at the retirement tool
+- name: reject joining over a stale predecessor voter entry
+  when:
+    - kafka_quorum_join_required_internal | default(false) | bool
+    - kafka_stale_voter_internal | length > 0
+  vars:
+    kafka_stale_voter_internal: >-
+      {{ ((hostvars[kafka_admin_host_internal].kafka_quorum_status_internal.stdout | default('')
+          | regex_search('CurrentVoters:\s*(\[.*\])', '\1') | default(['[]'], true) | first | from_json)
+         | selectattr('id', 'equalto', kafka_seq | int)
+         | map(attribute='directoryId') | list | first | default('')) }}
+  fail:
+    msg: >-
+      Controller node.id {{ kafka_seq }} still holds voter entry
+      {{ kafka_stale_voter_internal }} in the live quorum. Retire the dead
+      predecessor first with ./kafka-rm.yml -l {{ inventory_hostname }}, then rerun.
+
 - name: select converge or strict rolling from the health predicate
   vars:
     kafka_health_verdict: "{{ hostvars[kafka_admin_host_internal].kafka_health_before_internal | default({}) }}"
@@ -354,6 +409,14 @@
       {%-   endif -%}
       {%- endfor -%}
       {{ required }}
+    kafka_cluster_join_required_internal: >-
+      {%- set required = [] -%}
+      {%- for host in kafka_cluster_members -%}
+      {%-   if hostvars[host].kafka_quorum_join_required_internal | default(false) | bool -%}
+      {%-     set _ = required.append(host) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ required }}
 
 - name: print selected kafka lifecycle path
   when: inventory_hostname == kafka_admin_host_internal
@@ -362,5 +425,6 @@
       Kafka {{ kafka_cluster }} lifecycle={{ kafka_lifecycle_internal }};
       static-change-hosts={{ kafka_cluster_restart_required_internal | join(',') | default('none', true) }};
       broker-admission-hosts={{ kafka_cluster_admission_required_internal | join(',') | default('none', true) }};
+      quorum-join-hosts={{ kafka_cluster_join_required_internal | join(',') | default('none', true) }};
       health={{ kafka_health_before_internal.stdout | default('check-mode or unreachable') }}
 ...

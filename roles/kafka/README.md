@@ -62,6 +62,7 @@ roles/kafka/
 │   ├── security.yml          # [kafka_security] Secrets, certs, keystores, admin channels
 │   ├── launch.yml            # [kafka_launch] Converge / admit / roll / commission
 │   ├── admit.yml             # One gated broker admission (looped by launch.yml)
+│   ├── join.yml              # One gated controller quorum join (looped by launch.yml)
 │   ├── roll.yml              # One gated rolling restart (looped by launch.yml)
 │   ├── provision.yml         # [kafka_provision] Users, ACLs, quotas & topics
 │   └── monitor.yml           # [kafka_monitor] Exporters & victoria registration
@@ -110,6 +111,7 @@ kafka (full role)
 │
 ├── kafka_launch               # Service lifecycle
 │   ├── converge               # Parallel bootstrap of fresh/unhealthy cluster
+│   ├── join                   # Gated one-at-a-time controller quorum join
 │   ├── admit                  # Gated one-at-a-time broker admission
 │   ├── roll                   # Quorum/minISR-gated rolling restart
 │   └── kafka_commission       # Commission manifest & record proven state
@@ -202,10 +204,15 @@ Full parameter reference: [KAFKA Configuration](https://pigsty.io/docs/kafka/con
   gates; expansion admits newly formatted pure brokers one at a time.
 - A sole controller/broker cannot restart without downtime: such a restart
   proceeds with a logged warning and a brief unavoidable outage.
-- An empty controller disk under a commissioned manifest **fails closed**: reusing a
-  frozen directory ID would be a Raft identity replay. Controller membership changes
-  require the explicit Kafka `add-controller`/`remove-controller` procedure (not yet
-  orchestrated by this role; a Beta limitation).
+- The manifest is a **birth certificate**: after first commission, live quorum
+  membership is authoritative. A wiped or newly declared controller-capable node
+  is formatted fresh (`--no-initial-controllers`), catches up as an observer, and
+  is promoted with a gated `add-controller` — one node at a time.
+- Replace a dead node in three steps, keeping its ip and `kafka_seq`:
+  `./kafka-rm.yml -l <ip>` (retires the dead voter entry and broker registration
+  through a surviving member, even when the node is unreachable), reprovision
+  with `./node.yml -l <ip>`, then `./kafka.yml -l <cls>` — the rejoining broker
+  re-inherits its partition assignment and resyncs automatically.
 - `default.replication.factor` and existing topic RF never change automatically after
   expansion; use a reviewed `kafka-reassign-partitions.sh` plan.
 - Clients must resolve and reach every broker's `inventory_hostname` directly:

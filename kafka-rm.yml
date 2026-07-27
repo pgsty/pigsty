@@ -15,6 +15,7 @@
   become: true
   gather_facts: no
   ignore_errors: true
+  ignore_unreachable: true    # a dead member is retired via surviving members
   vars:
     #kafka_safeguard: false            # set true to halt removal (safety switch)
     #kafka_rm_data: true               # remove data dir & /etc/kafka recovery state? true by default
@@ -35,10 +36,15 @@
 #         -e kafka_safeguard=true    # abort: refuse to remove anything
 #  It will abort if `kafka_safeguard` is set to `true` explicitly.
 #
-#  Shrink a kafka cluster (remove one broker/controller):
+#  Retire a member (shrink, or clean up after a dead node):
 #     ./kafka-rm.yml -l 10.10.10.13  # remove a single member from its cluster
-#  Removing a KRaft controller changes quorum membership; only shrink a healthy
-#  cluster and keep an odd controller count.
+#  Selecting a strict subset of a cluster also retires the leaving kraft voter
+#  entry and broker registration through a surviving member, so this works
+#  even when the node itself is unreachable. Keep an odd controller count, and
+#  note that partition replicas still assigned to the retired broker stay
+#  under-replicated until a replacement with the same kafka_seq rejoins via
+#  ./kafka.yml (it re-inherits the assignment and resyncs automatically), or
+#  until you reassign them explicitly.
 #
 #--------------------------------------------------------------#
 # Tasks
@@ -46,6 +52,7 @@
 # kafka_safeguard  : abort when kafka_safeguard=true
 # kafka_deregister : remove kafka / kafka_exporter victoria targets from infra
 # kafka            : stop & disable kafka and kafka_exporter services
+# kafka_retire     : retire voter entry & broker registration via a survivor
 # kafka_config     : remove exporter config, systemd env/units, and helper scripts
 # kafka_data       : remove data dir & /etc/kafka recovery state (disable with kafka_rm_data=false)
 # kafka_pkg        : uninstall kafka-stack packages         (enable  with kafka_rm_pkg=true)

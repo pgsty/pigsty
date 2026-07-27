@@ -35,8 +35,14 @@
 #    ./kafka.yml -l kf-main            # bootstrap, or converge to declared state
 #    ./kafka.yml -l kf-main --check    # dry run first
 #
-#  Expand a cluster (add a pure broker declared in the inventory)
-#    ./kafka.yml -l kf-main            # new pure brokers are formatted & admitted safely
+#  Expand a cluster (new combined/broker/controller nodes declared in inventory)
+#    ./kafka.yml -l kf-main            # brokers are admitted and controllers
+#                                      # join the dynamic quorum, one at a time
+#
+#  Replace a dead node (keep its ip and kafka_seq):
+#    ./kafka-rm.yml -l 10.10.10.13     # retire dead voter & broker registration
+#    ./node.yml     -l 10.10.10.13     # provision the replacement machine
+#    ./kafka.yml    -l kf-main         # format, catch up, rejoin & promote
 #
 #  Reconcile topics/users, or refresh monitoring registration
 #    ./kafka.yml -l kf-main                          # reconcile everything (idempotent)
@@ -76,6 +82,7 @@
 #
 # kafka_launch    : bring services to the declared state
 #   - converge          : parallel bootstrap of a fresh/unhealthy cluster
+#   - join              : format/observer/add-controller quorum join, one at a time
 #   - admit             : start & gate each new broker one at a time
 #   - roll              : quorum/minISR-gated rolling restart of changed nodes
 #   - kafka_commission  : commission manifest & record proven static state

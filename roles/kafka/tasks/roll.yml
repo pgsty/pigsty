@@ -20,6 +20,8 @@
       {{ (hostvars[roll_host].kafka_has_controller | bool and kafka_controller_nodes | length == 1) or
          (hostvars[roll_host].kafka_has_broker | bool and kafka_broker_nodes | length == 1) }}
 
+# transient unsafety (a peer still catching up after admission or join) heals
+# by itself, so the preflight retries briefly before giving up
 - name: preflight quorum and minisr before restarting {{ roll_host }}
   when: not roll_only_node | bool
   delegate_to: "{{ roll_gate_host }}"
@@ -33,7 +35,11 @@
           '--node-id', roll_seq | string] +
          (['--controller'] if roll_is_controller | bool else []) +
          (['--broker'] if roll_is_broker | bool else []) }}
+  register: kafka_roll_preflight_internal
   changed_when: false
+  retries: 15
+  delay: 4
+  until: kafka_roll_preflight_internal.rc == 0
 
 - name: warn about unavoidable downtime restarting single-node {{ roll_host }}
   when: roll_only_node | bool

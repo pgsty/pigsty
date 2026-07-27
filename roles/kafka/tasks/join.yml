@@ -1,0 +1,122 @@
+---
+# Join exactly one controller-capable node (roll_host) into the dynamic quorum
+# of a commissioned cluster. Invoked once per node by the anchored loop in
+# launch.yml, so joins are strictly serialized: the node was formatted with
+# --no-initial-controllers, starts as an observer, catches up, and is promoted
+# with add-controller. A stale voter entry left by a dead predecessor must be
+# retired first via kafka-rm.yml; add-controller detects it as DuplicateVoter.
+- name: select the join gate host for {{ roll_host }}
+  set_fact:
+    join_gate_host: >-
+      {{ (kafka_broker_nodes | rejectattr('host', 'equalto', roll_host)
+          | map(attribute='host') | list | first)
+         | default(kafka_admin_host_internal, true) }}
+
+- name: start joining kafka node {{ roll_host }}
+  delegate_to: "{{ roll_host }}"
+  systemd: name=kafka state=started enabled=yes daemon_reload=yes
+
+- name: wait for the joining controller listener on {{ roll_host }}
+  delegate_to: "{{ roll_host }}"
+  wait_for:
+    host: "{{ roll_host }}"
+    port: "{{ hostvars[roll_host].kafka_controller_port | default(9093) }}"
+    state: started
+    timeout: 180
+
+# freshly formatted nodes acquired their directory identity after the config
+# scan, so the joining identity is always read live from the node itself
+- name: read joining directory identity on {{ roll_host }}
+  delegate_to: "{{ roll_host }}"
+  command: cat {{ hostvars[roll_host].kafka_metadata_dir_internal }}/meta.properties
+  register: join_meta_internal
+  changed_when: false
+
+- name: derive joining directory identity for {{ roll_host }}
+  set_fact:
+    join_directory_id: "{{ join_meta_internal.stdout | regex_findall('(?m)^directory\\.id=([^\\n]+)') | first }}"
+
+- name: inspect quorum membership for {{ roll_host }}
+  delegate_to: "{{ roll_host }}"
+  become_user: kafka
+  command: >-
+    /opt/kafka/bin/kafka-metadata-quorum.sh
+    --bootstrap-controller {{ kafka_controller_bootstrap_internal }}
+    --command-config /etc/kafka/controller.properties describe --status
+  register: join_quorum_internal
+  changed_when: false
+
+# membership is judged against the CurrentVoters line only: the joining node
+# is expected to appear among CurrentObservers at this point
+- name: derive quorum voter membership for {{ roll_host }}
+  set_fact:
+    join_voters_line: "{{ join_quorum_internal.stdout | regex_search('CurrentVoters:.*') | default('') }}"
+
+# add-controller reads the node's own server identity plus client security
+# settings from one file, so both role-owned channels are merged transiently
+- name: stage transient join channel on {{ roll_host }}
+  when: join_directory_id not in join_voters_line
+  delegate_to: "{{ roll_host }}"
+  shell: |
+    cat /etc/kafka/server.properties /etc/kafka/controller.properties > /run/pigsty-kafka-join.properties
+    chown kafka:kafka /run/pigsty-kafka-join.properties && chmod 0600 /run/pigsty-kafka-join.properties
+  args: { executable: /bin/bash }
+  changed_when: false
+
+- name: add controller {{ roll_host }} to the dynamic quorum
+  when: join_directory_id not in join_voters_line
+  delegate_to: "{{ roll_host }}"
+  become_user: kafka
+  command: >-
+    /opt/kafka/bin/kafka-metadata-quorum.sh
+    --bootstrap-controller {{ kafka_controller_bootstrap_internal }}
+    --command-config /run/pigsty-kafka-join.properties add-controller
+  register: join_add_internal
+  changed_when: join_add_internal.rc == 0
+  failed_when: false
+  retries: 45
+  delay: 4
+  until: join_add_internal.rc == 0 or 'DuplicateVoter' in join_add_internal.stdout | default('')
+
+- name: remove transient join channel on {{ roll_host }}
+  when: join_directory_id not in join_voters_line
+  delegate_to: "{{ roll_host }}"
+  file: path=/run/pigsty-kafka-join.properties state=absent
+  changed_when: false
+
+- name: require successful quorum join for {{ roll_host }}
+  when:
+    - join_directory_id not in join_voters_line
+    - join_add_internal.rc != 0
+  fail:
+    msg: >-
+      Controller node.id {{ hostvars[roll_host].kafka_seq }} failed to join the
+      dynamic quorum: {{ (join_add_internal.stdout | default(''))[-600:] }}
+      A DuplicateVoter error means a stale voter entry from a dead predecessor
+      remains: retire it first with ./kafka-rm.yml -l {{ roll_host }}, then rerun.
+
+- name: require voter promotion and full health after joining {{ roll_host }}
+  delegate_to: "{{ join_gate_host }}"
+  become_user: kafka
+  command:
+    argv: >-
+      {{ ['/usr/local/bin/pigsty-kafka-health', 'post',
+          '--bootstrap-server', join_gate_host ~ ':' ~
+             (hostvars[join_gate_host].kafka_port | default(9092) | string),
+          '--command-config', '/etc/kafka/admin.properties',
+          '--node-id', hostvars[roll_host].kafka_seq | string, '--controller'] +
+         (['--broker'] if hostvars[roll_host].kafka_has_broker | default(true) | bool else []) }}
+  register: join_health_internal
+  changed_when: false
+  retries: 45
+  delay: 4
+  until: join_health_internal.rc == 0
+
+- name: record static state proven live on joined {{ roll_host }}
+  delegate_to: "{{ roll_host }}"
+  copy:
+    dest: /etc/kafka/.pigsty-applied-static.sha256
+    content: "{{ hostvars[roll_host].kafka_desired_static_fingerprint_internal }}\n"
+    owner: root
+    group: root
+    mode: '0644'
