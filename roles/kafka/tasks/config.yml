@@ -88,10 +88,12 @@
     - not kafka_manifest_exists_internal | bool
     - not kafka_any_formatted_internal | bool
   block:
+    # anchored on the first controller (one generation per cluster in a
+    # multi-cluster play); other members read the result through hostvars
     - name: generate random cluster and directory identities
-      when: not ansible_check_mode
-      run_once: true
-      delegate_to: "{{ kafka_initial_admin_host_internal }}"
+      when:
+        - not ansible_check_mode
+        - inventory_hostname == kafka_initial_admin_host_internal
       become_user: kafka
       command: /opt/kafka/bin/kafka-storage.sh random-uuid
       loop: "{{ ['cluster'] + kafka_controller_nodes }}"
@@ -99,20 +101,22 @@
       register: kafka_new_uuids_internal
       changed_when: false
     - name: build a new bootstrap manifest in memory
+      vars:
+        kafka_anchor_uuids: "{{ hostvars[kafka_initial_admin_host_internal].kafka_new_uuids_internal | default({}) }}"
       set_fact:
         kafka_manifest_internal:
           schema: 1
           cluster_id: >-
             {{ kafka_cluster_id | default(
                ('AAAAAAAAAAAAAAAAAAAAAA' if ansible_check_mode
-                else kafka_new_uuids_internal.results[0].stdout), true) }}
+                else kafka_anchor_uuids.results[0].stdout), true) }}
           security: "{{ kafka_security }}"
           commissioned: false
           initial_controllers: >-
             {%- set controllers = [] -%}
             {%- for node in kafka_controller_nodes -%}
             {%-   set directory_id = ('BBBBBBBBBBBBBBBBBBBB' ~ (node.seq | string))[-22:]
-                  if ansible_check_mode else kafka_new_uuids_internal.results[loop.index].stdout -%}
+                  if ansible_check_mode else kafka_anchor_uuids.results[loop.index].stdout -%}
             {%-   set _ = controllers.append({'node_id': node.seq | int,
                                               'directory_id': directory_id}) -%}
             {%- endfor -%}
@@ -312,10 +316,12 @@
           (kafka_storage_formatted_internal | bool and
            kafka_service_active_internal.rc != 0)) }}
 
+# anchored on the cluster admin host: one probe per cluster, and the verdict
+# is read back by every member through hostvars below
 - name: evaluate the kafka cluster health predicate
-  run_once: true
-  when: not ansible_check_mode
-  delegate_to: "{{ kafka_admin_host_internal }}"
+  when:
+    - not ansible_check_mode
+    - inventory_hostname == kafka_admin_host_internal
   become_user: kafka
   command: >-
     /usr/local/bin/pigsty-kafka-health cluster
@@ -326,10 +332,12 @@
   failed_when: false
 
 - name: select converge or strict rolling from the health predicate
+  vars:
+    kafka_health_verdict: "{{ hostvars[kafka_admin_host_internal].kafka_health_before_internal | default({}) }}"
   set_fact:
     kafka_lifecycle_internal: >-
       {{ 'check' if ansible_check_mode else
-         ('rolling' if kafka_health_before_internal.rc | default(1) == 0 else 'converge') }}
+         ('rolling' if kafka_health_verdict.rc | default(1) == 0 else 'converge') }}
     kafka_cluster_restart_required_internal: >-
       {%- set required = [] -%}
       {%- for host in kafka_cluster_members -%}
@@ -348,7 +356,7 @@
       {{ required }}
 
 - name: print selected kafka lifecycle path
-  run_once: true
+  when: inventory_hostname == kafka_admin_host_internal
   debug:
     msg: >-
       Kafka {{ kafka_cluster }} lifecycle={{ kafka_lifecycle_internal }};

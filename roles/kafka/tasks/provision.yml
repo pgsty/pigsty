@@ -3,7 +3,7 @@
 # Validate Declared Kafka Objects               [kafka_validate]
 #--------------------------------------------------------------#
 - name: validate declared kafka resource collections
-  run_once: true
+  when: inventory_hostname == kafka_admin_host_internal
   assert:
     that:
       - kafka_users | map(attribute='name') | list | unique | length == kafka_users | length
@@ -25,7 +25,7 @@
   copy: src=kafka_provision.py dest=/usr/local/bin/pigsty-kafka-provision owner=root group=root mode=0755
 
 - name: build resource reconciliation specification
-  run_once: true
+  when: inventory_hostname == kafka_admin_host_internal
   no_log: true
   set_fact:
     kafka_resource_spec_internal:
@@ -42,9 +42,9 @@
       topics: "{{ kafka_topics }}"
 
 - name: reconcile kafka resources against live metadata
-  run_once: true
-  when: not ansible_check_mode
-  delegate_to: "{{ kafka_admin_host_internal }}"
+  when:
+    - not ansible_check_mode
+    - inventory_hostname == kafka_admin_host_internal
   block:
     - name: stage transient resource specification
       no_log: true
@@ -88,9 +88,9 @@
 # Report Replication Drift                         [kafka_drift]
 #--------------------------------------------------------------#
 - name: inspect frozen internal topic replication
-  run_once: true
-  when: not ansible_check_mode
-  delegate_to: "{{ kafka_admin_host_internal }}"
+  when:
+    - not ansible_check_mode
+    - inventory_hostname == kafka_admin_host_internal
   become_user: kafka
   command: >-
     /opt/kafka/bin/kafka-topics.sh
@@ -102,9 +102,9 @@
   failed_when: false
 
 - name: report internal topic replication drift without unsafe reassignment
-  run_once: true
   when: >-
     not ansible_check_mode and
+    inventory_hostname == kafka_admin_host_internal and
     kafka_internal_topic_internal.rc | default(1) == 0 and
     ('ReplicationFactor: ' ~ (kafka_manifest_internal.replication_factor | string))
     not in kafka_internal_topic_internal.stdout

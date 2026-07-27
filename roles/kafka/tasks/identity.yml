@@ -81,12 +81,11 @@
 - name: assert kafka identity
   assert:
     that:
-      - ansible_limit is defined and ansible_limit | string | length > 0
       - (kafka_cluster | regex_search('^[A-Za-z0-9][A-Za-z0-9_-]*$')) is not none
       - (kafka_seq | string | regex_search('^[0-9]+$')) is not none
       - kafka_role in ['combined', 'broker', 'controller']
       - kafka_security in ['plaintext', 'scram']
-      - ansible_play_hosts_all | symmetric_difference(kafka_cluster_members) | length == 0
+      - kafka_cluster_members | difference(ansible_play_hosts_all) | length == 0
       - kafka_node_ids | unique | length == kafka_node_ids | length
       - kafka_controller_nodes | length > 0
       - kafka_broker_nodes | length > 0
@@ -97,17 +96,20 @@
       - "[kafka_port, kafka_controller_port, kafka_exporter_port, kafka_jmx_exporter_port] | map('int') | unique | length == 4"
       - kafka_parameters.keys() | select('match', '^(process.roles|node.id|controller.quorum\\..*|listeners|advertised.listeners|listener.security.protocol.map|inter.broker.listener.name|controller.listener.names|log.dirs|metadata.log.dir|min.insync.replicas|default.replication.factor|offsets.topic.replication.factor|transaction.state.log.replication.factor|transaction.state.log.min.isr|share.coordinator.state.topic.replication.factor|share.coordinator.state.topic.min.isr|broker.rack|authorizer.class.name|super.users|allow.everyone.if.no.acl.found|sasl\\..*|ssl\\..*|listener\\..*)$') | list | length == 0
     fail_msg: >-
-      Invalid Kafka API or topology. Use an explicit -l selecting every member
-      of exactly one kafka_cluster; kafka_role must be declared on every member
-      or omitted from every member; rack must be configured on all broker-capable
-      nodes or none; role-owned topology/listener/security/storage/replication keys
-      are reserved.
+      Invalid Kafka API or topology. Every selected kafka cluster must be complete:
+      partial member selection is refused, while multiple whole clusters (or a bare
+      run over the full inventory) are fine; kafka_role must be declared on every
+      member or omitted from every member; rack must be configured on all
+      broker-capable nodes or none; role-owned topology/listener/security/storage/
+      replication keys are reserved.
 
 #--------------------------------------------------------------#
 # Print Kafka Identity                            [kafka_print]
 #--------------------------------------------------------------#
+# anchored on the cluster admin host so a multi-cluster play prints one
+# summary per cluster (run_once would print only the first cluster's)
 - name: print kafka identity
-  run_once: true
+  when: inventory_hostname == kafka_admin_host_internal
   debug:
     msg: >-
       INIT KAFKA {{ kafka_cluster }}: {{ kafka_controller_nodes | length }} controller,

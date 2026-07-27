@@ -19,8 +19,7 @@
       when: kafka_has_controller | bool
       wait_for: host={{ inventory_hostname }} port={{ kafka_controller_port }} state=started timeout=120
     - name: wait for dynamic controller quorum convergence
-      run_once: true
-      delegate_to: "{{ kafka_initial_admin_host_internal }}"
+      when: inventory_hostname == kafka_initial_admin_host_internal
       become_user: kafka
       command: >-
         /opt/kafka/bin/kafka-metadata-quorum.sh
@@ -34,7 +33,7 @@
         - kafka_controller_converge_internal.rc == 0
         - "'LeaderId:' in kafka_controller_converge_internal.stdout"
     - name: verify frozen initial controller directory identities
-      run_once: true
+      when: inventory_hostname == kafka_initial_admin_host_internal
       assert:
         that: item.directory_id in kafka_controller_converge_internal.stdout
         fail_msg: >-
@@ -48,8 +47,7 @@
       when: kafka_has_broker | bool
       wait_for: host={{ inventory_hostname }} port={{ kafka_port }} state=started timeout=180
     - name: require full cluster health after converge
-      run_once: true
-      delegate_to: "{{ kafka_admin_host_internal }}"
+      when: inventory_hostname == kafka_admin_host_internal
       become_user: kafka
       command: >-
         /usr/local/bin/pigsty-kafka-health cluster
@@ -79,10 +77,13 @@
 # Admit New Brokers One At A Time                 [kafka_launch]
 #--------------------------------------------------------------#
 # expanding a healthy cluster: each newly formatted pure broker is started and
-# gated on registration + full health before the next one is admitted
+# gated on registration + full health before the next one is admitted; the loop
+# is anchored on the cluster admin host so a multi-cluster play runs one serial
+# admission loop per cluster (concurrently across clusters)
 - name: admit newly formatted brokers one at a time
-  run_once: true
-  when: kafka_lifecycle_internal == 'rolling' and not ansible_check_mode
+  when:
+    - kafka_lifecycle_internal == 'rolling' and not ansible_check_mode
+    - inventory_hostname == kafka_admin_host_internal
   include_tasks: admit.yml
   loop: "{{ kafka_cluster_admission_required_internal }}"
   loop_control: { loop_var: roll_host, label: "{{ roll_host }}" }
@@ -94,21 +95,21 @@
 # by a quorum/minISR preflight and a post-restart catch-up; unchanged and freshly
 # converged nodes are skipped, so a no-change run restarts nothing
 - name: rolling restart changed kafka nodes one at a time
-  run_once: true
   include_tasks: roll.yml
   loop: "{{ kafka_cluster_members }}"
   loop_control: { loop_var: roll_host, label: "{{ roll_host }}" }
   when:
     - not ansible_check_mode
+    - inventory_hostname == kafka_admin_host_internal
     - hostvars[roll_host].kafka_restart_required_internal | default(false) | bool
 
 #--------------------------------------------------------------#
 # Commission Manifest & Record State           [kafka_commission]
 #--------------------------------------------------------------#
 - name: require full kafka health after launch
-  run_once: true
-  when: not ansible_check_mode
-  delegate_to: "{{ kafka_admin_host_internal }}"
+  when:
+    - not ansible_check_mode
+    - inventory_hostname == kafka_admin_host_internal
   become_user: kafka
   command: >-
     /usr/local/bin/pigsty-kafka-health cluster

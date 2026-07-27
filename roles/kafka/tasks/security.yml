@@ -37,13 +37,14 @@
       on any cluster member. Restore /etc/kafka/secrets.yml on one member
       before rerunning.
 
-# run_once broadcasts one generated secret set to every host: per-host
-# evaluation would format each node with different scram bootstrap records
+# one secret set is generated per cluster on its admin anchor and adopted by
+# every other member through hostvars: per-host evaluation would format each
+# node with different scram bootstrap records
 - name: generate internal secrets for a new secure cluster
   when:
     - kafka_security == 'scram'
     - not kafka_secret_found_internal | default(false) | bool
-  run_once: true
+    - inventory_hostname == kafka_admin_host_internal
   no_log: true
   set_fact:
     kafka_secrets_internal:
@@ -58,14 +59,24 @@
       broker_b_principal: pigsty-broker-b
       broker_b_password: "{{ lookup('password', '/dev/null length=22 chars=ascii_letters,digits') }}"
 
+- name: adopt generated secrets from the cluster anchor
+  when:
+    - kafka_security == 'scram'
+    - not kafka_secret_found_internal | default(false) | bool
+    - inventory_hostname != kafka_admin_host_internal
+  no_log: true
+  set_fact:
+    kafka_secrets_internal: "{{ hostvars[kafka_admin_host_internal].kafka_secrets_internal }}"
+
 #--------------------------------------------------------------#
 # Protected Credential Rotation                   [kafka_rotate]
 #--------------------------------------------------------------#
+# anchored asserts still stop the whole play through any_errors_fatal
 - name: validate protected kafka security rotation request
   when: >-
-    kafka_rotate_credentials | default(false) | bool or
-    kafka_rotate_certificates | default(false) | bool
-  run_once: true
+    (kafka_rotate_credentials | default(false) | bool or
+     kafka_rotate_certificates | default(false) | bool) and
+    inventory_hostname == kafka_admin_host_internal
   assert:
     that:
       - kafka_security == 'scram'
@@ -84,8 +95,7 @@
   when:
     - not ansible_check_mode
     - kafka_rotate_credentials | default(false) | bool or kafka_rotate_certificates | default(false) | bool
-  run_once: true
-  delegate_to: "{{ kafka_admin_host_internal }}"
+    - inventory_hostname == kafka_admin_host_internal
   become_user: kafka
   command: >-
     /usr/local/bin/pigsty-kafka-health cluster
@@ -97,8 +107,9 @@
 # installed on the inactive slot first, so a failed rotation never invalidates
 # the credential the live brokers are still using
 - name: rotate the inactive inter-broker credential slot
-  when: kafka_rotate_credentials | default(false) | bool
-  run_once: true
+  when:
+    - kafka_rotate_credentials | default(false) | bool
+    - inventory_hostname == kafka_admin_host_internal
   no_log: true
   set_fact:
     kafka_rotation_standby_slot_internal: >-
@@ -114,8 +125,7 @@
   when:
     - kafka_rotate_credentials | default(false) | bool
     - not ansible_check_mode
-  run_once: true
-  delegate_to: "{{ kafka_admin_host_internal }}"
+    - inventory_hostname == kafka_admin_host_internal
   become_user: kafka
   no_log: true
   command:
@@ -139,12 +149,14 @@
     - kafka_rotate_credentials | default(false) | bool
     - not ansible_check_mode
   no_log: true
+  vars:
+    kafka_rotation_slot: "{{ hostvars[kafka_admin_host_internal].kafka_rotation_standby_slot_internal }}"
+    kafka_rotation_password: "{{ hostvars[kafka_admin_host_internal].kafka_rotation_standby_password_internal }}"
   set_fact:
     kafka_secrets_internal: >-
       {{ kafka_secrets_internal | combine({
-           'broker_active': kafka_rotation_standby_slot_internal,
-           'broker_' ~ kafka_rotation_standby_slot_internal ~ '_password':
-             kafka_rotation_standby_password_internal
+           'broker_active': kafka_rotation_slot,
+           'broker_' ~ kafka_rotation_slot ~ '_password': kafka_rotation_password
          }) }}
     kafka_credentials_rotated_internal: true
 
@@ -221,9 +233,12 @@
       {%- endif -%}
       {{ sans | unique | sort }}
 
+# cert material is issued once per cluster from its admin anchor; concurrent
+# clusters write disjoint per-instance files so localhost delegation is safe
 - name: ensure local kafka certificate directory
-  when: kafka_security == 'scram'
-  run_once: true
+  when:
+    - kafka_security == 'scram'
+    - inventory_hostname == kafka_admin_host_internal
   become: false
   delegate_to: localhost
   file: path=files/pki/kafka state=directory mode=0755
@@ -236,7 +251,7 @@
     - kafka_security == 'scram'
     - kafka_rotate_certificates | default(false) | bool
     - not ansible_check_mode
-  run_once: true
+    - inventory_hostname == kafka_admin_host_internal
   become: false
   delegate_to: localhost
   file:
@@ -248,7 +263,7 @@
   when:
     - kafka_security == 'scram'
     - not ansible_check_mode
-  run_once: true
+    - inventory_hostname == kafka_admin_host_internal
   become: false
   delegate_to: localhost
   no_log: true
@@ -263,7 +278,7 @@
   when:
     - kafka_security == 'scram'
     - not ansible_check_mode
-  run_once: true
+    - inventory_hostname == kafka_admin_host_internal
   become: false
   delegate_to: localhost
   no_log: true
@@ -279,7 +294,7 @@
   when:
     - kafka_security == 'scram'
     - not ansible_check_mode
-  run_once: true
+    - inventory_hostname == kafka_admin_host_internal
   become: false
   delegate_to: localhost
   no_log: true

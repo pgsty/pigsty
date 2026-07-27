@@ -33,11 +33,15 @@ never wipes an existing cluster: teardown lives in `kafka_remove`.
 | `kafka.yml`    | Init / converge kafka cluster (id + kafka) |
 | `kafka-rm.yml` | Remove cluster (use `kafka_remove`)        |
 
-Every lifecycle run must select every member of exactly one `kafka_cluster`:
+Every selected `kafka_cluster` must be complete (partial member selection is
+refused); one cluster, several clusters, or a bare run over the whole
+inventory are all fine — orchestration is serial within a cluster and
+concurrent across clusters:
 
 ```bash
 ./kafka.yml --check -l kf-main    # dry run first
 ./kafka.yml -l kf-main            # bootstrap, or converge to declared state
+./kafka.yml                       # create / converge ALL kafka clusters
 ```
 
 
