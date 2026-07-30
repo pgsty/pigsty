@@ -1936,7 +1936,7 @@ pg_pubrel:
 pg_subrel:
   name: pg_subrel
   desc: PostgreSQL subscripted relation group by state
-  query: SELECT CURRENT_CATALOG AS datname, subname, srsubstate::TEXT AS state, count(*) AS count FROM pg_subscription_rel sr LEFT JOIN pg_stat_subscription  ss ON sr.srsubid = ss.subid GROUP BY 2, 3;
+  query: SELECT CURRENT_CATALOG AS datname, ss.subname, sr.srsubstate::TEXT AS state, count(*) AS count FROM pg_catalog.pg_subscription_rel AS sr JOIN (SELECT DISTINCT subid, subname FROM pg_catalog.pg_stat_subscription) AS ss ON ss.subid = sr.srsubid GROUP BY ss.subname, sr.srsubstate;
   ttl: {{ ttl_norm }}
   min_version: 100000
   metrics:
