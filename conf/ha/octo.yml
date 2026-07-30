@@ -1,0 +1,202 @@
+---
+#==============================================================#
+# File      :   octo.yml
+# Desc      :   Pigsty 8-node compact HA simulation config
+# Ctime     :   2026-07-29
+# Mtime     :   2026-07-29
+# Docs      :   https://pigsty.io/docs/conf
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+# Use the first 8 nodes from `vagrant/spec/deci.rb`:
+#
+#  node  address      vagrant name  modules
+#  1     10.10.10.10  meta-0        infra(repo,docker), minio-1, pg-meta-1
+#  2     10.10.10.11  meta-1        infra(docker),      minio-2, pg-meta-2
+#  3     10.10.10.12  meta-2        infra(docker),      minio-3, pg-meta-3
+#  4     10.10.10.13  node-3        etcd-1, minio-4, pg-test-1
+#  5     10.10.10.14  node-4        etcd-2, minio-5, pg-test-2
+#  6     10.10.10.15  node-5        etcd-3, minio-6, pg-test-3
+#  7     10.10.10.16  node-6        etcd-4, minio-7, pg-test-4
+#  8     10.10.10.17  node-7        etcd-5, minio-8, pg-test-5 (offline)
+#
+# Nodes 10.10.10.18 and 10.10.10.19 from the deci template are unused.
+
+all:
+
+  #============================================================#
+  # Clusters, Nodes, and Modules
+  #============================================================#
+  children:
+
+    # 3-node infra cluster; only node 1 builds and serves the repo
+    infra:
+      hosts:
+        10.10.10.10: { infra_seq: 1, repo_enabled: true }
+        10.10.10.11: { infra_seq: 2, repo_enabled: false }
+        10.10.10.12: { infra_seq: 3, repo_enabled: false }
+      vars:
+        docker_enabled: true          # install with ./docker.yml -l infra
+
+    # 5-node etcd cluster, co-located with pg-test
+    etcd:
+      hosts:
+        10.10.10.13: { etcd_seq: 1 }
+        10.10.10.14: { etcd_seq: 2 }
+        10.10.10.15: { etcd_seq: 3 }
+        10.10.10.16: { etcd_seq: 4 }
+        10.10.10.17: { etcd_seq: 5 }
+      vars:
+        etcd_cluster: etcd
+
+    # 8-node single-drive MinIO cluster, spanning all nodes
+    minio:
+      hosts:
+        10.10.10.10: { minio_seq: 1, vip_role: master }
+        10.10.10.11: { minio_seq: 2 }
+        10.10.10.12: { minio_seq: 3 }
+        10.10.10.13: { minio_seq: 4 }
+        10.10.10.14: { minio_seq: 5 }
+        10.10.10.15: { minio_seq: 6 }
+        10.10.10.16: { minio_seq: 7 }
+        10.10.10.17: { minio_seq: 8 }
+      vars:
+        minio_cluster: minio
+        minio_data: /data/minio       # 8 nodes x 1 disk
+        minio_users:
+          - { access_key: pgbackrest  ,secret_key: S3User.Backup ,policy: pgsql }
+          - { access_key: s3user_meta ,secret_key: S3User.Meta   ,policy: meta  }
+          - { access_key: s3user_data ,secret_key: S3User.Data   ,policy: data  }
+
+        # HA MinIO endpoint: https://sss.pigsty:9002
+        vip_enabled: true
+        vip_vrid: 128
+        vip_address: 10.10.10.9
+        haproxy_services:
+          - name: minio
+            port: 9002
+            balance: leastconn
+            options:
+              - option httpchk
+              - option http-keep-alive
+              - http-check send meth OPTIONS uri /minio/health/live
+              - http-check expect status 200
+            servers:
+              - { name: minio-1 ,ip: 10.10.10.10 ,port: 9000 ,options: 'check-ssl ca-file /etc/pki/ca.crt check port 9000' }
+              - { name: minio-2 ,ip: 10.10.10.11 ,port: 9000 ,options: 'check-ssl ca-file /etc/pki/ca.crt check port 9000' }
+              - { name: minio-3 ,ip: 10.10.10.12 ,port: 9000 ,options: 'check-ssl ca-file /etc/pki/ca.crt check port 9000' }
+              - { name: minio-4 ,ip: 10.10.10.13 ,port: 9000 ,options: 'check-ssl ca-file /etc/pki/ca.crt check port 9000' }
+              - { name: minio-5 ,ip: 10.10.10.14 ,port: 9000 ,options: 'check-ssl ca-file /etc/pki/ca.crt check port 9000' }
+              - { name: minio-6 ,ip: 10.10.10.15 ,port: 9000 ,options: 'check-ssl ca-file /etc/pki/ca.crt check port 9000' }
+              - { name: minio-7 ,ip: 10.10.10.16 ,port: 9000 ,options: 'check-ssl ca-file /etc/pki/ca.crt check port 9000' }
+              - { name: minio-8 ,ip: 10.10.10.17 ,port: 9000 ,options: 'check-ssl ca-file /etc/pki/ca.crt check port 9000' }
+
+    # 3-node PostgreSQL meta cluster, co-located with infra
+    pg-meta:
+      hosts:
+        10.10.10.10: { pg_seq: 1, pg_role: primary }
+        10.10.10.11: { pg_seq: 2, pg_role: replica }
+        10.10.10.12: { pg_seq: 3, pg_role: replica }
+      vars:
+        pg_cluster: pg-meta
+        pg_users:
+          - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [ dbrole_admin ]    ,comment: pigsty admin user }
+          - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [ dbrole_readonly ] ,comment: read-only viewer for meta database }
+        pg_databases:
+          - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [ pigsty ] }
+        pg_vip_enabled: true
+        pg_vip_address: 10.10.10.2/24
+        pg_crontab:
+          - '00 01 * * * /pg/bin/pg-backup full'
+
+    # 5-node PostgreSQL test cluster; node 8 is the offline instance
+    pg-test:
+      hosts:
+        10.10.10.13: { pg_seq: 1, pg_role: primary }
+        10.10.10.14: { pg_seq: 2, pg_role: replica }
+        10.10.10.15: { pg_seq: 3, pg_role: replica }
+        10.10.10.16: { pg_seq: 4, pg_role: replica }
+        10.10.10.17: { pg_seq: 5, pg_role: offline }
+      vars:
+        pg_cluster: pg-test
+        pg_users:
+          - { name: test ,password: test ,pgbouncer: true ,roles: [ dbrole_admin ] }
+        pg_databases:
+          - { name: test }
+        pg_vip_enabled: true
+        pg_vip_address: 10.10.10.3/24
+        pg_crontab:
+          - '00 01 * * 1 /pg/bin/pg-backup full'
+          - '00 01 * * 2,3,4,5,6,7 /pg/bin/pg-backup'
+
+  #============================================================#
+  # Global Parameters
+  #============================================================#
+  vars:
+    version: v4.5.0
+    admin_ip: 10.10.10.10
+    region: default
+    node_tune: oltp
+    pg_conf: oltp.yml
+
+    proxy_env:
+      no_proxy: "localhost,127.0.0.1,10.0.0.0/8,192.168.0.0/16,*.pigsty,*.aliyun.com,mirrors.*,*.myqcloud.com,*.tsinghua.edu.cn"
+      # http_proxy:
+      # https_proxy:
+      # all_proxy:
+
+    infra_portal:
+      home:  { domain: i.pigsty }
+      minio: { domain: m.pigsty ,endpoint: "10.10.10.10:9001" ,scheme: https ,websocket: true }
+
+    # Node 1 serves the local repository; every node installs from it
+    repo_remove: true
+    node_repo_remove: true
+    node_repo_modules: local
+    repo_extra_packages: [ pg18-main ]
+    pg_version: 18
+
+    # MinIO VIP and pgBackRest object-storage repository
+    minio_endpoint: https://sss.pigsty:9002
+    node_etc_hosts:
+      - '${admin_ip} i.pigsty'
+      - '10.10.10.9 sss.pigsty'
+    pgbackrest_method: minio
+    pgbackrest_repo:
+      local:
+        path: /pg/backup
+        retention_full_type: count
+        retention_full: 2
+      minio:
+        type: s3
+        s3_endpoint: sss.pigsty
+        s3_region: us-east-1
+        s3_bucket: pgsql
+        s3_key: pgbackrest
+        s3_key_secret: S3User.Backup
+        s3_uri_style: path
+        path: /pgbackrest
+        storage_port: 9002
+        storage_ca_file: /etc/pki/ca.crt
+        block: y
+        bundle: y
+        bundle_limit: 20MiB
+        bundle_size: 128MiB
+        cipher_type: aes-256-cbc
+        cipher_pass: pgBackRest
+        retention_full_type: time
+        retention_full: 14
+
+    # Default credentials for this disposable sample
+    grafana_admin_password: pigsty
+    grafana_view_password: DBUser.Viewer
+    pg_admin_password: DBUser.DBA
+    pg_monitor_password: DBUser.Monitor
+    pg_replication_password: DBUser.Replicator
+    patroni_password: Patroni.API
+    haproxy_admin_password: pigsty
+    minio_secret_key: S3User.MinIO
+    etcd_root_password: Etcd.Root
+
+...
