@@ -633,7 +633,7 @@ There are other pro, beta, or pilot modules, and there will be more coming in th
 
 ## Compatibility
 
-We recommend using Rocky 9.7 / 10.1, Debian 13.5 / 12.14, and Ubuntu 24.04.4 / 22.04.5 for production use.
+We recommend using Rocky 9.7 / 10.1, Debian 13.6 / 12.14, and Ubuntu 24.04.4 / 22.04.5 for production use.
 
 Pigsty runs directly on bare Linux, and focuses on actively maintained mainstream LTS [**Linux Distributions**](https://pigsty.io/docs/ref/linux):
 
@@ -645,7 +645,7 @@ Pigsty runs directly on bare Linux, and focuses on actively maintained mainstrea
 | **U26**  | Ubuntu 26.04 (resolute) | 26.04.0 |  [`u26.x86_64`](roles/node_id/vars/u26.x86_64.yml)  |  [`u26.aarch64`](roles/node_id/vars/u26.aarch64.yml)  |
 | **U24**  | Ubuntu 24.04 (noble)    | 24.04.4 |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  |
 | **U22**  | Ubuntu 22.04 (jammy)    | 22.04.5 |  [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml)  |  [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml)  |
-| **D13**  | Debian 13 (trixie)      | 13.5    |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |
+| **D13**  | Debian 13 (trixie)      | 13.6    |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |
 | **D12**  | Debian 12 (bookworm)    | 12.14   |  [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml)  |  [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml)  |
 
 > ⚠️ EL 9/10 are pinned to 9.7/10.1 because newer upstream minors are currently broken.
