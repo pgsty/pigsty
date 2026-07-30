@@ -37,14 +37,12 @@
   tags: mysql_config_file
   when: mysql_preinstall_system_database.stat.exists
   command: >-
-    mysql --no-defaults --user=root --protocol=socket --socket={{ mysql_sock }} --batch --raw --skip-column-names -e
+    mysql --defaults-extra-file={{ mysql_root_config }} --protocol=socket --socket={{ mysql_sock }} --batch --raw --skip-column-names -e
     "SELECT VALUE FROM performance_schema.tls_channel_status WHERE CHANNEL='mysql_main' AND PROPERTY='Enabled'"
-  environment: { MYSQL_PWD: "{{ mysql_root_password }}" }
   register: mysql_runtime_tls
   changed_when: false
   failed_when: false
   check_mode: false
-  no_log: true
 
 - name: inspect mysql pending restart
   tags: mysql_config_file

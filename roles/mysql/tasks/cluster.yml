@@ -13,7 +13,6 @@
   command: mysqlsh --js --file {{ mysql_cluster_manage_script }}
   register: mysql_cluster_manage_result
   changed_when: "'\"pigstyChanged\":true' in mysql_cluster_manage_result.stdout"
-  no_log: true
 
 - name: preview mysql cluster reconciliation
   tags: mysql_cluster_manage
@@ -21,7 +20,7 @@
   debug: { msg: "AdminAPI will create only from three fresh members, incrementally rejoin known members, and Clone only a fresh replacement; force and complete-outage recovery are excluded." }
 
 - name: discover mysql runtime role
-  tags: mysql_cluster_verify
+  tags: [ mysql_cluster_verify, mysql_provision, mysql_platform_user, mysql_db, mysql_user ]
   command: >-
     mysql --defaults-extra-file={{ mysql_root_config }} --protocol=socket --socket={{ mysql_sock }} --batch --raw --skip-column-names -e
     "SELECT CONCAT_WS(CHAR(9),MEMBER_ROLE,MEMBER_STATE) FROM performance_schema.replication_group_members WHERE MEMBER_ID=@@server_uuid"

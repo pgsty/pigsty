@@ -41,18 +41,19 @@ repository currently publishes the 8.4 component for `amd64`, not `arm64`.
 
 Only the following variables are intended for inventory use:
 
-| Variable                 | Default          | Description                          |
-|--------------------------|------------------|--------------------------------------|
-| `mysql_cluster`          | required         | cluster name; normally group name    |
-| `mysql_seq`              | required         | `1` for standalone, `1..3` for HA    |
-| `mysql_root_password`    | `DBUser.Root`    | local root password                  |
-| `mysql_monitor_password` | `DBUser.Monitor` | exporter account password            |
-| `mysql_cluster_password` | `DBUser.Cluster` | AdminAPI and backup password         |
-| `mysql_databases`        | `[]`             | additive database declarations       |
-| `mysql_users`            | `[]`             | additive user and grant declarations |
-| `mysql_backup_enabled`   | `true`           | enable one daily full backup timer   |
-| `mysql_backup_repo`      | see defaults     | local repository and retention       |
-| `mysql_exporter_enabled` | `true`           | exporter service and target state    |
+| Variable                 | Default          | Description                           |
+|--------------------------|------------------|---------------------------------------|
+| `mysql_cluster`          | required         | cluster name; normally group name     |
+| `mysql_seq`              | required         | `1` for standalone, `1..3` for HA     |
+| `mysql_root_password`    | `DBUser.Root`    | local root password                   |
+| `mysql_monitor_password` | `DBUser.Monitor` | exporter account password             |
+| `mysql_cluster_password` | `DBUser.Cluster` | AdminAPI and backup password          |
+| `mysql_databases`        | `[]`             | additive database declarations        |
+| `mysql_users`            | `[]`             | additive user and grant declarations  |
+| `mysql_parameters`       | `{}`             | extra `[mysqld]` overrides, last wins |
+| `mysql_backup_enabled`   | `true`           | enable one daily full backup timer    |
+| `mysql_backup_repo`      | see defaults     | local repository and retention        |
+| `mysql_exporter_enabled` | `true`           | exporter service and target state     |
 
 The fixed defaults live in [`vars/main.yml`](vars/main.yml) and are internal.
 InnoDB buffer pool and redo capacity are derived from `node_mem_mb`; replica

@@ -19,6 +19,9 @@ relay_log_recovery = ON
 binlog_expire_logs_seconds = 604800
 gtid_mode = ON
 enforce_gtid_consistency = ON
+# PK-less tables are read-only under MGR and block complete-outage recovery;
+# enforced on standalone too so schemas stay HA-portable
+sql_require_primary_key = ON
 skip_replica_start = ON
 replica_parallel_workers = {{ repl_workers }}
 
@@ -35,8 +38,8 @@ plugin_load_add = group_replication.so;mysql_clone.so
 loose-group_replication_group_name = {{ mysql_gr_group_name }}
 loose-group_replication_communication_stack = XCOM
 loose-group_replication_local_address = {{ mysql_local_address }}:33061
-loose-group_replication_group_seeds = {{ mysql_member_addresses | map('regex_replace', '$', ':33061') | join(',') }}
-loose-group_replication_ip_allowlist = {{ mysql_member_addresses | join(',') }}
+loose-group_replication_group_seeds = {{ mysql_member_addresses | sort | map('regex_replace', '$', ':33061') | join(',') }}
+loose-group_replication_ip_allowlist = {{ mysql_member_addresses | sort | join(',') }}
 loose-group_replication_consistency = BEFORE_ON_PRIMARY_FAILOVER
 loose-group_replication_exit_state_action = OFFLINE_MODE
 loose-group_replication_start_on_boot = OFF
@@ -62,6 +65,13 @@ slow_query_log = ON
 slow_query_log_file = {{ mysql_log_dir }}/slow.log
 long_query_time = 1
 
+{% if mysql_parameters | length > 0 %}
+# inventory overrides: mysql_parameters (rendered last, later value wins)
+{% for key, value in mysql_parameters | dictsort %}
+{{ key }} = {{ 'ON' if value is sameas true else ('OFF' if value is sameas false else value) }}
+{% endfor %}
+
+{% endif %}
 [client]
 socket = {{ mysql_sock }}
 ssl-mode = VERIFY_CA

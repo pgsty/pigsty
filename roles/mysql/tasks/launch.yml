@@ -6,17 +6,15 @@
   tags: mysql_safety
   when: mysql_is_ha | bool and mysql_preinstall_system_database.stat.exists and not mysql_preinstall_bootstrap_incomplete | bool and mysql_restart_required | bool
   command: >-
-    mysql --no-defaults --user=root --protocol=socket --socket={{ mysql_sock }} --batch --raw --skip-column-names -e
+    mysql --defaults-extra-file={{ mysql_root_config }} --protocol=socket --socket={{ mysql_sock }} --batch --raw --skip-column-names -e
     "SELECT CONCAT_WS(CHAR(9),(SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='mysql_innodb_cluster_metadata'),
     (SELECT COUNT(*) FROM performance_schema.replication_group_members WHERE MEMBER_STATE='ONLINE'),
     (SELECT COUNT(*) FROM performance_schema.replication_group_members WHERE MEMBER_STATE='ONLINE' AND MEMBER_ROLE='PRIMARY'),
     (SELECT COUNT(*) FROM performance_schema.replication_group_members WHERE MEMBER_STATE='ONLINE' AND MEMBER_ROLE='SECONDARY'),
     COALESCE((SELECT MEMBER_ROLE FROM performance_schema.replication_group_members WHERE MEMBER_ID=@@server_uuid),'NONE'))"
-  environment: { MYSQL_PWD: "{{ mysql_root_password }}" }
   register: mysql_pre_restart_ha_state
   changed_when: false
   check_mode: false
-  no_log: true
 
 - name: derive mysql bootstrap state
   tags: mysql_safety
@@ -67,6 +65,8 @@
 #--------------------------------------------------------------#
 # Establish Local Root                               [mysql_root]
 #--------------------------------------------------------------#
+# the declared password only enters through the environment so the rendered
+# command text stays free of secrets and failures can be shown verbatim
 - name: reconcile mysql root password
   tags: mysql_root
   when: not ansible_check_mode
@@ -77,19 +77,19 @@
     MYSQL_PWD='' mysql --no-defaults --connect-expired-password --protocol=socket --socket={{ mysql_sock }} --user=root -NBe 'SELECT 1' >/dev/null 2>&1 || {
       echo 'Existing root password differs from the declared secret; refusing an implicit reset.' >&2; exit 1;
     }
-    MYSQL_PWD='' mysql --no-defaults --protocol=socket --socket={{ mysql_sock }} --user=root <<'SQL'
+    MYSQL_PWD='' mysql --no-defaults --protocol=socket --socket={{ mysql_sock }} --user=root <<SQL
     SET SESSION sql_mode='NO_BACKSLASH_ESCAPES';
     SET SESSION sql_log_bin=0;
-    ALTER USER 'root'@'localhost' IDENTIFIED BY '{{ mysql_root_password_sql }}';
+    ALTER USER 'root'@'localhost' IDENTIFIED BY '${MYSQL_ROOT_PASSWORD_SQL}';
     SQL
     mysql_root
     echo pigstyChanged=true
   args: { executable: /bin/bash }
-  vars: { mysql_root_password_sql: "{{ mysql_root_password | string | replace(\"'\", \"''\") }}" }
-  environment: { MYSQL_ROOT_PASSWORD: "{{ mysql_root_password }}" }
+  environment:
+    MYSQL_ROOT_PASSWORD: "{{ mysql_root_password }}"
+    MYSQL_ROOT_PASSWORD_SQL: "{{ mysql_root_password | string | replace(\"'\", \"''\") }}"
   register: mysql_root_reconcile
   changed_when: "'pigstyChanged=true' in mysql_root_reconcile.stdout"
-  no_log: true
 
 - name: render mysql credentials
   tags: mysql_root
@@ -120,5 +120,4 @@
       command: mysqlsh --js --file {{ mysql_instance_check_script }}
       register: mysql_adminapi_instance_check
       changed_when: "'\"pigstyChanged\":true' in mysql_adminapi_instance_check.stdout"
-      no_log: true
 ...

@@ -21,7 +21,6 @@
       mysql_seq values and an admitted native-package platform.
 
 - name: check mysql credentials and backup
-  no_log: true
   assert:
     that:
       - mysql_root_password | string | length > 0 and (mysql_root_password | string) is not search('[\r\n]') and mysql_root_password | string is not match('^CHANGE_ME')
@@ -32,6 +31,20 @@
       - mysql_backup_repo.get('local', {}).get('path', '') is match('^/[^\r\n]+$')
       - mysql_backup_repo.get('local', {}).get('retention', '') | string is match('^[1-9][0-9]{0,3}$')
     fail_msg: MySQL credentials, business declarations, or backup settings are invalid.
+    quiet: true
+
+- name: check mysql parameters
+  assert:
+    that:
+      - mysql_parameters is mapping
+      - mysql_parameters | dict2items | rejectattr('key', 'match', '^[A-Za-z][A-Za-z0-9_.-]{0,63}$') | list | length == 0
+      - mysql_parameters | dict2items | map(attribute='value') | map('string') | select('search', '[\r\n]') | list | length == 0
+      - mysql_parameters | list | map('replace', '-', '_') | select('in', mysql_reserved_parameters) | list | length == 0
+      - mysql_parameters | list | map('replace', '-', '_') | select('match', '^(loose_)?(group_replication_|ssl_)') | list | length == 0
+    fail_msg: >-
+      mysql_parameters must map simple option names to single-line values and
+      cannot override platform identity, replication, or TLS options.
+    quiet: true
 
 - name: check mysql databases
   assert:
@@ -44,10 +57,11 @@
       - item.collate | default('utf8mb4_0900_ai_ci') is match('^[A-Za-z0-9_]+$')
       - item.encrypt is not defined or item.encrypt | type_debug == 'bool'
     fail_msg: Invalid mysql_databases item.
+    quiet: true
   loop: "{{ mysql_databases }}"
+  loop_control: { label: "{{ item.name | default('invalid') }}" }
 
 - name: check mysql users
-  no_log: true
   assert:
     that:
       - item is mapping
@@ -61,7 +75,9 @@
       - item.priv | default({}) | dict2items | rejectattr('key', 'match', '^[A-Za-z0-9_$*-]+\.[A-Za-z0-9_$*-]+$') | list | length == 0
       - item.priv | default({}) | dict2items | rejectattr('value', 'match', '^[A-Za-z_ ,]+$') | list | length == 0
     fail_msg: Invalid mysql_users item.
+    quiet: true
   loop: "{{ mysql_users }}"
+  loop_control: { label: "{{ item.name | default('invalid') }}" }
 
 #--------------------------------------------------------------#
 # Existing State                                    [mysql_check]
@@ -95,14 +111,12 @@
   when: mysql_preinstall_system_database.stat.exists
   slurp: { src: "{{ mysql_initialized_marker }}" }
   register: mysql_owned_marker_raw
-  no_log: true
 
 - name: check mysql datadir identity
   when: mysql_preinstall_system_database.stat.exists
   assert:
     that: mysql_owned_marker_raw.content | b64decode | from_json in [mysql_initialized_marker_identity, mysql_initialized_marker_legacy_identity]
     fail_msg: Existing MySQL data belongs to another Pigsty cluster, instance, or topology.
-  no_log: true
 
 - name: read existing mysql cluster password
   when: mysql_is_ha | bool and mysql_preinstall_system_database.stat.exists and mysql_cluster_password_state.stat.exists

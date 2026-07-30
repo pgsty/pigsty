@@ -46,5 +46,15 @@ const legacyLayout = JSON.stringify(actualHosts) === JSON.stringify(memberHosts)
 if (!tlsOnly || (!currentLayout && !legacyLayout)) {
   throw new Error("dbuser_cluster must be TLS-only and use either @% or the exact declared member addresses");
 }
+
+// AdminAPI operations (notably a lone rebootClusterFromCompleteOutage) can
+// persist partial or empty group seeds that override my.cnf on every later
+// restart, leaving the member unable to rejoin. Pin the declared seed list.
+const declaredSeeds = memberHosts.map(function (h) { return h + ":33061"; }).join(",");
+const runtimeSeeds = String(root.runSql("SELECT @@GLOBAL.group_replication_group_seeds").fetchOne()[0]);
+if (runtimeSeeds !== declaredSeeds) {
+  root.runSql("SET PERSIST group_replication_group_seeds = ?", [declaredSeeds]);
+  changed = true;
+}
 root.close();
 print(JSON.stringify({pigstyChanged: changed, instance: {{ mysql_instance | to_json }}}));

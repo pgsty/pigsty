@@ -48,21 +48,27 @@ function view(cluster) {
   });
   return r;
 }
-// Find metadata on any declared member. If none exists, every member must be
-// reachable and fresh before seq=1 may create a new cluster.
+// Find metadata on the declared members, anchoring on an ONLINE holder so a
+// stopped metadata holder (often seq=1) cannot masquerade as a full outage.
+// Fall back to any metadata holder only when no member is ONLINE. If no
+// metadata exists at all, every member must be reachable and fresh before
+// seq=1 may create a new cluster.
 let seed = null;
 let seedSession = null;
+let fallback = null;
 let inspected = 0;
 for (const member of members) {
-  try {
-    const s = mysql.getSession(conn(member));
-    inspected += 1;
-    if (Number(scalar(s, "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='mysql_innodb_cluster_metadata'")) === 1) {
-      seed = member; seedSession = s; break;
-    }
-    s.close();
-  } catch (ignored) {}
+  let s;
+  try { s = mysql.getSession(conn(member)); } catch (ignored) { continue; }
+  inspected += 1;
+  const hasMetadata = Number(scalar(s, "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='mysql_innodb_cluster_metadata'")) === 1;
+  const isOnline = String(scalar(s, "SELECT COALESCE((SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID=@@server_uuid),'OFFLINE')")) === "ONLINE";
+  if (hasMetadata && isOnline) { seed = member; seedSession = s; break; }
+  if (hasMetadata && !fallback) { fallback = {member: member, session: s}; continue; }
+  s.close();
 }
+if (!seed && fallback) { seed = fallback.member; seedSession = fallback.session; fallback = null; }
+if (fallback) { fallback.session.close(); }
 if (!seed) {
   if (inspected !== members.length) { throw new Error("not every member is reachable; refusing a second cluster"); }
   seed = members[0];
@@ -93,11 +99,16 @@ if (seedState.metadata === 0) {
   const names = seedSession.runSql("SELECT cluster_name FROM mysql_innodb_cluster_metadata.clusters").fetchAll();
   if (names.length !== 1 || String(names[0][0]) !== clusterName) { throw new Error("metadata cluster does not match inventory"); }
   try { cluster = dba.getCluster(clusterName); }
-  catch (e) { throw new Error("complete-outage recovery is manual: " + e.message); }
+  catch (e) {
+    throw new Error("no ONLINE member holds the cluster; if every member is down, recover manually with " +
+      "dba.rebootClusterFromCompleteOutage('" + clusterName + "') via mysqlsh on the most advanced member, " +
+      "then rerun mysql.yml: " + e.message);
+  }
 
   const r = view(cluster);
-  if (Object.keys(r.topology).filter(k => r.topology[k].status === "ONLINE").length < 2) {
-    throw new Error("fewer than two members are ONLINE");
+  const onlinePrimaries = Object.keys(r.topology).filter(k => r.topology[k].status === "ONLINE" && r.topology[k].memberRole === "PRIMARY");
+  if (onlinePrimaries.length !== 1) {
+    throw new Error("cluster needs exactly one ONLINE PRIMARY before reconciliation");
   }
   members.forEach(member => {
     const key = endpoint(member);
