@@ -98,7 +98,7 @@ make push         # Build and push multi-arch image
 ```bash
 make run          # Run with docker run
 make clean        # Stop and remove
-make purge        # Remove + delete data
+make purge        # Remove + delete ./data
 ```
 
 ### Container Access

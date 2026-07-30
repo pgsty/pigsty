@@ -46,7 +46,6 @@ endif
 VERSION      ?= v4.5.0
 REGISTRY     ?= pgsty
 NAME         ?= pigsty
-DATA         ?= $(PWD)/data
 
 # Port mappings (host:container)
 SSH_PORT     ?= 2222
@@ -90,7 +89,7 @@ help:
 	@echo "Alternative (docker run):"
 	@echo "  make run            # Run with docker run"
 	@echo "  make clean          # Stop and remove container"
-	@echo "  make purge          # Remove container + delete data"
+	@echo "  make purge          # Remove container + delete ./data"
 	@echo ""
 	@echo "Container Access:"
 	@echo "  make exec           # Bash into container"
@@ -187,12 +186,12 @@ push:
 # Container Run (docker run alternative)
 #--------------------------------------------------------------#
 run:
-	@mkdir -p $(DATA)
+	@mkdir -p -- ./data
 	docker run -d --privileged \
 		--platform=linux/$(ARCH) \
 		--name=$(NAME) \
 		--hostname=$(NAME) \
-		-v $(DATA):/data \
+		-v "$$(pwd -P)/data:/data" \
 		-p $(SSH_PORT):22 \
 		-p $(HTTP_PORT):80 \
 		-p $(HTTPS_PORT):443 \
@@ -216,15 +215,7 @@ rm:
 clean: stop rm
 
 purge: clean
-	@echo ""
-	@echo "WARNING: This will DELETE all data in ./data"
-	@echo ""
-	@for i in 2 1; do \
-		echo "  Deleting in $$i... (Ctrl+C to cancel)"; \
-		sleep 1; \
-	done
-	rm -rf $(DATA)
-	@echo "Data removed."
+	rm -rf -- ./data
 
 
 #--------------------------------------------------------------#
