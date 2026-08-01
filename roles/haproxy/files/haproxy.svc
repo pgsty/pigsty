@@ -7,11 +7,12 @@ After=network.target
 LimitNOFILE=4194304
 LimitNPROC=infinity
 LimitCORE=infinity
-Environment="CONFIG=/etc/haproxy/"
+Environment="CONFIG=/etc/haproxy/haproxy.cfg"
+Environment="CFGDIR=/etc/haproxy/conf.d"
 EnvironmentFile=-/etc/default/haproxy
-ExecStartPre=/usr/sbin/haproxy -f $CONFIG -c -q
-ExecStart=/usr/sbin/haproxy -Ws -f $CONFIG $OPTIONS
-ExecReload=/usr/sbin/haproxy -f $CONFIG -c -q
+ExecStartPre=/usr/sbin/haproxy -f $CONFIG -f $CFGDIR -c -q
+ExecStart=/usr/sbin/haproxy -Ws -f $CONFIG -f $CFGDIR $OPTIONS
+ExecReload=/usr/sbin/haproxy -f $CONFIG -f $CFGDIR -c -q
 ExecReload=/bin/kill -USR2 $MAINPID
 KillMode=mixed
 Type=notify

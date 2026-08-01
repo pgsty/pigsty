@@ -89,10 +89,10 @@ haproxy (full role)
 
 ### Timeouts
 
-| Variable                | Default | Description                    |
-|-------------------------|---------|--------------------------------|
-| `haproxy_client_timeout`| `24h`   | Client connection timeout      |
-| `haproxy_server_timeout`| `24h`   | Server connection timeout      |
+| Variable                 | Default | Description               |
+|--------------------------|---------|---------------------------|
+| `haproxy_client_timeout` | `24h`   | Client connection timeout |
+| `haproxy_server_timeout` | `24h`   | Server connection timeout |
 
 ### Services
 
@@ -105,12 +105,13 @@ haproxy (full role)
 
 ```
 /etc/haproxy/
-├── haproxy.cfg           # Global defaults
-├── pg-test-primary.cfg   # Service: port 5433
-├── pg-test-replica.cfg   # Service: port 5434
-├── pg-test-default.cfg   # Service: port 5435
-├── pg-test-offline.cfg   # Service: port 5436
-└── ...
+├── haproxy.cfg               # Global defaults
+└── conf.d/
+    ├── pg-test-primary.cfg   # Service: port 5433
+    ├── pg-test-replica.cfg   # Service: port 5434
+    ├── pg-test-default.cfg   # Service: port 5436
+    ├── pg-test-offline.cfg   # Service: port 5438
+    └── ...
 ```
 
 
@@ -161,12 +162,12 @@ haproxy_services:
 
 ### Load Balancing Algorithms
 
-| Algorithm     | Description                                                    |
-|---------------|----------------------------------------------------------------|
-| `roundrobin`  | Round-robin selection (default, good for homogeneous servers) |
-| `leastconn`   | Prefer server with fewest connections (good for OLTP)         |
-| `source`      | Hash client IP for session affinity                           |
-| `first`       | Use first available server (for active-standby)               |
+| Algorithm    | Description                                                   |
+|--------------|---------------------------------------------------------------|
+| `roundrobin` | Round-robin selection (default, good for homogeneous servers) |
+| `leastconn`  | Prefer server with fewest connections (good for OLTP)         |
+| `source`     | Hash client IP for session affinity                           |
+| `first`      | Use first available server (for active-standby)               |
 
 ### Health Check
 
@@ -184,12 +185,12 @@ servers:
 
 **Patroni Health Check Endpoints** (port 8008):
 
-| Endpoint      | Returns 200 When                          | Use Case          |
-|---------------|-------------------------------------------|-------------------|
-| `/primary`    | Instance is primary                       | Read-write service|
-| `/replica`    | Instance is replica                       | Read-only service |
-| `/read-only`  | Instance accepts read queries (any role)  | Read-only + backup|
-| `/health`     | Instance is healthy (any role)            | General health    |
+| Endpoint     | Returns 200 When                         | Use Case           |
+|--------------|------------------------------------------|--------------------|
+| `/primary`   | Instance is primary                      | Read-write service |
+| `/replica`   | Instance is replica                      | Read-only service  |
+| `/read-only` | Instance accepts read queries (any role) | Read-only + backup |
+| `/health`    | Instance is healthy (any role)           | General health     |
 
 
 ## Reload Configuration
@@ -219,8 +220,8 @@ This is handled silently - if SELinux tools are not available, these steps are s
 
 This role supports **RHEL/Rocky 8-10**, **Ubuntu 22/24/26**, and **Debian 12-13**.
 
-The systemd service file is installed to `{{ systemd_dir }}/haproxy.service`,
-where `systemd_dir` is determined by the `node_id` role based on OS detection.
+The systemd service file is installed to `/etc/systemd/system/haproxy.service`.
+It loads `/etc/haproxy/haproxy.cfg` followed by `/etc/haproxy/conf.d`.
 
 
 ## See Also
