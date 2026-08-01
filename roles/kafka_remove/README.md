@@ -42,8 +42,8 @@ Steps:
 | `kafka_safeguard`  | evaluate the safeguard gate                 |
 | `kafka_deregister` | remove monitoring targets from infra        |
 | `kafka`            | stop kafka & kafka_exporter services        |
-| `kafka_config`     | remove service integration and helper files |
-| `kafka_data`       | remove data dir and `/etc/kafka` state      |
+| `kafka_config`     | stop services; remove runtime integration   |
+| `kafka_data`       | stop services; remove data/runtime state    |
 | `kafka_pkg`        | uninstall kafka-stack packages              |
 
 

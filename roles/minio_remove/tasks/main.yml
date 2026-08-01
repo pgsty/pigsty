@@ -76,23 +76,23 @@
 # Remove minio service                               [minio_svc]
 #--------------------------------------------------------------#
 - name: stop minio service
-  tags: [ minio, minio_svc, minio_stop ]
+  tags: [ minio, minio_svc, minio_stop, minio_data, minio_config ]
   shell: |
     systemctl disable minio
     systemctl stop minio
-    
+
     # try graceful shutdown first again
     if ps -u {{ minio_user }} -o command | grep -q 'minio' ; then
         systemctl stop minio
     fi
-    
+
     # kill if still exists
     if ps -u {{ minio_user }} -o command | grep -q 'minio' ; then
         sleep 2
         ps -u {{ minio_user }} -o pid:1,command | grep 'minio' | awk '{print $1}' | xargs kill
     fi
-    
-    # kill -9 if not killed 
+
+    # kill -9 if not killed
     if ps -u {{ minio_user }} -o command | grep -q 'minio' ; then
         sleep 5
         ps -u {{ minio_user }} -o pid:1,command | grep 'minio' | awk '{print $1}' | xargs kill -9

@@ -60,7 +60,7 @@ etcd_remove (full role)
 │
 ├── etcd_svc                   # Stop etcd service
 │
-├── etcd_data                  # Remove data (if etcd_rm_data)
+├── etcd_data                  # Stop service and remove data (if etcd_rm_data)
 │
 └── etcd_pkg                   # Uninstall (if etcd_rm_pkg)
 ```

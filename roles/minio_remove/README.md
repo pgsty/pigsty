@@ -62,7 +62,9 @@ minio_remove (full role)
 │
 ├── minio_svc                  # Stop MinIO service
 │
-├── minio_data                 # Remove data directories
+├── minio_config               # Stop service and remove config/unit (if minio_rm_data)
+│
+├── minio_data                 # Stop service and remove data/config
 │
 └── minio_pkg                  # Uninstall packages
 ```

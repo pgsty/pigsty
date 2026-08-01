@@ -41,23 +41,23 @@
 #--------------------------------------------------------------#
 - name: stop etcd cluster service
   ignore_errors: true
-  tags: [etcd, etcd_svc, etcd_stop]
+  tags: [ etcd, etcd_svc, etcd_stop, etcd_data ]
   shell: |
     systemctl disable etcd
     systemctl stop etcd
-    
+
     # try graceful shutdown first again
     if ps -u etcd -o command | grep -q 'etcd' ; then
         systemctl stop etcd
     fi
-    
+
     # kill if still exists
     if ps -u etcd -o command | grep -q 'etcd' ; then
         sleep 2
         ps -u etcd -o pid:1,command | grep 'etcd' | awk '{print $1}' | xargs kill
     fi
-    
-    # kill -9 if not killed 
+
+    # kill -9 if not killed
     if ps -u etcd -o command | grep -q 'etcd' ; then
         sleep 5
         ps -u etcd -o pid:1,command | grep 'etcd' | awk '{print $1}' | xargs kill -9
