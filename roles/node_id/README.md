@@ -141,7 +141,6 @@ The `node_cluster` follows similar logic:
 
 Each vars file (`vars/<os_code>.<arch>.yml`) provides ~700 variables including:
 
-- `systemd_dir`: Path to systemd service files
 - `node_packages_default`: Default packages to install
 - `infra_packages_default`: Infrastructure packages
 - `repo_upstream_default`: Repository configurations

@@ -74,13 +74,18 @@
   when: etcd_rm_data|bool
   file: path={{ item }} state=absent
   loop:
-    - "/etc/etcd"
-    - "/var/lib/etcd"
+    - /etc/etcd
+    - /var/lib/etcd
     - "{{ etcd_data }}"
-    - "{{ systemd_dir }}/etcd.service"
-    - "/etc/profile.d/etcdctl.sh"
-    - "/etc/vector/etcd.yaml"
-    #- "/var/log/etcd.log" we just keep the logs for now
+    - /etc/systemd/system/etcd.service
+    - /etc/profile.d/etcdctl.sh
+    - /etc/vector/etcd.yaml
+    #- /var/log/etcd.log we just keep the logs for now
+
+- name: reload systemd after etcd unit removal
+  tags: etcd_data
+  when: etcd_rm_data|bool
+  systemd: daemon_reload=yes
 
 #--------------------------------------------------------------#
 # Uninstall etcd packages                             [etcd_pkg]

@@ -4,7 +4,7 @@
 # File      :   infra-rm.yml
 # Desc      :   uninstall pigsty infra module
 # Ctime     :   2022-02-22
-# Mtime     :   2026-02-04
+# Mtime     :   2026-08-01
 # Path      :   infra-rm.yml
 # Docs      :   https://pigsty.io/docs/infra/playbook
 # License1  :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -18,7 +18,7 @@
 # ./infra-rm.yml               # remove everything about infra
 # ./infra-rm.yml -t deregister # remove infra targets/datasource/vector
 # ./infra-rm.yml -t service    # stop infra services
-# ./infra-rm.yml -t config     # remove infra config & unit
+# ./infra-rm.yml -t config     # remove infra config & reload unit
 # ./infra-rm.yml -t env        # remove infra env files
 # ./infra-rm.yml -t data       # remove infra data
 # ./infra-rm.yml -t package    # uninstall infra packages
@@ -125,27 +125,29 @@
         - /etc/pki/infra.key
         - /etc/alertmanager.yml
         - /etc/default/alertmanager
-        - "{{ systemd_dir }}/alertmanager.service"
+        - /etc/systemd/system/alertmanager.service
         - /etc/blackbox.yml
         - /etc/default/blackbox_exporter
-        - "{{ systemd_dir }}/blackbox_exporter.service"
-        - "/etc/default/vlogs"
-        - "/etc/default/vmetrics"
-        - "/etc/default/vtraces"
-        - "/etc/default/vmalert"
-        - "{{ systemd_dir }}/vlogs.service"
-        - "{{ systemd_dir }}/vmetrics.service"
-        - "{{ systemd_dir }}/vtraces.service"
-        - "{{ systemd_dir }}/vmalert.service"
+        - /etc/systemd/system/blackbox_exporter.service
+        - /etc/default/vlogs
+        - /etc/default/vmetrics
+        - /etc/default/vtraces
+        - /etc/default/vmalert
+        - /etc/systemd/system/vlogs.service
+        - /etc/systemd/system/vmetrics.service
+        - /etc/systemd/system/vtraces.service
+        - /etc/systemd/system/vmalert.service
         - /etc/grafana
-        - "{{ systemd_dir }}/grafana.service"
         - /etc/nginx/conf.d
         - /etc/default/nginx_exporter
-        - "{{ systemd_dir }}/nginx.service"
-        - "{{ systemd_dir }}/nginx_exporter.service"
+        - /etc/systemd/system/nginx_exporter.service
         - /etc/dnsmasq.d/pigsty
         #- /etc/dnsmasq.conf
-        #- "{{ systemd_dir }}/dnsmasq.service"
+        #- /etc/systemd/system/dnsmasq.service
+
+    - name: reload systemd after infra unit removal
+      systemd: daemon_reload=yes
+      tags: config
 
     #---------------------------------------------
     # Remove Env

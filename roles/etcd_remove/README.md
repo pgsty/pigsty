@@ -98,7 +98,7 @@ Override with:
 | Monitoring   | `/infra/targets/etcd/<name>.yml`     |
 | Config       | `/etc/etcd/`                         |
 | Data         | `/data/etcd/`, `/var/lib/etcd/`      |
-| Service      | `{{ systemd_dir }}/etcd.service`     |
+| Service      | `/etc/systemd/system/etcd.service`   |
 | Environment  | `/etc/profile.d/etcdctl.sh`          |
 | Vector       | `/etc/vector/etcd.yaml`              |
 

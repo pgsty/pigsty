@@ -19,12 +19,12 @@
     - name: config pgbouncer
       template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
       with_items:
-        - { src: "pgbouncer.svc"      ,dest: "{{ exporter_svc_path }}"        ,owner: "root"          ,group: root     ,mode: "0644" }
-        - { src: "pgbouncer.ini"      ,dest: "/etc/pgbouncer/pgbouncer.ini"   ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0640" }
-        - { src: "pgbouncer.database" ,dest: "/etc/pgbouncer/database.txt"    ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0600" }
-        - { src: "pgbouncer.useropts" ,dest: "/etc/pgbouncer/useropts.txt"    ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0600" }
+        - { src: pgbouncer.svc      ,dest: "{{ exporter_svc_path }}"    ,owner: root            ,group: root     ,mode: "0644" }
+        - { src: pgbouncer.ini      ,dest: /etc/pgbouncer/pgbouncer.ini ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0640" }
+        - { src: pgbouncer.database ,dest: /etc/pgbouncer/database.txt  ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0600" }
+        - { src: pgbouncer.useropts ,dest: /etc/pgbouncer/useropts.txt  ,owner: "{{ pg_dbsu }}" ,group: postgres ,mode: "0600" }
       vars:
-        exporter_svc_path: "{{ systemd_dir|default('/usr/lib/systemd/system') }}/pgbouncer.service"
+        exporter_svc_path: /etc/systemd/system/pgbouncer.service
 
     - name: config pgbouncer hba rules
       tags: pgbouncer_hba
@@ -41,7 +41,7 @@
         /bin/bash /pg/bin/pgb-user "{{ pg_dbsu }}" NULL
         /bin/bash /pg/bin/pgb-user "{{ pg_monitor_username }}"
         /bin/bash /pg/bin/pgb-user "{{ pg_admin_username }}"
-        
+
         # Add business users to pgbouncer
         {% for user in pg_users|default([]) %}
         {% if (user.state is not defined or user.state != 'absent') and user.pgbouncer is defined and user.pgbouncer|bool and not pgbouncer_auth_query|bool %}

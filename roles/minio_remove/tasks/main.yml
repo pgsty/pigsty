@@ -119,11 +119,15 @@
       tags: minio_config
       file: path={{ item }} state=absent
       loop:
-        - "/etc/default/minio"
+        - /etc/default/minio
         - "/home/{{ minio_user }}/.minio"
-        - "{{ systemd_dir }}/minio.service"
-        - "/etc/vector/minio.yaml"
+        - /etc/systemd/system/minio.service
+        - /etc/vector/minio.yaml
         #- /var/log/minio.log # we just keep the log files
+
+    - name: reload systemd after minio unit removal
+      tags: minio_config
+      systemd: daemon_reload=yes
 
 #--------------------------------------------------------------#
 # Uninstall minio packages                           [minio_pkg]
