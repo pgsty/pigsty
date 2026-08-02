@@ -12,17 +12,6 @@
       environment: "{{ proxy_env | default({}) }}"
       package: name=haproxy state=present
 
-    - name: create haproxy config dirs
-      file: path={{ item }} state=directory owner=root mode=0700
-      with_items: [ /etc/haproxy, /etc/haproxy/conf.d ]
-
-    - name: create haproxy environment file
-      copy:
-        dest: /etc/default/haproxy
-        mode: 0644
-        content: |
-          OPTIONS=
-
     - name: create haproxy systemd service
       copy: src=haproxy.svc dest=/etc/systemd/system/haproxy.service
 
@@ -34,6 +23,10 @@
   tags: haproxy_config
   when: haproxy_enabled|bool
   block:
+
+    - name: create haproxy config dirs
+      file: path={{ item }} state=directory owner=root mode=0700
+      with_items: [ /etc/haproxy, /etc/haproxy/conf.d ]
 
     - name: wipe haproxy config dir
       when: haproxy_clean|bool
@@ -106,7 +99,7 @@
     # if the check fails on this step, haproxy will not be reloaded
     - name: check haproxy config before reload
       ignore_errors: false
-      command: /usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg -f /etc/haproxy/conf.d -c -q
+      command: /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -f /etc/haproxy/conf.d -c -q
 
     # even if you perform haproxy reload on junk config, it will not fail
     - name: reload haproxy

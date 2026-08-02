@@ -72,31 +72,33 @@ node_remove (full role)
 
 ## Key Variables
 
-| Variable                 | Default        | Description                          |
-|--------------------------|----------------|--------------------------------------|
-| `nodename`               | (auto)         | Node name (from node_id)             |
-| `node_cluster`           | `nodes`        | Node cluster name (for VIP DNS)      |
-| `vip_enabled`            | `false`        | Whether VIP is enabled               |
-| `vip_address`            | (none)         | VIP address to deregister            |
-| `vector_data`            | `/data/vector` | Vector data directory                |
+| Variable                 | Default        | Description                           |
+|--------------------------|----------------|---------------------------------------|
+| `nodename`               | (auto)         | Node name (from node_id)              |
+| `node_cluster`           | `nodes`        | Node cluster name (for VIP DNS)       |
+| `vip_enabled`            | `false`        | Whether VIP is enabled                |
+| `vip_address`            | (none)         | VIP address to deregister             |
+| `vector_data`            | `/data/vector` | Vector data directory                 |
 | `node_crontab_overwrite` | `true`         | Restore `/etc/crontab` during removal |
 
 
 ## Removal Scope
 
-| Component       | Action                                           |
-|-----------------|--------------------------------------------------|
-| Node Target     | `/infra/targets/node/<ip>.yml`                   |
-| Docker Target   | `/infra/targets/docker/<ip>.yml`                 |
-| Ping Target     | `/infra/targets/ping/<ip>.yml`                   |
-| VIP Ping Target | `/infra/targets/ping/<vip>---<ip>.yml`           |
-| VIP DNS         | `/etc/dnsmasq.d/pigsty/<cluster>.vip`            |
-| HAProxy Nginx   | `/etc/nginx/conf.d/haproxy/upstream-<name>.conf` |
-| HAProxy Nginx   | `/etc/nginx/conf.d/haproxy/location-<name>.conf` |
-| Vector Config   | `/etc/vector/node.yaml`                          |
-| Vector Data     | `/data/vector`                                   |
+| Component       | Action                                              |
+|-----------------|-----------------------------------------------------|
+| Node Target     | `/infra/targets/node/<ip>.yml`                      |
+| Docker Target   | `/infra/targets/docker/<ip>.yml`                    |
+| Ping Target     | `/infra/targets/ping/<ip>.yml`                      |
+| VIP Ping Target | `/infra/targets/ping/<vip>---<ip>.yml`              |
+| VIP DNS         | `/etc/dnsmasq.d/pigsty/<cluster>.vip`               |
+| HAProxy Nginx   | `/etc/nginx/conf.d/haproxy/upstream-<name>.conf`    |
+| HAProxy Nginx   | `/etc/nginx/conf.d/haproxy/location-<name>.conf`    |
+| HAProxy Config  | `/etc/haproxy`                                      |
+| HAProxy Unit    | `/etc/systemd/system/haproxy.service`               |
+| Vector Config   | `/etc/vector/node.yaml`                             |
+| Vector Data     | `/data/vector`                                      |
 | System Crontab  | `/etc/crontab` (restored when overwrite is enabled) |
-| Profile Scripts | `/etc/profile.d/node.sh`, `node.alias.sh`        |
+| Profile Scripts | `/etc/profile.d/node.sh`, `node.alias.sh`           |
 
 
 ## See Also

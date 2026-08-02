@@ -9,7 +9,7 @@
     # remove service definition with pg_cluster are name prefix
     - name: wipe existing postgres service from remote haproxy
       when: pg_service_provider != '' and pg_service_provider in groups
-      shell: "cd /etc/haproxy/conf.d; rm -rf {{ pg_cluster }}-*.cfg;"
+      shell: "rm -f /etc/haproxy/conf.d/{{ pg_cluster }}-*.cfg"
       args: { executable: /bin/bash }
       delegate_to: "{{ item }}"
       loop: "{{ groups[pg_service_provider] if (pg_service_provider != '' and pg_service_provider in groups) else [] }}"
@@ -40,7 +40,7 @@
       when: pg_service_provider != '' and pg_service_provider in groups
       ignore_errors: false
       any_errors_fatal: true
-      command: /usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg -f /etc/haproxy/conf.d -c -q
+      command: /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -f /etc/haproxy/conf.d -c -q
       delegate_to: "{{ item }}"
       loop: "{{ groups[pg_service_provider] if (pg_service_provider != '' and pg_service_provider in groups) else [] }}"
 

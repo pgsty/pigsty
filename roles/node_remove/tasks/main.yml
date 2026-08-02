@@ -61,10 +61,12 @@
   tags: haproxy
   block:
     - name: stop and disable haproxy
-      systemd: name=haproxy state=stopped enabled=no daemon_reload=yes
+      systemd: name=haproxy state=stopped enabled=no
     - name: remove haproxy config and service
       file: state=absent path={{ item }}
       with_items: [ /etc/systemd/system/haproxy.service, /etc/haproxy ]
+    - name: reload systemd after haproxy removal
+      systemd: daemon_reload=yes
 
 #--------------------------------------------------------------#
 # remove node exporter                           [node_exporter]

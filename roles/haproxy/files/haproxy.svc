@@ -1,23 +1,23 @@
 [Unit]
-Description=HAProxy2 Load Balancer
-Documentation=https://www.haproxy.org/download/2.0/doc/configuration.txt
+Description=HAProxy Load Balancer
+Documentation=man:haproxy(1)
 After=network.target
 
 [Service]
 LimitNOFILE=4194304
 LimitNPROC=infinity
 LimitCORE=infinity
-Environment="CONFIG=/etc/haproxy/haproxy.cfg"
-Environment="CFGDIR=/etc/haproxy/conf.d"
+Environment="EXTRAOPTS=-S /run/haproxy-master.sock"
 EnvironmentFile=-/etc/default/haproxy
-ExecStartPre=/usr/sbin/haproxy -f $CONFIG -f $CFGDIR -c -q
-ExecStart=/usr/sbin/haproxy -Ws -f $CONFIG -f $CFGDIR $OPTIONS
-ExecReload=/usr/sbin/haproxy -f $CONFIG -f $CFGDIR -c -q
+ExecStartPre=/usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -f /etc/haproxy/conf.d -c -q $EXTRAOPTS
+ExecStart=/usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -f /etc/haproxy/conf.d $EXTRAOPTS
+ExecReload=/usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -f /etc/haproxy/conf.d -c -q $EXTRAOPTS
 ExecReload=/bin/kill -USR2 $MAINPID
 KillMode=mixed
+SuccessExitStatus=143
 Type=notify
 
-Restart=on-failure
+Restart=always
 RestartSec=5
 
 [Install]

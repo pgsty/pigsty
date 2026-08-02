@@ -13,7 +13,7 @@
 The `haproxy` role deploys **HAProxy** for load balancing and service exposure:
 
 - Install HAProxy package
-- Create configuration directory
+- Create configuration directories
 - Render default and service configs
 - Configure SELinux policies (if applicable)
 - Launch HAProxy service
@@ -113,6 +113,19 @@ haproxy (full role)
     ├── pg-test-offline.cfg   # Service: port 5438
     └── ...
 ```
+
+Pigsty owns this complete configuration layout and the local systemd unit at
+`/etc/systemd/system/haproxy.service`. Both configuration directories use mode
+`0700`, while rendered configuration files use mode `0644`.
+
+The unit optionally reads the shared `/etc/default/haproxy` package interface,
+but Pigsty does not render this file. Only `EXTRAOPTS` is consumed from it; it
+is reserved for HAProxy process options and must not contain `-f`. The main
+configuration and fragment directory are fixed in the unit, so package-level
+`CONFIG` and `CFGDIR` overrides are ignored. An `EXTRAOPTS` assignment replaces
+the unit default rather than appending to it, so custom values must retain
+`-S /run/haproxy-master.sock`. Changes to `EXTRAOPTS` require a service restart;
+a configuration reload keeps the running master's original process options.
 
 
 ## Service Definition

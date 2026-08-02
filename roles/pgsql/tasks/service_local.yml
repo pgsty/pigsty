@@ -8,7 +8,7 @@
 
     # remove service definition with pg_cluster are name prefix
     - name: wipe existing postgres haproxy service from local haproxy
-      shell: "cd /etc/haproxy/conf.d; rm -rf {{ pg_cluster }}-*.cfg;"
+      shell: "rm -f /etc/haproxy/conf.d/{{ pg_cluster }}-*.cfg"
       args: { executable: /bin/bash }
 
     - name: render haproxy service config on local haproxy
@@ -32,7 +32,7 @@
     # if the check fail on this step, haproxy will not be reloaded
     - name: check local haproxy config before reload
       ignore_errors: false
-      command: /usr/sbin/haproxy -f /etc/haproxy/haproxy.cfg -f /etc/haproxy/conf.d -c -q
+      command: /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -f /etc/haproxy/conf.d -c -q
 
     # even if you perform haproxy reload on junk config, it will not fail
     - name: reload local haproxy
