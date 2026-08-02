@@ -79,6 +79,7 @@
       "fieldConfig":{
         "defaults":{"color":{"mode":"thresholds"},"custom":{"align":"center","cellOptions":{"type":"auto"},"footer":{"reducers":[]},"inspect":false},"max":1.2,"min":0,"thresholds":{"mode":"absolute","steps":[{"color":"#e3e3e3e0","value":0}]}},
         "overrides":[
+          {"matcher":{"id":"byName","options":"Engine"},"properties":[{"id":"custom.width","value":70},{"id":"custom.cellOptions","value":{"type":"color-text"}},{"id":"mappings","value":[{"options":{"Redis":{"color":"#DC382D","index":0,"text":"Redis"},"Valkey":{"color":"#6983FF","index":1,"text":"Valkey"}},"type":"value"}]}]},
           {"matcher":{"id":"byName","options":"Instance"},"properties":[{"id":"links","value":[{"title":"Redis Instance ${__data.fields.Instance}","url":"/d/redis-instance?var-id=${__data.fields.Instance}\u0026${__url_time_range}"}]},{"id":"custom.minWidth","value":180}]},
           {"matcher":{"id":"byName","options":"Address"},"properties":[{"id":"custom.width","value":160},{"id":"links","value":[{"title":"Redis Instance : ${__data.fields.Address} (${__data.fields.Instance})","url":"/d/redis-instance?var-id=${__data.fields.Address}\u0026${__url_time_range}"}]}]},
           {
@@ -120,6 +121,7 @@
             ]
           },
           {"matcher":{"id":"byName","options":"Version"},"properties":[{"id":"custom.width","value":70}]},
+          {"matcher":{"id":"byName","options":"Primary REPL ID"},"properties":[{"id":"custom.width","value":120}]},
           {
             "matcher":{"id":"byName","options":"QPS"},
             "properties":[
@@ -155,7 +157,7 @@
         {"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"redis:ins:mem_usage{job=\"$job\"}","format":"table","instant":true,"interval":"","legendFormat":"","refId":"C"},
         {"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"redis:ins:qps{job=\"$job\"}","format":"table","instant":true,"interval":"","legendFormat":"","refId":"D"},
         {"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"redis_memory_max_bytes{job=\"$job\"}","format":"table","instant":true,"interval":"","legendFormat":"","refId":"E"},
-        {"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"redis_instance_info{job=\"$job\"}","format":"table","instant":true,"interval":"","legendFormat":"","refId":"F"}
+        {"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"label_replace(label_replace(label_replace(label_replace(redis_instance_info{job=\"$job\"}, \"version\", \"$1\", \"redis_version\", \"(.+)\"), \"version\", \"$1\", \"valkey_version\", \"(.+)\"), \"engine\", \"Redis\", \"redis_version\", \"(.+)\"), \"engine\", \"Valkey\", \"valkey_version\", \"(.+)\")","format":"table","instant":true,"interval":"","legendFormat":"","refId":"F"}
       ],
       "title":"",
       "transformations":[
@@ -188,6 +190,7 @@
               "cls 4":true,
               "cls 5":true,
               "cls 6":true,
+              "engine":false,
               "ins":false,
               "instance":false,
               "instance 1":false,
@@ -209,13 +212,18 @@
               "job 4":true,
               "job 5":true,
               "job 6":true,
+              "master_replid":false,
               "maxmemory_policy":true,
               "os":true,
               "process_id":true,
               "redis_build_id":true,
               "redis_mode":false,
+              "redis_version":true,
               "run_id":true,
-              "tcp_port":true
+              "tcp_port":true,
+              "valkey_release_stage":true,
+              "valkey_version":true,
+              "version":false
             },
             "indexByName":{
               "Time 1":20,
@@ -224,11 +232,11 @@
               "Time 4":31,
               "Time 5":39,
               "Time 6":45,
-              "Value #A":0,
-              "Value #B":7,
-              "Value #C":8,
-              "Value #D":10,
-              "Value #E":9,
+              "Value #A":1,
+              "Value #B":8,
+              "Value #C":9,
+              "Value #D":11,
+              "Value #E":10,
               "Value #F":51,
               "__name__ 1":21,
               "__name__ 2":24,
@@ -236,20 +244,21 @@
               "__name__ 4":32,
               "__name__ 5":40,
               "__name__ 6":46,
-              "cls 1":3,
+              "cls 1":4,
               "cls 2":12,
               "cls 3":19,
               "cls 4":33,
               "cls 5":41,
               "cls 6":47,
-              "ins":4,
-              "instance 1":5,
+              "engine":0,
+              "ins":5,
+              "instance 1":6,
               "instance 2":25,
               "instance 3":29,
               "instance 4":34,
               "instance 5":42,
               "instance 6":48,
-              "ip 1":6,
+              "ip 1":7,
               "ip 2":36,
               "ip 3":37,
               "ip 4":38,
@@ -261,17 +270,21 @@
               "job 4":35,
               "job 5":44,
               "job 6":50,
+              "master_replid":13,
               "maxmemory_policy":13,
               "os":14,
               "process_id":15,
               "redis_build_id":16,
-              "redis_mode":1,
-              "redis_version":11,
-              "role":2,
+              "redis_mode":2,
+              "redis_version":53,
+              "role":3,
               "run_id":17,
-              "tcp_port":18
+              "tcp_port":18,
+              "valkey_release_stage":54,
+              "valkey_version":55,
+              "version":12
             },
-            "renameByName":{"Value #A":"Alive","Value #B":"CPU","Value #C":"MEM","Value #D":"QPS","Value #E":"Spec","cls 1":"Cluster","ins":"Instance","instance":"","instance 1":"Address","instance 3":"","ip":"IP","ip 1":"IP","job 1":"","redis_mode":"Mode","redis_version":"Version","role":"Role"}
+            "renameByName":{"Value #A":"Alive","Value #B":"CPU","Value #C":"MEM","Value #D":"QPS","Value #E":"Spec","cls 1":"Cluster","engine":"Engine","ins":"Instance","instance":"","instance 1":"Address","instance 3":"","ip":"IP","ip 1":"IP","job 1":"","master_replid":"Primary REPL ID","redis_mode":"Mode","role":"Role","version":"Version"}
           }
         }
       ],

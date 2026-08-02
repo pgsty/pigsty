@@ -121,7 +121,7 @@
               {% for i in redis_meta %}
               {% for port, _ in i.redis_instances.items() %}
               {% set auth = ('REDISCLI_AUTH=' ~ (i.redis_password|quote) ~ ' ') if i.redis_password|default('') != '' else '' %}
-              cat /tmp/{{ redis_cluster }}.monitor | {{ auth }}redis-cli -h {{ i.inventory_hostname }} -p {{ port }}
+              cat /tmp/{{ redis_cluster }}.monitor | {{ auth }}{{ redis_type|default('redis') }}-cli -h {{ i.inventory_hostname }} -p {{ port }}
               {% endfor %}
               {% endfor %}
           vars: { cluster_query: "[@.*][0][?redis_cluster=='{{ redis_cluster }}']" }
@@ -172,8 +172,8 @@
           shell: |
             {% set seed = redis_cluster_members|first %}
             {% set seed_port = seed.redis_instances.keys()|first %}
-            /bin/redis-cli -h {{ seed.inventory_hostname }} -p {{ seed_port }} cluster info | grep -q '^cluster_state:ok' && exit 0
-            /bin/redis-cli --cluster create --cluster-yes \
+            /bin/{{ redis_type|default('redis') }}-cli -h {{ seed.inventory_hostname }} -p {{ seed_port }} cluster info | grep -q '^cluster_state:ok' && exit 0
+            /bin/{{ redis_type|default('redis') }}-cli --cluster create --cluster-yes \
             {% for node in redis_cluster_members %}
             {% for port in node.redis_instances %}
               {{ node.inventory_hostname }}:{{ port }} \

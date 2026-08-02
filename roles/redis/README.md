@@ -10,9 +10,9 @@
 
 ## Overview
 
-The `redis` role deploys and manages **Redis** instances:
+The `redis` role deploys and manages Redis-compatible **Redis or Valkey** instances:
 
-- Install Redis packages
+- Install the selected Redis or Valkey engine package
 - Configure Redis node (directories, limits)
 - Deploy Redis exporter for monitoring
 - Create standalone, cluster-enabled, or Sentinel instances
@@ -98,9 +98,14 @@ redis (full role)
 
 | Variable             | Default      | Description                                |
 |----------------------|--------------|--------------------------------------------|
+| `redis_type`         | `redis`      | Engine package and binary prefix: redis/valkey |
 | `redis_mode`         | `standalone` | Instance mode: standalone/cluster/sentinel |
 | `redis_conf`         | `redis.conf` | Config template name                       |
 | `redis_bind_address` | `0.0.0.0`    | Listen address                             |
+
+`redis_type: valkey` installs the Valkey package from the Pigsty repository
+and uses `valkey-server` / `valkey-cli`. Config paths, systemd service names,
+monitoring jobs, and other module-facing names remain `redis` for compatibility.
 
 ### Filesystem
 
@@ -175,7 +180,8 @@ redis_instances:
   6379: {}
 ```
 
-After deployment, create or join the topology explicitly with `redis-cli --cluster`.
+After deployment, create or join the topology explicitly with the selected CLI
+(`redis-cli --cluster` or `valkey-cli --cluster`).
 The role does not run cluster bootstrap or resharding commands.
 
 ### Sentinel

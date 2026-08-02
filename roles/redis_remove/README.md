@@ -18,7 +18,7 @@ The `redis_remove` role removes Redis instances from a node:
 - Stop redis_exporter service
 - Stop Redis instance services
 - Remove data directories (`redis_rm_data`)
-- Uninstall packages (`redis_rm_pkg`)
+- Uninstall the selected engine and exporter packages (`redis_rm_pkg`)
 
 Only nodes with `redis_cluster` defined will be affected.
 Supports removing single instance (via `redis_port`) or entire node.
@@ -73,7 +73,8 @@ redis_remove (full role)
 |-------------------|---------------|-------------------------------------------|
 | `redis_safeguard` | `false`       | Prevent accidental removal                |
 | `redis_rm_data`   | `true`        | Remove data directories                   |
-| `redis_rm_pkg`    | `false`       | Uninstall Redis packages                  |
+| `redis_rm_pkg`    | `false`       | Uninstall engine and exporter packages    |
+| `redis_type`      | `redis`       | Engine package to uninstall: redis/valkey |
 | `redis_fs_main`   | `/data/redis` | Redis data root directory used by cleanup |
 
 
@@ -115,7 +116,7 @@ Override with:
 | Monitoring | `/infra/targets/redis/<cluster>-<node>.yml`                                                              |
 | Logging    | `/etc/vector/redis.yaml`                                                                                 |
 | Data       | `redis_fs_main` (default `/data/redis/`; legacy `redis_fs_main=/data` is compat-mapped to `/data/redis`) |
-| Packages   | `redis`, `redis-exporter` (if enabled)                                                                   |
+| Packages   | Selected engine (`redis` or `valkey`) and `redis-exporter`                                               |
 
 
 ## See Also

@@ -2,7 +2,7 @@
 -- # File      :   cmdb.sql
 -- # Desc      :   Pigsty CMDB baseline
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2026-07-10
+-- # Mtime     :   2026-08-02
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -1499,6 +1499,7 @@ INSERT INTO pigsty.default_var VALUES
 (711, 'redis_exporter_enabled', 'true', 'REDIS', 'REDIS', 'bool', 'C', 'install redis exporter on redis nodes?', NULL),
 (712, 'redis_exporter_port', '9121', 'REDIS', 'REDIS', 'port', 'C', 'redis exporter listen port, 9121 by default', NULL),
 (713, 'redis_exporter_options', '""', 'REDIS', 'REDIS', 'string', 'C/I', 'cli args and extra options for redis exporter', NULL),
+(714, 'redis_type', '"redis"', 'REDIS', 'REDIS', 'enum', 'C', 'redis implementation: redis or valkey, redis by default', NULL),
 (723, 'redis_mode', '"standalone"', 'REDIS', 'REDIS', 'enum', 'C', 'redis mode: standalone,cluster,sentinel', NULL),
 (724, 'redis_conf', '"redis.conf"', 'REDIS', 'REDIS', 'string', 'C', 'redis config template path, except sentinel', NULL),
 (725, 'redis_bind_address', '"0.0.0.0"', 'REDIS', 'REDIS', 'ip', 'C', 'redis bind address, empty string will use host ip', NULL),
@@ -1512,7 +1513,7 @@ INSERT INTO pigsty.default_var VALUES
 (733, 'redis_sentinel_monitor', '[]', 'REDIS', 'REDIS', 'master[]', 'C', 'sentinel master list, works on sentinel cluster only', NULL),
 (750, 'redis_safeguard', 'false', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'prevent purging running redis instance?', NULL),
 (751, 'redis_rm_data', 'true', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'remove redis data dir? (/data/redis/...)', NULL),
-(752, 'redis_rm_pkg', 'false', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'uninstall redis & redis-exporter packages?', NULL),
+(752, 'redis_rm_pkg', 'false', 'REDIS', 'REDIS_REMOVE', 'bool', 'G/C/A', 'uninstall selected engine & redis-exporter packages?', NULL),
 
 -- PGSQL PARAMETERS
 (801, 'pg_mode', '"pgsql"', 'PGSQL', 'PG_ID', 'enum', 'C', 'pgsql cluster mode: pgsql,citus,mssql,mysql,ivory,pgtde,polar,gpsql,agens,oriole,pgedge', NULL),

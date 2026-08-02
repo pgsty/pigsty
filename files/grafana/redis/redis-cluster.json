@@ -60,22 +60,23 @@
         "defaults":{"color":{"mode":"thresholds"},"thresholds":{"mode":"absolute","steps":[{"color":"#3e668f","value":0}]},"unit":"string"},
         "overrides":[
           {"matcher":{"id":"byName","options":"Role"},"properties":[{"id":"mappings","value":[{"options":{"master":{"color":"#f79f64","index":0,"text":"Primary"},"slave":{"color":"#346f36cc","index":1,"text":"Replica"}},"type":"value"}]}]},
-          {"matcher":{"id":"byName","options":"Mode"},"properties":[{"id":"mappings","value":[{"options":{"cluster":{"color":"#3e668f","index":2,"text":"Cluster"},"sentinel":{"color":"#f79f64","index":0,"text":"Sentinel"},"standalone":{"color":"#346f36cc","index":1,"text":"Normal"}},"type":"value"}]}]}
+          {"matcher":{"id":"byName","options":"Mode"},"properties":[{"id":"mappings","value":[{"options":{"cluster":{"color":"#3e668f","index":2,"text":"Cluster"},"sentinel":{"color":"#f79f64","index":0,"text":"Sentinel"},"standalone":{"color":"#346f36cc","index":1,"text":"Normal"}},"type":"value"}]}]},
+          {"matcher":{"id":"byName","options":"Engine"},"properties":[{"id":"mappings","value":[{"options":{"Valkey":{"color":"#6983FF","index":0,"text":"Valkey"}},"type":"value"}]}]}
         ]
       },
       "gridPos":{"h":3,"w":8,"x":0,"y":4},
       "id":165,
       "options":{"colorMode":"background","graphMode":"area","justifyMode":"auto","orientation":"horizontal","percentChangeColorMode":"standard","reduceOptions":{"calcs":["lastNotNull"],"fields":"/.*/","values":false},"showPercentChange":false,"text":{"titleSize":12},"textMode":"value_and_name","wideLayout":true},
       "pluginVersion":"13.0.0",
-      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (redis_mode,maxmemory_policy,redis_version) (redis_instance_info{cls=\"$cls\"})","format":"table","instant":true,"interval":"","legendFormat":"","range":false,"refId":"A"}],
+      "targets":[{"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"max by (redis_mode,maxmemory_policy,version,engine) (label_replace(label_replace(label_replace(redis_instance_info{cls=\"$cls\"}, \"version\", \"$1\", \"redis_version\", \"(.+)\"), \"version\", \"$1\", \"valkey_version\", \"(.+)\"), \"engine\", \"Valkey\", \"valkey_version\", \"(.+)\"))","format":"table","instant":true,"interval":"","legendFormat":"","range":false,"refId":"A"}],
       "title":"",
       "transformations":[
         {
           "id":"organize",
           "options":{
-            "excludeByName":{"Time":true,"Value":true,"Value #A":true,"__name__":true,"cls":true,"ins":true,"instance":true,"ip":true,"job":true,"os":true,"redis_build_id":true,"run_id":true,"version":false},
-            "indexByName":{"Time":4,"Value":10,"__name__":5,"cls":3,"ins":6,"instance":7,"ip":9,"job":8,"maxmemory_policy":2,"os":14,"process_id":11,"redis_build_id":15,"redis_mode":1,"redis_version":12,"role":0,"run_id":16,"tcp_port":13},
-            "renameByName":{"Time":"","cls":"","maxmemory_policy":"Policy","os":"OS","process_id":"PID","redis_build_id":"Build ID","redis_mode":"Mode","redis_version":"Version","role":"Role","run_id":"Run ID","tcp_port":"Port","version":"Version"}
+            "excludeByName":{"Time":true,"Value":true,"Value #A":true,"__name__":true,"cls":true,"engine":false,"ins":true,"instance":true,"ip":true,"job":true,"os":true,"redis_build_id":true,"run_id":true,"version":false},
+            "indexByName":{"Time":4,"Value":10,"__name__":5,"cls":3,"engine":17,"ins":6,"instance":7,"ip":9,"job":8,"maxmemory_policy":2,"os":14,"process_id":11,"redis_build_id":15,"redis_mode":1,"role":0,"run_id":16,"tcp_port":13,"version":12},
+            "renameByName":{"Time":"","cls":"","engine":"Engine","maxmemory_policy":"Policy","os":"OS","process_id":"PID","redis_build_id":"Build ID","redis_mode":"Mode","role":"Role","run_id":"Run ID","tcp_port":"Port","version":"Version"}
           }
         }
       ],
@@ -240,7 +241,7 @@
         {"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"redis:ins:mem_usage{cls=\"$cls\"}","format":"table","instant":true,"interval":"","legendFormat":"","refId":"C"},
         {"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"redis:ins:qps{cls=\"$cls\"}","format":"table","instant":true,"interval":"","legendFormat":"","refId":"D"},
         {"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"redis_memory_max_bytes{cls=\"$cls\"}","format":"table","instant":true,"interval":"","legendFormat":"","refId":"E"},
-        {"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"redis_instance_info{cls=\"$cls\"}","format":"table","instant":true,"interval":"","legendFormat":"","refId":"F"}
+        {"datasource":{"type":"prometheus","uid":"ds-prometheus"},"editorMode":"code","exemplar":false,"expr":"label_replace(label_replace(redis_instance_info{cls=\"$cls\"}, \"version\", \"$1\", \"redis_version\", \"(.+)\"), \"version\", \"$1\", \"valkey_version\", \"(.+)\")","format":"table","instant":true,"interval":"","legendFormat":"","refId":"F"}
       ],
       "title":"",
       "transformations":[
@@ -294,13 +295,18 @@
               "job 4":true,
               "job 5":true,
               "job 6":true,
+              "master_replid":true,
               "maxmemory_policy":true,
               "os":true,
               "process_id":true,
               "redis_build_id":true,
               "redis_mode":false,
+              "redis_version":true,
               "run_id":true,
-              "tcp_port":true
+              "tcp_port":true,
+              "valkey_release_stage":true,
+              "valkey_version":true,
+              "version":false
             },
             "indexByName":{
               "Time 1":20,
@@ -346,17 +352,21 @@
               "job 4":35,
               "job 5":44,
               "job 6":50,
+              "master_replid":52,
               "maxmemory_policy":13,
               "os":14,
               "process_id":15,
               "redis_build_id":16,
               "redis_mode":1,
-              "redis_version":11,
+              "redis_version":53,
               "role":2,
               "run_id":17,
-              "tcp_port":18
+              "tcp_port":18,
+              "valkey_release_stage":54,
+              "valkey_version":55,
+              "version":11
             },
-            "renameByName":{"Value #A":"Alive","Value #B":"CPU","Value #C":"MEM","Value #D":"QPS","Value #E":"Spec","cls 1":"Cluster","ins":"Instance","instance":"","instance 1":"Address","instance 3":"","ip":"IP","ip 1":"IP","job 1":"","redis_mode":"Mode","redis_version":"Version","role":"Role"}
+            "renameByName":{"Value #A":"Alive","Value #B":"CPU","Value #C":"MEM","Value #D":"QPS","Value #E":"Spec","cls 1":"Cluster","ins":"Instance","instance":"","instance 1":"Address","instance 3":"","ip":"IP","ip 1":"IP","job 1":"","redis_mode":"Mode","role":"Role","version":"Version"}
           }
         }
       ],
