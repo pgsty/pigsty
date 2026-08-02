@@ -86,7 +86,6 @@
       meta: end_host
 
     - name: setup redis ha with sentinel
-      ignore_errors: true
       when: redis_port is not defined
       run_once: true
       block:
@@ -109,6 +108,7 @@
               SENTINEL SET {{ master.name }} auth-pass {{ master.password }}
               {% endif %}
               {% endfor %}
+          diff: false
 
         - name: render redis sentinel monitor scripts
           copy:
@@ -117,16 +117,24 @@
             content: |
               {% set redis_meta = hostvars|json_query(cluster_query) %}
               #!/bin/bash
+              set -eo pipefail
               {% for i in redis_meta %}
               {% for port, _ in i.redis_instances.items() %}
-              cat /tmp/{{ redis_cluster }}.monitor | redis-cli -h {{ i.inventory_hostname }} -p {{ port }}{{ (' -a ' ~ (i.redis_password | quote)) if (i.redis_password is defined and i.redis_password != '') else '' }}
+              {% set auth = ('REDISCLI_AUTH=' ~ (i.redis_password|quote) ~ ' ') if i.redis_password|default('') != '' else '' %}
+              cat /tmp/{{ redis_cluster }}.monitor | {{ auth }}redis-cli -h {{ i.inventory_hostname }} -p {{ port }}
               {% endfor %}
               {% endfor %}
           vars: { cluster_query: "[@.*][0][?redis_cluster=='{{ redis_cluster }}']" }
+          diff: false
 
-        - name: execute redis cluster sentinel monitor script
+        - name: execute redis sentinel monitor script
           shell: "/tmp/{{ redis_cluster }}-ha.sh"
           args: { executable: /bin/bash }
+
+      always:
+        - name: remove redis sentinel temp files
+          file: path={{ item }} state=absent
+          loop: [ "/tmp/{{ redis_cluster }}.monitor", "/tmp/{{ redis_cluster }}-ha.sh" ]
 
 
 #--------------------------------------------------------------#
@@ -155,26 +163,24 @@
           vars:
             redis_cluster_members_query: "[@.*][0][?redis_cluster=='{{ redis_cluster }}']"
 
-        - name: render redis cluster join script
+        - name: remove legacy redis cluster join script
           when: redis_port is not defined
-          copy:
-            dest: /tmp/{{ redis_cluster }}-join.sh
-            mode: 0755
-            owner: root
-            content: |
-              #!/bin/bash
-              /bin/redis-cli {% if redis_password is defined and redis_password != '' %}-a {{ redis_password }}{% endif %} --cluster create --cluster-yes \
-              {% for node in redis_cluster_members %}
-              {% for port in node.redis_instances %}
-                {{ node.inventory_hostname }}:{{ port }} \
-              {% endfor %}
-              {% endfor %}
-                --cluster-replicas {{ redis_cluster_replicas|default(1) }}
+          file: path=/tmp/{{ redis_cluster }}-join.sh state=absent
 
-        - name: execute redis cluster join script
-          ignore_errors: true
-          run_once: true
+        - name: execute redis cluster join
           when: redis_port is not defined
-          shell: "/tmp/{{ redis_cluster }}-join.sh"
+          shell: |
+            {% set seed = redis_cluster_members|first %}
+            {% set seed_port = seed.redis_instances.keys()|first %}
+            /bin/redis-cli -h {{ seed.inventory_hostname }} -p {{ seed_port }} cluster info | grep -q '^cluster_state:ok' && exit 0
+            /bin/redis-cli --cluster create --cluster-yes \
+            {% for node in redis_cluster_members %}
+            {% for port in node.redis_instances %}
+              {{ node.inventory_hostname }}:{{ port }} \
+            {% endfor %}
+            {% endfor %}
+              --cluster-replicas {{ redis_cluster_replicas|default(1) }}
           args: { executable: /bin/bash }
+          environment: "{{ {'REDISCLI_AUTH': redis_password} if redis_password|default('')|length > 0 else {} }}"
+          no_log: "{{ redis_password|default('')|length > 0 }}"
 ...
