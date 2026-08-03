@@ -11,7 +11,8 @@
         that:
           - minio_cluster is defined and minio_cluster != ''
           - minio_seq is defined and minio_seq|int >= 0
-        fail_msg: variable 'minio_cluster' & 'minio_seq' are required for minio playbook
+          - minio_type in ['minio', 'rustfs']
+        fail_msg: minio_cluster/minio_seq are required and minio_type must be minio or rustfs
 
     # Gather cluster metadata and calculate derived variables
     # - minio_meta: list of all hosts in the same minio_cluster from inventory
@@ -69,7 +70,7 @@
 
     - name: print minio identity
       debug:
-        msg: "INIT MINIO: {{ minio_nodename }}: {{ minio_volumes }}"
+        msg: "INIT {{ minio_type | upper }}: {{ minio_nodename }}: {{ minio_volumes }}"
 
 
 #--------------------------------------------------------------#
@@ -96,7 +97,7 @@
   tags: minio_launch
   block:
     - name: launch minio server service
-      systemd: name=minio state=restarted enabled=yes daemon_reload=yes
+      systemd: name={{ minio_type }} state=restarted enabled=yes daemon_reload=yes
     - name: wait for minio server online
       wait_for: host=127.0.0.1 port={{ minio_port }} state=started timeout=60
 
@@ -116,8 +117,16 @@
     mode: '0640'
     content: |
       # {{ minio_cluster }}-{{ minio_seq }} @ {{ inventory_hostname }}
-      - labels: { ip: {{ inventory_hostname }} , ins: {{ minio_cluster }}-{{ minio_seq }} , cls: {{ minio_cluster }} }
-        targets: [ {{ inventory_hostname }}:{{ minio_port }} ]
+      - targets: [ "{{ inventory_hostname }}:{{ minio_port }}" ]
+        labels:
+          ip: "{{ inventory_hostname }}"
+          ins: "{{ minio_cluster }}-{{ minio_seq }}"
+          cls: "{{ minio_cluster }}"
+          instance: "{{ inventory_hostname }}:{{ minio_port }}"
+          flavor: "{{ minio_type }}"
+      {% if minio_type == 'rustfs' %}
+          probe_target: "{% if minio_https|bool %}https{% else %}http{% endif %}://{{ minio_nodename }}:{{ minio_port }}/minio/health/ready"
+      {% endif %}
 
 
 #--------------------------------------------------------------#

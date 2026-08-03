@@ -12,7 +12,8 @@
         that:
           - minio_cluster is defined and minio_cluster != ''
           - minio_seq is defined and minio_seq|int >= 0
-        fail_msg: variable 'minio_cluster' & 'minio_seq' are required for minio playbook
+          - minio_type in ['minio', 'rustfs']
+        fail_msg: minio_cluster/minio_seq are required and minio_type must be minio or rustfs
 
     - name: get minio cluster info
       connection: local
@@ -24,7 +25,7 @@
 
     - name: print minio purge task
       debug:
-        msg: "WARNING: REMOVE MINIO {{ minio_cluster }}-{{ minio_seq }} | {% if minio_rm_data|bool %}REMOVE DATA{% else %}KEEP DATA{% endif %}: {{ minio_data_dirs }} | {% if minio_rm_pkg|bool %}UNINSTALL{% else %}KEEP PKG{% endif %}"
+        msg: "WARNING: REMOVE {{ minio_type | upper }} {{ minio_cluster }}-{{ minio_seq }} | {% if minio_rm_data|bool %}REMOVE DATA{% else %}KEEP DATA{% endif %}: {{ minio_data_dirs }} | {% if minio_rm_pkg|bool %}UNINSTALL{% else %}KEEP PKG{% endif %}"
 
 
 #--------------------------------------------------------------#
@@ -78,24 +79,24 @@
 - name: stop minio service
   tags: [ minio, minio_svc, minio_stop, minio_data, minio_config ]
   shell: |
-    systemctl disable minio
-    systemctl stop minio
+    systemctl disable {{ minio_type }} || true
+    systemctl stop {{ minio_type }} || true
 
     # try graceful shutdown first again
-    if ps -u {{ minio_user }} -o command | grep -q 'minio' ; then
-        systemctl stop minio
+    if pgrep -u {{ minio_user }} -x {{ minio_type }} > /dev/null ; then
+        systemctl stop {{ minio_type }} || true
     fi
 
     # kill if still exists
-    if ps -u {{ minio_user }} -o command | grep -q 'minio' ; then
+    if pgrep -u {{ minio_user }} -x {{ minio_type }} > /dev/null ; then
         sleep 2
-        ps -u {{ minio_user }} -o pid:1,command | grep 'minio' | awk '{print $1}' | xargs kill
+        pkill -u {{ minio_user }} -x {{ minio_type }} || true
     fi
 
     # kill -9 if not killed
-    if ps -u {{ minio_user }} -o command | grep -q 'minio' ; then
+    if pgrep -u {{ minio_user }} -x {{ minio_type }} > /dev/null ; then
         sleep 5
-        ps -u {{ minio_user }} -o pid:1,command | grep 'minio' | awk '{print $1}' | xargs kill -9
+        pkill -9 -u {{ minio_user }} -x {{ minio_type }} || true
     fi
     # guaranteed success
     exit 0
@@ -118,11 +119,11 @@
     - name: remove minio config files
       tags: minio_config
       file: path={{ item }} state=absent
-      loop:
-        - /etc/default/minio
-        - "/home/{{ minio_user }}/.minio"
-        - /etc/systemd/system/minio.service
-        - /etc/vector/minio.yaml
+      loop: "{{ [
+        '/etc/default/' ~ minio_type,
+        '/home/' ~ minio_user ~ ('/.rustfs' if minio_type == 'rustfs' else '/.minio'),
+        '/etc/systemd/system/' ~ minio_type ~ '.service'
+        ] + (['/etc/vector/minio.yaml'] if minio_type == 'minio' else []) }}"
         #- /var/log/minio.log # we just keep the log files
 
     - name: reload systemd after minio unit removal
@@ -136,6 +137,6 @@
   tags: minio_pkg
   when: minio_rm_pkg|bool
   package: name={{ item }} state=absent
-  loop: [ minio , mcli ]
+  loop: [ "{{ minio_type }}" , mcli ]
 
 ...

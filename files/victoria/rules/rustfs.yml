@@ -1,0 +1,174 @@
+---
+#==============================================================#
+# File      :   rustfs.yml
+# Desc      :   RustFS recording and alerting rules
+# Path      :   /infra/rules/rustfs.yml
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026 Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+
+groups:
+
+  - name: rustfs-record
+    rules:
+
+      # Independent pull probe for a push-based metrics source.
+      - record: rustfs_up
+        expr: probe_success{job="minio",flavor="rustfs"}
+
+      # rustfs_start_total is exported every interval, despite being a counter.
+      # Keep only the newest sample per stable Pigsty identity so resource
+      # attributes such as service.version cannot leave duplicate series after
+      # a restart or upgrade.
+      - record: rustfs_telemetry_age_seconds
+        expr: |
+          time()
+          - max by (cls, ins, ip) (timestamp(rustfs_start_total{job="minio",flavor="rustfs"}))
+
+      # Cluster metrics are repeated by every node, so deduplicate with max.
+      - record: rustfs_cluster_capacity_usage_ratio
+        expr: |
+          max by (cls) (rustfs_cluster_capacity_used_bytes{job="minio",flavor="rustfs"})
+          / clamp_min(max by (cls) (rustfs_cluster_capacity_usable_total_bytes{job="minio",flavor="rustfs"}), 1)
+
+      - record: rustfs_cluster_drives_offline
+        expr: max by (cls) (rustfs_cluster_health_drives_offline_count{job="minio",flavor="rustfs"})
+
+      - record: rustfs_cluster_servers_offline
+        expr: max by (cls) (rustfs_cluster_servers_offline_total{job="minio",flavor="rustfs"})
+
+
+  - name: rustfs-alert
+    rules:
+
+      - alert: RustfsServerDown
+        expr: rustfs_up < 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: rustfs }
+        annotations:
+          summary: "CRIT RustfsServerDown {{ $labels.ins }}@{{ $labels.ip }}"
+          description: |
+            RustFS readiness probe failed for {{ $labels.ins }} at {{ $labels.instance }}.
+            /ui/d/rustfs-overview?var-cls={{ $labels.cls }}
+
+      - alert: RustfsTelemetryMissing
+        expr: |
+          rustfs_up == 1
+          unless on (cls, ins, ip)
+          (rustfs_telemetry_age_seconds < 90)
+        for: 2m
+        labels: { level: 1, severity: WARN, category: rustfs }
+        annotations:
+          summary: "WARN RustfsTelemetryMissing {{ $labels.ins }}@{{ $labels.ip }}"
+          description: |
+            RustFS is ready but no fresh OTLP metrics have arrived for 90 seconds.
+            /ui/d/rustfs-instance?var-ins={{ $labels.ins }}
+
+      - alert: RustfsRuntimeNotReady
+        expr: min by (cls, ins, ip) (rustfs_runtime_readiness_ready{job="minio",flavor="rustfs"}) < 1
+        for: 2m
+        labels: { level: 0, severity: CRIT, category: rustfs }
+        annotations:
+          summary: "CRIT RustfsRuntimeNotReady {{ $labels.ins }}@{{ $labels.ip }}"
+          description: |
+            RustFS internal readiness gauge is below one.
+            /ui/d/rustfs-instance?var-ins={{ $labels.ins }}
+
+      - alert: RustfsServerOffline
+        expr: rustfs_cluster_servers_offline > 0
+        for: 2m
+        labels: { level: 0, severity: CRIT, category: rustfs }
+        annotations:
+          summary: "CRIT RustfsServerOffline {{ $labels.cls }}: {{ $value }}"
+          description: |
+            RustFS reports one or more offline cluster servers.
+            /ui/d/rustfs-overview?var-cls={{ $labels.cls }}
+
+      - alert: RustfsDriveOffline
+        expr: rustfs_cluster_drives_offline > 0
+        for: 2m
+        labels: { level: 0, severity: CRIT, category: rustfs }
+        annotations:
+          summary: "CRIT RustfsDriveOffline {{ $labels.cls }}: {{ $value }}"
+          description: |
+            RustFS reports one or more offline drives.
+            /ui/d/rustfs-overview?var-cls={{ $labels.cls }}
+
+      - alert: RustfsErasureSetUnhealthy
+        expr: |
+          min by (cls, pool_id, set_id) (
+            rustfs_cluster_erasure_set_read_health{job="minio",flavor="rustfs"}
+            or rustfs_cluster_erasure_set_write_health{job="minio",flavor="rustfs"}
+          ) < 1
+        for: 2m
+        labels: { level: 0, severity: CRIT, category: rustfs }
+        annotations:
+          summary: "CRIT RustfsErasureSetUnhealthy {{ $labels.cls }} pool={{ $labels.pool_id }} set={{ $labels.set_id }}"
+          description: |
+            A RustFS erasure set has lost read or write health.
+            /ui/d/rustfs-overview?var-cls={{ $labels.cls }}
+
+      - alert: RustfsCapacityHigh
+        expr: rustfs_cluster_capacity_usage_ratio > 0.85
+        for: 15m
+        labels: { level: 1, severity: WARN, category: rustfs }
+        annotations:
+          summary: "WARN RustfsCapacityHigh {{ $labels.cls }}: {{ $value | humanizePercentage }}"
+          description: |
+            RustFS usable capacity is above 85 percent.
+            /ui/d/rustfs-overview?var-cls={{ $labels.cls }}
+
+      - alert: RustfsHttpFailures
+        expr: sum by (cls) (rate(rustfs_http_server_failures_total{job="minio",flavor="rustfs"}[5m])) > 1
+        for: 5m
+        labels: { level: 1, severity: WARN, category: rustfs }
+        annotations:
+          summary: "WARN RustfsHttpFailures {{ $labels.cls }}: {{ $value | humanize }} errors/s"
+          description: |
+            RustFS HTTP transport failures exceed one response per second.
+            /ui/d/rustfs-overview?var-cls={{ $labels.cls }}
+
+      - alert: RustfsInternodeErrors
+        # A rolling restart can emit a small walk_dir burst. Alert on a
+        # sustained error rate instead of retaining one startup event for the
+        # whole lookback window.
+        expr: sum by (cls) (rate(rustfs_system_network_internode_operation_errors_total{job="minio",flavor="rustfs"}[5m])) > 0.1
+        for: 5m
+        labels: { level: 1, severity: WARN, category: rustfs }
+        annotations:
+          summary: "WARN RustfsInternodeErrors {{ $labels.cls }}: {{ $value }}"
+          description: |
+            RustFS internode operation errors exceeded 0.1 per second for five minutes.
+            /ui/d/rustfs-overview?var-cls={{ $labels.cls }}
+
+      - alert: RustfsScannerFailures
+        expr: |
+          sum by (cls) (increase(rustfs_scanner_failed_cycles{job="minio",flavor="rustfs"}[30m]))
+          + sum by (cls) (increase(rustfs_scanner_bucket_scans_failed{job="minio",flavor="rustfs"}[30m])) > 0
+        for: 2m
+        labels: { level: 2, severity: WARN, category: rustfs }
+        annotations:
+          summary: "WARN RustfsScannerFailures {{ $labels.cls }}: {{ $value }}"
+          description: |
+            RustFS scanner failures were observed during the last thirty minutes.
+            /ui/d/rustfs-overview?var-cls={{ $labels.cls }}
+
+      - alert: RustfsTlsHandshakeFailures
+        # beta11 counts the normal close made by each HTTPS readiness probe as
+        # roughly 0.2 UNEXPECTED_EOF events/s per instance. Keep other failure
+        # types sensitive, but require EOF errors to exceed that baseline by 5x.
+        expr: |
+          sum by (cls, ins) (
+            rate(rustfs_tls_handshake_failures{job="minio",flavor="rustfs",failure_type!="UNEXPECTED_EOF"}[5m])
+          ) > 0.1
+          or
+          sum by (cls, ins) (
+            rate(rustfs_tls_handshake_failures{job="minio",flavor="rustfs",failure_type="UNEXPECTED_EOF"}[5m])
+          ) > 1
+        for: 5m
+        labels: { level: 2, severity: WARN, category: rustfs }
+        annotations:
+          summary: "WARN RustfsTlsHandshakeFailures {{ $labels.ins }}: {{ $value }}"
+          description: |
+            RustFS TLS failures exceeded the calibrated per-instance probe baseline for five minutes.
+            /ui/d/rustfs-overview?var-cls={{ $labels.cls }}

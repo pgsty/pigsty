@@ -1471,6 +1471,7 @@ INSERT INTO pigsty.default_var VALUES
 (513, 'etcd_rm_pkg', 'false', 'ETCD', 'ETCD_REMOVE', 'bool', 'G/C/A', 'uninstall etcd packages? false by default', NULL),
 
 -- MINIO PARAMETERS
+(600, 'minio_type', '"minio"', 'MINIO', 'MINIO', 'enum', 'G/C', 'object storage engine: minio or rustfs', NULL),
 (601, 'minio_seq', NULL, 'MINIO', 'MINIO', 'int', 'I', 'minio instance identifier, REQUIRED', NULL),
 (602, 'minio_cluster', '"minio"', 'MINIO', 'MINIO', 'string', 'C', 'minio cluster name, minio by default', NULL),
 (603, 'minio_https', 'true', 'MINIO', 'MINIO', 'bool', 'G/C', 'use https for minio, false will use http', NULL),
@@ -1480,6 +1481,12 @@ INSERT INTO pigsty.default_var VALUES
 (607, 'minio_domain', '"sss.pigsty"', 'MINIO', 'MINIO', 'string', 'G', 'minio service domain name, `sss.pigsty` by default', NULL),
 (608, 'minio_port', '9000', 'MINIO', 'MINIO', 'port', 'C', 'minio service port, 9000 by default', NULL),
 (609, 'minio_admin_port', '9001', 'MINIO', 'MINIO', 'port', 'C', 'minio console port, 9001 by default', NULL),
+(610, 'rustfs_metrics_enabled', 'true', 'MINIO', 'MINIO', 'bool', 'G/C', 'export RustFS metrics directly to VictoriaMetrics with OTLP/HTTP', NULL),
+(611, 'rustfs_metrics_endpoint', '""', 'MINIO', 'MINIO', 'string', 'G/C', 'explicit RustFS OTLP metrics endpoint; empty selects the first infra host', NULL),
+(612, 'rustfs_metrics_interval', '15', 'MINIO', 'MINIO', 'int', 'G/C', 'RustFS OTLP metrics export interval in seconds', NULL),
+(613, 'rustfs_metrics_environment', '"production"', 'MINIO', 'MINIO', 'string', 'G/C', 'RustFS OTEL deployment environment resource attribute', NULL),
+(614, 'rustfs_log_enabled', 'true', 'MINIO', 'MINIO', 'bool', 'G/C', 'emit RustFS structured logs to systemd journal', NULL),
+(615, 'rustfs_log_level', '"warn"', 'MINIO', 'MINIO', 'enum', 'G/C', 'RustFS log level; warn by default', NULL),
 (620, 'minio_access_key', '"minioadmin"', 'MINIO', 'MINIO', 'username', 'C', 'root access key, `minioadmin` by default', NULL),
 (621, 'minio_secret_key', '"S3User.MinIO"', 'MINIO', 'MINIO', 'password', 'C', 'root secret key, `S3User.MinIO` by default', NULL),
 (622, 'minio_extra_vars', '""', 'MINIO', 'MINIO', 'string', 'C', 'extra environment variables for minio server', NULL),

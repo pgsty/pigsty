@@ -1,6 +1,6 @@
 # Role: minio_remove
 
-> Remove MinIO Instance from Node
+> Remove a MinIO or RustFS instance from a node
 
 | **Module**        | [MINIO](https://pigsty.io/docs/minio) |
 |-------------------|---------------------------------------|
@@ -10,7 +10,8 @@
 
 ## Overview
 
-The `minio_remove` role removes MinIO instances:
+The `minio_remove` role removes MinIO or RustFS instances selected by
+`minio_type`:
 
 - Check safeguard protection
 - Pause for confirmation (3 seconds)
@@ -74,6 +75,7 @@ minio_remove (full role)
 
 | Variable          | Default | Description                    |
 |-------------------|---------|--------------------------------|
+| `minio_type`      | `minio` | Engine: `minio` or `rustfs`    |
 | `minio_safeguard` | `false` | Prevent accidental removal     |
 | `minio_rm_data`   | `true`  | Remove data and config files   |
 | `minio_rm_pkg`    | `false` | Uninstall MinIO packages       |
@@ -101,11 +103,11 @@ Override with:
 |--------------|--------------------------------------------|
 | Monitoring   | `/infra/targets/minio/<cluster>-<seq>.yml` |
 | DNS          | `/etc/dnsmasq.d/pigsty/<cluster>-<seq>`, `/etc/hosts` entries |
-| Service      | `minio.service` (systemd)                  |
-| Config       | `/etc/default/minio`, `/home/minio/.minio` |
+| Service      | `<minio_type>.service` (systemd)           |
+| Config       | Engine-specific environment and home dir   |
 | Data         | All directories in `minio_data`            |
 | Logging      | via syslog                                 |
-| Packages     | `minio`, `mcli` (if enabled)               |
+| Packages     | Selected engine, `mcli` (if enabled)       |
 
 
 ## Service Shutdown

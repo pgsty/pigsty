@@ -105,6 +105,34 @@ scrape_configs:
       - files: [ /infra/targets/minio/*.yml ]
     scheme: {% if minio_https|default(true)|bool %}https{% else %}http{% endif %}
 
+    # RustFS is a MinIO flavor. Its application metrics arrive through native
+    # OTLP push, while the same minio target directory carries a readiness
+    # endpoint. Rewrite only flavor=rustfs targets through blackbox_exporter;
+    # ordinary MinIO targets keep the direct metrics scrape above.
+    relabel_configs:
+      - source_labels: [ flavor, probe_target ]
+        regex: 'rustfs;(.+)'
+        target_label: __param_target
+        replacement: '$1'
+      - source_labels: [ flavor ]
+        regex: rustfs
+        target_label: __param_module
+        replacement: http_2xx
+      - source_labels: [ flavor ]
+        regex: rustfs
+        target_label: __metrics_path__
+        replacement: /probe
+      - source_labels: [ flavor ]
+        regex: rustfs
+        target_label: __scheme__
+        replacement: http
+      - source_labels: [ flavor ]
+        regex: rustfs
+        target_label: __address__
+        replacement: 127.0.0.1:{{ blackbox_port|default(9115) }}
+      - action: labeldrop
+        regex: probe_target
+
 {% if minio_https|default(true)|bool %}
     tls_config:
       ca_file:   /etc/pki/ca.crt

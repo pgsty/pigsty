@@ -13,14 +13,14 @@
 
 
 #--------------------------------------------------------------#
-# Install MinIO Package                              [minio_pkg]
+# Install MinIO/RustFS Package                       [minio_pkg]
 #--------------------------------------------------------------#
-# `minio` and `mcli` packages are required (from pigsty-infra repo)
+# The selected object storage package and `mcli` come from pigsty-infra.
 - name: install minio package
   tags: minio_pkg
   environment: "{{ proxy_env | default({}) }}"
   package: name={{ item }} state=present
-  with_items: [ minio, mcli ]
+  with_items: [ "{{ minio_type }}", mcli ]
 
 
 #--------------------------------------------------------------#
@@ -41,10 +41,22 @@
         mode: 0750
       with_items: "{{ minio_data_dirs.split(',') }}"
 
-    - name: create minio conf dir and log file
-      file: path={{ item.path }} state={{ item.state }} owner={{ item.owner }} group=minio mode={{ item.mode }}
-      loop:
-        - { path: "/home/{{ minio_user }}/.minio" ,state: directory ,owner: "{{ minio_user }}" ,mode: '0750' }
-        - { path: "/var/log/minio.log"            ,state: touch     ,owner: "{{ minio_user }}" ,mode: '0640' }
+    - name: create minio conf directory
+      file:
+        path: "/home/{{ minio_user }}/{{ '.rustfs' if minio_type == 'rustfs' else '.minio' }}"
+        state: directory
+        owner: "{{ minio_user }}"
+        group: minio
+        mode: '0750'
+
+    - name: create minio service log file
+      when: minio_type == 'minio'
+      file:
+        path: /var/log/minio.log
+        state: touch
+        owner: "{{ minio_user }}"
+        group: minio
+        mode: '0640'
+
 
 ...
