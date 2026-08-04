@@ -133,7 +133,13 @@
 # Provision MinIO                              [minio_provision]
 #--------------------------------------------------------------#
 - import_tasks: provision.yml
-  when: minio_provision|bool
+  when:
+    - minio_provision|bool
+    # Every host in a distributed cluster evaluates this role. Provisioning is
+    # cluster-scoped and already delegates to the first member, so let only that
+    # member enter the task file. This avoids racing the same alias, bucket,
+    # policy, and user operations once per cluster member.
+    - inventory_hostname == minio_cluster_members[0]
   ignore_errors: true
   tags: minio_provision
 
