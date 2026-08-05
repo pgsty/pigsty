@@ -73,7 +73,6 @@
       baseurl = {{ repo.baseurl.default | replace('${admin_ip}', admin_ip) | replace('$releasever', target_version|string) }}
       {% endif %}
       {% set repo_opts = {'gpgcheck': 0, 'enabled': 1} %}
-      {% if os_version|int >= 8 %}{% set repo_opts = repo_opts | combine({'module_hotfixes': 1}) %}{% endif %}
       {% if repo.meta is defined %}{% set repo_opts = repo_opts | combine(repo.meta) %}{% endif %}
       {% for key, value in repo_opts.items() %}
       {{ key }} = {{ value }}
@@ -122,9 +121,6 @@
     {% if os_package == 'rpm' %}
     yum clean all;
     yum makecache;
-    {% if os_version|int >= 8 %}
-    dnf module disable -y php nginx postgresql;
-    {% endif %}
     
     {% elif os_package == 'deb' %}
     apt update
@@ -141,7 +137,7 @@
   tags: repo_boot_pkg
   environment: "{{ proxy_env|default({}) }}"
   package: name="{{ repo_boot_packages }}" state=present
-  vars: { repo_boot_packages: "{% if os_package == 'deb' %}dpkg-dev{% elif os_package == 'rpm' %}createrepo_c{% if os_version|int >= 8 %}{% if os_version|int < 10 %},modulemd-tools{% endif %},dnf-utils{% else %},yum-utils{% endif %}{% endif %}" }
+  vars: { repo_boot_packages: "{% if os_package == 'deb' %}dpkg-dev{% elif os_package == 'rpm' %}createrepo_c{% if os_version|int >= 8 %},dnf-utils{% else %},yum-utils{% endif %}{% endif %}" }
 
 
 #--------------------------------------------------------------#
@@ -223,10 +219,9 @@
       {% endif %}
       rm -rf patroni*3.0.4*;  # remove old patroni 3.0.4 (keep latest version only)
       createrepo_c {{ repo_home }}/{{ repo_name }}
-      {% if os_version|int >= 8 and os_version|int < 10 %}
-      repo2module -s stable . modules.yaml;
-      modifyrepo_c --mdtype=modules modules.yaml repodata/;
-      {% endif %}
+      rm -f modules.yaml;
+      modifyrepo_c --remove modules repodata/ >/dev/null 2>&1 || /bin/true;
+      rm -f repodata/*-modules.yaml*;
       
       md5sum *.rpm > {{ repo_home }}/{{ repo_name }}/repo_complete || /bin/true
       

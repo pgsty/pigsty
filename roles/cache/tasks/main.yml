@@ -48,10 +48,7 @@
 #
 # METADATA GENERATION:
 # - RPM: createrepo_c creates repodata/ with repomd.xml
-# - RPM EL8/9: repo2module adds DNF module metadata (modules.yaml)
 # - DEB: dpkg-scanpackages creates Packages.gz
-#
-# Note: repo2module is NOT available on EL7 (yum) or EL10+
 #--------------------------------------------------------------#
 - name: create and trim local repo
   tags: cache_create
@@ -68,10 +65,9 @@
     rm -rf *docs*;          # remove unnecessary docs
 
     createrepo_c {{ repo_home }}/{{ repo_name }}
-    {% if os_version|int >= 8 and os_version|int < 10 %}
-    repo2module -s stable . modules.yaml;
-    modifyrepo_c --mdtype=modules modules.yaml repodata/;
-    {% endif %}
+    rm -f modules.yaml;
+    modifyrepo_c --remove modules repodata/ >/dev/null 2>&1 || /bin/true;
+    rm -f repodata/*-modules.yaml*;
 
     md5sum *.rpm > {{ repo_home }}/{{ repo_name }}/repo_complete || /bin/true
 

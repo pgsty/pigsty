@@ -103,6 +103,19 @@ repo                           # Full role execution
 | `repo_extra_packages` | `[]`    | Additional packages to include          |
 | `repo_url_packages`   | `[]`    | Direct URL downloads (binaries, etc.)   |
 
+For RPM repositories, `module_hotfixes` is opt-in. Declare it explicitly in
+the repository `meta` only when that repository intentionally supplies packages
+that replace an EL module stream:
+
+```yaml
+- name: example
+  # ... releases, arch, and baseurl ...
+  meta: { module_hotfixes: 1 }
+```
+
+System repositories keep native DNF module filtering. The aggregate Pigsty
+local repository is marked as a hotfix repository when it is configured.
+
 
 ## Repository Structure
 
@@ -113,8 +126,7 @@ repo                           # Full role execution
     ├── *.deb                 # DEB packages (Debian/Ubuntu)
     ├── repodata/             # YUM metadata (EL only)
     │   ├── repomd.xml
-    │   ├── primary.xml.gz
-    │   └── modules.yaml      # DNF module metadata (EL8/9)
+    │   └── primary.xml.gz
     ├── Packages.gz           # APT metadata (Debian/Ubuntu)
     └── repo_complete         # Completion marker (MD5 checksums)
 ```
