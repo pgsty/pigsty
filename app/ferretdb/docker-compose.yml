@@ -1,0 +1,28 @@
+# FerretDB is stateless; all MongoDB data lives in PostgreSQL + DocumentDB.
+services:
+  ferretdb:
+    image: ${FERRETDB_IMAGE:-ghcr.io/ferretdb/ferretdb:2.7.0}
+    container_name: ferretdb
+    restart: unless-stopped
+    stop_grace_period: 30s
+    oom_score_adj: -100
+    security_opt:
+      - no-new-privileges:true
+    ulimits:
+      nofile:
+        soft: 131072
+        hard: 131072
+    environment:
+      FERRETDB_POSTGRESQL_URL: ${FERRETDB_POSTGRESQL_URL}
+      FERRETDB_LISTEN_ADDR: ${FERRETDB_LISTEN_ADDR:-:27017}
+      FERRETDB_AUTH: ${FERRETDB_AUTH:-true}
+      FERRETDB_TELEMETRY: ${FERRETDB_TELEMETRY:-disabled}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${FERRETDB_BIND_ADDR:-127.0.0.1}:${FERRETDB_PORT:-27017}:27017"
+    volumes:
+      - ferretdb-state:/state
+
+volumes:
+  ferretdb-state:

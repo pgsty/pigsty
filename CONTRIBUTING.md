@@ -46,7 +46,7 @@ The `app/` directory contains Docker Compose templates for applications that wor
 ```
 app/
 ├── supabase/    # Firebase alternative
-├── ferretdb/    # MongoDB alternative
+├── ferretdb/    # MongoDB-compatible frontend for PostgreSQL
 ├── bytebase/    # DDL migration tool
 ├── gitea/       # Git service
 ├── nocodb/      # Airtable alternative

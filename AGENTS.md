@@ -258,7 +258,7 @@ Application templates for deploying containerized software on top of Pigsty infr
 Ready-to-use configuration templates for various deployment scenarios. Copy and customize these for your specific needs.
 
 **Single-node templates:** `meta.md`, `rich.md`, `fat.md`, `slim.md`, `infra.md` - Various single-node configurations from minimal to feature-rich
-**Kernel templates:** `pgsql.md`, `citus.md`, `polar.md`, `oriole.md`, `mysql.md`, `mssql.md` - Templates for different PostgreSQL variants and compatibility layers
+**Kernel/mode templates:** `pgsql.md`, `citus.md`, `polar.md`, `oriole.md`, `mysql.md`, `mssql.md`, `mongo.md` - Templates for PostgreSQL variants and compatibility modes, including Mongo wire compatibility through DocumentDB and the FerretDB Docker APP
 **HA templates:** `dual.md`, `trio.md`, `full.md`, `safe.md`, `simu.md` - Multi-node high availability configurations from 2-node to full production
 **Application templates:** `odoo.md`, `dify.md`, `teable.md`, `supabase.md`, `registry.md` - Pre-configured templates for specific applications
 **Demo templates:** `demo.md`, `el.md`, `debian.md`, `oss.md`, `minio.md` - Demonstration and testing configurations
@@ -448,14 +448,6 @@ Redis caching module supporting standalone, master-slave replication, sentinel, 
 - `param.md` - Complete Redis parameter reference
 - `monitor.md` - Redis monitoring and performance metrics
 - `faq.md` - Common Redis issues and troubleshooting
-
----
-
-### FERRET Module `/docs/ferret/`
-FerretDB module providing MongoDB wire protocol compatibility layer on top of PostgreSQL. Allows MongoDB applications to use PostgreSQL as the backend.
-
-- `admin.md` - FerretDB administration and connection management
-- `config.md` - FerretDB configuration and PostgreSQL integration
 
 ---
 

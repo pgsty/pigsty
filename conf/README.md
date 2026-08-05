@@ -19,7 +19,7 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c pgtde            # Percona PostgreSQL Server with TDE (18)
 ./configure -c oriole           # OrioleDB Kernel for OLTP Enhancement (16/17/18)
 ./configure -c agens            # AgensGraph kernel for Graph DB workloads (17)
-./configure -c mongo            # 1-node MongoDB-compatible stack (FerretDB/DocumentDB)
+./configure -c mongo            # 1-node PostgreSQL Mongo mode (DocumentDB + FerretDB APP)
 ./configure -c pgedge           # pgEdge kernel for distributed PostgreSQL workloads (18)
 ./configure -c supabase         # PostgreSQL configured for Supabase self-hosting (15~18)
 ./configure -c pg19             # PostgreSQL 19 beta with PGDG testing repo and minimal runtime packages
@@ -53,7 +53,7 @@ These are 1-node config template, which can be used to install pigsty on a singl
 * [fat.yml](fat.yml) : extreme feature-rich config with all extensions installed!
 * [infra.yml](infra.yml) : only install the infra components without postgres
 * [vibe.yml](vibe.yml) : 1-node vibe coding devbox with pgsql and various tools
-* [mongo.yml](mongo.yml) : 1-node MongoDB-compatible stack with FerretDB/DocumentDB
+* [mongo.yml](mongo.yml) : 1-node PostgreSQL Mongo mode with DocumentDB + FerretDB APP
 * [docker.yml](docker.yml) : 1-node docker coding environment
 
 **Templates for exotic DBMS and kernels:**

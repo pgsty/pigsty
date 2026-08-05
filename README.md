@@ -30,7 +30,7 @@ curl -fsSL https://repo.pigsty.io/get | bash -s v4.4.0
 - **Observable**:   SOTA monitoring for [**PG**](https://demo.pigsty.io/ui/d/pgrds-instance/pgrds-instance) / [**Infra**](https://pigsty.io/docs/infra) / [**Node**](https://pigsty.io/docs/node) based on the **Victoria** & **Grafana** stack: [**Demo**](https://demo.pigsty.io) & [**Gallery**](https://github.com/pgsty/pigsty/wiki/Gallery).
 - **Scalable**:     Auto-routed & pooled customizable database [**Services**](https://pigsty.io/docs/pgsql/service) [**Access**](https://pigsty.io/docs/pgsql/service#access-service) with **haproxy**, **pgbouncer**, and **VIP**.
 - **Maintainable**: [**One-Cmd Deploy**](https://pigsty.io/docs/setup/install), [**Admin SOP**](https://pigsty.io/docs/pgsql/admin), **Auto-Tune**, **Local Repo**, [**IaC**](https://pigsty.io/docs/pgsql/config) and [**Vagrant**](https://pigsty.io/docs/deploy/vagrant) / [**Terraform**](https://pigsty.io/docs/deploy/terraform) support.
-- **Composable**:   Bonus [**Modules**](https://pigsty.io/docs/ref/module) such as [**Redis / Valkey**](https://pigsty.io/docs/redis), [**MinIO**](https://pigsty.io/docs/minio), [**Etcd**](https://pigsty.io/docs/etcd), [**Docker**](https://pigsty.io/docs/app), [**DuckDB**](https://pigsty.io/docs/pilot/duckdb), [**FerretDB**](https://pigsty.io/docs/ferret), [**Supabase**](https://pigsty.io/docs/app/supabase), [**& More**](https://pigsty.io/docs/ref/module).
+- **Composable**:   Bonus [**Modules**](https://pigsty.io/docs/ref/module) such as [**Redis / Valkey**](https://pigsty.io/docs/redis), [**MinIO**](https://pigsty.io/docs/minio), [**Etcd**](https://pigsty.io/docs/etcd), [**Docker**](https://pigsty.io/docs/app), [**DuckDB**](https://pigsty.io/docs/pilot/duckdb), [**Supabase**](https://pigsty.io/docs/app/supabase), [**& More**](https://pigsty.io/docs/ref/module).
 - **Controllable**: Self-sufficient [**Infra Closure**](https://pigsty.io/docs/infra), Cloud Neutral FOSS. Run on [**bare Linux**](https://pigsty.io/docs/ref/linux) without [**Docker & K8S**](https://vonng.com/en/db/db-in-k8s/).
 - **Affordable**:   Self-Hosting like a [**Pro**](https://pigsty.io/price/), without the cost of [**RDS**](https://vonng.com/en/cloud/rds/). Empowering Cloud-Exit for Ultra [**Cost Saving!**](https://pigsty.io/docs/about/compare/)
 
@@ -42,7 +42,7 @@ You can even use many exotic [**PG Kernel Forks**](https://pigsty.io/docs/pgsql/
 [![BABELFISH](https://img.shields.io/badge/BABELFISH-88A3CA?style=flat&logo=postgresql&labelColor=88A3CA&logoColor=black)](https://pigsty.io/docs/pgsql/kernel/babelfish)
 [![IVORYSQL](https://img.shields.io/badge/IVORYSQL-E8AC52?style=flat&logo=postgresql&labelColor=E8AC52&logoColor=black)](https://pigsty.io/docs/pgsql/kernel/ivorysql)
 [![OPENHALO](https://img.shields.io/badge/OPENHALO-66D9C6?style=flat&logo=mysql&labelColor=66D9C6&logoColor=black)](https://pigsty.io/docs/pgsql/kernel/openhalo)
-[![FERRETDB](https://img.shields.io/badge/FERRETDB-042133?style=flat&logo=ferretdb&labelColor=042133&logoColor=white)](https://pigsty.io/docs/ferret)
+[![MONGO](https://img.shields.io/badge/MONGO-042133?style=flat&logo=ferretdb&labelColor=042133&logoColor=white)](https://pigsty.io/docs/conf/mongo)
 
 [![PERCONA](https://img.shields.io/badge/PERCONA_TDE-1A93E8?style=flat&logo=postgresql&labelColor=1A93E8&logoColor=white)](https://pigsty.io/docs/pgsql/kernel/percona)
 [![ORIOLEDB](https://img.shields.io/badge/ORIOLEDB-2F6FED?style=flat&logo=postgresql&labelColor=2F6FED&logoColor=white)](https://pigsty.io/docs/pgsql/kernel/orioledb)
@@ -60,7 +60,7 @@ You can even use many exotic [**PG Kernel Forks**](https://pigsty.io/docs/pgsql/
 |  [Babelfish](https://pigsty.io/docs/pgsql/kernel/babelfish)  |    **SQL Server Simulation**     | Microsoft SQL Server wire-compatibility           |
 |   [IvorySQL](https://pigsty.io/docs/pgsql/kernel/ivorysql)   |      **Oracle Simulation**       | Oracle Grammar and PL/SQL compatible              |
 |   [OpenHalo](https://pigsty.io/docs/pgsql/kernel/openhalo)   |       **MySQL Simulation**       | MySQL wire-protocol compatibility                 |
-|          [FerretDB](https://pigsty.io/docs/ferret)           |      **MongoDB Simulation**      | MongoDB wire-protocol compatibility               |
+| [PostgreSQL (Mongo)](https://pigsty.io/docs/conf/mongo)      |      **MongoDB Simulation**      | DocumentDB + FerretDB wire-protocol compatibility |
 |    [Percona](https://pigsty.io/docs/pgsql/kernel/percona)    | **Transparent Data Encryption**  | Percona Distribution with pg_tde                  |
 |   [OrioleDB](https://pigsty.io/docs/pgsql/kernel/orioledb)   |   **OLTP Optimization Engine**   | No bloat, No XID Wraparound, S3 Storage           |
 |    [PolarDB](https://pigsty.io/docs/pgsql/kernel/polardb)    |      **Aurora flavor RAC**       | RAC, China domestic compliance                    |
@@ -221,8 +221,6 @@ The node can be used as an admin controller to deploy & monitor more nodes & clu
 [![MinIO](https://img.shields.io/badge/MINIO-%23C72E49?style=flat&logo=minio&logoColor=white)](https://pigsty.io/docs/minio) S3-compatible object storage service; used as an optional central backup server for `PGSQL`.
 
 [![Redis](https://img.shields.io/badge/REDIS-%23FF4438?style=flat&logo=redis&logoColor=white)](https://pigsty.io/docs/redis) Deploy Redis or Valkey servers in standalone master-replica, sentinel, and native cluster mode.
-
-[![Ferret](https://img.shields.io/badge/FERRET-%23042133?style=flat&logo=ferretdb&logoColor=white)](https://pigsty.io/docs/ferret) Native support for FerretDB — adding MongoDB wire protocol compatibility to Postgres!
 
 [![Docker](https://img.shields.io/badge/DOCKER-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/docker) Launch optional docker daemons to run other stateless parts besides Pigsty RDS.
 

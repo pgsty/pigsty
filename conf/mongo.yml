@@ -1,42 +1,38 @@
 ---
 #==============================================================#
 # File      :   mongo.yml
-# Desc      :   DocumentDB & FerretDB (MongoDB Compatible) template
+# Desc      :   PostgreSQL Mongo Mode (DocumentDB + FerretDB)
 # Ctime     :   2025-02-23
-# Mtime     :   2026-01-17
-# Docs      :   https://pigsty.io/docs/ferret
+# Mtime     :   2026-08-05
+# Docs      :   https://pigsty.io/docs/conf/mongo
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
-# This is the config template for FerretDB & DocumentDB
-# That is a Mongo Wire-Compatible Layer upon PostgreSQL
+# This is the PostgreSQL Mongo mode template, powered by DocumentDB + FerretDB
+# It provides a MongoDB wire-compatible endpoint backed by PostgreSQL
 # This config template works with PostgreSQL 16, 17, 18
-# tutorial: https://pigsty.io/docs/ferret
+# tutorial: https://pigsty.io/docs/conf/mongo
 #
 # Usage:
 #   curl https://repo.pigsty.io/get | bash
 #   ./configure -c mongo
 #   ./deploy.yml
-#   ./mongo.yml -l ferret
+#   ./docker.yml -l pg-meta
+#   ./app.yml -l pg-meta
+#   # install mongosh separately if it is not already available
+#   mongosh 'mongodb://mongod:DBUser.Mongo@127.0.0.1:27017/'
 
 all:
   children:
     infra: { hosts: { 10.10.10.10: { infra_seq: 1 }} ,vars: { repo_enabled: false }}
-    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1  }} ,vars: { etcd_cluster: etcd  }}
-    #minio: { hosts: { 10.10.10.10: { minio_seq: 1 }} ,vars: { minio_cluster: minio }}
-
-    #----------------------------------#
-    # FerretDB Database Cluster
-    #----------------------------------#
-    # ./mongo.yml -l ferret
-    ferret:
+    etcd:
       hosts:
-        10.10.10.10: { mongo_seq: 1 }
-      vars:
-        mongo_cluster: ferret
-        mongo_pgurl: 'postgres://dbuser_dba:DBUser.DBA@10.10.10.10:5432/postgres'
-        # mongosh 'mongodb://dbuser_dba:DBUser.DBA@10.10.10.10:27017'
+        10.10.10.10: { etcd_seq: 1 }
+        #10.10.10.11: { etcd_seq: 2 }
+        #10.10.10.12: { etcd_seq: 3 }
+      vars: { etcd_cluster: etcd }
+    #minio: { hosts: { 10.10.10.10: { minio_seq: 1 }} ,vars: { minio_cluster: minio }}
 
     #----------------------------------#
     # PGSQL Database Cluster
@@ -47,6 +43,7 @@ all:
       vars:
         pg_cluster: pg-meta
         pg_users:
+          - { name: mongod      ,password: DBUser.Mongo  ,superuser: true  ,comment: FerretDB backend user }
           - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin   ] ,comment: pigsty admin user }
           - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
         pg_databases:
@@ -64,6 +61,80 @@ all:
         pg_crontab:     # https://pigsty.io/docs/pgsql/admin/crontab
           - '00 01 * * * /pg/bin/pg-backup full'
 
+        # FerretDB Docker APP on the same node, exposed at 127.0.0.1:27017
+        docker_enabled: true
+        app: ferretdb
+        apps:
+          ferretdb:
+            conf:
+              FERRETDB_IMAGE: ghcr.io/ferretdb/ferretdb:2.7.0
+              FERRETDB_POSTGRESQL_URL: 'postgres://mongod:DBUser.Mongo@host.docker.internal:5436/postgres?pool_min_conns=1&pool_max_conns=20'
+              FERRETDB_BIND_ADDR: 127.0.0.1
+              FERRETDB_PORT: 27017
+              FERRETDB_LISTEN_ADDR: ':27017'
+              FERRETDB_AUTH: true
+              FERRETDB_TELEMETRY: disabled
+
+    #--------------------------------------------------------------------------#
+    # OPTIONAL: Three-node PostgreSQL + DocumentDB + FerretDB HA cluster
+    # Uncomment this entire block and the two additional etcd members above.
+    # Then run: ./docker.yml -l pg-mongo && ./app.yml -l pg-mongo
+    # Endpoint: mongodb://mongod:DBUser.Mongo@10.10.10.4:27017/
+    #--------------------------------------------------------------------------#
+    # pg-mongo:
+    #   hosts:
+    #     10.10.10.11: { pg_seq: 1, pg_role: primary, vip_role: master }
+    #     10.10.10.12: { pg_seq: 2, pg_role: replica, vip_role: backup }
+    #     10.10.10.13: { pg_seq: 3, pg_role: replica, vip_role: backup }
+    #   vars:
+    #     pg_cluster: pg-mongo
+    #     node_cluster: pg-mongo
+    #     pg_users:
+    #       - { name: mongod, password: DBUser.Mongo, superuser: true, comment: FerretDB backend user }
+    #     pg_databases:
+    #       - { name: postgres, extensions: [ documentdb, postgis, vector, pg_cron, rum ] }
+    #     pg_hba_rules:
+    #       - { user: all, db: all, addr: localhost, order: 1, auth: trust, title: 'documentdb localhost trust access' }
+    #       - { user: all, db: all, addr: local, order: 1, auth: trust, title: 'documentdb local trust access' }
+    #       - { user: mongod, db: postgres, addr: intra, order: 800, auth: pwd, title: 'ferretdb intranet access with password' }
+    #     pg_parameters: { cron.database_name: postgres }
+    #     pg_extensions: [ documentdb, postgis, pgvector, pg_cron, rum ]
+    #     pg_libs: 'pg_documentdb, pg_documentdb_core, pg_documentdb_extended_rum, pg_cron, pg_stat_statements, auto_explain'
+    #     pg_crontab:
+    #       - '00 01 * * 1 /pg/bin/pg-backup full'
+    #       - '00 01 * * 2,3,4,5,6,7 /pg/bin/pg-backup'
+    #
+    #     # FerretDB Docker cluster and HAProxy service
+    #     docker_enabled: true
+    #     app: ferretdb
+    #     apps:
+    #       ferretdb:
+    #         conf:
+    #           FERRETDB_IMAGE: ghcr.io/ferretdb/ferretdb:2.7.0
+    #           FERRETDB_POSTGRESQL_URL: 'postgres://mongod:DBUser.Mongo@host.docker.internal:5436/postgres?pool_min_conns=1&pool_max_conns=20'
+    #           FERRETDB_BIND_ADDR: '{{ inventory_hostname }}'
+    #           FERRETDB_PORT: 27018
+    #           FERRETDB_LISTEN_ADDR: ':27017'
+    #           FERRETDB_AUTH: true
+    #           FERRETDB_TELEMETRY: disabled
+    #
+    #     # HA Mongo endpoint: mongo.pigsty / 10.10.10.4:27017
+    #     vip_enabled: true
+    #     vip_vrid: 27
+    #     vip_address: 10.10.10.4
+    #     vip_preempt: false
+    #     haproxy_services:
+    #       - name: mongo
+    #         port: 27017
+    #         protocol: tcp
+    #         balance: leastconn
+    #         options:
+    #           - option tcp-check
+    #         servers:
+    #           - { name: ferretdb-1, ip: 10.10.10.11, port: 27018, options: 'check port 27018' }
+    #           - { name: ferretdb-2, ip: 10.10.10.12, port: 27018, options: 'check port 27018' }
+    #           - { name: ferretdb-3, ip: 10.10.10.13, port: 27018, options: 'check port 27018' }
+
   vars:                               # global variables
     #----------------------------------------------#
     # INFRA : https://pigsty.io/docs/infra/param
@@ -78,7 +149,7 @@ all:
     # NODE : https://pigsty.io/docs/node/param
     #----------------------------------------------#
     nodename_overwrite: false           # do not overwrite node hostname
-    node_repo_modules: node,infra,pgsql # add these repos directly to the nodes (consider add 'mongo' too)
+    node_repo_modules: node,infra,pgsql # install from upstream repo directly
     node_tune: oltp                     # node tuning specs: oltp,olap,tiny,crit
 
     #----------------------------------------------#

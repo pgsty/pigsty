@@ -4,7 +4,7 @@ This directory contains Grafana dashboard definitions for Pigsty monitoring syst
 
 ## Overview
 
-Pigsty provides **68 built-in dashboards** organized by module:
+Pigsty provides **69 built-in dashboards** organized by module:
 
 | Directory       | Count | Description                                                             |
 |-----------------|-------|-------------------------------------------------------------------------|
@@ -15,8 +15,8 @@ Pigsty provides **68 built-in dashboards** organized by module:
 | [redis](redis/) | 3     | Redis cluster and instance monitoring                                   |
 | [app](app/)     | 2     | Application dashboards (PostgreSQL logs analysis)                       |
 | [minio](minio/) | 2     | MinIO S3-compatible storage monitoring                                  |
-| [mongo](mongo/) | 1     | MongoDB/FerretDB monitoring                                             |
 | [mysql](mysql/) | 5     | MySQL fleet, cluster, instance, replication, and alert monitoring       |
+| [rustfs](rustfs/) | 2   | RustFS object storage monitoring                                        |
 | -               | 1     | [pigsty.json](pigsty.json) - Main home dashboard                        |
 
 
@@ -119,12 +119,6 @@ PGCAT (Catalog Analysis) dashboards:
 |------------------|------------------------|
 | `minio-overview` | MinIO overview         |
 | `minio-instance` | MinIO instance metrics |
-
-### MongoDB Dashboards
-
-| Dashboard        | Description               |
-|------------------|---------------------------|
-| `mongo-overview` | MongoDB/FerretDB overview |
 
 ### MySQL Dashboards
 

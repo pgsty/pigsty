@@ -26,7 +26,6 @@ The CA is used to sign certificates for:
 - MySQL cluster communication
 - Nginx HTTPS (self-signed fallback)
 - Infrastructure services
-- FerretDB/MongoDB TLS
 
 
 ## Playbooks
@@ -131,8 +130,6 @@ files/pki/
 │   └── *.crt, *.key          # Infrastructure certificates
 ├── nginx/
 │   └── *.crt, *.key          # Nginx HTTPS certificates
-├── mongo/
-│   └── *.crt, *.key          # FerretDB/MongoDB certificates
 └── mysql/
     └── *.crt, *.key          # MySQL server certificates
 ```
