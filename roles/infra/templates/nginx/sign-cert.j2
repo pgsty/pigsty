@@ -13,6 +13,8 @@ set -euo pipefail
 EMAIL="{{ certbot_email     | default('your@email.com') }}"
 WEBROOT="{{ nginx_home|default('/www') + '/acme' }}"
 OPTIONS=${1-"{{ certbot_options | default('') }}"}
+CLOUDFLARE_CREDENTIALS_FILE="/etc/nginx/conf.d/cert/cloudflare.ini"
+
 {% set certbot_map = {} %}
 {% for name, item in infra_portal.items() %}
   {% if item.certbot is defined and item.certbot %}
@@ -45,16 +47,34 @@ echo "issue {{ cert_name }} : {{ domains|join(', ') }}"
 
 if [ -f "/etc/letsencrypt/renewal/{{ cert_name }}.conf" ]; then
     echo "  -> Certificate exists. Attempting to expand/renew if needed..."
-    certbot certonly --non-interactive --cert-name {{ cert_name }} \
-        --webroot --webroot-path="$WEBROOT" \
-        --email "$EMAIL" --agree-tos --no-eff-email --expand \
-        {% for domain in domains %}-d "{{ domain }}" {% endfor %} $OPTIONS
+    if [ -f "$CLOUDFLARE_CREDENTIALS_FILE" ]; then  # Check if the file exists
+        echo "  -> Using Cloudflare DNS challenge."
+        certbot certonly --non-interactive --cert-name {{ cert_name }} \
+            --dns-cloudflare --dns-cloudflare-credentials "$CLOUDFLARE_CREDENTIALS_FILE" --dns-cloudflare-propagation-seconds 30 \
+            --email "$EMAIL" --agree-tos --no-eff-email --expand \
+            {% for domain in domains %}-d "{{ domain }}" {% endfor %} $OPTIONS
+    else
+        echo "  -> Using Webroot challenge."
+        certbot certonly --non-interactive --cert-name {{ cert_name }} \
+            --webroot --webroot-path="$WEBROOT" \
+            --email "$EMAIL" --agree-tos --no-eff-email --expand \
+            {% for domain in domains %}-d "{{ domain }}" {% endfor %} $OPTIONS
+    fi
 else
     echo "  -> Certificate does not exist. Obtaining a new certificate..."
-    certbot certonly --non-interactive --cert-name {{ cert_name }} \
-        --webroot --webroot-path="$WEBROOT" \
-        --email "$EMAIL" --agree-tos --no-eff-email \
-        {% for domain in domains %}-d "{{ domain }}" {% endfor %} $OPTIONS
+    if [ -f "$CLOUDFLARE_CREDENTIALS_FILE" ]; then # Check if the file exists
+        echo "  -> Using Cloudflare DNS challenge."
+        certbot certonly --non-interactive --cert-name {{ cert_name }} \
+            --dns-cloudflare --dns-cloudflare-credentials "$CLOUDFLARE_CREDENTIALS_FILE" --dns-cloudflare-propagation-seconds 30 \
+            --email "$EMAIL" --agree-tos --no-eff-email \
+            {% for domain in domains %}-d "{{ domain }}" {% endfor %} $OPTIONS
+    else
+        echo "  -> Using Webroot challenge."
+        certbot certonly --non-interactive --cert-name {{ cert_name }} \
+            --webroot --webroot-path="$WEBROOT" \
+            --email "$EMAIL" --agree-tos --no-eff-email \
+            {% for domain in domains %}-d "{{ domain }}" {% endfor %} $OPTIONS
+    fi
 fi
 
 echo "  -> Done for {{ cert_name }}: {{ domains|join(', ') }}"
