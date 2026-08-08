@@ -67,7 +67,6 @@
 # Remove ETCD Meta Data                                [pg_meta]
 #--------------------------------------------------------------#
 # when cleanup primary, remove etcd metadata, too.
-# delegate to first etcd node (which has etcdctl and certs)
 - name: remove postgres metadata from etcd
   tags: pg_meta
   when:
@@ -76,18 +75,6 @@
     - pg_cluster != 'root'  # fail if you choose 'root' as cluster name
     - groups['etcd'] is defined
     - groups['etcd'] | length > 0
-  delegate_to: '{{ groups["etcd"][0] }}'
-  become: true
-  environment:
-    ETCDCTL_ENDPOINTS: "{{ groups['etcd'] | map('regex_replace', '^(.*)$', 'https://\\1:' + etcd_port|string) | join(',') }}"
-    ETCDCTL_CACERT: "/etc/etcd/ca.crt"
-    ETCDCTL_CERT: "/etc/etcd/server.crt"
-    ETCDCTL_KEY: "/etc/etcd/server.key"
-    ETCDCTL_USER: "root:{{ etcd_root_password }}"
-  vars:
-    pg_meta_prefix: "{% if pg_mode == 'citus' %}{{ pg_namespace }}/{{ pg_shard }}/{{ pg_group }}{% else %}{{ pg_namespace }}/{{ pg_cluster }}{% endif %}"
-  shell: |
-    etcdctl del "{{ pg_meta_prefix }}" --prefix=true
-  args: { executable: /bin/bash }
-  no_log: true
+  # wrapper owns tag selection; child always runs once included
+  include_tasks: { file: etcd.yml, apply: { tags: [ always ] } }
 ...

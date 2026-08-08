@@ -1,10 +1,8 @@
 ---
 #--------------------------------------------------------------#
-# Cleanup ETCD cluster info                               [etcd]
+# Remove ETCD Meta Data                                [pg_meta]
 #--------------------------------------------------------------#
-# when pitr from another cluster, we'll need to remove the current
-# cluster's metadata from etcd /pg/<cluster>/
-- name: delete postgres metadata from etcd for pitr
+- name: delete postgres metadata from etcd for pg removal
   delegate_to: "{{ groups['etcd'] | first }}"
   become: true
   environment:
@@ -17,6 +15,5 @@
     pg_meta_prefix: "{{ pg_namespace }}/{{ (pg_shard ~ '/' ~ pg_group) if pg_mode == 'citus' else pg_cluster }}"
   shell: etcdctl del "{{ pg_meta_prefix }}" --prefix=true
   args: { executable: /bin/bash }
-  ignore_errors: true
   no_log: true
 ...
