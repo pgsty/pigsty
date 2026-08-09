@@ -62,11 +62,11 @@
   become: true
   block:
     - name: create minio cert directories
-      when: minio_https|bool and minio_type == 'minio'
+      when: minio_https|bool and minio_type in ['silo', 'minio']
       file: path=/home/{{ minio_user }}/.minio/certs/CAs state=directory owner={{ minio_user }} group=minio mode=0750
 
     - name: copy minio certificates
-      when: minio_https|bool and minio_type == 'minio'
+      when: minio_https|bool and minio_type in ['silo', 'minio']
       diff: false
       copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
       loop:

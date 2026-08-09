@@ -8,7 +8,7 @@
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
-import os, sys, json, requests
+import os, sys, json, copy, requests
 
 # grafana access info
 ENDPOINT = os.environ.get("GRAFANA_ENDPOINT", 'http://i.pigsty/ui')
@@ -72,6 +72,17 @@ def delete(path):
     ).json()
 
 
+def resource_request(method, path, payload=None):
+    """Call Grafana's versioned resource API outside the legacy /api prefix."""
+    return requests.request(
+        method,
+        "%s/%s" % (ENDPOINT.rstrip('/'), path.lstrip('/')),
+        auth=requests.auth.HTTPBasicAuth(USERNAME, PASSWORD),
+        headers={'Content-Type': 'application/json'},
+        json=payload
+    )
+
+
 ##########################################
 # grafana api
 ##########################################
@@ -82,8 +93,58 @@ def get_dashboard(uid):
     return get('dashboards/uid/%s' % uid)
 
 
+def is_dashboard_v2(d):
+    return d.get("kind") == "Dashboard" and d.get("apiVersion", "").startswith("dashboard.grafana.app/v2")
+
+
+def dashboard_v2_raw(d, folder=None):
+    """Strip server-managed metadata from a Dashboard V2 resource."""
+    raw = copy.deepcopy(d)
+    metadata = raw.get("metadata", {})
+    annotations = metadata.get("annotations", {})
+    clean_annotations = {}
+    if annotations.get("grafana.app/message"):
+        clean_annotations["grafana.app/message"] = annotations["grafana.app/message"]
+    folder_uid = folder if folder is not None else annotations.get("grafana.app/folder")
+    if folder_uid:
+        clean_annotations["grafana.app/folder"] = folder_uid
+    raw["apiVersion"] = "dashboard.grafana.app/v2"
+    raw["kind"] = "Dashboard"
+    raw["metadata"] = {
+        "name": metadata["name"],
+        "namespace": metadata.get("namespace", "default"),
+        "annotations": clean_annotations,
+    }
+    return raw
+
+
+def get_dashboard_v2(uid):
+    response = resource_request('GET', 'apis/dashboard.grafana.app/v2/namespaces/default/dashboards/%s' % uid)
+    response.raise_for_status()
+    return response.json()
+
+
+def add_dashboard_v2(d, folder=None):
+    """Create or replace a Dashboard V2 resource, preserving tab layouts and section variables."""
+    raw = dashboard_v2_raw(d, folder)
+    namespace = raw["metadata"].get("namespace", "default")
+    name = raw["metadata"]["name"]
+    item_path = 'apis/dashboard.grafana.app/v2/namespaces/%s/dashboards/%s' % (namespace, name)
+    response = resource_request('GET', item_path)
+    if response.status_code == 404:
+        collection_path = 'apis/dashboard.grafana.app/v2/namespaces/%s/dashboards' % namespace
+        response = resource_request('POST', collection_path, raw)
+    else:
+        response.raise_for_status()
+        response = resource_request('PUT', item_path, raw)
+    response.raise_for_status()
+    return response.json()
+
+
 def add_dashboard(d, folder=None):
     """put raw dashboard"""
+    if is_dashboard_v2(d):
+        return add_dashboard_v2(d, folder)
     d["id"] = None
     payload = {"dashboard": d, "overwrite": True}
     if CREATE_FOLDERS:
@@ -241,10 +302,13 @@ except:
 
 def dump_dashboard_to_file(d, path):
     with open(path, 'w') as dst:
-        raw = dashboard_raw(d)
-        raw["version"] = 1
-        raw["author"] = "Ruohang Feng (rh@vonng.com)"
-        raw["license"] = "https://pigsty.io/docs/about/license/"
+        if is_dashboard_v2(d):
+            raw = dashboard_v2_raw(d)
+        else:
+            raw = dashboard_raw(d)
+            raw["version"] = 1
+            raw["author"] = "Ruohang Feng (rh@vonng.com)"
+            raw["license"] = "https://pigsty.io/docs/about/license/"
         dump_json(raw, dst)
         #json.dump(raw, dst, indent=1, separators=(',', ':'), sort_keys=True)
 
@@ -344,7 +408,8 @@ def dump_all(dashboard_dir):
         if folder == "." or not folder:
             dbpath = os.path.join(dashboard_dir, uid + '.json')
         print("dump: %s / %s  \t ---> %s" % (folder, uid, dbpath))
-        dump_dashboard_to_file(get_dashboard(uid), dbpath)
+        prefer_v2 = os.path.isfile(dbpath) and is_dashboard_v2(load_dashboard(dbpath))
+        dump_dashboard_to_file(get_dashboard_v2(uid) if prefer_v2 else get_dashboard(uid), dbpath)
 
 
 def clean_all():

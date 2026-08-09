@@ -2,7 +2,7 @@
 #==============================================================#
 # File      :   minio.yml
 # Ctime     :   2023-02-24
-# Mtime     :   2023-08-02
+# Mtime     :   2026-08-06
 # Desc      :   Record rules for minio
 # Path      :   /infra/rules/minio.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -43,23 +43,59 @@ groups:
       #==============================================================#
       # MinIO node offline triggers a p1 alert
       - alert: MinioNodeOffline
-        expr: avg_over_time(minio_cluster_nodes_offline_total{job="minio"}[5m]) > 0
+        expr: max by (cls) (avg_over_time(minio_cluster_health_nodes_offline_count{job="minio"}[5m])) > 0
         for: 3m
         labels: { level: 1, severity: WARN, category: minio }
         annotations:
           summary: "WARN MinioNodeOffline: {{ $labels.cls }} {{ $value }}"
           description: |
-            minio_cluster_nodes_offline_total[cls={{ $labels.cls }}] = {{ $value }} > 0
+            minio_cluster_health_nodes_offline_count[cls={{ $labels.cls }}] = {{ $value }} > 0
             /ui/d/minio-overview?from=now-5m&to=now&var-cls={{$labels.cls}}
 
       # MinIO disk offline triggers a p1 alert
       - alert: MinioDiskOffline
-        expr: avg_over_time(minio_cluster_disk_offline_total{job="minio"}[5m]) > 0
+        expr: max by (cls) (avg_over_time(minio_cluster_health_drives_offline_count{job="minio"}[5m])) > 0
         for: 3m
         labels: { level: 1, severity: WARN, category: minio }
         annotations:
           summary: "WARN MinioDiskOffline: {{ $labels.cls }} {{ $value }}"
           description: |
-            minio_cluster_disk_offline_total[cls={{ $labels.cls }}] = {{ $value }} > 0
+            minio_cluster_health_drives_offline_count[cls={{ $labels.cls }}] = {{ $value }} > 0
             /ui/d/minio-overview?from=now-5m&to=now&var-cls={{$labels.cls}}
+
+      # V3 omits zero-valued gauges. Fall back to write quorum as a zero
+      # baseline so an unhealthy erasure-set gauge is still observable.
+      - alert: MinioErasureSetUnhealthy
+        expr: |
+          min by (cls) (
+            minio_cluster_erasure_set_overall_health{job="minio"}
+            or (minio_cluster_erasure_set_overall_write_quorum{job="minio"} * 0)
+          ) < 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: minio }
+        annotations:
+          summary: "CRIT MinioErasureSetUnhealthy: {{ $labels.cls }}"
+          description: |
+            minio_cluster_erasure_set_overall_health[cls={{ $labels.cls }}] = {{ $value }} < 1
+            /ui/d/minio-overview?from=now-15m&to=now&var-cls={{$labels.cls}}
+
+      # Cluster usable capacity above 90% for 15 minutes.
+      - alert: MinioClusterCapacityHigh
+        expr: |
+          max by (cls) (
+            1 - (
+              (
+                minio_cluster_health_capacity_usable_free_bytes{job="minio"}
+                or (minio_cluster_health_capacity_usable_total_bytes{job="minio"} * 0)
+              )
+              / minio_cluster_health_capacity_usable_total_bytes{job="minio"}
+            )
+          ) > 0.90
+        for: 15m
+        labels: { level: 1, severity: WARN, category: minio }
+        annotations:
+          summary: "WARN MinioClusterCapacityHigh: {{ $labels.cls }} {{ $value | humanizePercentage }}"
+          description: |
+            MinIO usable capacity usage for cls={{ $labels.cls }} is {{ $value | humanizePercentage }} > 90%.
+            /ui/d/minio-overview?from=now-1h&to=now&var-cls={{$labels.cls}}
 ...

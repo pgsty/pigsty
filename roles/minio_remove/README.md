@@ -1,6 +1,6 @@
 # Role: minio_remove
 
-> Remove a MinIO or RustFS instance from a node
+> Remove a Silo, MinIO, or RustFS instance from a node
 
 | **Module**        | [MINIO](https://pigsty.io/docs/minio) |
 |-------------------|---------------------------------------|
@@ -10,7 +10,7 @@
 
 ## Overview
 
-The `minio_remove` role removes MinIO or RustFS instances selected by
+The `minio_remove` role removes Silo, MinIO, or RustFS instances selected by
 `minio_type`:
 
 - Check safeguard protection
@@ -75,7 +75,9 @@ minio_remove (full role)
 
 | Variable          | Default | Description                    |
 |-------------------|---------|--------------------------------|
-| `minio_type`      | `minio` | Engine: `minio` or `rustfs`    |
+| `minio_cluster`   | —       | Required cluster identifier    |
+| `minio_seq`       | —       | Required instance identifier   |
+| `minio_type`      | —       | Required engine: `silo`, `minio`, or `rustfs` |
 | `minio_safeguard` | `false` | Prevent accidental removal     |
 | `minio_rm_data`   | `true`  | Remove data and config files   |
 | `minio_rm_pkg`    | `false` | Uninstall MinIO packages       |
@@ -114,7 +116,7 @@ Override with:
 
 The role uses a graceful shutdown sequence:
 
-1. `systemctl stop minio`
+1. `systemctl stop <minio_type>`
 2. Wait and retry if process still running
 3. `kill` remaining processes
 4. `kill -9` if still not terminated

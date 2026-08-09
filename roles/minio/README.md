@@ -1,6 +1,6 @@
 # Role: minio
 
-> Deploy MinIO or RustFS S3-compatible object storage
+> Deploy Silo, MinIO, or RustFS S3-compatible object storage
 
 | **Module**        | [MINIO](https://pigsty.io/docs/minio) |
 |-------------------|---------------------------------------|
@@ -10,18 +10,23 @@
 
 ## Overview
 
-The `minio` role deploys **MinIO** by default, or **RustFS** when
-`minio_type: rustfs` is selected:
+The `minio` role deploys **Silo** by default. Set `minio_type` to `minio` for
+the legacy server package or `rustfs` for RustFS:
 
 - Calculate cluster topology from inventory
 - Install the selected server and the MinIO-compatible `mcli` client
 - Configure TLS certificates
 - Create data directories
-- Launch MinIO service
-- Register MinIO pull metrics or RustFS native OTLP metrics and readiness probe
+- Launch the selected object storage service
+- Register Silo/MinIO pull metrics or RustFS native OTLP metrics and readiness probe
 - Provision buckets and users
 
-MinIO is used for pgBackRest remote backup storage with S3 protocol.
+Silo and MinIO are used for pgBackRest remote backup storage with S3 protocol.
+
+Each Silo or MinIO instance registers one `/minio/metrics/v3` target. The V3 root
+endpoint provides cluster, system, API, and aggregate usage metrics. Pigsty
+drops samples with a non-empty `bucket` label and does not register the
+dedicated per-bucket API or replication endpoints.
 
 
 ## Playbooks
@@ -50,6 +55,8 @@ roles/minio/
 └── templates/
     ├── minio.env             # MinIO environment config
     ├── minio.svc             # MinIO systemd service
+    ├── silo.env              # Silo environment config
+    ├── silo.svc              # Silo systemd service
     ├── rustfs.env            # RustFS environment config
     ├── rustfs.svc            # RustFS systemd service
     └── policy.json           # Bucket policy template
@@ -93,7 +100,7 @@ minio (full role)
 
 | Variable       | Level    | Description              |
 |----------------|----------|--------------------------|
-| `minio_type`   | GLOBAL / CLUSTER | Engine: `minio` or `rustfs` |
+| `minio_type`   | GLOBAL / CLUSTER | Engine: `silo`, `minio`, or `rustfs` |
 | `minio_cluster`| CLUSTER  | MinIO cluster name       |
 | `minio_seq`    | INSTANCE | Instance sequence number |
 
@@ -171,8 +178,13 @@ and production guidance.
 
 ## Cluster Topology
 
-Both engines support single-node and multi-node distributed modes through the
+All three engines support single-node and multi-node distributed modes through the
 same inventory model:
+
+Every Silo, MinIO, or RustFS group must define `minio_cluster` explicitly in its
+cluster variables. The inventory group name and cluster identifier may differ;
+do not put `minio_cluster` in `all.vars`, where it would mark every host as a
+MinIO member.
 
 ### Single Node
 
@@ -217,6 +229,11 @@ minio:
 Ensure the `rustfs` package is available from the configured Pigsty INFRA
 repository. Add it to `repo_extra_packages` when building an offline repository.
 
+Multiple object-storage clusters may coexist in one inventory. Give each one a
+distinct `minio_cluster`; when provisioning more than one cluster, also use
+distinct `minio_alias`, `minio_domain`, and `minio_endpoint` values to avoid
+overwriting shared client aliases on INFRA nodes.
+
 
 ## Default Provisioning
 
@@ -237,7 +254,7 @@ minio_users:
 
 ## TLS Configuration
 
-Both engines use TLS certificates signed by the Pigsty CA. RustFS uses its
+All three engines use TLS certificates signed by the Pigsty CA. RustFS uses its
 required certificate names and trusts the system CA bundle for node-to-node
 TLS:
 

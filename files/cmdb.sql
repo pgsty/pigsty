@@ -1471,9 +1471,9 @@ INSERT INTO pigsty.default_var VALUES
 (513, 'etcd_rm_pkg', 'false', 'ETCD', 'ETCD_REMOVE', 'bool', 'G/C/A', 'uninstall etcd packages? false by default', NULL),
 
 -- MINIO PARAMETERS
-(600, 'minio_type', '"minio"', 'MINIO', 'MINIO', 'enum', 'G/C', 'object storage engine: minio or rustfs', NULL),
+(600, 'minio_type', '"silo"', 'MINIO', 'MINIO', 'enum', 'G/C', 'object storage engine: silo, minio, or rustfs', NULL),
 (601, 'minio_seq', NULL, 'MINIO', 'MINIO', 'int', 'I', 'minio instance identifier, REQUIRED', NULL),
-(602, 'minio_cluster', '"minio"', 'MINIO', 'MINIO', 'string', 'C', 'minio cluster name, minio by default', NULL),
+(602, 'minio_cluster', NULL, 'MINIO', 'MINIO', 'string', 'C', 'minio cluster identifier, REQUIRED', NULL),
 (603, 'minio_https', 'true', 'MINIO', 'MINIO', 'bool', 'G/C', 'use https for minio, false will use http', NULL),
 (604, 'minio_user', '"minio"', 'MINIO', 'MINIO', 'username', 'C', 'minio os user, `minio` by default', NULL),
 (605, 'minio_node', '"${minio_cluster}-${minio_seq}.pigsty"', 'MINIO', 'MINIO', 'string', 'C', 'minio node name pattern', NULL),

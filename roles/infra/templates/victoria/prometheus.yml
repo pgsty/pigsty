@@ -100,7 +100,7 @@ scrape_configs:
   # path: targets/minio/<minio_instance>.yml
   #--------------------------------------------------------------#
   - job_name: minio
-    metrics_path: /minio/v2/metrics/cluster
+    metrics_path: /minio/metrics/v3
     file_sd_configs:
       - files: [ /infra/targets/minio/*.yml ]
     scheme: {% if minio_https|default(true)|bool %}https{% else %}http{% endif %}
@@ -132,6 +132,14 @@ scrape_configs:
         replacement: 127.0.0.1:{{ blackbox_port|default(9115) }}
       - action: labeldrop
         regex: probe_target
+
+    # The V3 root also exposes cluster usage series with a bucket dimension.
+    # Keep one static endpoint per instance while enforcing the intentional
+    # no-per-bucket policy and avoiding bucket-cardinality growth.
+    metric_relabel_configs:
+      - source_labels: [ bucket ]
+        regex: '.+'
+        action: drop
 
 {% if minio_https|default(true)|bool %}
     tls_config:

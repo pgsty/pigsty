@@ -1,0 +1,36 @@
+[Unit]
+Description=Silo Object Storage Server
+Documentation=https://silo.pgsty.com/docs/
+Wants=network-online.target
+After=network-online.target minio.service
+Conflicts=minio.service
+AssertFileIsExecutable=/usr/bin/silo
+
+[Service]
+Type=notify
+WorkingDirectory=/usr/bin
+
+User={{ minio_user }}
+Group=minio
+
+# Keep legacy MinIO settings usable during an in-place migration. Values in
+# /etc/default/silo take precedence when both files define the same variable.
+EnvironmentFile=-/etc/default/minio
+EnvironmentFile=-/etc/default/silo
+ExecStart=/usr/bin/silo server $MINIO_OPTS $MINIO_VOLUMES
+
+# Let systemd restart this service always
+Restart=always
+
+# fd limit per process, 8M is enough for any workload (must <= fs.nr_open)
+LimitNOFILE=8388608
+
+# Specifies the maximum number of threads this process can create
+TasksMax=infinity
+
+# Disable timeout logic and wait for cluster readiness / graceful shutdown
+TimeoutSec=infinity
+SendSIGKILL=no
+
+[Install]
+WantedBy=multi-user.target
