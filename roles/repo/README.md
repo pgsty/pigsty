@@ -82,17 +82,21 @@ repo                           # Full role execution
 
 ### Repository Settings
 
-| Variable        | Default                    | Description                          |
-|-----------------|----------------------------|--------------------------------------|
-| `repo_enabled`  | `true`                     | Enable local repo creation           |
-| `repo_name`     | `pigsty`                   | Repository name                      |
-| `repo_home`     | `/www`                     | Repository base directory            |
-| `repo_endpoint` | `http://${admin_ip}:80`    | Access URL for the repository        |
-| `repo_remove`   | `true`                     | Remove existing upstream repo files  |
-| `repo_modules`  | `infra,node,pgsql`         | Which modules to include in repo     |
+| Variable        | Default                 | Description                                          |
+|-----------------|-------------------------|------------------------------------------------------|
+| `repo_enabled`  | `true`                  | Enable local repo creation                           |
+| `repo_name`     | `pigsty`                | Repository name                                      |
+| `repo_home`     | `/www`                  | Repository base directory                            |
+| `repo_endpoint` | `http://${admin_ip}:80` | Access URL for the repository                        |
+| `repo_remove`   | `true`                  | Remove existing upstream repo files                  |
+| `repo_modules`  | `infra,node,pgsql`      | Modules to include (`infra` is always added for Sow) |
 
 > Note: On a fresh installation, the role creates `/www` as a symbolic link to
 > `/data/nginx`. An existing directory or symlink is preserved.
+
+Sow is required to rebuild repository metadata. Refresh offline archives and
+existing local repositories made before this change, or install Sow 0.2.0 from
+the Pigsty INFRA repository before running `repo_create` or `cache_create`.
 
 ### Package Sources
 
@@ -127,8 +131,9 @@ local repository is marked as a hotfix repository when it is configured.
     ├── repodata/             # YUM metadata (EL only)
     │   ├── repomd.xml
     │   └── primary.xml.gz
+    ├── Packages              # APT metadata (Debian/Ubuntu)
     ├── Packages.gz           # APT metadata (Debian/Ubuntu)
-    └── repo_complete         # Completion marker (MD5 checksums)
+    └── repo_complete         # Completion marker (SHA-256 checksums)
 ```
 
 
@@ -170,7 +175,7 @@ These "dirty" packages are automatically cleaned up before creating repository m
 
 | Pattern           | Platform       | Reason                                      |
 |-------------------|----------------|---------------------------------------------|
-| `*.i686.rpm`      | EL7            | 32-bit packages from multilib repos         |
+| `*.i686.rpm`      | All RPM        | 32-bit packages from multilib repos         |
 | `*i386.deb`       | Debian/Ubuntu  | 32-bit packages not needed on x86_64        |
 | `patroni*3.0.4*`  | All            | Old version conflicts with newer patroni    |
 
@@ -179,7 +184,7 @@ These packages can cause:
 - Unnecessary disk space usage
 - Confusion when multiple versions exist
 
-The cleanup happens in the `repo_create` task before `createrepo_c` or `dpkg-scanpackages` is executed.
+The cleanup and metadata publication happen atomically in `repo_create` through `sow create --pigsty`.
 
 
 ## Common Commands

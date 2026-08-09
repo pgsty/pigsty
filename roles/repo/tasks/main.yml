@@ -53,6 +53,7 @@
   tags: repo_prepare
   when: repo_exists|bool and repo_enabled|bool
   shell: |
+    set -e
     {% if os_package == 'rpm' %}
 
     mkdir -p /etc/yum.repos.d/backup/
@@ -70,10 +71,9 @@
     module_hotfixes=1
     {% endif %}
     EOF
-    yum makecache;
-    yum install -y wget nginx sshpass createrepo_c;
+    yum makecache || /bin/true
+    yum install -y wget nginx sshpass sow;
     yum install -y yum-utils || /bin/true
-    /bin/true;
     
     {% elif os_package == 'deb' %}
     
@@ -84,9 +84,8 @@
     {% endif %}
     
     echo "deb [trusted=yes] file:{{ repo_home }}/{{ repo_name }}/ ./" > /etc/apt/sources.list.d/pigsty-local.list
-    apt update
-    apt install -y wget nginx sshpass dpkg-dev || /bin/true
-    /bin/true
+    apt update || /bin/true
+    apt install -y wget nginx sshpass sow
     {% endif %}
   args: { executable: /bin/bash }
 

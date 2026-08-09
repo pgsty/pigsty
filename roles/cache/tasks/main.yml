@@ -40,47 +40,22 @@
 # Before creating the cache, unwanted packages are removed to
 # reduce tarball size and avoid installation conflicts:
 #
-# - *.i686.rpm (EL7): 32-bit packages from multilib repos
+# - *.i686.rpm (RPM): 32-bit packages from multilib repos
 # - *i386.deb (DEB): 32-bit packages not needed on x86_64
 # - patroni*3.0.4*: Old version that conflicts with newer patroni
 # - proj-data* (EL9+): Large optional geospatial data (~500MB)
 # - *docs*: Documentation packages (unnecessary for runtime)
 #
-# METADATA GENERATION:
-# - RPM: createrepo_c creates repodata/ with repomd.xml
-# - DEB: dpkg-scanpackages creates Packages.gz
+# Sow creates RPM/DEB metadata; --pigsty removes 32-bit and Patroni 3.0.4 packages
 #--------------------------------------------------------------#
 - name: create and trim local repo
   tags: cache_create
   become: true
   shell: |
-    {% if os_package|default('rpm') == 'rpm' %}
-    cd "{{ repo_home }}/{{ repo_name }}";
-    {% if os_version|int == 7 %}
-    rm -f *.i686.rpm;       # remove i686 packages
-    {% elif os_version|int >= 9 %}
-    rm -rf proj-data*;      # remove optional proj data
-    {% endif %}
-    rm -rf patroni*3.0.4*;  # remove duplicated old version
-    rm -rf *docs*;          # remove unnecessary docs
-
-    createrepo_c {{ repo_home }}/{{ repo_name }}
-    rm -f modules.yaml;
-    modifyrepo_c --remove modules repodata/ >/dev/null 2>&1 || /bin/true;
-    rm -f repodata/*-modules.yaml*;
-
-    md5sum *.rpm > {{ repo_home }}/{{ repo_name }}/repo_complete || /bin/true
-
-    {% elif os_package == 'deb' %}
-    cd {{ repo_home }}/{{ repo_name }};
-    rm -f *i386.deb;   # remove i386 packages
-    rm -rf Packages.gz;
-    dpkg-scanpackages . /dev/null | gzip -9c > Packages.gz
-    md5sum *.deb > {{ repo_home }}/{{ repo_name }}/repo_complete || /bin/true
-    {% endif %}
-  args:
-    executable: /bin/bash
-    chdir: "{{ repo_home }}/{{ repo_name }}"
+    {% if os_package|default('rpm') == 'rpm' and os_version|int >= 9 %}rm -rf proj-data*;{% endif %}
+    {% if os_package|default('rpm') == 'rpm' %}rm -rf *docs*;{% endif %}
+    sow create --pigsty --timeout 10m -- "{{ repo_home }}/{{ repo_name }}"
+  args: { executable: /bin/bash, chdir: "{{ repo_home }}/{{ repo_name }}" }
 
 
 #--------------------------------------------------------------#
