@@ -4,7 +4,7 @@
 # File      :   deploy
 # Desc      :   deploy everything on all nodes
 # Ctime     :   2021-01-19
-# Mtime     :   2025-12-28
+# Mtime     :   2026-08-06
 # Path      :   deploy.yml
 # Docs      :   https://pigsty.io/docs/infra/playbook
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -30,7 +30,7 @@
 # - infra.yml -l infra   deploy infrastructure on group 'infra'
 # - node.yml  -l all     init all nodes
 # - etcd.yml  -l etcd    init etcd on group 'etcd' for pg ha
-# - minio.yml -l minio   init minio on group 'minio' for pg backup
+# - minio.yml -l <group> init minio hosts marked with minio_cluster
 # - pgsql.yml -l all     init pgsql database clusters on all nodes
 #==============================================================#
 
@@ -120,10 +120,11 @@
 #---------------------------------------------------------------
 - name: MINIO INIT
   become: true
-  hosts: minio
+  hosts: all
   gather_facts: no
   tags: minio
-  roles: [ { role: minio } ]  # init minio on fixed group 'minio'
+  pre_tasks: [ { name: skip non-minio hosts ,meta: end_host ,when: minio_cluster is not defined ,tags: always } ]
+  roles: [ { role: minio ,when: minio_cluster is defined } ]
 
 
 #---------------------------------------------------------------
@@ -134,6 +135,7 @@
   hosts: all
   gather_facts: no
   tags: pgsql
+  pre_tasks: [ { name: skip non-pgsql hosts ,meta: end_host ,when: pg_cluster is not defined ,tags: always } ]
   roles:
     - { role: pgsql      ,when: pg_cluster is defined }
     - { role: pg_monitor ,when: pg_cluster is defined }

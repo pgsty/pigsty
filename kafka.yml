@@ -4,7 +4,7 @@
 # File      :   kafka.yml
 # Desc      :   init kafka cluster / instance (dynamic KRaft)
 # Ctime     :   2024-01-01
-# Mtime     :   2026-07-17
+# Mtime     :   2026-08-06
 # Path      :   kafka.yml
 # Docs      :   https://pigsty.io/docs/kafka/playbook
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -15,9 +15,10 @@
   hosts: all
   gather_facts: no
   any_errors_fatal: true
+  pre_tasks: [ { name: skip non-kafka hosts ,meta: end_host ,when: kafka_cluster is not defined ,tags: always } ]
   roles:
-    - { role: node_id ,tags: [id, node-id] ,when: kafka_cluster is defined and kafka_seq is defined } # get node identity (always)
-    - { role: kafka   ,tags: kafka         ,when: kafka_cluster is defined and kafka_seq is defined } # init & converge kafka cluster
+    - { role: node_id ,tags: [id, node-id] ,when: kafka_cluster is defined } # get node identity (always)
+    - { role: kafka   ,tags: kafka         ,when: kafka_cluster is defined } # init & converge kafka cluster
 
 
 #--------------------------------------------------------------#

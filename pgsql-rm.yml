@@ -15,12 +15,15 @@
   hosts: all
   gather_facts: no
   ignore_errors: true
+  pre_tasks: [ { name: skip non-pgsql hosts ,meta: end_host ,when: pg_cluster is not defined ,tags: always } ]
   vars:
     #pg_safeguard: true                # safeguard for pgsql remove, set to true halt remove execution
     #pg_rm_data: true                  # remove postgres data during remove? true by default
     #pg_rm_backup: true                # remove pgbackrest backup during primary remove? true by default
     #pg_rm_pkg: true                   # uninstall postgres packages during remove? true by default
-  roles: [ { role: node_id }, { role: pg_remove } ]
+  roles:
+    - { role: node_id   ,when: pg_cluster is defined }
+    - { role: pg_remove ,when: pg_cluster is defined }
 
 
 #--------------------------------------------------------------#

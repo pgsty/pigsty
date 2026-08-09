@@ -4,7 +4,7 @@
 # File      :   pgsql.yml
 # Desc      :   init postgres cluster/instance
 # Ctime     :   2020-05-12
-# Mtime     :   2026-01-14
+# Mtime     :   2026-08-06
 # Path      :   pgsql.yml
 # Docs      :   https://pigsty.io/docs/pgsql/playbook#pgsqlyml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -14,11 +14,12 @@
   become: true
   hosts: all
   gather_facts: no
+  pre_tasks: [ { name: skip non-pgsql hosts ,meta: end_host ,when: pg_cluster is not defined ,tags: always } ]
   roles:
-    - { role: node_id    ,tags: [id,node-id] } # get node identity (always)
-    - { role: pg_id      ,tags: [id,pg-id]   } # get pgsql identity (always)
-    - { role: pgsql      ,tags: pgsql        } # init postgres cluster/instance
-    - { role: pg_monitor ,tags: monitor      } # init postgres monitoring
+    - { role: node_id    ,tags: [id,node-id] ,when: pg_cluster is defined } # get node identity (always)
+    - { role: pg_id      ,tags: [id,pg-id]   ,when: pg_cluster is defined } # get pgsql identity (always)
+    - { role: pgsql      ,tags: pgsql        ,when: pg_cluster is defined } # init postgres cluster/instance
+    - { role: pg_monitor ,tags: monitor      ,when: pg_cluster is defined } # init postgres monitoring
 
 
 #--------------------------------------------------------------#

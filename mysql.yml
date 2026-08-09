@@ -4,7 +4,7 @@
 # File      :   mysql.yml
 # Desc      :   reconcile native MySQL 8.4 LTS cluster/instance
 # Ctime     :   2026-07-16
-# Mtime     :   2026-07-19
+# Mtime     :   2026-08-06
 # Path      :   mysql.yml
 # Docs      :   https://pigsty.io/docs/pilot/mysql
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -15,9 +15,10 @@
   hosts: all
   gather_facts: no
   any_errors_fatal: true
+  pre_tasks: [ { name: skip non-mysql hosts ,meta: end_host ,when: mysql_cluster is not defined ,tags: always } ]
   roles:
-    - { role: node_id ,tags: [id,node-id] ,when: mysql_cluster is defined and mysql_seq is defined } # get node identity
-    - { role: mysql   ,tags: mysql        ,when: mysql_cluster is defined and mysql_seq is defined } # reconcile mysql
+    - { role: node_id ,tags: [id,node-id] ,when: mysql_cluster is defined } # get node identity
+    - { role: mysql   ,tags: mysql        ,when: mysql_cluster is defined } # reconcile mysql
 
 
 #--------------------------------------------------------------#

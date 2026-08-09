@@ -1,5 +1,20 @@
 ---
 #--------------------------------------------------------------#
+# Assert PGSQL Identity                               [pg-id]
+#--------------------------------------------------------------#
+- name: assert pgsql remove identity
+  connection: local
+  tags: [ always, pg-id ]
+  any_errors_fatal: true
+  ignore_errors: false
+  assert:
+    that:
+      - pg_cluster is defined and pg_cluster is string and pg_cluster is match('^[A-Za-z0-9-]+$') and pg_cluster != 'root'
+      - pg_seq is defined and (pg_seq | string | regex_search('^[0-9]+$')) is not none
+      - pg_role is defined and pg_role in ['primary', 'replica', 'standby', 'offline', 'delayed']
+    fail_msg: pg_cluster, numeric pg_seq, and valid pg_role are required for pgsql removal
+
+#--------------------------------------------------------------#
 # HONOR PG_SAFEGUARD                              [pg_safeguard]
 #--------------------------------------------------------------#
 - name: ABORT due to pg_safeguard enabled

@@ -4,7 +4,7 @@
 # File      :   redis-rm.yml
 # Desc      :   remove redis cluster / node /instance
 # Ctime     :   2022-03-20
-# Mtime     :   2025-12-31
+# Mtime     :   2026-08-06
 # Path      :   redis-rm.yml
 # Docs      :   https://pigsty.io/docs/redis/playbook
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -15,9 +15,10 @@
   become: true
   gather_facts: no
   ignore_errors: true
+  pre_tasks: [ { name: skip non-redis hosts ,meta: end_host ,when: redis_cluster is not defined ,tags: always } ]
   roles:
-    - { role: node_id,      when: redis_cluster is defined }
-    - { role: redis_remove, when: redis_cluster is defined }
+    - { role: node_id      ,when: redis_cluster is defined }
+    - { role: redis_remove ,when: redis_cluster is defined }
   vars:
     #redis_safeguard: false           # prevent purging running redis instance?
     #redis_rm_data: true              # remove redis data dir? (/data/redis/...)

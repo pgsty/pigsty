@@ -4,7 +4,7 @@
 # File      :   validate
 # Desc      :   validate pigsty config file
 # Ctime     :   2023-04-21
-# Mtime     :   2026-02-04
+# Mtime     :   2026-08-06
 # Path      :   bin/validate
 # Deps      :   yaml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -77,6 +77,12 @@ def validate_global_vars(conf):
         print("[WARN] 'all.vars.region' not found, is this pigsty file properly configured?")
     elif global_vars['region'] not in ('default', 'china', 'europe'):
         print("[WARN] 'all.vars.region' %s is not a valid value" % global_vars['region'])
+
+    # cluster identity must stay in cluster/host vars, otherwise every host
+    # inherits it and broad module playbooks cannot distinguish membership
+    if 'minio_cluster' in global_vars:
+        print("[ERRO] 'all.vars.minio_cluster' is not allowed, define it in minio cluster vars")
+        success = False
 
     # print all.vars check result
     if success:
@@ -209,20 +215,32 @@ def validate_etcd_group(conf):
 
 def validate_minio_group(conf):
     success = True
-    if 'minio' not in conf["all"]["children"]:
+    children = conf["all"]["children"]
+
+    # keep the conventional group explicit too: minio_cluster has no role default
+    if 'minio' in children and 'minio_cluster' not in children['minio'].get('vars', {}):
+        print("[ERRO] `all.children.minio.vars.minio_cluster` not found")
+        success = False
+
+    if len(MODULES["minio"]) < 1:
         if conf["all"]["vars"].get("pgbackrest_method") == "minio":
-            print("[WARN] `all.children.minio` not found, which is used by pgBackRest repo")
-    else:
-        gconf = conf["all"]["children"]["minio"]
+            print("[WARN] no minio cluster found, which is used by pgBackRest repo")
+
+    for gname in MODULES["minio"]:
+        gconf = children[gname]
+        minio_cluster = gconf['vars'].get('minio_cluster')
+        if not isinstance(minio_cluster, str) or minio_cluster == '':
+            print("[ERRO] `all.children.%s.vars.minio_cluster` should be a non-empty string" % gname)
+            success = False
         for hname, hvars in gconf['hosts'].items():
             if 'minio_seq' not in hvars:
-                print("[ERRO] `all.children.minio.hosts.%s.minio_seq` not found" % (hname))
+                print("[ERRO] `all.children.%s.hosts.%s.minio_seq` not found" % (gname, hname))
                 success = False
             elif not isinstance(hvars['minio_seq'], int):
-                print("[ERRO] `all.children.minio.hosts.%s.minio_seq` is not an integer" % (hname))
+                print("[ERRO] `all.children.%s.hosts.%s.minio_seq` is not an integer" % (gname, hname))
                 success = False
             elif hvars['minio_seq'] < 0:
-                print("[ERRO] `all.children.minio.hosts.%s.minio_seq` should be an integer >= 0" % (hname))
+                print("[ERRO] `all.children.%s.hosts.%s.minio_seq` should be an integer >= 0" % (gname, hname))
                 success = False
     if success:
         print("[ OK ] all.children.minio")

@@ -4,7 +4,7 @@
 # File      :   redis.yml
 # Desc      :   init redis cluster / node / instance
 # Ctime     :   2020-11-22
-# Mtime     :   2025-12-31
+# Mtime     :   2026-08-06
 # Path      :   redis.yml
 # Docs      :   https://pigsty.io/docs/redis/playbook
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -66,9 +66,10 @@
   become: true
   gather_facts: no
   tags: redis
+  pre_tasks: [ { name: skip non-redis hosts ,meta: end_host ,when: redis_cluster is not defined ,tags: always } ]
   roles:
-    - { role: node_id, when: redis_cluster is defined }
-    - { role: redis,   when: redis_cluster is defined }
+    - { role: node_id ,when: redis_cluster is defined }
+    - { role: redis   ,when: redis_cluster is defined }
 
 
 #--------------------------------------------------------------#
@@ -79,6 +80,7 @@
   become: true
   gather_facts: no
   tags: redis-ha
+  pre_tasks: [ { name: skip non-redis hosts ,meta: end_host ,when: redis_cluster is not defined ,tags: always } ]
   tasks:
 
     - name: skip if not a redis sentinel cluster
@@ -86,7 +88,7 @@
       meta: end_host
 
     - name: setup redis ha with sentinel
-      when: redis_port is not defined
+      when: redis_cluster is defined and redis_port is not defined
       run_once: true
       block:
 
@@ -145,6 +147,7 @@
   become: true
   gather_facts: no
   tags: redis-join
+  pre_tasks: [ { name: skip non-redis hosts ,meta: end_host ,when: redis_cluster is not defined ,tags: always } ]
   tasks:
 
     - name: skip if not a redis native cluster
@@ -152,6 +155,7 @@
       meta: end_host
 
     - name: perform redis cluster join
+      when: redis_cluster is defined
       run_once: true
       block:
 

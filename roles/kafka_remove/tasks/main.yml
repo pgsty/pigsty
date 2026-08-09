@@ -1,5 +1,18 @@
 ---
 #--------------------------------------------------------------#
+# Assert Kafka Identity                               [kafka-id]
+#--------------------------------------------------------------#
+- name: assert kafka remove identity
+  tags: [ always, kafka-id ]
+  any_errors_fatal: true
+  ignore_errors: false
+  assert:
+    that:
+      - kafka_cluster is defined and (kafka_cluster | string | regex_search('^[A-Za-z0-9][A-Za-z0-9_-]*$')) is not none
+      - kafka_seq is defined and (kafka_seq | string | regex_search('^[0-9]+$')) is not none
+    fail_msg: kafka_cluster and numeric kafka_seq are required
+
+#--------------------------------------------------------------#
 # Derive Kafka Identity                               [kafka_id]
 #--------------------------------------------------------------#
 - name: derive kafka remove identity
