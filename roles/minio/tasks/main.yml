@@ -11,8 +11,8 @@
         that:
           - minio_cluster is defined and minio_cluster != ''
           - minio_seq is defined and minio_seq|int >= 0
-          - minio_type in ['silo', 'minio', 'rustfs']
-        fail_msg: minio_cluster/minio_seq are required and minio_type must be silo, minio, or rustfs
+          - minio_type == 'silo'
+        fail_msg: minio_cluster/minio_seq are required and minio_type must be silo
 
     # Gather cluster metadata and calculate derived variables
     # - minio_meta: list of all hosts in the same minio_cluster from inventory
@@ -124,9 +124,6 @@
           cls: "{{ minio_cluster }}"
           instance: "{{ inventory_hostname }}:{{ minio_port }}"
           flavor: "{{ minio_type }}"
-      {% if minio_type == 'rustfs' %}
-          probe_target: "{% if minio_https|bool %}https{% else %}http{% endif %}://{{ minio_nodename }}:{{ minio_port }}/minio/health/ready"
-      {% endif %}
 
 
 #--------------------------------------------------------------#

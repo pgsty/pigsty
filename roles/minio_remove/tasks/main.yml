@@ -14,8 +14,8 @@
           - minio_cluster is defined and minio_cluster != ''
           - minio_seq is defined and minio_seq|int >= 0
           - minio_type is defined
-          - minio_type|default('') in ['silo', 'minio', 'rustfs']
-        fail_msg: minio_cluster/minio_seq are required and minio_type must be silo, minio, or rustfs
+          - minio_type|default('') == 'silo'
+        fail_msg: minio_cluster/minio_seq are required and minio_type must be silo
 
     - name: get minio cluster info
       connection: local
@@ -123,9 +123,9 @@
       file: path={{ item }} state=absent
       loop: "{{ [
         '/etc/default/' ~ minio_type,
-        '/home/' ~ minio_user ~ ('/.rustfs' if minio_type == 'rustfs' else '/.minio'),
+        '/home/' ~ minio_user ~ '/.minio',
         '/etc/systemd/system/' ~ minio_type ~ '.service'
-        ] + (['/etc/vector/minio.yaml'] if minio_type == 'minio' else []) }}"
+        ] }}"
         #- /var/log/minio.log # we just keep the log files
 
     - name: reload systemd after minio unit removal

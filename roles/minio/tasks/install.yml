@@ -13,10 +13,10 @@
 
 
 #--------------------------------------------------------------#
-# Install MinIO/RustFS Package                       [minio_pkg]
+# Install Object Storage Package                     [minio_pkg]
 #--------------------------------------------------------------#
 # The selected object storage package and `mcli` come from pigsty-infra.
-- name: install minio package
+- name: install object storage package
   tags: minio_pkg
   environment: "{{ proxy_env | default({}) }}"
   package: name={{ item }} state=present
@@ -43,20 +43,10 @@
 
     - name: create minio conf directory
       file:
-        path: "/home/{{ minio_user }}/{{ '.rustfs' if minio_type == 'rustfs' else '.minio' }}"
+        path: "/home/{{ minio_user }}/.minio"
         state: directory
         owner: "{{ minio_user }}"
         group: minio
         mode: '0750'
-
-    - name: create minio service log file
-      when: minio_type == 'minio'
-      file:
-        path: /var/log/minio.log
-        state: touch
-        owner: "{{ minio_user }}"
-        group: minio
-        mode: '0640'
-
 
 ...

@@ -1,6 +1,6 @@
 # Role: minio_remove
 
-> Remove a Silo, MinIO, or RustFS instance from a node
+> Remove a Silo instance from a node
 
 | **Module**        | [MINIO](https://pigsty.io/docs/minio) |
 |-------------------|---------------------------------------|
@@ -10,18 +10,18 @@
 
 ## Overview
 
-The `minio_remove` role removes Silo, MinIO, or RustFS instances selected by
-`minio_type`:
+The `minio_remove` role removes Silo instances. The destructive role requires
+an explicit `minio_type: silo` and does not infer the engine type:
 
 - Check safeguard protection
 - Pause for confirmation (3 seconds)
 - Deregister from Victoria Metrics
 - Remove DNS records (dnsmasq and /etc/hosts)
-- Stop MinIO service (graceful then force)
+- Stop Silo service (graceful then force)
 - Remove data directories (optional)
 - Uninstall packages (optional)
 
-**WARNING**: Removing MinIO will destroy all stored objects. Ensure backups exist.
+**WARNING**: Removing Silo will destroy all stored objects. Ensure backups exist.
 
 
 ## Playbooks
@@ -77,10 +77,10 @@ minio_remove (full role)
 |-------------------|---------|--------------------------------|
 | `minio_cluster`   | —       | Required cluster identifier    |
 | `minio_seq`       | —       | Required instance identifier   |
-| `minio_type`      | —       | Required engine: `silo`, `minio`, or `rustfs` |
+| `minio_type`      | —       | Required engine selector: `silo` |
 | `minio_safeguard` | `false` | Prevent accidental removal     |
 | `minio_rm_data`   | `true`  | Remove data and config files   |
-| `minio_rm_pkg`    | `false` | Uninstall MinIO packages       |
+| `minio_rm_pkg`    | `false` | Uninstall Silo and mcli packages |
 
 
 ## Safeguard Protection
@@ -124,5 +124,5 @@ The role uses a graceful shutdown sequence:
 
 ## See Also
 
-- `minio`: Deploy MinIO cluster
+- `minio`: Deploy Silo cluster
 - [MinIO Admin](https://pigsty.io/docs/minio/admin): Administration guide

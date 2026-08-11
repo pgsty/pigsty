@@ -116,7 +116,6 @@ In addition to the main templates, Pigsty provides a set of demo templates for d
 * [demo/remote.yml](demo/remote.yml) : example config for monitoring a remote pgsql cluster or RDS PG.
 * [demo/redis.yml](demo/redis.yml) : example config for redis clusters
 * [demo/minio.yml](demo/minio.yml) : example config for a 3-node minio clusters
-* [demo/rustfs.yml](demo/rustfs.yml) : example config for a 4-node RustFS cluster
 * [demo/saas.yml](demo/saas.yml) : feature-rich 1-node template with all extensions.
 * [demo/wool.yml](demo/wool.yml) : low-cost Aliyun ECS demo template.
 * [demo/demo.yml](demo/demo.yml) : config file for the pigsty [public demo](https://demo.pigsty.io)

@@ -61,12 +61,12 @@
   tags: [ minio_cert, minio_cert_copy ]
   become: true
   block:
-    - name: create minio cert directories
-      when: minio_https|bool and minio_type in ['silo', 'minio']
+    - name: create minio cert directory
+      when: minio_https|bool
       file: path=/home/{{ minio_user }}/.minio/certs/CAs state=directory owner={{ minio_user }} group=minio mode=0750
 
     - name: copy minio certificates
-      when: minio_https|bool and minio_type in ['silo', 'minio']
+      when: minio_https|bool
       diff: false
       copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
       loop:
@@ -74,23 +74,9 @@
         - { src: "files/pki/minio/{{ minio_instance }}.crt"  ,dest: "/home/{{ minio_user }}/.minio/certs/public.crt"  ,owner: "{{ minio_user }}", group: "minio" ,mode: "0644" }
         - { src: "files/pki/minio/{{ minio_instance }}.key"  ,dest: "/home/{{ minio_user }}/.minio/certs/private.key" ,owner: "{{ minio_user }}", group: "minio" ,mode: "0600" }
 
-    - name: create rustfs cert directory
-      when: minio_https|bool and minio_type == 'rustfs'
-      file: path=/home/{{ minio_user }}/.rustfs/certs state=directory owner={{ minio_user }} group=minio mode=0750
-
-    - name: copy rustfs certificates
-      when: minio_https|bool and minio_type == 'rustfs'
-      diff: false
-      copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
-      loop:
-        - { src: "files/pki/minio/{{ minio_instance }}.crt" ,dest: "/home/{{ minio_user }}/.rustfs/certs/rustfs_cert.pem" ,owner: "{{ minio_user }}", group: "minio" ,mode: "0644" }
-        - { src: "files/pki/minio/{{ minio_instance }}.key" ,dest: "/home/{{ minio_user }}/.rustfs/certs/rustfs_key.pem"  ,owner: "{{ minio_user }}", group: "minio" ,mode: "0600" }
-
     - name: disable object storage https by removing certs
       when: not minio_https|bool
-      file:
-        path: "/home/{{ minio_user }}/{{ '.rustfs/certs' if minio_type == 'rustfs' else '.minio/certs' }}"
-        state: absent
+      file: path=/home/{{ minio_user }}/.minio/certs state=absent
 
 
 #--------------------------------------------------------------#

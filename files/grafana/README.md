@@ -4,7 +4,7 @@ This directory contains Grafana dashboard definitions for Pigsty monitoring syst
 
 ## Overview
 
-Pigsty provides **69 built-in dashboards** organized by module:
+Pigsty provides **67 built-in dashboards** organized by module:
 
 | Directory       | Count | Description                                                             |
 |-----------------|-------|-------------------------------------------------------------------------|
@@ -16,7 +16,6 @@ Pigsty provides **69 built-in dashboards** organized by module:
 | [app](app/)     | 2     | Application dashboards (PostgreSQL logs analysis)                       |
 | [minio](minio/) | 2     | MinIO S3-compatible storage monitoring                                  |
 | [mysql](mysql/) | 5     | MySQL fleet, cluster, instance, replication, and alert monitoring       |
-| [rustfs](rustfs/) | 2   | RustFS object storage monitoring                                        |
 | -               | 1     | [pigsty.json](pigsty.json) - Main home dashboard                        |
 
 

@@ -84,6 +84,11 @@ def validate_global_vars(conf):
         print("[ERRO] 'all.vars.minio_cluster' is not allowed, define it in minio cluster vars")
         success = False
 
+    # minio_type is an engine extension point, but only Silo is deliverable now
+    if global_vars.get('minio_type', 'silo') != 'silo':
+        print("[ERRO] 'all.vars.minio_type' must be 'silo'")
+        success = False
+
     # print all.vars check result
     if success:
         print("[ OK ] all.vars")
@@ -232,7 +237,13 @@ def validate_minio_group(conf):
         if not isinstance(minio_cluster, str) or minio_cluster == '':
             print("[ERRO] `all.children.%s.vars.minio_cluster` should be a non-empty string" % gname)
             success = False
+        if gconf['vars'].get('minio_type', 'silo') != 'silo':
+            print("[ERRO] `all.children.%s.vars.minio_type` must be 'silo'" % gname)
+            success = False
         for hname, hvars in gconf['hosts'].items():
+            if 'minio_type' in hvars and hvars['minio_type'] != 'silo':
+                print("[ERRO] `all.children.%s.hosts.%s.minio_type` must be 'silo'" % (gname, hname))
+                success = False
             if 'minio_seq' not in hvars:
                 print("[ERRO] `all.children.%s.hosts.%s.minio_seq` not found" % (gname, hname))
                 success = False
