@@ -2,13 +2,13 @@
 
 Specs = [
 
-  # Rocky Linux 9
+  # Rocky Linux 9.8
   { "name" => "el9",    "ip" => "10.10.10.9" ,  "cpu" => "2",  "mem" => "2048",  "image" =>  "cloud-image/rocky-9"     },
 
-  # Rocky Linux 10
+  # Rocky Linux 10.2
   { "name" => "el10",   "ip" => "10.10.10.10",  "cpu" => "2",  "mem" => "2048",  "image" =>  "cloud-image/rocky-10"    },
 
-  # Debian 12.14
+  # Debian 12.15
   { "name" => "d12",    "ip" => "10.10.10.12",  "cpu" => "2",  "mem" => "2048",  "image" =>  "cloud-image/debian-12"   },
 
   # Debian 13.6

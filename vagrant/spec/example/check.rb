@@ -22,7 +22,7 @@ Specs = [
   { "name" => "pg-el8v16-1" , "ip" => "10.10.10.86" , "cpu" => "2" , "mem" => "4096" , "image" => "cloud-image/rocky-8" },
   { "name" => "pg-el8test-1", "ip" => "10.10.10.87" , "cpu" => "2" , "mem" => "4096" , "image" => "generic/rhel8"      },
   { "name" => "pg-el8test-2", "ip" => "10.10.10.88" , "cpu" => "2" , "mem" => "4096" , "image" => "cloud-image/rocky-8" },
-  { "name" => "pg-el8test-3", "ip" => "10.10.10.89" , "cpu" => "2" , "mem" => "4096" , "image" => "generic/alma8"      },
+  { "name" => "pg-el8test-3", "ip" => "10.10.10.89" , "cpu" => "2" , "mem" => "4096" , "image" => "cloud-image/almalinux-8" },
 
   { "name" => "pg-el9v12-1" , "ip" => "10.10.10.92" , "cpu" => "2" , "mem" => "4096" , "image" => "cloud-image/rocky-9" },
   { "name" => "pg-el9v13-1" , "ip" => "10.10.10.93" , "cpu" => "2" , "mem" => "4096" , "image" => "cloud-image/rocky-9" },
@@ -31,6 +31,6 @@ Specs = [
   { "name" => "pg-el9v16-1" , "ip" => "10.10.10.96" , "cpu" => "2" , "mem" => "4096" , "image" => "cloud-image/rocky-9" },
   { "name" => "pg-el9test-1", "ip" => "10.10.10.97" , "cpu" => "2" , "mem" => "4096" , "image" => "generic/rhel9"      },
   { "name" => "pg-el9test-2", "ip" => "10.10.10.98" , "cpu" => "2" , "mem" => "4096" , "image" => "cloud-image/rocky-9" },
-  { "name" => "pg-el9test-3", "ip" => "10.10.10.99" , "cpu" => "2" , "mem" => "4096" , "image" => "generic/alma9"      },
+  { "name" => "pg-el9test-3", "ip" => "10.10.10.99" , "cpu" => "2" , "mem" => "4096" , "image" => "cloud-image/almalinux-9" },
 
 ]

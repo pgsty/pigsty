@@ -13,8 +13,8 @@ Specs = [
   { "name" => "rhel7"     ,"ip" => "10.10.10.27"   , "cpu" => "4"    , "mem" => "8192"    , "image" =>  "generic/rhel7"           },
   { "name" => "rhel8"     ,"ip" => "10.10.10.28"   , "cpu" => "4"    , "mem" => "8192"    , "image" =>  "generic/rhel8"           },
   { "name" => "rhel9"     ,"ip" => "10.10.10.29"   , "cpu" => "4"    , "mem" => "8192"    , "image" =>  "generic/rhel9"           },
-  { "name" => "alma8"     ,"ip" => "10.10.10.38"   , "cpu" => "4"    , "mem" => "8192"    , "image" =>  "generic/alma8"           },
-  { "name" => "alma9"     ,"ip" => "10.10.10.39"   , "cpu" => "4"    , "mem" => "8192"    , "image" =>  "generic/alma9"           },
+  { "name" => "alma8"     ,"ip" => "10.10.10.38"   , "cpu" => "4"    , "mem" => "8192"    , "image" =>  "cloud-image/almalinux-8" },
+  { "name" => "alma9"     ,"ip" => "10.10.10.39"   , "cpu" => "4"    , "mem" => "8192"    , "image" =>  "cloud-image/almalinux-9" },
   { "name" => "oracle8"   ,"ip" => "10.10.10.48"   , "cpu" => "4"    , "mem" => "8192"    , "image" =>  "generic/oracle8"         },
   { "name" => "oracle9"   ,"ip" => "10.10.10.49"   , "cpu" => "4"    , "mem" => "8192"    , "image" =>  "generic/oracle9"         },
 

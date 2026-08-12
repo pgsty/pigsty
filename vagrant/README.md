@@ -141,9 +141,32 @@ u24  -> cloud-image/ubuntu-24.04
 u26  -> cloud-image/ubuntu-26.04
 ```
 
-`cloud-image/rocky-9` and `cloud-image/rocky-10` are pinned to box versions `9.7.20251123.2` and `10.1.20251116.0` on both amd64 and arm64 until Pigsty package validation matures.
+The generator pins every supported `cloud-image/*` box to the newest version verified on Vagrant Cloud, for reproducible amd64 and arm64 environments. Current pins are:
 
-Ubuntu 20.04 and Debian 11 shortcuts are intentionally not provided; use an explicit Vagrant box name only for legacy experiments.
+| Alias  | Vagrant box                | Version           |
+|--------|----------------------------|-------------------|
+| `el8`  | `cloud-image/rocky-8`      | `8.10.20240528.0` |
+| `el9`  | `cloud-image/rocky-9`      | `9.8.20260525.0`  |
+| `el10` | `cloud-image/rocky-10`     | `10.2.20260525.0` |
+| `d12`  | `cloud-image/debian-12`    | `20260806.2562.0` |
+| `d13`  | `cloud-image/debian-13`    | `20260810.2566.0` |
+| `u22`  | `cloud-image/ubuntu-22.04` | `20260810.0.0`    |
+| `u24`  | `cloud-image/ubuntu-24.04` | `20260801.0.0`    |
+| `u26`  | `cloud-image/ubuntu-26.04` | `20260731.0.0`    |
+
+AlmaLinux and legacy shortcuts are pinned by the same generator:
+
+| Alias    | Vagrant box                | Version           | Comment                             |
+|----------|----------------------------|-------------------|-------------------------------------|
+| `alma8`  | `cloud-image/almalinux-8`  | `8.10.20260803`   | EL8 vendor variant                  |
+| `alma9`  | `cloud-image/almalinux-9`  | `9.8.20260810`    | EL9 vendor variant                  |
+| `alma10` | `cloud-image/almalinux-10` | `10.2.20260526.0` | EL10 vendor variant                 |
+| `d11`    | `cloud-image/debian-11`    | `20260618.2513.0` | EOL, outside the support matrix     |
+| `u20`    | `cloud-image/ubuntu-20.04` | `20250624.0.0`    | EOL, outside the support matrix     |
+
+Legacy `generic/*` fixtures (`rhel7/8/9`, `oracle7/8/9`, `centos7`) are pinned to their last published box release `4.3.12`.
+These discontinued images are amd64-only (except `generic/rhel9`) and no longer track current OS minors,
+so they remain only for explicit vendor-compatibility experiments.
 
 
 --------
