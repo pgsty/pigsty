@@ -2,7 +2,7 @@
 # File      :   vultr.tf
 # Desc      :   1-node pigsty meta for Vultr (Debian 12/13)
 # Ctime     :   2025-01-07
-# Mtime     :   2026-04-30
+# Mtime     :   2026-08-12
 # Path      :   terraform/spec/vultr.tf
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -34,7 +34,7 @@ locals {
 
   # Vultr OS IDs (use data source to get dynamically).
   # Vultr publishes major-release labels, not point-release labels
-  # (Pigsty baseline: Debian 12.13 / 13.4).
+  # (Pigsty baseline: Debian 12.15 / 13.6).
   # Debian 12: os_id = 2136
   # Debian 13: os_id = 2625
   os_map = {

@@ -2,7 +2,7 @@
 # File      :   aliyun-pro.yml
 # Desc      :   7-node building env for x86_64/aarch64
 # Ctime     :   2024-12-12
-# Mtime     :   2026-07-04
+# Mtime     :   2026-08-12
 # Path      :   terraform/spec/aliyun-pro.yml
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -45,29 +45,29 @@ locals {
     amd64 = {
       el7  = "^centos_7_9_x64"
       el8  = "^rockylinux_8_10_x64"
-      el9  = "^rockylinux_9_7_x64"
-      el10 = "^rockylinux_10_1_x64"
+      el9  = "^rockylinux_9_8_x64"
+      el10 = "^rockylinux_10_2_x64"
       d11  = "^debian_11_11_x64"
-      d12  = "^debian_12_14_x64"
-      d13  = "^debian_13_5_x64"
+      d12  = "^debian_12_15_x64"
+      d13  = "^debian_13_6_x64"
       u20  = "^ubuntu_20_04_x64"
       u22  = "^ubuntu_22_04_x64_20G"
       u24  = "^ubuntu_24_04_x64_20G"
       u26  = "^ubuntu_26_04_x64_20G"
       an8  = "^anolisos_8_10_x64"
-      al3  = "^aliyun_3_x64_20G_alibase_[0-9]+"
+      al3  = "^aliyun_3_x64_20G_alibase_[0-9]+\\.vhd$"
     }
     arm64 = {
       el8  = "^rockylinux_8_10_arm64"
-      el9  = "^rockylinux_9_7_arm64"
-      el10 = "^rockylinux_10_1_arm64"
-      d12  = "^debian_12_14_arm64"
-      d13  = "^debian_13_5_arm64"
+      el9  = "^rockylinux_9_8_arm64"
+      el10 = "^rockylinux_10_2_arm64"
+      d12  = "^debian_12_15_arm64"
+      d13  = "^debian_13_6_arm64"
       u22  = "^ubuntu_22_04_arm64_20G"
       u24  = "^ubuntu_24_04_arm64_20G"
       u26  = "^ubuntu_26_04_arm64_20G"
       an8  = "^anolisos_8_10_arm64"
-      al3  = "^aliyun_3_arm64_20G_alibase_[0-9]+"
+      al3  = "^aliyun_3_arm64_20G_alibase_[0-9]+\\.vhd$"
     }
   }
   selected_images  = local.image_regex_map[var.architecture]
@@ -309,7 +309,7 @@ output "d13_ip" {
 #======================================#
 # U22 ARM64
 #======================================#
-# ubuntu_22_04_arm64_20G_alibase_20260413.vhd
+# ubuntu_22_04_arm64_20G_alibase_20260721.vhd
 data "alicloud_images" "u22_img" {
   owners      = "system"
   name_regex  = local.selected_images.u22

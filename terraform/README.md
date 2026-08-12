@@ -5,7 +5,7 @@
 Docs: https://pigsty.io/docs/deploy/terraform
 
 All templates create a single-node `pg-meta` instance with:
-- **OS**: Debian 12 (default) or EL10 (Aliyun templates)
+- **OS**: Debian 12 (most providers) or Ubuntu 26.04 (Aliyun templates)
 - **Arch**: amd64 (default) or arm64 (where supported)
 - **Network**: VPC with `10.10.10.0/24` subnet, private IP `10.10.10.10`
 - **Security**: All ports open (demo only - restrict in production!)
@@ -115,7 +115,7 @@ Most templates support these variables:
 
 | Variable       | Description                                               | Default |
 |----------------|-----------------------------------------------------------|---------|
-| `distro`       | OS distribution (`d12` = Debian 12, `el10` = EL 10, etc.) | `d12`   |
+| `distro`       | OS distribution (`d12` = Debian 12, `el10` = EL 10, etc.) | `d12` (`u26` on Aliyun templates) |
 | `architecture` | CPU architecture (`amd64` or `arm64`)                     | `amd64` |
 | `region`       | Cloud region/location                                     | Varies  |
 | `zone`         | Availability zone / subnet zone (provider-specific)       | Varies  |
@@ -124,17 +124,16 @@ Current Aliyun public base image versions used by the templates:
 
 | Code   | Distro                | amd64 | arm64 |
 |--------|-----------------------|-------|-------|
-| `el9`  | Rocky Linux 9         | 9.7   | 9.7   |
-| `el10` | Rocky Linux 10        | 10.1  | 10.1  |
-| `d12`  | Debian 12             | 12.14 | 12.14 |
-| `d13`  | Debian 13             | 13.5  | 13.5  |
+| `el8`  | Rocky Linux 8         | 8.10  | 8.10  |
+| `el9`  | Rocky Linux 9         | 9.8   | 9.8   |
+| `el10` | Rocky Linux 10        | 10.2  | 10.2  |
+| `d12`  | Debian 12             | 12.15 | 12.15 |
+| `d13`  | Debian 13             | 13.6  | 13.6  |
 | `u22`  | Ubuntu 22.04 LTS      | 22.04.5 | 22.04.5 |
 | `u24`  | Ubuntu 24.04 LTS      | 24.04.4 | 24.04.4 |
 | `u26`  | Ubuntu 26.04 LTS      | 26.04.0 | 26.04.0 |
 | `an8`  | Anolis OS 8           | 8.10  | 8.10  |
-| `al3`  | Alibaba Cloud Linux 3 | 3 (20260513 alibase) | 3 (20260513 alibase) |
-
-EL9/EL10 images are pinned to 9.7/10.1 for both amd64 and arm64 until Pigsty package validation matures.
+| `al3`  | Alibaba Cloud Linux 3 | 3 (20260625 alibase) | 3 (20260625 alibase) |
 
 Aliyun Ubuntu image IDs only include the LTS release (`22_04` / `24_04` / `26_04`), so templates use `most_recent = true` to select the latest point-release image.
 
@@ -149,7 +148,7 @@ Other cloud templates use provider-native rolling image selectors for Debian 12/
 | DigitalOcean / Hetzner / Linode | Provider image slugs for Debian 12/13 major releases                                               |
 | Vultr                           | Provider OS labels for Debian 12/13 major releases                                                 |
 
-These providers generally do not expose stable point-release image IDs such as `12.13` or `13.4`; templates therefore select the latest published image for the major release. The AWS China legacy template keeps its hardcoded regional AMI because Debian's official AWS AMI catalog does not cover China regions.
+These providers generally do not expose stable point-release image IDs such as `12.15` or `13.6`; templates therefore select the latest published image for the major release. The AWS China legacy template keeps its hardcoded regional AMI because Debian's official AWS AMI catalog does not cover China regions.
 
 Override via command line:
 ```bash

@@ -2,7 +2,7 @@
 # File      :   digitalocean.tf
 # Desc      :   1-node pigsty meta for DigitalOcean (Debian 12/13)
 # Ctime     :   2025-01-07
-# Mtime     :   2026-04-30
+# Mtime     :   2026-08-12
 # Path      :   terraform/spec/digitalocean.tf
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -33,7 +33,7 @@ locals {
   droplet_size = "s-2vcpu-4gb"  # 2 vCPU, 4GB RAM
 
   # DigitalOcean image slugs are rolling per major release
-  # (Pigsty baseline: Debian 12.13 / 13.4).
+  # (Pigsty baseline: Debian 12.15 / 13.6).
   image_map = {
     d12 = "debian-12-x64"
     d13 = "debian-13-x64"
