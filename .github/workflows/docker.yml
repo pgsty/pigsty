@@ -2,7 +2,7 @@
 # File      :   docker.yml
 # Desc      :   Build and push Docker images to Docker Hub
 # Ctime     :   2025-01-27
-# Mtime     :   2026-07-10
+# Mtime     :   2026-08-12
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -10,9 +10,8 @@
 # This workflow builds multi-architecture Docker images (amd64/arm64)
 # and pushes them to Docker Hub under pgsty/pigsty.
 #
-# Triggers:
-#   - On tag push matching 'v*.*.*' pattern (e.g., v4.5.0)
-#   - Manual trigger via workflow_dispatch
+# Trigger:
+#   - Manual trigger via workflow_dispatch only
 #
 # Required secrets:
 #   - DOCKERHUB_USERNAME: Docker Hub username
@@ -20,16 +19,15 @@
 #
 # Images produced:
 #   - pgsty/pigsty:v4.5.0 (version tag)
-#   - pgsty/pigsty:latest (only for release tags)
+#   - pgsty/pigsty:latest (when push_latest is enabled)
 #
 #==============================================================#
 
-name: Docker
+name: Publish Docker Image
+
+run-name: Publish Docker Image ${{ inputs.version }}
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
     inputs:
       version:
@@ -51,6 +49,10 @@ env:
 
 permissions: read-all
 
+concurrency:
+  group: docker-publish-${{ inputs.version }}
+  cancel-in-progress: false
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
@@ -61,27 +63,33 @@ jobs:
       #--------------------------------------------------------------#
       # Preparation
       #--------------------------------------------------------------#
+      - name: Validate version tag
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          if [[ ! "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$ ]]; then
+            echo "Invalid version tag: ${VERSION}" >&2
+            echo "Expected vX.Y.Z or vX.Y.Z-suffix (for example, v4.5.0 or v4.5.0-rc.1)." >&2
+            exit 1
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           fetch-depth: 0
+          ref: ${{ inputs.version }}
 
-      - name: Extract version from tag or input
+      - name: Extract version from input
         id: version
+        env:
+          VERSION: ${{ inputs.version }}
+          PUSH_LATEST: ${{ inputs.push_latest }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-            PUSH_LATEST="${{ github.event.inputs.push_latest }}"
-          else
-            VERSION="${GITHUB_REF#refs/tags/}"
-            PUSH_LATEST="true"
-          fi
-
           VERSION_NUM="${VERSION#v}"
 
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "version_num=${VERSION_NUM}" >> $GITHUB_OUTPUT
-          echo "push_latest=${PUSH_LATEST}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
+          echo "version_num=${VERSION_NUM}" >> "${GITHUB_OUTPUT}"
+          echo "push_latest=${PUSH_LATEST}" >> "${GITHUB_OUTPUT}"
 
           echo "Version: ${VERSION}"
           echo "Version Number: ${VERSION_NUM}"
