@@ -101,9 +101,14 @@
 # Stop redis instances                                   [redis]
 #--------------------------------------------------------------#
 - name: stop redis systemd service
-  when: not redis_safeguard|bool
+  when:
+    - not redis_safeguard|bool
+    - >-
+      'all' in ansible_run_tags or 'redis' in ansible_run_tags or
+      ('redis_data' in ansible_run_tags and redis_rm_data|bool) or
+      ('redis_pkg' in ansible_run_tags and redis_rm_pkg|bool)
   ignore_errors: true
-  tags: redis
+  tags: [ redis, redis_data, redis_pkg ]
   block:
 
     # STOP SINGLE REDIS INSTANCE IF redis_port IS DEFINED
