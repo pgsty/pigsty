@@ -32,12 +32,12 @@ This role is included in most playbooks as a prerequisite:
 | `pgsql.yml` | PostgreSQL deployment  |
 | `redis.yml` | Redis deployment       |
 | `etcd.yml`  | ETCD deployment        |
-| `minio.yml` | MinIO deployment       |
+| `minio.yml` | Silo deployment        |
 
 
 ## File Structure
 
-```
+```text
 roles/node_id/
 ├── defaults/
 │   └── main.yml              # Default identity parameters
@@ -68,7 +68,7 @@ roles/node_id/
 
 ## Tags
 
-```
+```text
 node-id (always)               # Node identity derivation
 ```
 
@@ -145,6 +145,19 @@ Each vars file (`vars/<os_code>.<arch>.yml`) provides ~700 variables including:
 - `infra_packages_default`: Infrastructure packages
 - `repo_upstream_default`: Repository configurations
 - `pg_home_map`: PostgreSQL installation paths
+
+The PostgreSQL 14-18 package-alias maps for all 16 currently supported
+EL8+/Debian 12+/Ubuntu 22+ platform and architecture combinations include
+`pg_local_cache` and `pg_policy`, keeping package resolution aligned with the
+575-extension online catalog. EL7 remains a legacy fallback map.
+
+China-region repository routes in these vars files now prefer Tencent Cloud
+for PGDG, operating-system, Docker, Grafana, Percona, and supported MongoDB
+mirrors. PGDG APT entries use Tencent Cloud directly, while PGDG YUM entries
+put Tencent Cloud first and retain the Pigsty mirror as a compatibility
+fallback. EL operating-system and Docker entries retain Huawei Cloud and
+Aliyun fallbacks where declared; MySQL/Kubernetes use USTC and ClickHouse uses
+Huawei Cloud. Treat each `repo_upstream_default` entry as authoritative.
 
 **Fallback Mechanism**: If the detected OS code doesn't have a vars file,
 the role falls back to: `el10` (rpm), `u24` (ubuntu), `d12` (debian).
