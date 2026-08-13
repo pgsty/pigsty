@@ -2,7 +2,7 @@
 # File      :   release-sign.yml
 # Desc      :   Sign GitHub release assets with Sigstore cosign
 # Ctime     :   2026-07-09
-# Mtime     :   2026-07-09
+# Mtime     :   2026-08-13
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -23,12 +23,19 @@ jobs:
   sign:
     name: Sign assets
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
     permissions:
       contents: write
       id-token: write
 
     steps:
+      # the cosign certificate identity below is pinned to refs/heads/main,
+      # so dispatching from any other ref must fail loudly instead of skipping
+      - name: Ensure dispatch ref is main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::Dispatch this workflow from the main branch (got ${GITHUB_REF})"
+          exit 1
+
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
         with:
@@ -41,9 +48,11 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist/release-assets
+          # only sign the source tarball, offline packages are too heavy to sign
           gh release download "${TAG}" \
             --repo "${GITHUB_REPOSITORY}" \
             --dir dist/release-assets \
+            --pattern "pigsty-${TAG}.tgz" \
             --clobber
           find dist/release-assets -maxdepth 1 -type f -print | sort
 
