@@ -152,7 +152,11 @@ def add_dashboard(d, folder=None):
             payload["folderUid"] = folder
         else:
             payload["folderId"] = 0
-    return post('dashboards/db', payload)
+    result = post('dashboards/db', payload)
+    if result.get("status") != "success":
+        raise RuntimeError("failed to provision dashboard %s: %s" %
+                           (d.get("uid", d.get("title", "unknown")), result))
+    return result
 
 
 def del_dashboard(uid):
