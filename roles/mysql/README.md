@@ -32,6 +32,11 @@ MYSQL remains a PILOT module. Ordinary reconciliation refuses unknown datadirs,
 foreign InnoDB Cluster metadata, partial HA inventory limits, destructive Clone
 over non-fresh members, and complete-outage recovery.
 
+`mysql.yml` targets `all` for inventory convenience but ends each host without
+`mysql_cluster` before role execution. Hosts selected as MySQL members must
+define both `mysql_cluster` and `mysql_seq`; the role then validates complete
+one-member or three-member cluster scope before changing state.
+
 The native package gate admits the declared x86_64 DEB/RPM matrix and EL9/EL10
 ARM64. Ubuntu/Debian ARM64 is intentionally rejected because Oracle's APT
 repository currently publishes the 8.4 component for `amd64`, not `arm64`.

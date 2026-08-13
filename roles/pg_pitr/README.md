@@ -31,7 +31,7 @@ The `pg_pitr` role performs **Point-In-Time Recovery** (PITR) for PostgreSQL clu
 
 ## File Structure
 
-```
+```text
 roles/pg_pitr/
 ├── defaults/
 │   └── main.yml              # Default variables and pg_pitr schema
@@ -56,7 +56,7 @@ roles/pg_pitr/
 
 ### Tag Hierarchy
 
-```
+```text
 pg_pitr (full role)
 │
 ├── print (always)             # Display PITR plan
@@ -83,6 +83,10 @@ pg_pitr (full role)
         └── replica            # Start replicas
             └── clonefrom      # Disable clonefrom before launch
 ```
+
+The `etcd` / `pg_meta` step is included only on the declared primary and only
+when the canonical `etcd` inventory group exists and is non-empty. Otherwise,
+the startup phase skips DCS deletion and proceeds with service startup.
 
 ### Usage Examples
 
@@ -178,7 +182,7 @@ pg_pitr:
 
 ### Recovery Workflow
 
-```
+```text
 1. Print PITR Plan           [print]
    └── Display recovery target and parameters
 
@@ -201,7 +205,7 @@ pg_pitr:
        └── Check pg_controldata
 
 4. Startup Phase             [up]
-   ├── Clean DCS             [etcd]
+   ├── Clean DCS             [etcd, primary + non-empty etcd group]
    │   └── Remove old cluster metadata
    └── Start Services        [start]
        ├── Start PostgreSQL

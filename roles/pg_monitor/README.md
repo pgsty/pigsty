@@ -22,6 +22,12 @@ It also registers the cluster to infrastructure monitoring:
 - **Vector**: Configure log collection
 - **Grafana**: Register databases as datasources
 
+The bundled collector definition covers PostgreSQL 10-19. Current additions
+include the PostgreSQL 19 `pg_sub_19`, `pg_recovery_state`, `pg_wal_19`,
+`pg_lock_stat`, and `pg_vacuum_score` collectors, the PostgreSQL 10+
+`pg_xact_age` histogram, the replication-slot `idle_timeout` invalidation
+reason, and the WAL-receiver `connecting` state.
+
 
 ## Playbooks
 
@@ -33,7 +39,7 @@ It also registers the cluster to infrastructure monitoring:
 
 ## File Structure
 
-```
+```text
 roles/pg_monitor/
 ├── defaults/
 │   └── main.yml                  # Default variables
@@ -68,7 +74,7 @@ roles/pg_monitor/
 
 ### Tag Hierarchy
 
-```
+```text
 pg_monitor (from pgsql.yml: -t monitor)
 │
 ├── pg_exporter                    # PostgreSQL metrics exporter

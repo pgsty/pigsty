@@ -107,7 +107,7 @@ NEVER execute without user saying "yes, I confirm":
 - infra-rm.yml      # Remove infrastructure
 - redis-rm.yml      # Remove Redis cluster
 - etcd-rm.yml       # Remove etcd cluster
-- minio-rm.yml      # Remove MinIO cluster
+- minio-rm.yml      # Remove Silo object-storage cluster
 
 - DROP DATABASE     # Delete database
 - DROP TABLE        # Delete table
@@ -429,14 +429,14 @@ Distributed consensus store module. ETCD serves as the Distributed Configuration
 ---
 
 ### MINIO Module `/docs/minio/`
-S3-compatible object storage module. MinIO serves as the backup repository for pgBackRest, enabling off-site backup storage and cross-cluster backup sharing.
+S3-compatible object storage module. The current role deploys Silo as a backup repository for pgBackRest, enabling off-site backup storage and cross-cluster backup sharing.
 
-- `admin.md` - MinIO cluster administration and bucket management
-- `config.md` - MinIO configuration for single-node and multi-node deployments
-- `param.md` - Complete MinIO parameter reference
-- `usage.md` - Using MinIO with pgBackRest and other applications
-- `monitor.md` - MinIO monitoring and performance metrics
-- `faq.md` - Common MinIO issues and solutions
+- `admin.md` - Silo cluster administration and bucket management
+- `config.md` - Silo configuration for single-node and multi-node deployments
+- `param.md` - Complete MINIO module parameter reference
+- `usage.md` - Using Silo with pgBackRest and other applications
+- `monitor.md` - Silo monitoring and performance metrics
+- `faq.md` - Common MINIO module and Silo issues
 
 ---
 
@@ -462,7 +462,7 @@ Docker runtime module for deploying containerized applications alongside Pigsty 
 ---
 
 ### PIG `/docs/pig/`
-PIG v1.5.1 package manager for PostgreSQL extensions. Command-line tool for discovering, installing, and managing the 575 extensions available in the Pigsty ecosystem.
+PIG v1.6.2 package manager for the 575 PostgreSQL extensions in the Pigsty catalog; `pig ext reload` refreshes its online catalog snapshot.
 
 ---
 

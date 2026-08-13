@@ -32,7 +32,7 @@ ETCD is used by Patroni for PostgreSQL HA consensus.
 
 ## File Structure
 
-```
+```text
 roles/etcd/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -53,7 +53,7 @@ roles/etcd/
 
 ### Tag Hierarchy
 
-```
+```text
 etcd (full role)
 │
 ├── etcd_assert                # Validate identity parameters
@@ -112,7 +112,8 @@ Removal protection is controlled by `etcd_safeguard` in the `etcd_remove` role.
 
 ## Cluster Topology
 
-ETCD requires 1, 3, 5, or 7 nodes for proper quorum:
+For useful fault tolerance, deploy an odd number of members. Pigsty commonly
+uses 1, 3, 5, or 7 nodes:
 
 | Nodes | Fault Tolerance | Recommended |
 |-------|-----------------|-------------|
@@ -120,6 +121,9 @@ ETCD requires 1, 3, 5, or 7 nodes for proper quorum:
 | 3     | 1               | Minimum HA  |
 | 5     | 2               | Production  |
 | 7     | 3               | Large scale |
+
+Even-sized etcd clusters are technically valid but add no failure tolerance
+over the preceding odd size, so they are not recommended.
 
 
 ## TLS Configuration
@@ -139,6 +143,9 @@ ETCD RBAC is enabled by default after cluster bootstrap:
 # Connect with authentication
 etcdctl --user root:Etcd.Root member list
 ```
+
+The managed unit is written to `/etc/systemd/system/etcd.service`; the
+`etcdctl` environment helper is `/etc/profile.d/etcdctl.sh` with mode `0644`.
 
 
 ## Expanding Cluster

@@ -27,7 +27,7 @@ The `node_remove` role removes node components and deregisters nodes from monito
 
 ## File Structure
 
-```
+```text
 roles/node_remove/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -43,7 +43,7 @@ roles/node_remove/
 
 ### Tag Hierarchy
 
-```
+```text
 node_remove (full role)
 │
 ├── node_deregister                # Deregister from monitoring

@@ -20,6 +20,8 @@ Steps:
 - Honor the `kafka_safeguard` protection (abort if enabled)
 - Deregister `kafka` / `kafka_exporter` targets from all infra nodes
 - Stop and disable the `kafka` and `kafka_exporter` services
+- When removing a strict subset, retire its KRaft voter and broker registration
+  through a surviving member, including when the leaving host is unreachable
 - Remove exporter config, systemd environment/units, and role-owned helper scripts
 - Remove the data directory and `/etc/kafka` recovery state when `kafka_rm_data` is set
 - Uninstall the kafka-stack packages when `kafka_rm_pkg` is set
@@ -29,6 +31,8 @@ Steps:
 
 | Name              | Default       | Description                                              |
 |-------------------|---------------|----------------------------------------------------------|
+| `kafka_cluster`   | —             | Required cluster identifier                              |
+| `kafka_seq`       | —             | Required numeric KRaft node ID                           |
 | `kafka_safeguard` | `false`       | prevent purging a running kafka cluster when `true`      |
 | `kafka_rm_data`   | `true`        | remove data dir and `/etc/kafka` recovery state          |
 | `kafka_rm_pkg`    | `false`       | uninstall kafka & kafka-exporter packages during removal |
@@ -39,9 +43,11 @@ Steps:
 
 | Tag                | Description                                 |
 |--------------------|---------------------------------------------|
+| `kafka-id`         | validate and derive removal identity        |
 | `kafka_safeguard`  | evaluate the safeguard gate                 |
 | `kafka_deregister` | remove monitoring targets from infra        |
 | `kafka`            | stop kafka & kafka_exporter services        |
+| `kafka_retire`     | retire voter and broker via a survivor      |
 | `kafka_config`     | stop services; remove runtime integration   |
 | `kafka_data`       | stop services; remove data/runtime state    |
 | `kafka_pkg`        | uninstall kafka-stack packages              |
@@ -54,3 +60,7 @@ Steps:
 ./kafka-rm.yml -l kf-main -e kafka_rm_data=false # keep data and recovery state; remove service integration
 ./kafka-rm.yml -l kf-main -e kafka_rm_pkg=true   # also uninstall the kafka-stack packages
 ```
+
+`kafka-rm.yml` skips hosts without `kafka_cluster`. A selected host must have a
+valid cluster name and numeric `kafka_seq`; the role fails closed before any
+removal step if either identity input is invalid.

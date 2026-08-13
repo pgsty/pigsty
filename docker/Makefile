@@ -253,7 +253,7 @@ shell:
 	docker run -it --rm --privileged --platform=linux/$(ARCH) $(IMAGE) /bin/bash
 
 test:
-	docker run -it --rm --platform=linux/$(ARCH) debian:trixie /bin/bash
+	docker run -it --rm --platform=linux/$(ARCH) debian:13.6@sha256:34cd9e9fd437c0a095ec39cb2e73422c9f30821b0d0848ed74fd0d43bae4d958 /bin/bash
 
 all: build run
 

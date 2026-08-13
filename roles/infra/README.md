@@ -33,7 +33,7 @@ The `infra` role deploys the Pigsty infrastructure stack on admin nodes:
 
 ## File Structure
 
-```
+```text
 roles/infra/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -71,7 +71,7 @@ roles/infra/
 
 ### Tag Hierarchy
 
-```
+```text
 infra (full role)
 │
 ├── infra_user                 # Create infra group/users
@@ -208,6 +208,13 @@ infra (full role)
 |------------------------|---------|----------------------------|
 | `alertmanager_enabled` | `true`  | Enable Alertmanager        |
 | `alertmanager_port`    | `9059`  | Listen port                |
+
+### Monitoring Discovery
+
+INFRA prepares file-based discovery directories for the active `minio`,
+`mysql`, and `kafka` modules; there is no standalone MongoDB target directory.
+The MINIO module registers Silo through `/minio/metrics/v3`, with samples that
+carry a non-empty `bucket` label dropped to keep cardinality bounded.
 
 Full parameter list: [INFRA Configuration](https://pigsty.io/docs/infra/param)
 

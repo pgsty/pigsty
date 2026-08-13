@@ -57,7 +57,7 @@
     # Multi-node distributed mode (minio_cluster_size > 1):
     #   Output: "<protocol>://minio-{1...4}.pigsty:9000/data{1...4}/minio"
     #   Protocol is determined by minio_https: https if true, http if false
-    #   MinIO server expands {x...y} notation to enumerate all nodes and drives
+    #   Silo expands {x...y} notation to enumerate all nodes and drives
     #
     # Example for 4-node cluster with 4 drives each (minio_https: true):
     #   Input:  minio_data="/data{1...4}/minio", minio_seq_range="{1...4}"
@@ -74,7 +74,7 @@
 
 
 #--------------------------------------------------------------#
-# Install MinIO                                  [minio_install]
+# Install Silo                                   [minio_install]
 #--------------------------------------------------------------#
 # minio_os_user, minio_pkg, minio_dir
 - import_tasks: install.yml
@@ -82,7 +82,7 @@
 
 
 #--------------------------------------------------------------#
-# Config MinIO                                    [minio_config]
+# Config Silo                                     [minio_config]
 #--------------------------------------------------------------#
 # minio_conf, minio_cert, minio_dns
 - import_tasks: config.yml
@@ -91,19 +91,19 @@
 
 
 #--------------------------------------------------------------#
-# Launch MinIO                                    [minio_launch]
+# Launch Silo                                     [minio_launch]
 #--------------------------------------------------------------#
-- name: launch minio server
+- name: launch Silo server
   tags: minio_launch
   block:
-    - name: launch minio server service
+    - name: launch Silo server service
       systemd: name={{ minio_type }} state=restarted enabled=yes daemon_reload=yes
-    - name: wait for minio server online
+    - name: wait for Silo server online
       wait_for: host=127.0.0.1 port={{ minio_port }} state=started timeout=60
 
 
 #--------------------------------------------------------------#
-# Register MinIO                                [minio_register]
+# Register Silo                                 [minio_register]
 #--------------------------------------------------------------#
 - name: register minio as victoria target
   tags: [ minio_register, register, add_metrics ]

@@ -32,7 +32,7 @@ The `node` role provisions Linux nodes with proper configuration for running Pig
 
 ## File Structure
 
-```
+```text
 roles/node/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -61,7 +61,7 @@ roles/node/
 
 ### Tag Hierarchy
 
-```
+```text
 node (full role)
 │
 ├── node_name                  # Set hostname
@@ -146,12 +146,21 @@ node (full role)
 | `node_repo_modules` | `local`           | Repo modules to enable |
 | `node_packages`     | `[openssh-server]` | Packages to install    |
 
+On EL systems, upstream repositories keep DNF's native module filtering.
+`module_hotfixes` is no longer injected globally; set it explicitly in a
+repository's `meta` only when that repository intentionally replaces packages
+from an EL module stream. The aggregate Pigsty local repository remains a
+hotfix repository.
+
 ### UV Python
 
 | Variable            | Default       | Description                            |
 |---------------------|---------------|----------------------------------------|
 | `node_uv_env`       | `/data/venv`  | uv venv path, empty string to skip     |
 | `node_pip_packages` | `''`          | pip packages to install in venv        |
+
+When `region=china`, the role writes `/etc/uv/uv.toml` and uses Tencent
+Cloud's PyPI mirror for `uv` package downloads.
 
 ### Admin
 

@@ -32,7 +32,7 @@ Docker is used to run stateless applications alongside Pigsty.
 
 ## File Structure
 
-```
+```text
 roles/docker/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -49,7 +49,7 @@ roles/docker/
 
 ### Tag Hierarchy
 
-```
+```text
 docker (full role)
 │
 ├── docker_install             # Install Docker packages

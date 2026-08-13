@@ -28,12 +28,12 @@ an explicit `minio_type: silo` and does not infer the engine type:
 
 | Playbook       | Description           |
 |----------------|-----------------------|
-| `minio-rm.yml` | Remove MinIO instance |
+| `minio-rm.yml` | Remove Silo instance  |
 
 
 ## File Structure
 
-```
+```text
 roles/minio_remove/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -48,7 +48,7 @@ roles/minio_remove/
 
 ### Tag Hierarchy
 
-```
+```text
 minio_remove (full role)
 │
 ├── minio-id                   # Calculate identity/data paths
@@ -61,7 +61,7 @@ minio_remove (full role)
 │   ├── rm_metrics             # Remove Victoria targets
 │   └── rm_dns                 # Remove DNS records (dnsmasq & /etc/hosts)
 │
-├── minio_svc                  # Stop MinIO service
+├── minio_svc                  # Stop Silo service
 │
 ├── minio_config               # Stop service and remove config/unit (if minio_rm_data)
 │
@@ -105,21 +105,25 @@ Override with:
 |--------------|--------------------------------------------|
 | Monitoring   | `/infra/targets/minio/<cluster>-<seq>.yml` |
 | DNS          | `/etc/dnsmasq.d/pigsty/<cluster>-<seq>`, `/etc/hosts` entries |
-| Service      | `<minio_type>.service` (systemd)           |
-| Config       | Engine-specific environment and home dir   |
+| Service      | `silo.service` (systemd)                   |
+| Config       | Silo environment, unit, and home directory |
 | Data         | All directories in `minio_data`            |
 | Logging      | via syslog                                 |
-| Packages     | Selected engine, `mcli` (if enabled)       |
+| Packages     | `silo` and `mcli` (if enabled)             |
 
 
 ## Service Shutdown
 
 The role uses a graceful shutdown sequence:
 
-1. `systemctl stop <minio_type>`
+1. `systemctl stop silo`
 2. Wait and retry if process still running
 3. `kill` remaining processes
 4. `kill -9` if still not terminated
+
+Configuration and the service unit are removed only when `minio_rm_data=true`.
+If the selected inventory does not carry the engine selector, pass
+`-e minio_type=silo` explicitly.
 
 
 ## See Also

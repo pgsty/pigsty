@@ -21,7 +21,7 @@ The CA is used to sign certificates for:
 - PostgreSQL server/client SSL
 - Patroni REST API
 - etcd cluster communication
-- MinIO cluster communication
+- Silo object-storage communication (MINIO module)
 - Kafka cluster communication
 - MySQL cluster communication
 - Nginx HTTPS (self-signed fallback)
@@ -38,7 +38,7 @@ The CA is used to sign certificates for:
 
 ## File Structure
 
-```
+```text
 roles/ca/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -53,7 +53,7 @@ roles/ca/
 
 ### Tag Hierarchy
 
-```
+```text
 ca (full role)
 │
 ├── ca_dir                     # Create PKI directories
@@ -109,7 +109,7 @@ Default validity period for certificates signed by this CA. Used by other roles 
 
 The CA role creates the following directory structure under `files/pki/`:
 
-```
+```text
 files/pki/
 ├── ca/
 │   ├── ca.key                # CA private key (mode: 0600, keep secure!)
@@ -125,7 +125,7 @@ files/pki/
 ├── pgsql/
 │   └── *.crt, *.key          # PostgreSQL server certificates
 ├── minio/
-│   └── *.crt, *.key          # MinIO server certificates
+│   └── *.crt, *.key          # Silo server certificates
 ├── infra/
 │   └── *.crt, *.key          # Infrastructure certificates
 ├── nginx/
@@ -152,7 +152,7 @@ files/pki/
 
 ### ca_create = true (Default)
 
-```
+```text
 CA key exists?  CA cert exists?  Action
 ───────────────────────────────────────
 No              No               Create new CA key and cert
@@ -166,7 +166,7 @@ certificate together.
 
 ### ca_create = false
 
-```
+```text
 CA key exists?  CA cert exists?  Action
 ───────────────────────────────────────
 Yes             Yes              Reuse existing CA
@@ -284,5 +284,5 @@ chmod 644 files/pki/ca/ca.crt
 - `infra`: Infrastructure deployment
 - `pgsql`: PostgreSQL deployment (uses CA)
 - `etcd`: ETCD deployment (uses CA)
-- `minio`: MinIO deployment (uses CA)
+- `minio`: Silo deployment (uses CA)
 - [Certificate Guide](https://pigsty.io/docs/infra/cert): SSL/TLS configuration

@@ -10,7 +10,7 @@
 
 ## Overview
 
-The `pg_remove` role is a **DANGEROUS** role that removes PostgreSQL clusters or instances from target nodes. 
+The `pg_remove` role is a **DANGEROUS** role that removes PostgreSQL clusters or instances from target nodes.
 It performs the reverse operation of the `pgsql` role, cleaning up:
 
 - Monitoring targets (Victoria Metrics, Grafana datasources, Vector logs)
@@ -34,7 +34,7 @@ It performs the reverse operation of the `pgsql` role, cleaning up:
 
 ## File Structure
 
-```
+```text
 roles/pg_remove/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -52,6 +52,7 @@ roles/pg_remove/
     ├── pg_service.yml        # [pg_service] Remove HAProxy services
     ├── pgbouncer.yml         # [pgbouncer] Remove pgBouncer
     ├── postgres.yml          # [postgres] Stop and remove Patroni/Postgres
+    ├── etcd.yml              # [pg_meta] Remove DCS metadata
     ├── pgbackrest.yml        # [pgbackrest] Remove stanza/local backup
     └── uninstall.yml         # [pg_pkg] Uninstall packages
 ```
@@ -61,8 +62,10 @@ roles/pg_remove/
 
 ### Tag Hierarchy
 
-```
+```text
 pg_remove (full role)
+│
+├── pg-id                      # Validate removal identity (always runs)
 │
 ├── pg_safeguard               # Safeguard check (always runs)
 │
@@ -126,13 +129,16 @@ pg_remove (full role)
 | `pg_rm_backup` | `true`  | Remove the stanza and cluster-local backup directory |
 | `pg_rm_pkg`    | `true`  | Uninstall PostgreSQL packages                        |
 
-### Identity (Reference)
+### Identity (Required)
 
 | Variable     | Level    | Description         |
 |--------------|----------|---------------------|
-| `pg_cluster` | CLUSTER  | Target cluster name |
-| `pg_role`    | INSTANCE | Instance role       |
-| `pg_seq`     | INSTANCE | Instance sequence   |
+| `pg_cluster` | CLUSTER  | Valid target cluster name                 |
+| `pg_role`    | INSTANCE | Supported instance role                   |
+| `pg_seq`     | INSTANCE | Numeric instance sequence                 |
+
+`pgsql-rm.yml` skips inventory hosts without `pg_cluster`; selected hosts must
+still pass all three identity checks before any removal task runs.
 
 ### Paths (Reference)
 
@@ -169,7 +175,8 @@ The removal process follows a specific order to ensure clean teardown:
 3. **Crontab** - Remove PostgreSQL OS-user jobs
 4. **Replicas** - Remove replica instances before primary
 5. **Primary** - Remove primary instance
-6. **Metadata** - Clean up DCS (etcd) entries
+6. **Metadata** - Clean up DCS entries on the primary when the canonical
+   `etcd` inventory group exists and is non-empty
 7. **Backup** - Remove the stanza and cluster-local backup directory (optional)
 8. **Data** - Remove data directories (optional)
 9. **Packages** - Uninstall software (optional)

@@ -20,8 +20,10 @@ The `redis_remove` role removes Redis instances from a node:
 - Remove data directories (`redis_rm_data`)
 - Uninstall the selected engine and exporter packages (`redis_rm_pkg`)
 
-Only nodes with `redis_cluster` defined will be affected.
-Supports removing single instance (via `redis_port`) or entire node.
+The playbook skips hosts without `redis_cluster`. Every selected host must also
+define `redis_node` and the `redis_instances` mapping; the role validates these
+inputs before removal. It supports removing one instance (via `redis_port`) or
+the entire node.
 
 
 ## Playbooks
@@ -33,7 +35,7 @@ Supports removing single instance (via `redis_port`) or entire node.
 
 ## File Structure
 
-```
+```text
 roles/redis_remove/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -48,8 +50,10 @@ roles/redis_remove/
 
 ### Tag Hierarchy
 
-```
+```text
 redis_remove (full role)
+│
+├── redis-id                   # Validate removal identity (always runs)
 │
 ├── redis_safeguard            # Safeguard check (always)
 │
@@ -71,6 +75,9 @@ redis_remove (full role)
 
 | Variable          | Default       | Description                               |
 |-------------------|---------------|-------------------------------------------|
+| `redis_cluster`   | —             | Required cluster identifier               |
+| `redis_node`      | —             | Required node sequence/name               |
+| `redis_instances` | —             | Required mapping of declared instances    |
 | `redis_safeguard` | `false`       | Prevent accidental removal                |
 | `redis_rm_data`   | `true`        | Remove data directories                   |
 | `redis_rm_pkg`    | `false`       | Uninstall engine and exporter packages    |

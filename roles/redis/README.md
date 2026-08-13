@@ -42,7 +42,7 @@ Sentinel monitor declarations. The current implementation does not consume
 
 ## File Structure
 
-```
+```text
 roles/redis/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -65,7 +65,7 @@ roles/redis/
 
 ### Tag Hierarchy
 
-```
+```text
 redis (full role)
 │
 ├── redis-id                   # Validate identity parameters
@@ -106,6 +106,7 @@ redis (full role)
 `redis_type: valkey` installs the Valkey package from the Pigsty repository
 and uses `valkey-server` / `valkey-cli`. Config paths, systemd service names,
 monitoring jobs, and other module-facing names remain `redis` for compatibility.
+Each rendered instance unit uses `Type=notify` with the selected engine binary.
 
 ### Filesystem
 

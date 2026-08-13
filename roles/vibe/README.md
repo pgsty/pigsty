@@ -40,7 +40,7 @@ Use `conf/vibe.yml` for a complete AI coding sandbox:
 
 ## Tags
 
-```
+```text
 vibe
 ├── vibe_dir          # Create workspace, render AGENTS.md
 ├── code              # VS Code Server

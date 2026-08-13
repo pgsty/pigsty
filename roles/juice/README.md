@@ -1,6 +1,6 @@
 # Role: juice
 
-> Deploy JuiceFS Multi-Instance Filesystem with PostgreSQL/MinIO Backends
+> Deploy JuiceFS Multi-Instance Filesystem with PostgreSQL/S3 Backends
 
 | **Module**        | [JUICE](https://pigsty.io/docs/juice) |
 |-------------------|---------------------------------------|
@@ -37,7 +37,7 @@ Each instance is managed as an independent systemd unit:
 
 ## File Structure
 
-```
+```text
 roles/juice/
 ├── defaults/
 │   └── main.yml              # Default variables and schema notes
@@ -57,7 +57,7 @@ roles/juice/
 
 ### Tag Hierarchy
 
-```
+```text
 juice
 ├── juice_id
 ├── juice_install

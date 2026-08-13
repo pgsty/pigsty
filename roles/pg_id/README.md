@@ -35,7 +35,7 @@ This role is included in most PGSQL playbooks:
 
 ## File Structure
 
-```
+```text
 roles/pg_id/
 ├── defaults/
 │   └── main.yml              # Default variables (identity params)
@@ -48,7 +48,7 @@ roles/pg_id/
 
 ## Tags
 
-```
+```text
 pg-id (always)                 # PostgreSQL identity derivation
 ```
 
@@ -136,7 +136,7 @@ pg_primary_ins: "<pg_cluster>-<pg_primary_seq>"
 
 ### Output Example
 
-```
+```text
 [primary] pg-test-1 @ 10.10.10.11 , ins = pg-test-1 , cls = pg-test ,
 CLUSTER LEADER @ pg-test-1 , postgres://10.10.10.11:5432/postgres
 
@@ -153,15 +153,15 @@ identity and topology declarations in the final `assert pgsql identity` task:
 - `pg_cluster` must match `^[A-Za-z0-9-]+$` and cannot be `root`
 - `pg_role` must use the supported role enumeration
 - every member must have a non-negative integer `pg_seq`, unique within `pg_cluster`
-- a cluster can declare at most one `primary`
+- a cluster must declare exactly one `primary`
 
 `root` is reserved by etcd. PostgreSQL configuration uses `pg_cluster` as an
 etcd user and role name and updates the password of an existing user. Allowing
 `pg_cluster: root` could therefore modify the privileged etcd root account.
 
-A cluster without a declared `primary` still prints `[WARN: NO CLUSTER LEADER]`.
-Multiple declared primaries print `[WARN: MULTIPLE LEADER]` before the final
-assertion rejects the topology.
+A cluster without a declared `primary` prints `[WARN: NO CLUSTER LEADER]`;
+multiple declared primaries print `[WARN: MULTIPLE LEADER]`. The final
+assertion rejects both topologies.
 
 
 ## Cluster Modes

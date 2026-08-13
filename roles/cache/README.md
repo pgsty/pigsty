@@ -32,7 +32,8 @@ Before running the cache role:
 1. **Pigsty must be installed** on the target node (infra node)
 2. **Local repo must exist** at `{{ repo_home }}/{{ repo_name }}` (default: `/www/pigsty`)
 3. **`rsync` must be installed** on both control and target nodes (for `synchronize` module)
-4. The repo should contain all required packages (run `./infra.yml -t repo` first)
+4. **SOW 0.3.0 must be available** from the Pigsty INFRA repository
+5. The repo should contain all required packages (run `./infra.yml -t repo` first)
 
 
 ## Playbooks
@@ -55,7 +56,7 @@ make cache
 
 ## File Structure
 
-```
+```text
 roles/cache/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -71,7 +72,7 @@ roles/cache/
 
 ### Tag Hierarchy
 
-```
+```text
 cache                          # Full role execution
 │
 ├── cache_id                   # Calculate output filename
@@ -121,7 +122,7 @@ The `cache_pkg_name` supports these placeholders:
 
 The cache tarball is created at:
 
-```
+```text
 dist/<version>/pigsty-pkg-<version>.<os>.<arch>.tgz
 ```
 
@@ -138,12 +139,12 @@ dist/<version>/pigsty-pkg-<version>.<os>.<arch>.tgz
 
 ### Tarball Contents
 
-```
+```text
 pigsty/                        # repo_name directory
 ├── *.rpm or *.deb             # Package files
 ├── repodata/                  # YUM metadata (RPM only)
 │   ├── repomd.xml
-│   └── primary.xml.gz
+│   └── *-primary.xml.gz       # Plus filelists/other metadata
 ├── Packages                   # APT metadata (DEB only)
 ├── Packages.gz                # APT metadata (DEB only)
 └── repo_complete              # SHA-256 checksums marker
@@ -163,11 +164,11 @@ When building the cache, some unwanted packages are automatically removed to red
 | `proj-data*`      | EL9+     | Large optional geospatial data (500MB+)      |
 | `*docs*`          | All RPM  | Documentation packages (reduce size)         |
 
-`cache_create` removes `proj-data*` and `*docs*` explicitly; Sow's Pigsty mode
+`cache_create` removes `proj-data*` and `*docs*` explicitly; SOW's Pigsty mode
 removes the 32-bit and Patroni 3.0.4 packages while publishing new metadata.
 
 
-## RPM Repository Metadata
+## Repository Metadata
 
 RPM and DEB caches are plain repositories generated atomically by
 `sow create --pigsty`. Legacy synthetic module metadata is not published. On

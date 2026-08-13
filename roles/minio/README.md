@@ -39,7 +39,7 @@ dedicated per-bucket API or replication endpoints.
 
 ## File Structure
 
-```
+```text
 roles/minio/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -65,22 +65,22 @@ roles/minio/
 
 ### Tag Hierarchy
 
-```
+```text
 minio (full role)
 │
 ├── minio-id                   # Validate identity parameters
 │
-├── minio_install              # Install MinIO
+├── minio_install              # Install Silo
 │   ├── minio_os_user          # Create minio OS user
-│   ├── minio_pkg              # Install minio/mcli packages
+│   ├── minio_pkg              # Install silo/mcli packages
 │   └── minio_dir              # Create data directories
 │
-├── minio_config               # Configure MinIO
+├── minio_config               # Configure Silo
 │   ├── minio_conf             # Generate config files
 │   ├── minio_cert             # TLS certificates
 │   └── minio_dns              # DNS registration
 │
-├── minio_launch               # Start MinIO service
+├── minio_launch               # Start Silo service
 │
 ├── minio_register             # Register to monitoring
 │   └── add_metrics            # Add Victoria targets
@@ -96,34 +96,34 @@ minio (full role)
 
 ### Identity (Required)
 
-| Variable       | Level    | Description              |
-|----------------|----------|--------------------------|
-| `minio_type`   | GLOBAL / CLUSTER | Engine selector; currently only `silo` is accepted |
-| `minio_cluster`| CLUSTER  | MinIO cluster name       |
-| `minio_seq`    | INSTANCE | Instance sequence number |
+| Variable        | Level            | Description                                        |
+|-----------------|------------------|----------------------------------------------------|
+| `minio_type`    | GLOBAL / CLUSTER | Engine selector; currently only `silo` is accepted |
+| `minio_cluster` | CLUSTER          | Silo cluster name                                  |
+| `minio_seq`     | INSTANCE         | Instance sequence number                           |
 
 ### Network
 
-| Variable          | Default           | Description              |
-|-------------------|-------------------|--------------------------|
-| `minio_port`      | `9000`            | MinIO API port           |
-| `minio_admin_port`| `9001`            | MinIO console port       |
-| `minio_domain`    | `sss.pigsty`      | External domain name     |
+| Variable           | Default      | Description          |
+|--------------------|--------------|----------------------|
+| `minio_port`       | `9000`       | Silo S3 API port     |
+| `minio_admin_port` | `9001`       | Silo console port    |
+| `minio_domain`     | `sss.pigsty` | External domain name |
 
 ### Storage
 
-| Variable      | Default        | Description                    |
-|---------------|----------------|--------------------------------|
-| `minio_data`  | `/data/minio`  | Data directory (supports `{x...y}` for multiple drives) |
-| `minio_volumes`| (auto)        | Volume specification           |
+| Variable        | Default       | Description                                                |
+|-----------------|---------------|------------------------------------------------------------|
+| `minio_data`    | `/data/minio` | Data directory (supports `{x...y}` for multiple drives)    |
+| `minio_volumes` | (auto)        | Volume specification                                       |
 
 ### Security
 
-| Variable          | Default         | Description              |
-|-------------------|-----------------|--------------------------|
-| `minio_https`     | `true`          | Enable HTTPS             |
-| `minio_access_key`| `minioadmin`    | Root access key          |
-| `minio_secret_key`| `S3User.MinIO`  | Root secret key          |
+| Variable           | Default        | Description     |
+|--------------------|----------------|-----------------|
+| `minio_https`      | `true`         | Enable HTTPS    |
+| `minio_access_key` | `minioadmin`   | Root access key |
+| `minio_secret_key` | `S3User.MinIO` | Root secret key |
 
 ### Provisioning
 
@@ -143,7 +143,7 @@ inventory model:
 Every Silo group must define `minio_cluster` explicitly in its
 cluster variables. The inventory group name and cluster identifier may differ;
 do not put `minio_cluster` in `all.vars`, where it would mark every host as a
-MinIO member.
+Silo member.
 
 ### Single Node
 
@@ -152,6 +152,7 @@ minio:
   hosts:
     10.10.10.10: { minio_seq: 1 }
   vars:
+    minio_type: silo
     minio_cluster: minio
 ```
 
@@ -165,6 +166,7 @@ minio:
     10.10.10.13: { minio_seq: 3 }
     10.10.10.14: { minio_seq: 4 }
   vars:
+    minio_type: silo
     minio_cluster: minio
     minio_data: '/data{1...4}/minio'  # Multiple drives
 ```
@@ -201,10 +203,15 @@ Silo uses TLS certificates signed by the Pigsty CA:
 - **Server Key**: `/home/minio/.minio/certs/private.key`
 - **CA on Server**: `/home/minio/.minio/certs/CAs/ca.crt`
 
+The managed unit is `/etc/systemd/system/silo.service`. It reads the legacy
+`/etc/default/minio` file first for upgrade compatibility and then
+`/etc/default/silo`, whose values take precedence; it also conflicts with a
+running `minio.service`. New deployments should configure only the Silo file.
+
 
 ## See Also
 
 - `minio_remove`: Remove Silo deployment
 - `ca`: Certificate Authority
-- `pg_pitr`: pgBackRest (uses MinIO for S3 backups)
-- [MinIO Guide](https://pigsty.io/docs/minio/): Configuration documentation
+- `pg_pitr`: pgBackRest (uses an S3-compatible Silo repository)
+- [MINIO Module Guide](https://pigsty.io/docs/minio/): Configuration documentation

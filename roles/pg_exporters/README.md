@@ -20,6 +20,11 @@ This is useful for:
 
 **Note**: Only PostgreSQL metrics are collected. Node, pgBouncer, Patroni, and HAProxy metrics are not available for remote instances.
 
+The remote role uses the same PostgreSQL 10-19 collector definition as
+`pg_monitor`, including `pg_sub_19`, `pg_recovery_state`, `pg_wal_19`,
+`pg_lock_stat`, `pg_vacuum_score`, `pg_xact_age`, and the current state-value
+updates. Its units are written to `/etc/systemd/system`.
+
 
 ## Playbooks
 
@@ -30,7 +35,7 @@ This is useful for:
 
 ## File Structure
 
-```
+```text
 roles/pg_exporters/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -50,7 +55,7 @@ roles/pg_exporters/
 
 ## Tags
 
-```
+```text
 pg_exporters                   # Setup remote pg_exporter instances
 ├── pg_register                # Register to monitoring
 │   ├── add_metrics            # Register to Victoria Metrics
@@ -108,7 +113,7 @@ pg_exporters:
 
 The connection URL is auto-generated:
 
-```
+```text
 postgres://<pg_monitor_username>:<pg_monitor_password>@<pg_host>:<pg_port>/postgres?<pg_exporter_params>
 ```
 
@@ -144,7 +149,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_stat_statements" WITH SCHEMA "monitor";
 
 Ensure the remote PostgreSQL allows connections from infra nodes:
 
-```
+```text
 # pg_hba.conf
 host    all    dbuser_monitor    <infra_ip>/32    scram-sha-256
 ```
@@ -154,13 +159,14 @@ host    all    dbuser_monitor    <infra_ip>/32    scram-sha-256
 
 Each exporter runs as a unique systemd service:
 
-```
-pg_exporter_<cluster>-<seq>
+```text
+/etc/systemd/system/pg_exporter_<cluster>-<seq>.service
 ```
 
 Example:
-- `pg_exporter_pg-foo-1` (port 20001)
-- `pg_exporter_pg-foo-2` (port 20002)
+
+- `pg_exporter_pg-foo-1.service` (port 20001)
+- `pg_exporter_pg-foo-2.service` (port 20002)
 
 
 ## Limitations

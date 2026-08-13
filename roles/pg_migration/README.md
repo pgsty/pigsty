@@ -30,7 +30,7 @@ The actual migration is executed manually by operators following the generated p
 
 ## File Structure
 
-```
+```text
 roles/pg_migration/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -61,7 +61,7 @@ roles/pg_migration/
 
 ### Tag Hierarchy
 
-```
+```text
 pg_migration
 ├── check                      # Parameter validation
 ├── dir                        # Create migration context
@@ -158,7 +158,7 @@ resolution (`.pgpass`, environment/service settings, or explicit connection stri
 
 ### Overview
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │                    Migration Process                     │
 ├─────────────────────────────────────────────────────────┤

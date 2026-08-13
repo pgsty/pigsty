@@ -34,7 +34,7 @@ This enables:
 
 ## File Structure
 
-```
+```text
 roles/repo/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -55,7 +55,7 @@ roles/repo/
 
 ### Tag Hierarchy
 
-```
+```text
 repo                           # Full role execution
 │
 ├── repo_check                 # Check if repo already exists
@@ -71,7 +71,7 @@ repo                           # Full role execution
 │   ├── repo_cache             # Refresh package cache
 │   ├── repo_boot_pkg          # Install bootstrap packages
 │   ├── repo_pkg               # Download all required packages
-│   └── repo_create            # Create repo metadata (+ cleanup)
+│   ├── repo_create            # Create repo metadata (+ cleanup)
 │   └── repo_use               # Configure system to use built repo
 │
 └── repo_nginx                 # Setup temporary Nginx server
@@ -89,13 +89,13 @@ repo                           # Full role execution
 | `repo_home`     | `/www`                  | Repository base directory                            |
 | `repo_endpoint` | `http://${admin_ip}:80` | Access URL for the repository                        |
 | `repo_remove`   | `true`                  | Remove existing upstream repo files                  |
-| `repo_modules`  | `infra,node,pgsql`      | Modules to include (`infra` is always added for Sow) |
+| `repo_modules`  | `infra,node,pgsql`      | Modules to include (`infra` is always added for SOW) |
 
 > Note: On a fresh installation, the role creates `/www` as a symbolic link to
 > `/data/nginx`. An existing directory or symlink is preserved.
 
-Sow is required to rebuild repository metadata. Refresh offline archives and
-existing local repositories made before this change, or install Sow 0.2.0 from
+SOW is required to rebuild repository metadata. Refresh offline archives and
+existing local repositories made before this change, or install SOW 0.3.0 from
 the Pigsty INFRA repository before running `repo_create` or `cache_create`.
 
 ### Package Sources
@@ -123,14 +123,14 @@ local repository is marked as a hotfix repository when it is configured.
 
 ## Repository Structure
 
-```
+```text
 /www/                         # Usually a symlink -> /data/nginx on fresh installs
 └── pigsty/                   # repo_name
     ├── *.rpm                 # RPM packages (EL)
     ├── *.deb                 # DEB packages (Debian/Ubuntu)
     ├── repodata/             # YUM metadata (EL only)
     │   ├── repomd.xml
-    │   └── primary.xml.gz
+    │   └── *-primary.xml.gz  # Plus filelists/other metadata
     ├── Packages              # APT metadata (Debian/Ubuntu)
     ├── Packages.gz           # APT metadata (Debian/Ubuntu)
     └── repo_complete         # Completion marker (SHA-256 checksums)
@@ -141,7 +141,7 @@ local repository is marked as a hotfix repository when it is configured.
 
 ### First Run (No Existing Repo)
 
-```
+```text
 repo_check ─────► repo_build ─────────────────────────► repo_nginx
      │                │                                      │
      │                ├── repo_dir (create directories)      │
@@ -158,7 +158,7 @@ repo_check ─────► repo_build ─────────────
 
 ### Subsequent Runs (Repo Exists)
 
-```
+```text
 repo_check ─────► repo_prepare ─────► repo_nginx
      │                 │                   │
      │                 │                   │
@@ -170,7 +170,7 @@ repo_check ─────► repo_prepare ─────► repo_nginx
 
 ## Dirty Package Cleanup
 
-When downloading packages from upstream repositories, some unwanted packages may be pulled in. 
+When downloading packages from upstream repositories, some unwanted packages may be pulled in.
 These "dirty" packages are automatically cleaned up before creating repository metadata:
 
 | Pattern           | Platform       | Reason                                      |
@@ -184,7 +184,8 @@ These packages can cause:
 - Unnecessary disk space usage
 - Confusion when multiple versions exist
 
-The cleanup and metadata publication happen atomically in `repo_create` through `sow create --pigsty`.
+The cleanup and metadata publication happen atomically in `repo_create`
+through `sow create --pigsty`.
 
 
 ## Common Commands

@@ -31,7 +31,7 @@ HAProxy is used by PostgreSQL clusters for connection pooling and load balancing
 
 ## File Structure
 
-```
+```text
 roles/haproxy/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -51,7 +51,7 @@ roles/haproxy/
 
 ### Tag Hierarchy
 
-```
+```text
 haproxy (full role)
 │
 ├── haproxy_install            # Install HAProxy
@@ -103,7 +103,7 @@ haproxy (full role)
 
 ## Configuration Directory
 
-```
+```text
 /etc/haproxy/
 ├── haproxy.cfg               # Global defaults
 └── conf.d/

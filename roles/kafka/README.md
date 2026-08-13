@@ -38,6 +38,10 @@ refused); one cluster, several clusters, or a bare run over the whole
 inventory are all fine — orchestration is serial within a cluster and
 concurrent across clusters:
 
+The playbook skips hosts without `kafka_cluster`. Selected members must provide
+a cluster name matching the role's identifier rules and a numeric, unique
+`kafka_seq`; `kafka-id` asserts both before convergence.
+
 ```bash
 ./kafka.yml --check -l kf-main    # dry run first
 ./kafka.yml -l kf-main            # bootstrap, or converge to declared state
@@ -47,7 +51,7 @@ concurrent across clusters:
 
 ## File Structure
 
-```
+```text
 roles/kafka/
 ├── defaults/
 │   └── main.yml              # Public API: 15 persistent variables
@@ -91,7 +95,7 @@ A stale manifest paired with empty data disks still fails closed.
 
 ### Tag Hierarchy
 
-```
+```text
 kafka (full role)
 │
 ├── kafka-id                   # Derive & assert identity (always runs)

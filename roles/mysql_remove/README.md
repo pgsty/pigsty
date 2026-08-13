@@ -28,6 +28,11 @@ native MySQL 8.4 platform. It is intentionally narrower than `pg_remove`:
 - a running mysqld, Router, or exporter outside its native systemd unit fails
   closed; this role never signals an unmanaged process.
 
+Unlike `mysql.yml`, `mysql-rm.yml` does not skip hosts without MySQL identity:
+it runs `node_id` and then requires `mysql_cluster` group membership plus
+`mysql_seq`. Always pass an exact `-l` limit; an unrelated selected host fails
+closed during `mysql_rm_check`.
+
 Ansible check mode performs the same inventory, service, protected-client, and
 Performance Schema topology checks, then reports the exact AdminAPI action. It
 does not invoke the lifecycle API. A real single-member run repeats topology

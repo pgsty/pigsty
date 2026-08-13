@@ -2,7 +2,7 @@
 
 [![Website: pigsty.io](https://img.shields.io/badge/website-pigsty.io-slategray?style=flat&logo=cilium&logoColor=white)](https://pigsty.io)
 [![CN: pigsty.cc](https://img.shields.io/badge/CN-pigsty.cc-slategray?style=flat&logo=cilium&logoColor=white)](https://pigsty.cc)
-[![Version: v4.4.0](https://img.shields.io/badge/version-v4.4.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases)
+[![Version: v4.5.0](https://img.shields.io/badge/version-v4.5.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases)
 [![License: Apache-2.0](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://pigsty.io/docs/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
 [![Extensions: 575](https://img.shields.io/badge/extensions-575-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pigsty.io/ext/list)
@@ -16,10 +16,10 @@ Enterprise-Grade Open-Source **PostgreSQL** Distribution with HA, PITR, IaC, Mon
 
 [![banner](https://pigsty.io/img/pigsty/banner.png)](https://pigsty.io)
 
-Pigsty scales from [**laptop**](https://pigsty.io/docs/setup) to [**datacenter**](https://pigsty.io/docs/deploy). Enterprise-grade. Developer-friendly. [**Get Started**](https://pigsty.io/docs/setup/install) with the latest [**v4.4.0**](https://github.com/pgsty/pigsty/releases/tag/v4.4.0):
+Pigsty scales from [**laptop**](https://pigsty.io/docs/setup) to [**datacenter**](https://pigsty.io/docs/deploy). Enterprise-grade. Developer-friendly. [**Get Started**](https://pigsty.io/docs/setup/install) with the latest [**v4.5.0**](https://github.com/pgsty/pigsty/releases/tag/v4.5.0):
 
 ```bash
-curl -fsSL https://repo.pigsty.io/get | bash -s v4.4.0
+curl -fsSL https://repo.pigsty.io/get | bash -s v4.5.0
 ```
 
 
@@ -52,21 +52,21 @@ You can even use many exotic [**PG Kernel Forks**](https://pigsty.io/docs/pgsql/
 [![CLOUDBERRY](https://img.shields.io/badge/CLOUDBERRY-FF8C00?style=flat&logo=postgresql&labelColor=FF8C00&logoColor=black)](https://pigsty.io/docs/pgsql/kernel/cloudberry)
 
 
-|                            Kernel                            |           Key Feature            | Description                                       |
-|:------------------------------------------------------------:|:--------------------------------:|:--------------------------------------------------|
-|  [PostgreSQL](https://pigsty.io/docs/pgsql/kernel/postgres)  |       **Battery-Included**       | Original PGDG PostgreSQL with 575 extensions      |
-|       [Supabase](https://pigsty.io/docs/app/supabase)        |      **Backend as Service**      | BaaS over PostgreSQL, Firebase alternative        |
-|      [Citus](https://pigsty.io/docs/pgsql/kernel/citus)      |      **Horizontal Scaling**      | Distributive PostgreSQL via native extension      |
-|  [Babelfish](https://pigsty.io/docs/pgsql/kernel/babelfish)  |    **SQL Server Simulation**     | Microsoft SQL Server wire-compatibility           |
-|   [IvorySQL](https://pigsty.io/docs/pgsql/kernel/ivorysql)   |      **Oracle Simulation**       | Oracle Grammar and PL/SQL compatible              |
-|   [OpenHalo](https://pigsty.io/docs/pgsql/kernel/openhalo)   |       **MySQL Simulation**       | MySQL wire-protocol compatibility                 |
-| [PostgreSQL (Mongo)](https://pigsty.io/docs/conf/mongo)      |      **MongoDB Simulation**      | DocumentDB + FerretDB wire-protocol compatibility |
-|    [Percona](https://pigsty.io/docs/pgsql/kernel/percona)    | **Transparent Data Encryption**  | Percona Distribution with pg_tde                  |
-|   [OrioleDB](https://pigsty.io/docs/pgsql/kernel/orioledb)   |   **OLTP Optimization Engine**   | No bloat, No XID Wraparound, S3 Storage           |
-|    [PolarDB](https://pigsty.io/docs/pgsql/kernel/polardb)    |      **Aurora flavor RAC**       | RAC, China domestic compliance                    |
-| [AgensGraph](https://pigsty.io/docs/pgsql/kernel/agensgraph) |    **Graph-Native Database**     | Transactional graph database based on PostgreSQL  |
-|     [pgEdge](https://pigsty.io/docs/pgsql/kernel/pgedge)     |  **Multi-Master Distributive**   | Geo-Distributive multi-writer Postgres            |
-| [Cloudberry](https://pigsty.io/docs/pgsql/kernel/cloudberry) |      **MPP Data Warehouse**      | Greenplum 7 Apache OSS Fork                       |
+|                            Kernel                            |           Key Feature           | Description                                      |
+|:------------------------------------------------------------:|:-------------------------------:|:-------------------------------------------------|
+|  [PostgreSQL](https://pigsty.io/docs/pgsql/kernel/postgres)  |      **Battery-Included**       | Original PGDG PostgreSQL with 575 extensions     |
+|       [Supabase](https://pigsty.io/docs/app/supabase)        |     **Backend as Service**      | BaaS over PostgreSQL, Firebase alternative       |
+|      [Citus](https://pigsty.io/docs/pgsql/kernel/citus)      |     **Horizontal Scaling**      | Distributive PostgreSQL via native extension     |
+|  [Babelfish](https://pigsty.io/docs/pgsql/kernel/babelfish)  |    **SQL Server Simulation**    | Microsoft SQL Server wire-compatibility          |
+|   [IvorySQL](https://pigsty.io/docs/pgsql/kernel/ivorysql)   |      **Oracle Simulation**      | Oracle Grammar and PL/SQL compatible             |
+|   [OpenHalo](https://pigsty.io/docs/pgsql/kernel/openhalo)   |      **MySQL Simulation**       | MySQL wire-protocol compatibility                |
+|       [DocumentDB](https://pigsty.io/docs/conf/mongo)        |     **MongoDB Simulation**      | MongoDB wire-protocol compatibility              |
+|    [Percona](https://pigsty.io/docs/pgsql/kernel/percona)    | **Transparent Data Encryption** | Percona Distribution with pg_tde                 |
+|   [OrioleDB](https://pigsty.io/docs/pgsql/kernel/orioledb)   |  **OLTP Optimization Engine**   | No bloat, No XID Wraparound, S3 Storage          |
+|    [PolarDB](https://pigsty.io/docs/pgsql/kernel/polardb)    |      **Aurora flavor RAC**      | RAC, China domestic compliance                   |
+| [AgensGraph](https://pigsty.io/docs/pgsql/kernel/agensgraph) |    **Graph-Native Database**    | Transactional graph database based on PostgreSQL |
+|     [pgEdge](https://pigsty.io/docs/pgsql/kernel/pgedge)     |  **Multi-Master Distributive**  | Geo-Distributive multi-writer Postgres           |
+| [Cloudberry](https://pigsty.io/docs/pgsql/kernel/cloudberry) |     **MPP Data Warehouse**      | Greenplum 7 Apache OSS Fork                      |
 
 And gather the synergistic superpowers of all [**575 PostgreSQL Extensions**](https://pigsty.io/ext/list) all together:
 
@@ -81,7 +81,7 @@ And gather the synergistic superpowers of all [**575 PostgreSQL Extensions**](ht
 [![EL Support: 8/9/10](https://img.shields.io/badge/EL-8/9/10-red?style=flat&logo=redhat&logoColor=red)](https://pigsty.io/docs/ref/linux#el)
 [![Debian Support: 12/13](https://img.shields.io/badge/Debian-12/13-%23A81D33?style=flat&logo=debian&logoColor=%23A81D33)](https://pigsty.io/docs/ref/linux#debian)
 [![Ubuntu Support: 22/24/26](https://img.shields.io/badge/Ubuntu-22/24/26-%23E95420?style=flat&logo=ubuntu&logoColor=%23E95420)](https://pigsty.io/docs/ref/linux#ubuntu)
-[![Docker Image](https://img.shields.io/badge/Docker-v4.4.0-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/setup/docker)
+[![Docker Image](https://img.shields.io/badge/Docker-v4.5.0-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/setup/docker)
 
 [**Prepare**](https://pigsty.io/docs/deploy/prepare) a fresh `x86_64` / `aarch64` node runs any [**compatible**](https://pigsty.io/docs/ref/linux) **Linux** OS Distros, then [**Install**](https://pigsty.io/docs/setup/install#install) **Pigsty** with:
 
@@ -121,24 +121,24 @@ pig sty deploy   # run the deploy.yml playbook
 <details><summary>Install with get script</summary><br>
 
 ```bash
-[root@pg-meta ~]# curl -fsSL https://repo.pigsty.io/get | bash -s v4.4.0
-[v4.4.0] ===========================================
+[root@pg-meta ~]# curl -fsSL https://repo.pigsty.io/get | bash -s v4.5.0
+[v4.5.0] ===========================================
 $ curl -fsSL https://repo.pigsty.io/get | bash
 [Docs] https://pigsty.io/docs
 [Demo] https://demo.pigsty.io
 [Repo] https://github.com/pgsty/pigsty
 [Download] ===========================================
-[ OK ] version = v4.4.0 (from arg)
-curl -fSL https://repo.pigsty.io/src/pigsty-v4.4.0.tgz -o /tmp/pigsty-v4.4.0.tgz
+[ OK ] version = v4.5.0 (from arg)
+curl -fSL https://repo.pigsty.io/src/pigsty-v4.5.0.tgz -o /tmp/pigsty-v4.5.0.tgz
 ######################################################################## 100.0%
-[ OK ] md5sums = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  /tmp/pigsty-v4.4.0.tgz
+[ OK ] md5sums = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  /tmp/pigsty-v4.5.0.tgz
 [Install] ===========================================
 [WARN] os user = root , it's recommended to use a non-root sudo-able admin
-[ OK ] install = /root/pigsty, from /tmp/pigsty-v4.4.0.tgz
+[ OK ] install = /root/pigsty, from /tmp/pigsty-v4.5.0.tgz
 
 [Bootstrap] ===========================================
 [WARN] ansible = not found, bootstrap
-bootstrap pigsty v4.4.0 begin
+bootstrap pigsty v4.5.0 begin
 [ OK ] region = china
 [ OK ] kernel  = Linux
 [ OK ] machine = x86_64
@@ -175,7 +175,7 @@ proceed with ./configure
 > HINT: To install a specific version, pass the version string as the first parameter:
 >
 > ```bash
-> curl -fsSL https://repo.pigsty.io/get | bash -s v4.4.0
+> curl -fsSL https://repo.pigsty.io/get | bash -s v4.5.0
 > ```
 
 </details>
@@ -186,7 +186,7 @@ proceed with ./configure
 You can also download the pigsty source with `git`, remember to check out a specific version tag, the `main` branch is for development.
 
 ```bash
-git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v4.4.0
+git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v4.5.0
 ```
 
 </details>
@@ -631,22 +631,20 @@ There are other pro, beta, or pilot modules, and there will be more coming in th
 
 ## Compatibility
 
-We recommend using Rocky 9.7 / 10.1, Debian 13.6 / 12.14, and Ubuntu 24.04.4 / 22.04.5 for production use.
+We recommend using Rocky Linux 9.8 / 10.2, Debian 12.15 / 13.6, and Ubuntu 22.04.5 / 24.04.4 / 26.04.0 for production use.
 
 Pigsty runs directly on bare Linux, and focuses on actively maintained mainstream LTS [**Linux Distributions**](https://pigsty.io/docs/ref/linux):
 
 |   Code   | Distro                  | Minor   |                      `x86_64`                       |                       `aarch64`                       |
 |:--------:|-------------------------|---------|:---------------------------------------------------:|:-----------------------------------------------------:|
-| **EL10** | RHEL / Rocky / Alma 10  | 10.1    | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) |
-| **EL9**  | RHEL / Rocky / Alma 9   | 9.7     |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  |
+| **EL10** | RHEL / Rocky / Alma 10  | 10.2    | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) |
+| **EL9**  | RHEL / Rocky / Alma 9   | 9.8     |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  |
 | **EL8**  | RHEL / Rocky / Alma 8   | 8.10    |  [`el8.x86_64`](roles/node_id/vars/el8.x86_64.yml)  |  [`el8.aarch64`](roles/node_id/vars/el8.aarch64.yml)  |
 | **U26**  | Ubuntu 26.04 (resolute) | 26.04.0 |  [`u26.x86_64`](roles/node_id/vars/u26.x86_64.yml)  |  [`u26.aarch64`](roles/node_id/vars/u26.aarch64.yml)  |
 | **U24**  | Ubuntu 24.04 (noble)    | 24.04.4 |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  |
 | **U22**  | Ubuntu 22.04 (jammy)    | 22.04.5 |  [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml)  |  [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml)  |
 | **D13**  | Debian 13 (trixie)      | 13.6    |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |
-| **D12**  | Debian 12 (bookworm)    | 12.14   |  [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml)  |  [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml)  |
-
-> ⚠️ EL 9/10 are pinned to 9.7/10.1 because newer upstream minors are currently broken.
+| **D12**  | Debian 12 (bookworm)    | 12.15   |  [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml)  |  [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml)  |
 
 
 ## Sponsor

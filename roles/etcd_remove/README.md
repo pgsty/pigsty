@@ -30,7 +30,7 @@ The `etcd_remove` role removes ETCD instances from a cluster:
 
 ## File Structure
 
-```
+```text
 roles/etcd_remove/
 ├── defaults/
 │   └── main.yml              # Default variables
@@ -46,7 +46,7 @@ roles/etcd_remove/
 
 ### Tag Hierarchy
 
-```
+```text
 etcd_remove (full role)
 │
 ├── etcd_safeguard             # Safeguard check (always)
@@ -59,6 +59,7 @@ etcd_remove (full role)
 ├── etcd_leave                 # Leave cluster gracefully
 │
 ├── etcd_svc                   # Stop etcd service
+│   └── etcd_stop              # Alias for the service-stop task
 │
 ├── etcd_data                  # Stop service and remove data (if etcd_rm_data)
 │
@@ -68,11 +69,14 @@ etcd_remove (full role)
 
 ## Key Variables
 
-| Variable         | Default | Description                |
-|------------------|---------|----------------------------|
-| `etcd_safeguard` | `false` | Prevent accidental removal |
-| `etcd_rm_data`   | `true`  | Remove data directories    |
-| `etcd_rm_pkg`    | `false` | Uninstall etcd package     |
+| Variable         | Default      | Description                                |
+|------------------|--------------|--------------------------------------------|
+| `etcd_cluster`   | `etcd`       | Cluster/group identity                     |
+| `etcd_seq`       | required     | Member sequence used in the instance name  |
+| `etcd_data`      | `/data/etcd` | Primary data directory                     |
+| `etcd_safeguard` | `false`      | Prevent accidental removal                 |
+| `etcd_rm_data`   | `true`       | Remove data, config, unit, and helper files |
+| `etcd_rm_pkg`    | `false`      | Uninstall the `etcd` package                |
 
 
 ## Safeguard Protection
@@ -110,7 +114,10 @@ Override with:
 3. Stop local etcd service
 4. Clean up data (optional)
 
-If graceful leave fails, the role continues with forced removal.
+If graceful leave fails, the play continues to stop the local service and,
+with the default `etcd_rm_data: true`, remove its local state. The role does
+not prove that the remaining members retain quorum; verify membership and
+quorum before every real run and always limit the play to the exact member.
 
 
 ## See Also

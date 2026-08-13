@@ -74,7 +74,7 @@ extended support is available through
 
 - Ansible playbooks, roles, templates, and scripts in this repository
 - Configurations Pigsty generates for PostgreSQL, Patroni, pgBouncer,
-  HAProxy, Nginx, etcd, MinIO, and other managed components
+  HAProxy, Nginx, etcd, Silo, and other managed components
 - Insecure Pigsty defaults that create unintended exposure or unsafe
   production behavior
 - The Pigsty package repositories and distribution pipeline
@@ -83,7 +83,7 @@ extended support is available through
 - Pigsty-built PostgreSQL extension packages, where the flaw lies in
   Pigsty's build, packaging, bundling, or distribution process
 - Pigsty-specific patches and integration work in maintained forks
-  (e.g., [pgsty/minio](https://github.com/pgsty/minio))
+  (e.g., [pgsty/silo](https://github.com/pgsty/silo))
 
 Reports concerning related Pigsty ecosystem projects, such as the
 [`pig`](https://github.com/pgsty/pig) CLI, are welcome here if you are
@@ -92,7 +92,7 @@ unsure where they belong; we will route them to the appropriate repository.
 ### Upstream Components
 
 Pigsty packages and orchestrates many upstream projects: PostgreSQL,
-Patroni, pgBouncer, HAProxy, etcd, MinIO, Grafana, VictoriaMetrics,
+Patroni, pgBouncer, HAProxy, etcd, Silo, Grafana, VictoriaMetrics,
 Prometheus components, Ansible, and 575 PostgreSQL extensions.
 Vulnerabilities in upstream code should be reported to the upstream project
 first. If an upstream vulnerability affects Pigsty deployments, please let

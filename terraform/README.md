@@ -10,6 +10,8 @@ All templates create a single-node `pg-meta` instance with:
 - **Network**: VPC with `10.10.10.0/24` subnet, private IP `10.10.10.10`
 - **Security**: All ports open (demo only - restrict in production!)
 
+The current recommended and verified OS baselines are Rocky Linux 9.8 / 10.2, Debian 12.15 / 13.6, and Ubuntu 22.04.5 / 24.04.4 / 26.04.0.
+
 
 
 ## Supported Cloud Providers

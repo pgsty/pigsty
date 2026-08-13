@@ -29,10 +29,15 @@ The `pgsql` role is the **core role** for deploying PostgreSQL clusters in Pigst
 | `pgsql-db.yml`   | Manage databases only                          |
 | `pgsql-rm.yml`   | Remove cluster (use `pg_remove`)               |
 
+`pgsql.yml` skips inventory hosts without `pg_cluster`. Every selected
+PostgreSQL host must still provide a valid cluster name, numeric `pg_seq`, and
+one of the supported `pg_role` values; `pg_id` validates these inputs before
+the deployment role runs.
+
 
 ## File Structure
 
-```
+```text
 roles/pgsql/
 ├── defaults/
 │   └── main.yml              # Default variables (lowest priority)
@@ -82,7 +87,7 @@ roles/pgsql/
 
 ### Tag Hierarchy
 
-```
+```text
 pgsql (full role)
 │
 ├── pg_install                 # Software installation
@@ -195,6 +200,11 @@ pgsql (full role)
 
 Supported `pg_mode` values are `pgsql`, `citus`, `mssql`, `mysql`, `ivory`,
 `pgtde`, `polar`, `gpsql`, `agens`, `oriole`, and `pgedge`.
+
+The cluster member list derived by `pg_id` is also the scope for database-OS
+user SSH-key exchange. During configuration, the role creates the per-cluster
+etcd user only on the primary and only when the canonical `etcd` inventory
+group exists and is non-empty.
 
 ### Installation
 

@@ -21,6 +21,9 @@ It also registers the node to infrastructure monitoring:
 - **Victoria Metrics**: Register as scrape targets
 - **HAProxy**: Register to Nginx reverse proxy
 
+Pigsty writes the `node_exporter`, optional `keepalived_exporter`, and Vector
+units directly under `/etc/systemd/system`.
+
 
 ## Playbooks
 
@@ -31,7 +34,7 @@ It also registers the node to infrastructure monitoring:
 
 ## File Structure
 
-```
+```text
 roles/node_monitor/
 ├── defaults/
 │   └── main.yml                  # Default variables
@@ -55,7 +58,7 @@ roles/node_monitor/
 
 ### Tag Hierarchy
 
-```
+```text
 node_monitor (from node.yml)
 │
 ├── haproxy_register               # Register HAProxy to Nginx
@@ -94,7 +97,7 @@ node_monitor (from node.yml)
 | `node_exporter_options` | (see below) | Extra CLI options    |
 
 **Default Options**:
-```
+```text
 --no-collector.softnet --no-collector.nvme --collector.tcpstat --collector.processes
 ```
 
@@ -172,7 +175,7 @@ Creates ping targets at `/infra/targets/ping/<ip>.yml` for ICMP monitoring.
 
 Vector collects logs from journald and forwards them to Victoria Logs:
 
-```
+```text
 ┌─────────────┐     ┌─────────────┐     ┌─────────────────┐
 │   journald  │ ──► │   Vector    │ ──► │ Victoria Logs   │
 │  (syslog)   │     │  (agent)    │     │ (infra nodes)   │

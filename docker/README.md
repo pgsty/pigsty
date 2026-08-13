@@ -20,7 +20,7 @@ cd ~/pigsty/docker    # enter this dir
 make launch           # = make up config deploy
 ```
 
-You can also build the base container image first (based on debian13):
+You can also build the base container image first (based on Debian 13.6):
 
 ```bash
 cd ~/pigsty/docker
@@ -33,7 +33,7 @@ make build launch     # build image rather than pull
 
 | Image          | Pull   | Size  | Contents                                  |
 |----------------|--------|-------|-------------------------------------------|
-| `pgsty/pigsty` | ~500MB | 1.3GB | Debian 13 + systemd + SSH + pig + Ansible |
+| `pgsty/pigsty` | ~500MB | 1.3GB | Debian 13.6 + systemd + SSH + pig + Ansible |
 
 - Supports **amd64** (x86_64) and **arm64** (Apple Silicon, AWS Graviton)
 - Tags match pigsty version: `v4.5.0`, `latest`
