@@ -462,7 +462,8 @@ Docker runtime module for deploying containerized applications alongside Pigsty 
 ---
 
 ### PIG `/docs/pig/`
-PIG v1.6.2 package manager for the 575 PostgreSQL extensions in the Pigsty catalog; `pig ext reload` refreshes its online catalog snapshot.
+
+PIG v1.7.0 package manager for the 575 PostgreSQL extensions in the Pigsty catalog; `pig ext reload` refreshes its online catalog snapshot.
 
 ---
 
