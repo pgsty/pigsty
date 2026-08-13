@@ -91,15 +91,32 @@
 
 
 #--------------------------------------------------------------#
-# Launch Silo                                     [minio_launch]
+# Launch silo                                     [minio_launch]
 #--------------------------------------------------------------#
-- name: launch Silo server
+- name: launch silo server
   tags: minio_launch
   block:
-    - name: launch Silo server service
-      systemd: name={{ minio_type }} state=restarted enabled=yes daemon_reload=yes
-    - name: wait for Silo server online
-      wait_for: host=127.0.0.1 port={{ minio_port }} state=started timeout=60
+    - name: get current silo invocation
+      command: systemctl show {{ minio_type }} --property=InvocationID
+      register: minio_old_invocation
+      changed_when: false
+      failed_when: false
+
+    - name: launch silo server service
+      systemd: name={{ minio_type }} state=restarted enabled=yes daemon_reload=yes no_block=yes
+      when: not ansible_check_mode
+
+    - name: wait for silo server ready
+      command: systemctl show {{ minio_type }} --property=ActiveState --property=InvocationID
+      register: minio_launch_state
+      changed_when: false
+      until:
+        - "'ActiveState=active' in minio_launch_state.stdout_lines"
+        - minio_launch_state.stdout | regex_search('(?m)^InvocationID=.+$') is not none
+        - minio_old_invocation.stdout not in minio_launch_state.stdout_lines
+      retries: "{{ minio_launch_retries }}"
+      delay: "{{ minio_launch_interval }}"
+      when: not ansible_check_mode
 
 
 #--------------------------------------------------------------#

@@ -1,16 +1,14 @@
 ---
 #--------------------------------------------------------------#
-# Check MinIO Health Status                        [minio_check]
+# Check minio health status                        [minio_check]
 #--------------------------------------------------------------#
 - name: check minio health status
   tags: minio_check
-  uri:
-    url: "{% if minio_https|bool %}https{% else %}http{% endif %}://{{ minio_nodename }}:{{ minio_port }}/minio/health/live"
-    method: GET
-    status_code: 200
-    validate_certs: false
+  command: >-
+    /usr/bin/{{ minio_type }} healthcheck --url {% if minio_https|bool %}https{% else %}http{% endif %}://127.0.0.1:{{ minio_port }} cluster
   register: result
-  until: result.status == 200
+  changed_when: false
+  until: result.rc == 0
   retries: 5
   delay: 5
 
