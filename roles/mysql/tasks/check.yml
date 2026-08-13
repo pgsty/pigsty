@@ -39,8 +39,8 @@
       - mysql_parameters is mapping
       - mysql_parameters | dict2items | rejectattr('key', 'match', '^[A-Za-z][A-Za-z0-9_.-]{0,63}$') | list | length == 0
       - mysql_parameters | dict2items | map(attribute='value') | map('string') | select('search', '[\r\n]') | list | length == 0
-      - mysql_parameters | list | map('replace', '-', '_') | select('in', mysql_reserved_parameters) | list | length == 0
-      - mysql_parameters | list | map('replace', '-', '_') | select('match', '^(loose_)?(group_replication_|ssl_)') | list | length == 0
+      - mysql_parameters | list | map('replace', '-', '_') | map('regex_replace', '^(loose_|skip_|disable_|enable_)+', '') | select('in', mysql_reserved_parameters) | list | length == 0
+      - mysql_parameters | list | map('replace', '-', '_') | map('regex_replace', '^(loose_|skip_|disable_|enable_)+', '') | select('match', '^((plugin_)?group_replication(_|$)|plugin_mysqlx_bind_address$|ssl_)') | list | length == 0
     fail_msg: >-
       mysql_parameters must map simple option names to single-line values and
       cannot override platform identity, replication, or TLS options.
@@ -50,12 +50,11 @@
   assert:
     that:
       - item is mapping
-      - item.keys() | difference(['name','encoding','collate','encrypt']) | length == 0
+      - item.keys() | difference(['name','encoding','collate']) | length == 0
       - item.name is match('^[A-Za-z0-9_$-]+$')
       - item.name | lower not in ['mysql','information_schema','performance_schema','sys']
       - item.encoding | default('utf8mb4') is match('^[A-Za-z0-9_]+$')
       - item.collate | default('utf8mb4_0900_ai_ci') is match('^[A-Za-z0-9_]+$')
-      - item.encrypt is not defined or item.encrypt | type_debug == 'bool'
     fail_msg: Invalid mysql_databases item.
     quiet: true
   loop: "{{ mysql_databases }}"
@@ -96,6 +95,7 @@
     mysql_cluster_password_state: "{{ mysql_state.results[5] }}"
     mysql_datadir_state: "{{ mysql_state.results[6] }}"
     mysql_preinstall_bootstrap_incomplete: "{{ mysql_state.results[0].stat.exists and not mysql_state.results[5].stat.exists }}"
+    mysql_restart_required: false
 
 - name: check mysql lifecycle guards
   assert:
