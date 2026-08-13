@@ -247,7 +247,8 @@ def main():
             converge_user(common, user, cache, spec.get("cluster_id", ""), changed)
         for topic in spec.get("topics", []):
             converge_topic(common, topic, changed)
-    except (Failure, subprocess.TimeoutExpired, OSError) as exc:
+    except (Failure, subprocess.TimeoutExpired, OSError,
+            KeyError, TypeError, ValueError) as exc:
         print(json.dumps({"ok": False, "changed": changed, "error": str(exc)}))
         return 1
     fd, temp_path = tempfile.mkstemp(prefix=".pigsty-user-digests-", dir="/etc/kafka", text=True)

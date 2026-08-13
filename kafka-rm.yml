@@ -20,7 +20,22 @@
     #kafka_safeguard: false            # set true to halt removal (safety switch)
     #kafka_rm_data: true               # remove data dir & /etc/kafka recovery state? true by default
     kafka_rm_pkg: false                # uninstall kafka packages? false by default, explicit override required
-  pre_tasks: [ { name: skip non-kafka hosts ,meta: end_host ,when: kafka_cluster is not defined ,tags: always } ]
+  pre_tasks:
+    - name: require an explicit kafka remove limit
+      connection: local
+      run_once: true
+      tags: always
+      any_errors_fatal: true
+      ignore_errors: false
+      assert:
+        that:
+          - ansible_limit is defined
+          - ansible_limit | trim | length > 0
+        fail_msg: kafka-rm.yml requires an explicit -l/--limit target
+    - name: skip non-kafka hosts
+      meta: end_host
+      when: kafka_cluster is not defined
+      tags: always
   roles:
     - { role: node_id      ,when: kafka_cluster is defined }
     - { role: kafka_remove ,when: kafka_cluster is defined }

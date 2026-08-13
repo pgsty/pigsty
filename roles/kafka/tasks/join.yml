@@ -58,6 +58,7 @@
   when: join_directory_id not in join_voters_line
   delegate_to: "{{ roll_host }}"
   shell: |
+    umask 077
     cat /etc/kafka/server.properties /etc/kafka/controller.properties > /run/pigsty-kafka-join.properties
     chown kafka:kafka /run/pigsty-kafka-join.properties && chmod 0600 /run/pigsty-kafka-join.properties
   args: { executable: /bin/bash }
@@ -120,3 +121,8 @@
     owner: root
     group: root
     mode: '0644'
+
+- name: clear pending restart already satisfied by join on {{ roll_host }}
+  delegate_to: "{{ roll_host }}"
+  delegate_facts: true
+  set_fact: { kafka_restart_required_internal: false }

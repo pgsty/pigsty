@@ -2,6 +2,18 @@
 #--------------------------------------------------------------#
 # Validate Declared Kafka Objects               [kafka_validate]
 #--------------------------------------------------------------#
+- name: validate declared kafka resource shape
+  when: inventory_hostname == kafka_admin_host_internal
+  assert:
+    that:
+      - kafka_users | reject('mapping') | list | length == 0
+      - kafka_topics | reject('mapping') | list | length == 0
+      - kafka_users | map('dict2items') | flatten | map(attribute='key')
+        | difference(['name','password','acls','quota']) | length == 0
+      - kafka_topics | map('dict2items') | flatten | map(attribute='key')
+        | difference(['name','partitions','replication_factor','config']) | length == 0
+    fail_msg: Invalid Kafka user/topic item or unknown top-level attribute.
+
 - name: validate declared kafka resource collections
   when: inventory_hostname == kafka_admin_host_internal
   assert:
@@ -71,8 +83,9 @@
         that: kafka_resource_result_internal.rc == 0
         fail_msg: >-
           Kafka resource convergence failed safely:
-          {{ ((kafka_resource_result_internal.stdout | default('{}', true) | from_json).error
-              | default('resource helper returned no diagnostic')) }}
+          {{ kafka_resource_result_internal.stdout | default('', true) or
+             kafka_resource_result_internal.stderr
+             | default('resource helper returned no diagnostic', true) }}
     - name: report non-secret kafka resource changes
       vars:
         kafka_resource_changes_internal: "{{ (kafka_resource_result_internal.stdout | from_json).changed }}"

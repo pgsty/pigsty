@@ -10,7 +10,11 @@
     that:
       - kafka_cluster is defined and (kafka_cluster | string | regex_search('^[A-Za-z0-9][A-Za-z0-9_-]*$')) is not none
       - kafka_seq is defined and (kafka_seq | string | regex_search('^[0-9]+$')) is not none
-    fail_msg: kafka_cluster and numeric kafka_seq are required
+      - (kafka_data | regex_search('^/[^\s]+$')) is not none
+      - (kafka_data | regex_search('(^|/)\.\.?(?:/|$)')) is none
+      - (kafka_data | regex_replace('/+', '/') | regex_replace('/+$', '')) not in ['', '/data', '/var', '/etc', '/opt', '/usr', '/home', '/root', '/pg']
+    fail_msg: >-
+      kafka_cluster, numeric kafka_seq, and a safe absolute kafka_data path are required
 
 #--------------------------------------------------------------#
 # Derive Kafka Identity                               [kafka_id]
@@ -30,6 +34,54 @@
   any_errors_fatal: true
   ignore_errors: false
   fail: msg="Abort due to kafka_safeguard for {{ kafka_cluster }} @ {{ inventory_hostname }} is enabled, override with -e kafka_safeguard=false"
+
+#--------------------------------------------------------------#
+# Check Retirement Topology                         [kafka_retire]
+#--------------------------------------------------------------#
+# Resolve both protocol planes before any teardown change. A full-cluster
+# removal has no outsiders and therefore needs no live retirement anchor.
+- name: derive kafka retirement topology
+  when: not kafka_safeguard | bool
+  tags: kafka_retire
+  set_fact:
+    kafka_rm_partial_internal: "{{ kafka_rm_outsiders | length > 0 }}"
+    kafka_rm_survivor_internal: >-
+      {%- set found = [] -%}
+      {%- for host in kafka_rm_outsiders -%}
+      {%-   if hostvars[host].kafka_role | default('combined') in ['combined', 'broker'] -%}
+      {%-     set _ = found.append(host) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ found | first | default('') }}
+    kafka_rm_ctl_survivor_internal: >-
+      {%- set found = [] -%}
+      {%- for host in kafka_rm_outsiders -%}
+      {%-   if hostvars[host].kafka_role | default('combined') in ['combined', 'controller'] -%}
+      {%-     set _ = found.append(host) -%}
+      {%-   endif -%}
+      {%- endfor -%}
+      {{ found | first | default('') }}
+  vars:
+    kafka_rm_members: >-
+      {{ hostvars | dict2items | selectattr('value.kafka_cluster', 'defined')
+         | selectattr('value.kafka_cluster', 'equalto', kafka_cluster)
+         | map(attribute='key') | list | sort }}
+    kafka_rm_outsiders: "{{ kafka_rm_members | difference(ansible_play_hosts_all) | sort }}"
+
+- name: check kafka retirement anchors
+  when: >-
+    not kafka_safeguard | bool and kafka_rm_partial_internal | bool and
+    (kafka_rm_survivor_internal | length == 0 or kafka_rm_ctl_survivor_internal | length == 0)
+  tags: kafka_retire
+  any_errors_fatal: true
+  ignore_errors: false
+  assert:
+    that:
+      - kafka_rm_survivor_internal | length > 0
+      - kafka_rm_ctl_survivor_internal | length > 0
+    fail_msg: >-
+      Partial Kafka retirement requires one surviving broker-capable node and
+      one surviving controller-capable node outside the selected limit.
 
 #--------------------------------------------------------------#
 # Deregister Monitoring Targets               [kafka_deregister]
@@ -65,26 +117,6 @@
 # hosts). Partition replicas still assigned to the retired broker stay
 # under-replicated until an identically-numbered replacement rejoins via
 # kafka.yml, or until they are reassigned explicitly.
-- name: derive kafka retirement topology
-  when: not kafka_safeguard | bool
-  tags: kafka_retire
-  set_fact:
-    kafka_rm_survivor_internal: "{{ kafka_rm_outsiders | first | default('') }}"
-    kafka_rm_ctl_survivor_internal: >-
-      {%- set found = [] -%}
-      {%- for host in kafka_rm_outsiders -%}
-      {%-   if hostvars[host].kafka_role | default('combined') in ['combined', 'controller'] -%}
-      {%-     set _ = found.append(host) -%}
-      {%-   endif -%}
-      {%- endfor -%}
-      {{ found | first | default('') }}
-  vars:
-    kafka_rm_members: >-
-      {{ hostvars | dict2items | selectattr('value.kafka_cluster', 'defined')
-         | selectattr('value.kafka_cluster', 'equalto', kafka_cluster)
-         | map(attribute='key') | list | sort }}
-    kafka_rm_outsiders: "{{ kafka_rm_members | difference(ansible_play_hosts_all) | sort }}"
-
 - name: inspect live quorum for retirement
   when: not kafka_safeguard | bool and kafka_rm_ctl_survivor_internal | length > 0
   tags: kafka_retire
