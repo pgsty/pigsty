@@ -32,7 +32,21 @@
 
 
 #--------------------------------------------------------------#
-# 2. Create Repo                                  [cache_create]
+# 2. Include Pigsty Source                           [cache_src]
+#--------------------------------------------------------------#
+# Copy the local release artifact when present; otherwise skip.
+# SOW scans RPM/DEB files only and preserves this plain TGZ asset.
+#--------------------------------------------------------------#
+- name: cache_src
+  tags: cache_src
+  become: true
+  when: repo_name in cache_repo_list
+  copy: { src: "{{ item }}", dest: "{{ repo_home }}/{{ repo_name }}/", mode: '0644' }
+  with_fileglob: "{{ playbook_dir }}/dist/{{ version }}/pigsty-{{ version }}.tgz"
+
+
+#--------------------------------------------------------------#
+# 3. Create Repo                                  [cache_create]
 #--------------------------------------------------------------#
 # Clean up dirty packages and recreate repository metadata
 #
@@ -59,7 +73,7 @@
 
 
 #--------------------------------------------------------------#
-# 3. Create Cache Tarball                            [cache_tgz]
+# 4. Create Cache Tarball                            [cache_tgz]
 #--------------------------------------------------------------#
 # Create compressed tarball of all repo directories
 # Tarball is created at /tmp/pkg.tgz on the target node
@@ -76,7 +90,7 @@
 
 
 #--------------------------------------------------------------#
-# 4. Fetch Cache Tarball                           [cache_fetch]
+# 5. Fetch Cache Tarball                           [cache_fetch]
 #--------------------------------------------------------------#
 # Pull tarball from target node to control node using rsync
 # Destination: {{ cache_dirname }}/{{ cache_filename }}

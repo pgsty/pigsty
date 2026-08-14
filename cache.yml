@@ -4,7 +4,7 @@
 # File      :   cache.yml
 # Desc      :   Create offline package cache from infra nodes
 # Ctime     :   2024-08-22
-# Mtime     :   2024-12-31
+# Mtime     :   2026-08-14
 # Path      :   cache.yml
 # Docs      :   https://pigsty.io/docs/setup/offline
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -48,9 +48,10 @@
 #--------------------------------------------------------------#
 # This play runs on the target infra node to:
 #   1. Detect node identity (OS, version, architecture)
-#   2. Clean dirty packages and recreate repo metadata
-#   3. Create compressed tarball at /tmp/pkg.tgz
-#   4. Fetch tarball back to control node
+#   2. Copy the local Pigsty source release artifact when present
+#   3. Clean dirty packages and recreate repo metadata
+#   4. Create compressed tarball at /tmp/pkg.tgz
+#   5. Fetch tarball back to control node
 #--------------------------------------------------------------#
 - name: MAKE OFFLINE PACKAGE
   hosts: all
@@ -109,6 +110,8 @@
 #   # Cache multiple repos
 #   ./cache.yml -l infra -e cache_repo=pigsty,minio
 #
+#   # Optional source: pre-stage dist/${version}/pigsty-${version}.tgz before running
+#
 #==============================================================#
 # Tag Reference
 #==============================================================#
@@ -118,6 +121,7 @@
 #   cache        : full cache role execution
 #   cache_id     : calculate cache tarball filename
 #   cache_check  : verify repo directories exist and not empty
+#   cache_src    : copy pre-staged Pigsty source release artifact when present
 #   cache_create : clean dirty packages, recreate repo metadata
 #   cache_tgz    : create /tmp/pkg.tgz tarball on target
 #   cache_fetch  : fetch tarball from target to control node

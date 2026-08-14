@@ -13,9 +13,10 @@
 The `cache` role creates an **offline package tarball** from an existing local repository:
 
 - Verify repository directories exist and are populated
+- Copy the versioned Pigsty source release artifact when staged locally
 - Clean up dirty/unwanted packages to reduce size
 - Recreate YUM/APT repository metadata
-- Create compressed tarball of all packages
+- Create a compressed tarball containing packages and optional source
 - Fetch tarball to control node for distribution
 
 This enables:
@@ -34,6 +35,7 @@ Before running the cache role:
 3. **`rsync` must be installed** on both control and target nodes (for `synchronize` module)
 4. **SOW 0.3.0 must be available** from the Pigsty INFRA repository
 5. The repo should contain all required packages (run `./infra.yml -t repo` first)
+6. To include source in an air-gapped build, stage `dist/<version>/pigsty-<version>.tgz` first
 
 
 ## Playbooks
@@ -78,6 +80,8 @@ cache                          # Full role execution
 ├── cache_id                   # Calculate output filename
 │
 ├── cache_check                # Verify repo directories exist
+│
+├── cache_src                  # Copy staged Pigsty source artifact when present
 │
 ├── cache_create               # Clean packages & recreate metadata
 │
@@ -142,14 +146,43 @@ dist/<version>/pigsty-pkg-<version>.<os>.<arch>.tgz
 ```text
 pigsty/                        # repo_name directory
 ├── *.rpm or *.deb             # Package files
+├── pigsty-v4.5.0.tgz          # Pigsty source release artifact, when available
 ├── repodata/                  # YUM metadata (RPM only)
 │   ├── repomd.xml
 │   └── *-primary.xml.gz       # Plus filelists/other metadata
 ├── Packages                   # APT metadata (DEB only)
 ├── Packages.gz                # APT metadata (DEB only)
-└── repo_complete              # SHA-256 checksums marker
+└── repo_complete              # Package checksum marker
 ```
 
+
+## Pigsty Source Artifact
+
+The cache role never packages the current checkout implicitly and never downloads
+source from the network. If `dist/<version>/pigsty-<version>.tgz` exists on the
+control node, it is copied into the repository; otherwise the task is skipped.
+The source step runs only when `repo_name` is included in `cache_repo`, ensuring
+the artifact is part of the resulting cache tarball. SOW scans RPM/DEB packages
+only and preserves the TGZ as a plain repository asset.
+
+To include the source artifact, stage it before creating the cache:
+
+```bash
+# Create this only when the current checkout is intentionally the release input
+bin/release v4.5.0
+
+./cache.yml -l infra
+```
+
+With the default `repo_home` and `repo_name`, after extracting the outer cache
+archive the source contract is:
+
+```text
+/www/pigsty/pigsty-<version>.tgz
+```
+
+This stable path can be consumed by a later bootstrap enhancement without
+guessing from the build checkout or requiring network access.
 
 
 ## Dirty Package Cleanup
@@ -232,8 +265,8 @@ ls -la /www/pigsty/
 # Only recreate repo metadata (skip fetch)
 ./cache.yml -l infra -t cache_create
 
-# Only create tarball and fetch (skip metadata)
-./cache.yml -l infra -t cache_tgz,cache_fetch
+# Copy staged source, create tarball and fetch (skip metadata)
+./cache.yml -l infra -t cache_src,cache_tgz,cache_fetch
 
 # Show cache info only
 ./cache.yml -l infra -t cache_info
