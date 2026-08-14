@@ -77,6 +77,10 @@ The existing `disk` field remains the size of the additional `/data` disk and de
 Both providers create sparse disks, and the supported `cloud-image/*` boxes grow their root partition
 and filesystem automatically on first boot.
 
+Distributed Silo inventories can use `/data/minio` because `/data` is backed by this additional disk.
+Keep Vagrant disk provisioning enabled: if `/data/minio` falls back to a directory on the root
+filesystem, Silo detects the root drive and refuses to use it.
+
 For libvirt, both imported base images and VM volumes are stored in its `default` storage pool.
 Check the pool target with `virsh pool-dumpxml default`; on hosts with a dedicated data filesystem,
 place that target there (for example, `/data/libvirt/images`). The separate Vagrant box cache lives

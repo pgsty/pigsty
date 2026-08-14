@@ -3,13 +3,13 @@
 # File      :   trio.yml
 # Desc      :   Pigsty 3-node security enhance template
 # Ctime     :   2020-05-23
-# Mtime     :   2026-01-20
+# Mtime     :   2026-08-14
 # Docs      :   https://pigsty.io/docs/conf/trio
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
-# 3 infra node, 3 etcd node, 3 pgsql node, and 1 minio node
+# 3 infra node, 3 etcd node, 3 pgsql node, and 3 minio nodes
 all:  # top level object
   #==============================================================#
   # Clusters, Nodes, and Modules
@@ -35,14 +35,36 @@ all:  # top level object
         etcd_cluster: etcd  # mark etcd cluster name etcd
         etcd_safeguard: false # safeguard against purging
 
+    # compact 3-node x 1-drive Silo cluster: EC:1, tolerates one node failure
+    # use a dedicated local mount for /data/minio; do not expand a 1-node cluster in place
     minio: # minio cluster, s3 compatible object storage
-      hosts: { 10.10.10.10: { minio_seq: 1 } }
+      hosts:
+        10.10.10.10: { minio_seq: 1, vip_role: master }
+        10.10.10.11: { minio_seq: 2 }
+        10.10.10.12: { minio_seq: 3 }
       vars:
         minio_cluster: minio
+        minio_data: /data/minio
         minio_users:
           - { access_key: pgbackrest  ,secret_key: S3User.Backup ,policy: pgsql }
           - { access_key: s3user_meta ,secret_key: S3User.Meta   ,policy: meta  }
           - { access_key: s3user_data ,secret_key: S3User.Data   ,policy: data  }
+        vip_enabled: true
+        vip_vrid: 128
+        vip_address: 10.10.10.9
+        haproxy_services:
+          - name: minio
+            port: 9002
+            balance: leastconn
+            options:
+              - option httpchk
+              - option http-keep-alive
+              - http-check send meth OPTIONS uri /minio/health/live
+              - http-check expect status 200
+            servers:
+              - { name: minio-1, ip: 10.10.10.10, port: 9000, options: 'check-ssl ca-file /etc/pki/ca.crt check port 9000' }
+              - { name: minio-2, ip: 10.10.10.11, port: 9000, options: 'check-ssl ca-file /etc/pki/ca.crt check port 9000' }
+              - { name: minio-3, ip: 10.10.10.12, port: 9000, options: 'check-ssl ca-file /etc/pki/ca.crt check port 9000' }
 
     pg-meta:  # 3 instance postgres cluster `pg-meta`
       hosts:  # pg-meta-3 is marked as offline readable replica
@@ -98,9 +120,10 @@ all:  # top level object
     #----------------------------------#
     # MinIO Related Options
     #----------------------------------#
+    minio_endpoint: https://sss.pigsty:9002
     node_etc_hosts:
       - '${admin_ip} i.pigsty'        # static dns record that point to repo node
-      - '${admin_ip} sss.pigsty'      # static dns record that point to minio
+      - '10.10.10.9 sss.pigsty'       # static dns record that point to minio vip
     pgbackrest_method: minio          # if you want to use minio as backup repo instead of 'local' fs, uncomment this
     pgbackrest_repo:                  # pgbackrest repo: https://pgbackrest.org/configuration.html#section-repository
       local:                          # default pgbackrest repo with local posix fs
@@ -116,7 +139,7 @@ all:  # top level object
         s3_key_secret: S3User.Backup  # minio user secret key for pgbackrest
         s3_uri_style: path            # use path style uri for minio rather than host style
         path: /pgbackrest             # minio backup path, default is `/pgbackrest`
-        storage_port: 9000            # minio port, 9000 by default
+        storage_port: 9002            # minio ha endpoint exposed by haproxy
         storage_ca_file: /etc/pki/ca.crt  # minio ca file path, `/etc/pki/ca.crt` by default
         block: y                      # Enable block incremental backup
         bundle: y                     # bundle small files into a single file

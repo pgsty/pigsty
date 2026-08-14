@@ -114,7 +114,7 @@ minio (full role)
 
 | Variable        | Default       | Description                                                |
 |-----------------|---------------|------------------------------------------------------------|
-| `minio_data`    | `/data/minio` | Data directory (supports `{x...y}` for multiple drives)    |
+| `minio_data`    | `/data/minio` | Filesystem directory (supports `{x...y}` for multiple drives) |
 | `minio_volumes` | (auto)        | Volume specification                                       |
 
 ### Launch
@@ -142,6 +142,34 @@ minio (full role)
 | `minio_users`      | `[...]` | Users to create          |
 
 
+## Storage Paths
+
+`minio_data` is a filesystem path, not a raw block device. The role creates
+the directory and sets ownership and permissions, but does not format or mount
+production storage.
+
+- A single-node, single-drive instance may use a regular directory on the root
+  filesystem for development or testing.
+- Distributed and multi-drive deployments require persistent data paths on
+  non-root filesystems. Silo rejects a distributed path on the root filesystem
+  with `drive is part of root drive, will not be used`.
+- `/data/minio` is valid when `/data` is a separate mount. It is not valid for
+  distributed mode when `/data` is only a directory under `/`.
+- Each expanded path in a multi-drive expression such as
+  `/data{1...4}/minio` should map to a separate filesystem.
+
+Verify the backing mounts before deployment:
+
+```bash
+findmnt -T /
+findmnt -T /data/minio
+```
+
+Mount a local disk, cloud volume, partition, or LVM logical volume first, then
+pass the mount point or a directory beneath it to Silo. Production mounts must
+survive reboot, and drives in one storage pool should have similar capacities.
+
+
 ## Cluster Topology
 
 Silo supports single-node and multi-node distributed modes through the same
@@ -163,7 +191,30 @@ minio:
     minio_cluster: minio
 ```
 
-### Multi-Node Distributed
+### Three-Node Single-Drive
+
+```yaml
+minio:
+  hosts:
+    10.10.10.10: { minio_seq: 1 }
+    10.10.10.11: { minio_seq: 2 }
+    10.10.10.12: { minio_seq: 3 }
+  vars:
+    minio_type: silo
+    minio_cluster: minio
+    minio_data: /data/minio
+```
+
+This generates `https://minio-{1...3}.pigsty:9000/data/minio`. A three-drive
+set uses EC:1 by default: two data shards, one parity shard, and read/write
+quorum of two. It tolerates one unavailable node or drive and provides about
+two-thirds raw capacity efficiency before filesystem and metadata overhead.
+
+This is compact HA, not a replacement for multi-drive production storage. An
+existing single-node pool cannot be converted in place by adding two members;
+create a new cluster and migrate objects.
+
+### Multi-Node Multi-Drive
 
 ```yaml
 minio:
