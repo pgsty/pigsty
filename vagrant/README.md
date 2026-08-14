@@ -71,6 +71,17 @@ Specs = [
 
 ```
 
+The system disk defaults to 64 GiB. Set `"root_disk" => "<GiB>"` on a node to override it;
+the building specs (`all`, `rpm`, `deb`, `oss`, and `pro`) use 128 GiB system disks.
+The existing `disk` field remains the size of the additional `/data` disk and defaults to 128 GiB.
+Both providers create sparse disks, and the supported `cloud-image/*` boxes grow their root partition
+and filesystem automatically on first boot.
+
+For libvirt, both imported base images and VM volumes are stored in its `default` storage pool.
+Check the pool target with `virsh pool-dumpxml default`; on hosts with a dedicated data filesystem,
+place that target there (for example, `/data/libvirt/images`). The separate Vagrant box cache lives
+under `~/.vagrant.d/boxes`; relocate it or set `VAGRANT_HOME` when the home filesystem is constrained.
+
 You can use specs with the [`config`](config) script, it will render the final `Vagrantfile` according to the spec and other options
 
 ```bash

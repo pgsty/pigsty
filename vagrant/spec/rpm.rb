@@ -3,7 +3,7 @@
 Specs = [
 
   # EL 9 / 10 (Rocky Linux Cloud Image)
-  { "name" => "el9",    "ip" => "10.10.10.9" ,  "cpu" => "2",  "mem" => "2048",  "image" =>  "cloud-image/rocky-9"  },
-  { "name" => "el10",   "ip" => "10.10.10.10",  "cpu" => "2",  "mem" => "2048",  "image" =>  "cloud-image/rocky-10" },
+  { "name" => "el9",    "ip" => "10.10.10.9" ,  "cpu" => "2",  "mem" => "2048",  "root_disk" => "128",  "image" =>  "cloud-image/rocky-9"  },
+  { "name" => "el10",   "ip" => "10.10.10.10",  "cpu" => "2",  "mem" => "2048",  "root_disk" => "128",  "image" =>  "cloud-image/rocky-10" },
 
 ]
