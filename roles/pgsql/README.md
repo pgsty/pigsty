@@ -24,7 +24,7 @@ The `pgsql` role is the **core role** for deploying PostgreSQL clusters in Pigst
 
 | Playbook         | Description                                    |
 |------------------|------------------------------------------------|
-| `pgsql.yml`      | Full cluster deployment (id + pgsql + monitor) |
+| `pgsql.yml`      | Initial cluster deployment (id + pgsql + monitor) |
 | `pgsql-user.yml` | Manage business users only                     |
 | `pgsql-db.yml`   | Manage databases only                          |
 | `pgsql-rm.yml`   | Remove cluster (use `pg_remove`)               |
@@ -33,6 +33,12 @@ The `pgsql` role is the **core role** for deploying PostgreSQL clusters in Pigst
 PostgreSQL host must still provide a valid cluster name, numeric `pg_seq`, and
 one of the supported `pg_role` values; `pg_id` validates these inputs before
 the deployment role runs.
+
+> **Lifecycle warning:** The full `pgsql.yml` playbook and its `pg_bootstrap`
+> path are for initial bootstrap, not in-place convergence of an initialized
+> member. A full rerun restarts Patroni/PostgreSQL and reapplies managed
+> configuration and bootstrap SQL. Use focused tags for maintenance. To fully
+> rebuild an initialized member, remove it with `pgsql-rm.yml` first.
 
 
 ## File Structure
@@ -164,13 +170,13 @@ pgsql (full role)
 ### Usage Examples
 
 ```bash
-# Full deployment
+# Initial deployment only; do not rerun on initialized members
 ./pgsql.yml -l pg-test
 
 # Install packages only
 ./pgsql.yml -l pg-test -t pg_install
 
-# Bootstrap cluster only
+# Bootstrap a new cluster only
 ./pgsql.yml -l pg-test -t pg_bootstrap
 
 # Provision users and databases
