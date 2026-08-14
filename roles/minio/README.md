@@ -112,17 +112,10 @@ minio (full role)
 
 ### Storage
 
-| Variable        | Default       | Description                                                |
-|-----------------|---------------|------------------------------------------------------------|
+| Variable        | Default       | Description                                                   |
+|-----------------|---------------|---------------------------------------------------------------|
 | `minio_data`    | `/data/minio` | Filesystem directory (supports `{x...y}` for multiple drives) |
-| `minio_volumes` | (auto)        | Volume specification                                       |
-
-### Launch
-
-| Variable                | Default | Description                                      |
-|-------------------------|---------|--------------------------------------------------|
-| `minio_launch_retries`  | `120`   | Maximum attempts to wait for systemd `READY=1`   |
-| `minio_launch_interval` | `5`     | Seconds between systemd readiness checks         |
+| `minio_volumes` | (auto)        | Volume specification                                          |
 
 ### Security
 
