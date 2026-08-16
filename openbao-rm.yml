@@ -1,0 +1,68 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   openbao-rm.yml
+# Desc      :   remove openbao from hosts
+# Ctime     :   2026-07-30
+# Mtime     :   2026-07-30
+# Path      :   openbao-rm.yml
+# Docs      :   https://pigsty.io/docs/openbao/playbook
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: OPENBAO REMOVE
+  become: true
+  hosts: openbao
+  gather_facts: no
+  ignore_errors: true
+  vars:
+    #openbao_safeguard: true           # safeguard for openbao remove, TRUE by default, halts execution
+    #openbao_rm_data: true             # remove openbao data during remove? true by default
+    #openbao_rm_log: true              # remove openbao log dir (audit trail)? true by default
+    #openbao_rm_pkg: false             # uninstall openbao packages during remove? false by default
+  roles: [ { role: node_id }, { role: openbao_remove } ]
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+#  Remove openbao cluster `openbao`
+#     openbao-rm.yml -l openbao          # remove cluster `openbao`
+#         -e openbao_safeguard=false     # REQUIRED: safeguard is enabled by default
+#         -e openbao_rm_data=true        # remove openbao data by default
+#         -e openbao_rm_log=true         # remove the audit trail by default
+#         -e openbao_rm_pkg=false        # do not uninstall openbao packages by default
+#  It aborts unless `openbao_safeguard` is explicitly set to `false`
+#
+#  Remove an openbao member:
+#     ./openbao-rm.yml -l 10.10.10.12 -e openbao_safeguard=false
+#     vi pigsty.yml                      # remove `10.10.10.12` from the `openbao` group
+#     ./openbao.yml                      # refresh openbao cluster after member removal
+#
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+# bin/openbao-rm                # remove the entire openbao cluster
+# bin/openbao-rm 10.10.10.13    # remove member `10.10.10.13` from openbao cluster
+#
+#--------------------------------------------------------------#
+# Tasks
+#--------------------------------------------------------------#
+# openbao_safeguard  : check safeguard and abort unless disabled (default: enabled)
+# openbao_pause      : pause for confirmation (5s)
+# openbao_deregister : remove openbao targets from victoria-metrics
+# openbao_leave      : try graceful raft leave before purging (partial removal only)
+# openbao_svc        : stop and disable openbao service with systemd
+# openbao_log        : remove the audit trail (disable with `openbao_rm_log=false`)
+# openbao_data       : remove data, TLS keys and node seal key (disable with `openbao_rm_data=false`)
+# openbao_pkg        : uninstall openbao packages (enable with `openbao_rm_pkg=true`)
+#
+#--------------------------------------------------------------#
+# DANGER
+#--------------------------------------------------------------#
+# Destroying the openbao cluster destroys the pg_tde principal keys.
+# Any PostgreSQL cluster encrypted against this KMS - and every
+# pgBackRest backup of it - becomes permanently unreadable.
+# Verify no pg_tde cluster depends on this KMS before proceeding.
+#--------------------------------------------------------------#
+...
