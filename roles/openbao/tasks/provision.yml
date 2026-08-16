@@ -1,0 +1,91 @@
+---
+#-----------------------------------------------------------#
+# Provision pg_tde key provider           [openbao_provision]
+#-----------------------------------------------------------#
+# Prepares what pg_tde needs on the KMS side: a KV v2 mount
+# for the principal keys, a least-privilege policy on it,
+# and a long-lived token bound to that policy.
+#
+# The token is persisted on the controller as the raw `bao
+# token create` output:
+#
+#   files/openbao/<cluster>-token.json
+#
+# and installed on the PGSQL nodes by the pgsql role. That
+# file is also the guard: provisioning runs only when it is
+# absent, so the playbook does not mint a new token on every
+# pass. Delete it to force a re-issue.
+#-----------------------------------------------------------#
+
+- name: provision pg_tde key provider
+  tags: openbao_provision
+  when: bao_initialized
+  run_once: true
+  become: true
+  environment:
+    BAO_ADDR: "https://127.0.0.1:{{ openbao_api_port }}/"
+    BAO_CACERT: "/etc/openbao.d/tls/ca.crt"
+    BAO_CLIENT_CERT: "/etc/openbao.d/tls/server.crt"
+    BAO_CLIENT_KEY: "/etc/openbao.d/tls/server.key"
+    BAO_TOKEN: >-
+      {{ (lookup('file', 'files/openbao/' ~ openbao_cluster ~ '-init.json', errors='ignore')
+          | default('{}', true) | from_json).root_token | default('') }}
+  block:
+
+    - name: check for an already provisioned pg_tde token
+      delegate_to: localhost
+      become: false
+      stat: path="files/openbao/{{ openbao_cluster }}-token.json"
+      register: openbao_token_stat
+
+    - name: provision pg_tde mount, policy and token
+      when: not openbao_token_stat.stat.exists
+      block:
+
+        # tolerate a mount left behind by an earlier run
+        - name: check existing secret engines
+          command: bao secrets list -format=json
+          register: openbao_mounts
+          changed_when: false
+
+        - name: enable kv v2 secret engine for pg_tde
+          command: bao secrets enable -path=pg_tde -version=2 -description="principal keys for pg_tde" kv
+          when: "'pg_tde/' not in (openbao_mounts.stdout | from_json)"
+
+        # written on stdin: a policy file under /tmp is world-traversable
+        # and outlives the play if it aborts between write and cleanup
+        - name: write pg_tde policy
+          command:
+            cmd: bao policy write pg-tde-policy -
+            stdin: |
+              path "pg_tde/data/*" {
+                capabilities = ["create", "read", "update", "delete", "list"]
+              }
+              path "pg_tde/metadata/*" {
+                capabilities = ["read", "list", "delete"]
+              }
+
+        # -orphan: the token must survive revocation of the root token,
+        #          which the README tells operators to do after deployment
+        # -period: makes it periodic, so it renews indefinitely instead of
+        #          dying at max TTL and taking the encrypted cluster with it
+        - name: create pg_tde token
+          command: >
+            bao token create
+            -policy=pg-tde-policy
+            -display-name=pg-tde
+            -no-default-policy
+            -orphan
+            -period=768h
+            -format=json
+          register: openbao_token_create
+
+        - name: persist pg_tde token to controller
+          delegate_to: localhost
+          become: false
+          copy:
+            content: "{{ openbao_token_create.stdout }}"
+            dest: "files/openbao/{{ openbao_cluster }}-token.json"
+            mode: '0600'
+
+...
