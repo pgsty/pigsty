@@ -1,0 +1,53 @@
+---
+#--------------------------------------------------------------#
+# Initialize openbao cluster                      [openbao_init]
+#--------------------------------------------------------------#
+- name: initialize openbao cluster
+  tags: openbao_init
+  run_once: true
+  become: true
+  block:
+    - name: check initialization status
+      command: bao status -format=json
+      register: bao_status
+      changed_when: false
+      failed_when: bao_status.rc not in [0, 1, 2]
+
+    - name: parse init state
+      set_fact:
+        bao_initialized: "{{ (bao_status.stdout | from_json).initialized }}"
+
+    - name: initialize cluster
+      when: not bao_initialized
+      command: >
+        bao operator init
+        -recovery-shares=5 -recovery-threshold=3
+        -format=json
+      register: bao_init
+
+    - name: persist init material to controller
+      when: not bao_initialized
+      delegate_to: localhost
+      become: false
+      copy:
+        content: "{{ bao_init.stdout }}"
+        dest: "files/openbao/{{ openbao_cluster }}-init.json"
+        mode: '0600'
+
+    - name: wait for active node to be ready
+      command: bao status -format=json
+      register: bao_ready
+      changed_when: false
+      failed_when: false
+      retries: 5
+      delay: 5
+      until:
+        - bao_ready.rc == 0
+        - (bao_ready.stdout | from_json).initialized | default(false)
+        - not (bao_ready.stdout | from_json).sealed | default(true)
+
+    - name: re-parse init state
+      set_fact:
+        bao_initialized: "{{ (bao_ready.stdout | from_json).initialized }}"
+
+...

@@ -1,0 +1,118 @@
+---
+#--------------------------------------------------------------#
+# Assert openbao identity                       [openbao_assert]
+#--------------------------------------------------------------#
+- name: assert openbao identity
+  tags: openbao_assert
+  assert:
+    that:
+      - openbao_seq is defined and openbao_seq|int >= 0
+    fail_msg: variable 'openbao_seq' is required for openbao instance
+
+
+#--------------------------------------------------------------#
+# Install openbao                              [openbao_install]
+#--------------------------------------------------------------#
+- name: install openbao
+  tags: openbao_install
+  environment: "{{ proxy_env | default({}) }}"
+  package: name=openbao state=present
+
+
+#--------------------------------------------------------------#
+# Create openbao directory                         [openbao_dir]
+#--------------------------------------------------------------#
+- name: create openbao directories
+  tags: openbao_dir
+  block:
+    - name: create openbao directory on local files/openbao
+      delegate_to: localhost
+      become: false
+      file: path=files/openbao state=directory mode='0755'
+    - name: remove unused openbao data dir
+      when: openbao_data != '/var/lib/openbao'
+      file: path=/var/lib/openbao state=absent
+    - name: ensure node_data directory exists
+      when: openbao_data.startswith(node_data)
+      file: path={{ node_data }} state=directory owner=root group=root mode=0755
+    - name: ensure openbao data directory exists
+      file: path={{ item.path }} state={{ item.state }} owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+      loop:
+        - { path: "/etc/openbao.d"        ,state: "directory" ,mode: "0755" ,owner: "root"    ,group: "root"    }
+        - { path: "/etc/openbao.d/tls"    ,state: "directory" ,mode: "0750" ,owner: "root"    ,group: "openbao" }
+        - { path: "/etc/openbao.d/seal"   ,state: "directory" ,mode: "0750" ,owner: "root"    ,group: "openbao" }
+        - { path: "{{ openbao_data }}"    ,state: "directory" ,mode: "0700" ,owner: "openbao" ,group: "openbao" }
+        - { path: "{{ openbao_log_dir }}" ,state: "directory" ,mode: "0700" ,owner: "openbao" ,group: "openbao" }
+
+
+#--------------------------------------------------------------#
+# Config openbao                                [openbao_config]
+#--------------------------------------------------------------#
+- import_tasks: config.yml
+  tags: openbao_config
+  vars: { openbao_instance: "{{ openbao_cluster }}-{{ openbao_seq }}" }
+
+
+#--------------------------------------------------------------#
+# Launch openbao                                [openbao_launch]
+#--------------------------------------------------------------#
+- name: launch openbao server
+  tags: openbao_launch
+  block:
+    - name: openbao pre-launch adjustment
+      ignore_errors: true
+      shell: |
+        if systemctl is-active firewalld &>/dev/null; then
+            firewall-cmd --permanent --add-port={{ openbao_api_port }}/tcp --add-port={{ openbao_cluster_port }}/tcp
+            firewall-cmd --reload
+        fi
+        if [[ "{{ os_package }}" == "deb" ]]; then
+            if command -v ufw &>/dev/null && ufw status | grep -q "Status: active"; then
+              ufw allow {{ openbao_api_port }}/tcp {{ openbao_cluster_port }}/tcp
+            fi
+        fi
+        /bin/true
+      args: { executable: /bin/bash }
+
+    - name: launch openbao server service
+      systemd: name=openbao state=restarted enabled=yes daemon_reload=yes
+
+    - name: wait for openbao server online
+      wait_for: host={{ inventory_hostname }} port={{ openbao_api_port }} state=started timeout=60
+
+
+#--------------------------------------------------------------#
+# Init openbao                                    [openbao_init]
+#--------------------------------------------------------------#
+- import_tasks: init.yml
+  tags: [ openbao_init, openbao_provision ]
+  vars: { openbao_instance: "{{ openbao_cluster }}-{{ openbao_seq }}" }
+
+
+#--------------------------------------------------------------#
+# Provision pg_tde key provider              [openbao_provision]
+#--------------------------------------------------------------#
+- import_tasks: provision.yml
+  tags: openbao_provision
+  vars: { openbao_instance: "{{ openbao_cluster }}-{{ openbao_seq }}" }
+
+
+#--------------------------------------------------------------#
+# Register Openbao Metrics to VictoriaMetrics [openbao_register]
+#--------------------------------------------------------------#
+- name: register openbao as victoria target
+  tags: [ openbao_register, register, add_metrics ]
+  ignore_errors: true
+  delegate_to: '{{ item }}'
+  loop: '{{ groups["infra"]|default([]) }}'
+  copy:
+    dest: "/infra/targets/openbao/{{ openbao_cluster }}-{{ openbao_seq }}.yml"
+    owner: victoria
+    group: infra
+    mode: '0640'
+    content: |
+      # {{ openbao_cluster }}-{{ openbao_seq }} @ {{ inventory_hostname }}
+      - labels: { ip: {{ inventory_hostname }} , ins: {{ openbao_cluster }}-{{ openbao_seq }} , cls: {{ openbao_cluster }} }
+        targets: [ {{ inventory_hostname }}:{{ openbao_api_port }} ]
+
+...
