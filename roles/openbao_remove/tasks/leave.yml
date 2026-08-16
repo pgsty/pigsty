@@ -1,0 +1,49 @@
+---
+#--------------------------------------------------------------#
+# Leave openbao raft cluster gracefully
+#--------------------------------------------------------------#
+# `bao operator raft remove-peer` must run against a REMAINING member,
+# not the one being evicted, and it needs a token with sudo capability
+# on sys/storage/raft/remove-peer. The role has no token of its own, so
+# it opportunistically reuses the root token captured at init time. If
+# that token was revoked (as the openbao role's README recommends), the
+# graceful leave is skipped and the operator has to do it by hand.
+#--------------------------------------------------------------#
+
+- name: pick a surviving openbao peer to run remove-peer against
+  set_fact:
+    openbao_surviving_peer: "{{ (groups[openbao_cluster] | default([]) | difference(ansible_play_hosts | default([]))) | first | default('') }}"
+
+- name: read root token from init material on the controller
+  no_log: true
+  ignore_errors: true
+  set_fact:
+    openbao_root_token: >-
+      {{ (lookup('file', playbook_dir ~ '/files/openbao/' ~ openbao_cluster ~ '-init.json', errors='ignore')
+          | default('{}', true) | from_json).root_token | default('') }}
+
+- name: remove this member from the raft configuration
+  when:
+    - openbao_surviving_peer != ''
+    - openbao_root_token | default('') != ''
+  delegate_to: "{{ openbao_surviving_peer }}"
+  ignore_errors: true
+  no_log: true
+  environment:
+    BAO_ADDR: "https://127.0.0.1:{{ openbao_api_port }}"
+    BAO_CACERT: "/etc/openbao.d/tls/ca.crt"
+    BAO_TOKEN: "{{ openbao_root_token }}"
+  command: bao operator raft remove-peer {{ openbao_instance }}
+  register: openbao_leave_result
+
+- name: report graceful leave outcome
+  debug:
+    msg: >-
+      {% if openbao_leave_result is defined and not (openbao_leave_result.skipped | default(false)) and openbao_leave_result.rc | default(1) == 0 -%}
+      removed raft peer {{ openbao_instance }} via {{ openbao_surviving_peer }}
+      {%- else -%}
+      could not remove raft peer {{ openbao_instance }} automatically -
+      run this on a surviving member: bao operator raft remove-peer {{ openbao_instance }}
+      {%- endif %}
+
+...
