@@ -1,0 +1,26 @@
+---
+#----------------------------------------------------------------#
+# Install pg_tde key provider token                       [pg_tde]
+#----------------------------------------------------------------#
+# Takes the token issued by the openbao role and installs it where
+# pg_tde reads it. Token must be in place before patroni starts
+# postgres, since an encrypted cluster needs it to fetch its
+# principal keys at startup.
+#--------------------------------------------------------------------#
+- name: install pg_tde key provider token
+  tags: pg_tde
+  when:
+    - groups['openbao'] is defined
+    - groups['openbao'] | length > 0
+  copy:
+    content: "{{ pg_tde_token }}"
+    dest: "/pg/tde-token"
+    owner: "{{ pg_dbsu }}"
+    group: postgres
+    mode: '0600'
+  vars:
+    pg_tde_token: >-
+      {{ (lookup('file', 'files/openbao/' ~ (openbao_cluster | default('openbao')) ~ '-token.json',
+                 errors='ignore') | default('{}', true) | from_json).auth.client_token | default('') }}
+
+...

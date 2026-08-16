@@ -352,7 +352,12 @@ bootstrap:
 {% if pgbackrest_enabled|bool %}
         archive_mode: 'on'
         archive_timeout: 300                    # 5min archive timeout
+{% if pg_mode == 'pgtde' %}
+        archive_command: '{{ pg_bin_dir }}/pg_tde_archive_decrypt %f %p "pgbackrest --stanza={{ pg_cluster }} archive-push %%p"'
+        restore_command: '{{ pg_bin_dir }}/pg_tde_restore_encrypt %f %p "pgbackrest --stanza={{ pg_cluster }} archive-get %%f %%p"'
+{% else %}
         archive_command: 'pgbackrest --stanza={{ pg_cluster }} archive-push %p'
+{% endif %}
 {% endif %}
 
         #------------------------------------------------------#
@@ -491,6 +496,11 @@ bootstrap:
         polar_resource_manager.enable_resource_manager: 'off'
 {% endif %}
 
+{% if pg_mode|default('pgsql') == 'pgtde' %}
+        # pg_tde
+        pg_tde.inherit_global_providers: 'on'
+{% endif %}
+
         # pg_cron
 {% if pg_parameters is defined and pg_parameters is mapping and 'cron.database_name' in pg_parameters %}
         cron.database_name: {{ pg_parameters['cron.database_name'] }}
@@ -511,6 +521,11 @@ postgresql:
   bin_dir: {{ pg_bin_dir }}
   data_dir: {{ pg_data }}
   config_dir: {{ pg_data }}
+{% if pg_mode == 'pgtde' %}
+  bin_name:
+    pg_basebackup: pg_tde_basebackup
+    pg_rewind: pg_tde_rewind
+{% endif %}
   pgpass: {{ pg_dbsu_home }}/.pgpass
   listen: {{ pg_listen_address }}:{{ pg_port }}
   connect_address: {{ inventory_hostname }}:{{ pg_port }}
