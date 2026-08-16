@@ -1,0 +1,219 @@
+---
+#==============================================================#
+# File      :   openbao.yml
+# Ctime     :   2026-07-30
+# Mtime     :   2026-07-30
+# Desc      :   Record & alert rules for openbao
+# Path      :   /infra/rules/openbao.yml
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# OpenBao keeps the upstream `vault_` metric prefix on /v1/sys/metrics
+# https://openbao.org/docs/internals/telemetry/metrics/
+#
+# go-metrics summaries are emitted in ms, as <name>{quantile=...},
+# <name>_sum and <name>_count. Counters carry no _total suffix.
+#==============================================================#
+
+
+groups:
+  ################################################################
+  #                       Openbao Rules                          #
+  ################################################################
+  - name: openbao-rules
+    rules:
+
+      # request rate per second (non-login + login)
+      - record: openbao:ins:req_rps
+        expr: rate(vault_core_handle_request_count{job="openbao"}[1m])
+      - record: openbao:ins:login_rps
+        expr: rate(vault_core_handle_login_request_count{job="openbao"}[1m])
+
+      # request latency p99 in seconds (source metric is in ms)
+      - record: openbao:ins:req_rt_p99
+        expr: vault_core_handle_request{job="openbao", quantile="0.99"} / 1000
+
+      # mean request latency in seconds over 5m
+      - record: openbao:ins:req_rt_avg_5m
+        expr: >-
+          rate(vault_core_handle_request_sum{job="openbao"}[5m])
+          / clamp_min(rate(vault_core_handle_request_count{job="openbao"}[5m]), 1) / 1000
+
+      # how many members of the cluster are unsealed / sealed
+      - record: openbao:cls:unsealed
+        expr: sum by (job,cls) (vault_core_unsealed{job="openbao"})
+      - record: openbao:cls:sealed
+        expr: count by (job,cls) (vault_core_unsealed{job="openbao"}) - sum by (job,cls) (vault_core_unsealed{job="openbao"})
+
+      # number of active (leader) nodes, should be exactly 1
+      - record: openbao:cls:active
+        expr: sum by (job,cls) (vault_core_active{job="openbao"})
+
+      # raft replication lag of followers, in log entries
+      - record: openbao:ins:raft_lag
+        expr: vault_raft_storage_follower_applied_index_delta{job="openbao"}
+      - record: openbao:cls:raft_lag
+        expr: max by (job,cls) (vault_raft_storage_follower_applied_index_delta{job="openbao"})
+
+      # raft commit latency p99 in seconds
+      - record: openbao:ins:raft_commit_rt_p99
+        expr: vault_raft_commitTime{job="openbao", quantile="0.99"} / 1000
+
+      # utilisation of the main raft goroutine, 0..1
+      - record: openbao:ins:raft_saturation_p99
+        expr: vault_raft_thread_main_saturation{job="openbao", quantile="0.99"}
+
+      # audit device failure rate per second
+      - record: openbao:ins:audit_failure_rps
+        expr: >-
+          rate(vault_audit_log_request_failure{job="openbao"}[1m])
+          + rate(vault_audit_log_response_failure{job="openbao"}[1m])
+
+
+  ################################################################
+  #                       Openbao Alert                          #
+  ################################################################
+  - name: openbao-alert
+    rules:
+
+      #==============================================================#
+      #                         Aliveness                            #
+      #==============================================================#
+      # openbao instance unreachable: process down, or sealed (503 on /sys/metrics)
+      - alert: OpenbaoServerDown
+        expr: openbao_up < 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: openbao }
+        annotations:
+          summary: "CRIT OpenbaoServerDown {{ $labels.ins }}@{{ $labels.instance }}"
+          description: |
+            openbao_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
+            the node is down, or sealed: check `bao status` on {{ $labels.ip }}
+            /ui/d/openbao-overview
+
+      # a member reports itself sealed while still serving metrics
+      - alert: OpenbaoSealed
+        expr: vault_core_unsealed < 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: openbao }
+        annotations:
+          summary: "CRIT OpenbaoSealed {{ $labels.ins }}@{{ $labels.instance }}"
+          description: |
+            vault_core_unsealed[ins={{ $labels.ins }}] = {{ $value }} < 1
+            secrets are unavailable on this node, pg_tde keys can not be fetched
+            /ui/d/openbao-overview?var-cls={{ $labels.cls }}
+
+      #==============================================================#
+      #                         Error                                #
+      #==============================================================#
+      # no active node in the cluster: total KMS outage
+      - alert: OpenbaoNoLeader
+        expr: openbao:cls:active < 1
+        for: 30s
+        labels: { level: 0, severity: CRIT, category: openbao }
+        annotations:
+          summary: "CRIT OpenbaoNoLeader: {{ $labels.cls }} {{ $value }}"
+          description: |
+            openbao:cls:active[cls={{ $labels.cls }}] = {{ $value }} < 1
+            /ui/d/openbao-overview?from=now-5m&to=now&var-cls={{ $labels.cls }}
+
+      # split brain: more than one node claims to be active
+      - alert: OpenbaoMultipleLeader
+        expr: openbao:cls:active > 1
+        for: 30s
+        labels: { level: 0, severity: CRIT, category: openbao }
+        annotations:
+          summary: "CRIT OpenbaoMultipleLeader: {{ $labels.cls }} {{ $value }}"
+          description: |
+            openbao:cls:active[cls={{ $labels.cls }}] = {{ $value }} > 1
+            /ui/d/openbao-overview?from=now-5m&to=now&var-cls={{ $labels.cls }}
+
+      # audit device is rejecting writes: bao blocks requests when audit fails
+      - alert: OpenbaoAuditFailure
+        expr: openbao:ins:audit_failure_rps > 0
+        for: 1m
+        labels: { level: 1, severity: WARN, category: openbao }
+        annotations:
+          summary: "WARN OpenbaoAuditFailure: {{ $labels.cls }} {{ $labels.ins }}"
+          description: |
+            openbao:ins:audit_failure_rps[ins={{ $labels.ins }}] = {{ $value | printf "%.3f" }} > 0
+            requests are blocked while the audit device can not be written, check disk on {{ $labels.ip }}
+            /ui/d/openbao-overview?var-cls={{ $labels.cls }}
+
+      #==============================================================#
+      #                        Saturation                            #
+      #==============================================================#
+      # raft autopilot reports a degraded cluster
+      - alert: OpenbaoAutopilotUnhealthy
+        expr: min by (job,cls) (vault_autopilot_healthy) < 1
+        for: 2m
+        labels: { level: 1, severity: WARN, category: openbao }
+        annotations:
+          summary: "WARN OpenbaoAutopilotUnhealthy: {{ $labels.cls }}"
+          description: |
+            vault_autopilot_healthy[cls={{ $labels.cls }}] = {{ $value }} < 1
+            /ui/d/openbao-overview?var-cls={{ $labels.cls }}
+
+      # no spare node left: losing one more member loses quorum
+      - alert: OpenbaoNoFailureTolerance
+        expr: min by (job,cls) (vault_autopilot_failure_tolerance) < 1
+        for: 2m
+        labels: { level: 1, severity: WARN, category: openbao }
+        annotations:
+          summary: "WARN OpenbaoNoFailureTolerance: {{ $labels.cls }} {{ $value }}"
+          description: |
+            vault_autopilot_failure_tolerance[cls={{ $labels.cls }}] = {{ $value }} < 1
+            the cluster can not survive another member failure
+            /ui/d/openbao-overview?var-cls={{ $labels.cls }}
+
+      # follower falling behind the leader on the raft log
+      # evaluated per-peer so the alert names the lagging follower
+      - alert: OpenbaoRaftFollowerLag
+        expr: openbao:ins:raft_lag > 1000
+        for: 2m
+        labels: { level: 2, severity: INFO, category: openbao }
+        annotations:
+          summary: "INFO OpenbaoRaftFollowerLag: {{ $labels.cls }} peer {{ $labels.peer_id }} {{ $value }}"
+          description: |
+            openbao:ins:raft_lag[cls={{ $labels.cls }}, peer_id={{ $labels.peer_id }}] = {{ $value }} > 1000 entries
+            follower {{ $labels.peer_id }} trails the leader {{ $labels.ins }}
+            /ui/d/openbao-overview?var-cls={{ $labels.cls }}
+
+      #==============================================================#
+      #                         Latency                              #
+      #==============================================================#
+      # request rt p99 > 500ms for 3m
+      - alert: OpenbaoRequestRTSlow
+        expr: openbao:ins:req_rt_p99 > 0.500
+        for: 3m
+        labels: { level: 2, severity: INFO, category: openbao }
+        annotations:
+          summary: "INFO OpenbaoRequestRTSlow: {{ $labels.cls }} {{ $labels.ins }}"
+          description: |
+            openbao:ins:req_rt_p99[ins={{ $labels.ins }}] = {{ $value }} > 500ms
+            /ui/d/openbao-overview?from=now-10m&to=now&var-cls={{ $labels.cls }}
+
+      # main raft goroutine busy more than half the time for 5m
+      - alert: OpenbaoRaftThreadSaturated
+        expr: openbao:ins:raft_saturation_p99 > 0.5
+        for: 5m
+        labels: { level: 2, severity: INFO, category: openbao }
+        annotations:
+          summary: "INFO OpenbaoRaftThreadSaturated: {{ $labels.cls }} {{ $labels.ins }}"
+          description: |
+            openbao:ins:raft_saturation_p99[ins={{ $labels.ins }}] = {{ $value | printf "%.3f" }} > 0.5
+            the raft goroutine is the bottleneck, check disk latency on {{ $labels.ip }}
+            /ui/d/openbao-overview?from=now-30m&to=now&var-cls={{ $labels.cls }}
+
+      # raft commit rt p99 > 100ms for 3m, usually a disk problem
+      - alert: OpenbaoRaftCommitSlow
+        expr: openbao:ins:raft_commit_rt_p99 > 0.100
+        for: 3m
+        labels: { level: 2, severity: INFO, category: openbao }
+        annotations:
+          summary: "INFO OpenbaoRaftCommitSlow: {{ $labels.cls }} {{ $labels.ins }}"
+          description: |
+            openbao:ins:raft_commit_rt_p99[ins={{ $labels.ins }}] = {{ $value }} > 100ms
+            /ui/d/openbao-overview?from=now-10m&to=now&var-cls={{ $labels.cls }}
+
+...
