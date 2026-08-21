@@ -39,6 +39,12 @@ PROG_DIR="$(cd $(dirname $0) && pwd)"
 {{ pg_bin_dir }}/psql -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} ivorysql -qAXwtf /pg/tmp/pg-init-template.sql
 {% endif %}
 
+{% if pg_mode == 'pgtde' %}
+# configure key management
+{{ pg_bin_dir }}/psql -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} postgres -qAXwtc "CREATE EXTENSION IF NOT EXISTS pg_tde;"
+{{ pg_bin_dir }}/psql -h {{ pg_localhost|default('/var/run/postgresql') }} -p {{ pg_port|default(5432) }} postgres -qAXwtf /pg/tmp/pg-init-kms.sql
+{% endif %}
+
 #--------------------------------------------------------------#
 #                        Customize Logic                       #
 #--------------------------------------------------------------#

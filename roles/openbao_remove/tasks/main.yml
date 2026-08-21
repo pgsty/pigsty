@@ -1,0 +1,110 @@
+---
+#--------------------------------------------------------------#
+# HONOR OPENBAO_SAFEGUARD                    [openbao_safeguard]
+#--------------------------------------------------------------#
+- name: ABORT due to openbao_safeguard enabled
+  connection: local
+  when: openbao_safeguard|bool
+  tags: [ always , openbao_safeguard ]
+  any_errors_fatal: true
+  ignore_errors: false
+  fail: msg="Abort due to openbao_safeguard for {{ openbao_cluster }}-{{ openbao_seq }} @ {{ inventory_hostname }} is enabled, override with -e openbao_safeguard=false"
+
+#--------------------------------------------------------------#
+# PAUSE FOR CONFIRMATION                         [openbao_pause]
+#--------------------------------------------------------------#
+# pause for 5 seconds to allow user to abort in case of fat finger
+# longer than the other modules on purpose: this destroys key material
+- name: "pause for confirmation, Use Ctrl-C to ABORT"
+  tags: openbao_pause
+  pause: { seconds: 5 }
+
+#--------------------------------------------------------------#
+# remove openbao targets from victoria     [openbao_deregister]
+#--------------------------------------------------------------#
+- name: remove openbao from victoria targets
+  tags: [ openbao_deregister, deregister , rm_metrics ]
+  ignore_errors: true
+  delegate_to: '{{ item }}'
+  loop: '{{ groups["infra"]|default([]) }}'
+  file: path="/infra/targets/openbao/{{ openbao_cluster }}-{{ openbao_seq }}.yml" state=absent
+
+#--------------------------------------------------------------#
+# leave openbao raft cluster gracefully         [openbao_leave]
+#--------------------------------------------------------------#
+# only attempted when part of the cluster survives this play,
+# removing the whole cluster has nobody left to remove peers from
+- import_tasks: 'leave.yml'
+  ignore_errors: true
+  tags: openbao_leave
+  when: (groups[openbao_cluster]|default([])|length) > (ansible_play_hosts|default([])|length)
+  vars: { openbao_instance: "{{ openbao_cluster }}-{{ openbao_seq }}" }
+
+#--------------------------------------------------------------#
+# Remove openbao service                          [openbao_svc]
+#--------------------------------------------------------------#
+- name: stop openbao server service
+  ignore_errors: true
+  tags: [openbao, openbao_svc, openbao_stop]
+  shell: |
+    systemctl disable openbao
+    systemctl stop openbao
+
+    # try graceful shutdown first again
+    if ps -u openbao -o command | grep -q 'bao' ; then
+        systemctl stop openbao
+    fi
+
+    # kill if still exists
+    if ps -u openbao -o command | grep -q 'bao' ; then
+        sleep 2
+        ps -u openbao -o pid:1,command | grep 'bao' | awk '{print $1}' | xargs kill
+    fi
+
+    # kill -9 if not killed
+    if ps -u openbao -o command | grep -q 'bao' ; then
+        sleep 5
+        ps -u openbao -o pid:1,command | grep 'bao' | awk '{print $1}' | xargs kill -9
+    fi
+    # guaranteed success
+    exit 0
+  args: { executable: /bin/bash }
+
+#--------------------------------------------------------------#
+# Remove openbao log                              [openbao_log]
+#--------------------------------------------------------------#
+# the audit trail lives here, so it is removed as its own step.
+# NOTE: with the default layout openbao_log_dir is nested inside
+# openbao_data, so openbao_rm_data=true takes it regardless.
+- name: remove openbao log dir
+  tags: openbao_log
+  when: openbao_rm_log|bool
+  file: path={{ openbao_log_dir }} state=absent
+
+#--------------------------------------------------------------#
+# Remove openbao data                            [openbao_data]
+#--------------------------------------------------------------#
+# /etc/openbao.d holds the TLS keys AND the node copy of the static
+# seal key, so it always goes with the data. The cluster-wide copies
+# on the admin node (files/pki/bao/unseal.key, files/openbao/*.json)
+# are deliberately never touched by this role.
+- name: remove openbao data
+  tags: openbao_data
+  when: openbao_rm_data|bool
+  file: path={{ item }} state=absent
+  loop:
+    - "/etc/openbao.d"
+    - "/var/lib/openbao"
+    - "{{ openbao_data }}"
+    - "{{ systemd_dir }}/openbao.service"
+
+#--------------------------------------------------------------#
+# Uninstall openbao packages                       [openbao_pkg]
+#--------------------------------------------------------------#
+- name: uninstall openbao package
+  tags: openbao_pkg
+  when: openbao_rm_pkg|bool
+  ignore_errors: true
+  package: name=openbao state=absent
+
+...

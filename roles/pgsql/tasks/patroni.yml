@@ -77,7 +77,7 @@
       tags: pg_restart
       become_user: "{{ pg_dbsu }}"
       shell: |
-        {% if pg_mode|default('pgsql') == 'citus' %} 
+        {% if pg_mode|default('pgsql') == 'citus' %}
         /usr/bin/patronictl -c /etc/patroni/patroni.yml restart {{ pg_shard }} --group {{ pg_group }} --force
         {% else %}
         /usr/bin/patronictl -c /etc/patroni/patroni.yml restart {{ pg_cluster }} --force
@@ -112,12 +112,30 @@
       with_items:
         - { src: "pg-init-roles.sql"    ,dest: "/pg/tmp/pg-init-roles.sql"    ,mode: "0640" }
         - { src: "pg-init-template.sql" ,dest: "/pg/tmp/pg-init-template.sql" ,mode: "0640" }
+        - { src: "pg-init-kms.sql"      ,dest: "/pg/tmp/pg-init-kms.sql"      ,mode: "0640" }
         - { src: "{{ pg_init }}"        ,dest: "/pg/bin/pg-init" ,owner: root ,mode: "0740" }
 
     - name: init postgres cluster
       tags: pg_init_exec
       become_user: "{{ pg_dbsu }}"
       command: bash /pg/bin/pg-init
+
+    - name: apply pgtde GUCs and restart
+      tags: pg_init_tde
+      when:
+        - pg_mode == 'pgtde'
+        - groups['openbao'] is defined
+        - groups['openbao'] | length > 0
+      become_user: "{{ pg_dbsu }}"
+      shell: |
+        /usr/bin/patronictl -c /etc/patroni/patroni.yml edit-config {{ pg_cluster }} --pg "pg_tde.wal_encrypt='on'" --force
+        /usr/bin/patronictl -c /etc/patroni/patroni.yml edit-config {{ pg_cluster }} --pg "pg_tde.enforce_encryption='on'" --force
+        /usr/bin/patronictl -c /etc/patroni/patroni.yml edit-config {{ pg_cluster }} --pg "default_table_access_method=tde_heap" --force
+        /usr/bin/patronictl -c /etc/patroni/patroni.yml restart {{ pg_cluster }} --force
+      args: { executable: /bin/bash }
+
+    - name: wait for postgres primary
+      wait_for: host={{ inventory_hostname }} port={{ pg_port }} state=started timeout=60
 
     - name: check postgres primary inited
       tags: pg_init_exec

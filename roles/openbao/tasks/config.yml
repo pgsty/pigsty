@@ -1,0 +1,129 @@
+---
+#--------------------------------------------------------------#
+# Issue openbao certs                       [openbao_cert_issue]
+#--------------------------------------------------------------#
+- name: generate openbao server certs
+  tags: [ openbao_cert, openbao_cert_issue ]
+  become: false
+  connection: local
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  block:
+    - name: generate openbao private key
+      connection: local
+      openssl_privatekey:
+        path: files/pki/bao/{{ openbao_instance }}.key
+        mode: 0600
+
+    - name: generate openbao signing request
+      connection: local
+      openssl_csr:
+        path: "files/pki/csr/{{ openbao_instance }}.csr"
+        privatekey_path: "files/pki/bao/{{ openbao_instance }}.key"
+        common_name: "{{ openbao_instance }}"
+        organization_name: pigsty
+        organizational_unit_name: openbao
+        #force: true
+        subject_alt_name:
+          - "DNS:localhost"
+          - "DNS:{{ openbao_cluster }}"
+          - "DNS:{{ openbao_cluster }}-{{ openbao_seq }}"
+          - "DNS:{{ openbao_domain }}"
+          - IP:127.0.0.1
+          - "IP:{{ inventory_hostname }}"
+
+    - name: issue openbao server certificate
+      connection: local
+      openssl_certificate:
+        path: "files/pki/bao/{{ openbao_instance }}.crt"
+        csr_path: "files/pki/csr/{{ openbao_instance }}.csr"
+        provider: ownca
+        ownca_path: files/pki/ca/ca.crt
+        ownca_privatekey_path: files/pki/ca/ca.key
+        ownca_not_after: "+{{ cert_validity }}"
+        mode: 0644
+
+
+#--------------------------------------------------------------#
+# Issue openbao unseal static key           [openbao_seal_issue]
+#--------------------------------------------------------------#
+- name: generate openbao unseal static key
+  tags: [ openbao_seal, openbao_seal_issue ]
+  become: false
+  connection: local
+  run_once: true
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  block:
+    - name: check if unseal key exists
+      stat: path="files/pki/bao/unseal.key"
+      register: unseal_key_exists
+
+    - name: generate cluster-wide unseal key
+      when: not unseal_key_exists.stat.exists
+      command: openssl rand -out "files/pki/bao/unseal.key" 32
+
+    - name: re-stat unseal key
+      stat:
+        path: "files/pki/bao/unseal.key"
+        get_checksum: true
+        checksum_algorithm: sha256
+      register: seal_key_stat
+
+    - name: derive current_key_id from key material
+      set_fact:
+        openbao_seal_key_id: "{{ openbao_cluster }}-{{ seal_key_stat.stat.checksum[:12] }}"
+
+
+#--------------------------------------------------------------#
+# Copy openbao unseal static key             [openbao_seal_copy]
+#--------------------------------------------------------------#
+- name: assert openbao unseal static key on nodes
+  tags: [ openbao_seal, openbao_seal_copy ]
+  become: true
+  block:
+    - name: check existing remote seal key
+      stat:
+        path: "/etc/openbao.d/seal/{{ openbao_cluster }}-unseal.key"
+        get_checksum: true
+        checksum_algorithm: sha256
+      register: remote_seal_key
+
+    - name: ABORT if divergent seal key
+      when:
+        - remote_seal_key.stat.exists
+        - remote_seal_key.stat.checksum != seal_key_stat.stat.checksum
+      any_errors_fatal: true
+      fail:
+        msg: 'Abort because divergent seal key on node.'
+
+    - name: copy openbao unseal static key
+      copy: src="files/pki/bao/unseal.key" dest="/etc/openbao.d/seal/{{ openbao_cluster }}-unseal.key" owner=root group=openbao mode=0640
+
+
+#--------------------------------------------------------------#
+# Copy openbao certs                         [openbao_cert_copy]
+#--------------------------------------------------------------#
+- name: copy openbao certs
+  tags: [ openbao_cert, openbao_cert_copy ]
+  become: true
+  copy: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+  with_items:
+    - { src: "files/pki/ca/ca.crt"                      ,dest: "/etc/openbao.d/tls/ca.crt"     ,owner: "root", group: "openbao" ,mode: "0640" }
+    - { src: "files/pki/bao/{{ openbao_instance }}.crt" ,dest: "/etc/openbao.d/tls/server.crt" ,owner: "root", group: "openbao" ,mode: "0640" }
+    - { src: "files/pki/bao/{{ openbao_instance }}.key" ,dest: "/etc/openbao.d/tls/server.key" ,owner: "root", group: "openbao" ,mode: "0640" }
+
+
+#--------------------------------------------------------------#
+# Config openbao                                  [openbao_conf]
+#--------------------------------------------------------------#
+- name: setup openbao server
+  tags: openbao_conf
+  block:
+    - name: generate openbao config
+      become: true
+      template: src={{ item.src }} dest={{ item.dest }} owner={{ item.owner }} group={{ item.group|default(item.owner) }} mode={{ item.mode }}
+      with_items:
+        - { src: "openbao.hcl.j2" ,dest: "/etc/openbao.d/openbao.hcl"              ,owner: "root", group: "openbao" ,mode: "0640" }
+        - { src: "openbao.svc"    ,dest: "/usr/lib/systemd/system/openbao.service" ,owner: "root", group: "root"    ,mode: "0644" }
+...

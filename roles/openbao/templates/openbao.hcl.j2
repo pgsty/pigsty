@@ -1,0 +1,53 @@
+cluster_name  = "pigsty"
+ui            = true
+log_level     = "info"
+log_format    = "json"
+
+storage "raft" {
+  path    = "{{ openbao_data }}"
+  node_id = "{{ openbao_instance }}"
+  performance_multiplier = 3
+
+{% if groups[openbao_cluster]|length > 1 %}
+{% for ip in groups[openbao_cluster]|sort %}
+  retry_join {
+    leader_api_addr       = "https://{{ ip }}:{{ openbao_api_port }}"
+    leader_tls_servername = "{{ openbao_cluster }}-{{ hostvars[ip].openbao_seq }}"
+    leader_ca_cert_file   = "/etc/openbao.d/tls/ca.crt"
+  }
+{% endfor %}
+{% endif %}
+}
+
+listener "tcp" {
+  address            = "0.0.0.0:{{ openbao_api_port }}"
+  cluster_address    = "0.0.0.0:{{ openbao_cluster_port }}"
+  tls_cert_file      = "/etc/openbao.d/tls/server.crt"
+  tls_key_file       = "/etc/openbao.d/tls/server.key"
+  tls_client_ca_file = "/etc/openbao.d/tls/ca.crt"
+  tls_min_version    = "tls13"
+  telemetry {
+    unauthenticated_metrics_access = true
+  }
+}
+
+api_addr     = "https://{{ openbao_domain }}:{{ openbao_api_port }}"
+cluster_addr = "https://{{ inventory_hostname }}:{{ openbao_cluster_port }}"
+
+seal "static" {
+  current_key_id = "{{ openbao_seal_key_id }}"
+  current_key    = "file:///etc/openbao.d/seal/{{ openbao_cluster }}-unseal.key"
+}
+
+audit "file" "audit-log" {
+  options {
+    file_path = "{{ openbao_log_dir }}/audit.log"
+  }
+}
+
+telemetry {
+  prometheus_retention_time = "24h"
+  disable_hostname          = true
+  usage_gauge_period        = "10m"
+  maximum_gauge_cardinality = 500
+}

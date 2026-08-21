@@ -1,7 +1,7 @@
 ---
 #==============================================================#
 # File      :   pgtde.yml
-# Desc      :   PG TDE with Percona PostgreSQL 1-node template
+# Desc      :   PG TDE with Percona PostgreSQL 3-node HA template
 # Ctime     :   2025-07-04
 # Mtime     :   2026-07-23
 # Docs      :   https://pigsty.io/docs/conf/pgtde
@@ -9,8 +9,8 @@
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
-# This is the config template for Percona PostgreSQL Distribution
-# with pg_tde, currently based on PostgreSQL 18
+# HA variant of the single-node template with pg_tde
+# currently based on PostgreSQL 18
 # tutorial: https://pigsty.io/docs/pgsql/kernel/percona
 #
 # Usage:
@@ -20,9 +20,42 @@
 
 all:
   children:
-    infra:   { hosts: { 10.10.10.10: { infra_seq: 1   }} ,vars: { repo_enabled: false      }}
-    etcd:    { hosts: { 10.10.10.10: { etcd_seq: 1    }} ,vars: { etcd_cluster: etcd       }}
-    openbao: { hosts: { 10.10.10.10: { openbao_seq: 1 }} ,vars: { openbao_cluster: openbao }}
+
+    infra:
+      hosts:
+        10.10.10.10: { infra_seq: 1 }
+      vars:
+        repo_enabled: false
+        haproxy_services:
+          - name: openbao                  # [REQUIRED] service name, unique
+            port: 8200                     # [REQUIRED] service port, unique
+            options:                       # [OPTIONAL] openbao health check
+              - option httpchk
+              - http-check send meth GET uri /v1/sys/health
+              - http-check expect status 200
+            servers:
+              - { name: openbao-1 ,ip: 10.10.10.11 ,port: 8200 ,options: 'check-ssl ca-file /etc/pki/ca.crt check' }
+              - { name: openbao-2 ,ip: 10.10.10.12 ,port: 8200 ,options: 'check-ssl ca-file /etc/pki/ca.crt check' }
+              - { name: openbao-3 ,ip: 10.10.10.13 ,port: 8200 ,options: 'check-ssl ca-file /etc/pki/ca.crt check' }
+
+    # etcd cluster for ha postgres
+    etcd:
+      hosts:
+        10.10.10.11: { etcd_seq: 1 }
+        10.10.10.12: { etcd_seq: 2 }
+        10.10.10.13: { etcd_seq: 3 }
+      vars:
+        etcd_cluster: etcd
+
+    # openbao kms cluster for pg_tde
+    openbao:
+      hosts:
+        10.10.10.11: { openbao_seq: 1 }
+        10.10.10.12: { openbao_seq: 2 }
+        10.10.10.13: { openbao_seq: 3 }
+      vars:
+        openbao_cluster: openbao
+
     #minio:   { hosts: { 10.10.10.10: { minio_seq:   1 }} ,vars: { minio_cluster: minio     }}
 
     #----------------------------------------------#
@@ -30,10 +63,14 @@ all:
     #----------------------------------------------#
     pg-meta:
       hosts:
-        10.10.10.10: { pg_seq: 1, pg_role: primary }
+        10.10.10.21: { pg_seq: 1 , pg_role: primary }
+        10.10.10.22: { pg_seq: 2 , pg_role: replica }
+        10.10.10.23: { pg_seq: 3 , pg_role: replica }
       vars:
         pg_mode: pgtde
         pg_cluster: pg-meta
+        pg_vip_enabled: true
+        pg_vip_address: 10.10.10.20/24
         pg_users:
           - { name: dbuser_meta ,password: DBUser.Meta   ,pgbouncer: true ,roles: [dbrole_admin   ] ,comment: pigsty admin user }
           - { name: dbuser_view ,password: DBUser.Viewer ,pgbouncer: true ,roles: [dbrole_readonly] ,comment: read-only viewer  }
@@ -42,7 +79,7 @@ all:
             baseline: cmdb.sql
             comment: pigsty tde database
             schemas: [pigsty]
-            extensions: [ pg_tde, vector, postgis ,pgaudit, { name: pg_stat_monitor, schema: monitor } ]
+            extensions: [ pg_tde, vector, postgis, pgaudit, { name: pg_stat_monitor, schema: monitor } ]
         pg_hba_rules:   # https://pigsty.io/docs/pgsql/config/hba
           - { user: all ,db: all ,addr: intra ,auth: pwd ,title: 'everyone intranet access with password' ,order: 800 }
         pg_crontab:     # https://pigsty.io/docs/pgsql/admin/crontab
