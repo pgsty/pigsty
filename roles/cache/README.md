@@ -245,10 +245,10 @@ ls -la /www/pigsty/
 1. Install Pigsty normally:     ./bootstrap && ./configure && ./deploy.yml
 2. Create offline package:      ./cache.yml -l infra
 
-# Transfer tarball to air-gapped environment
+# Transfer tarball to air-gapped environment as /var/tmp/pkg.tgz
 
 # On air-gapped target machine:
-3. Bootstrap with package:      ./bootstrap -p pigsty-pkg-*.tgz
+3. Bootstrap with package:      ./bootstrap
 4. Configure:                   ./configure
 5. Install:                     ./deploy.yml
 ```

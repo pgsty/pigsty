@@ -588,7 +588,7 @@ vd: # deb building environment
 va: # all building environment
 	vagrant/config all
 boot-pkg:
-	bin/boot-pkg $(VERSION)
+	bin/boot-pkg $(VERSION) $(ARCH)
 
 #------------------------------#
 # meta, single node, the devbox

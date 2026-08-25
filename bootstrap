@@ -334,7 +334,7 @@ function check_repo(){
     fi
 
     # if there's a repo with repo_complete flag, it means repo is ready, skip
-    if [[ -f ${repo_dir}/repo_complete ]]; then
+    if [[ -f "${repo_dir}/repo_complete" ]] || sudo test -f "${repo_dir}/repo_complete"; then
         log_info "repo = ${repo_dir} ok"
         return 0
     fi
@@ -348,32 +348,34 @@ function check_repo(){
     # otherwise, if there's no offline package, we can do nothing with repo, skip
     if [[ ! -f ${pkg_path} ]]; then
         return 0
-    else # if the package exists, but looks suspicious, remove it
-        if (($(stat -c%s "${pkg_path}")>409600000)); then
-            log_info "cache = ${pkg_path} exists"
-        else
-            log_warn "cache = ${pkg_path} exists but invalid"
-            rm -rf "${pkg_path}"
-            return 0
-        fi
     fi
+    log_info "cache = ${pkg_path} exists"
 
     if ! [ -x "$(command -v tar)" ]; then
         log_error 'tar is not installed'
         return 1
     fi
-    if ! tar -tzf "${pkg_path}" > /dev/null; then
-        log_error "cache = ${pkg_path} is not a valid tarball"
-        return 1
+
+    # a complete repo already returned above, so anything here is invalid
+    if [[ -d "${repo_dir}" ]]; then
+        log_warn "repo = invalid, remove"
+        sudo rm -rf "${repo_dir}"
     fi
 
-    # extract offline package to /www/pigsty
-    if [[ -d ${repo_dir} ]]; then
-        log_warn "repo = invalid, remove"
-        sudo rm -rf ${repo_dir}
-    fi
+    # extract once: extraction itself validates the complete archive stream
     log_info "repo = extract from ${pkg_path}"
-    sudo tar -xf "${pkg_path}" -C "${nginx_home}"  # extract
+    if ! sudo tar -xf "${pkg_path}" -C "${nginx_home}"; then
+        sudo rm -rf "${repo_dir}"  # partial output may already contain repo_complete
+        log_error "cache = ${pkg_path} is broken, extraction failed"
+        return 1
+    fi
+    if [[ ! -f "${repo_dir}/repo_complete" ]] && ! sudo test -f "${repo_dir}/repo_complete"; then
+        sudo rm -rf "${repo_dir}"
+        log_error "cache = ${pkg_path} is not a pigsty offline package (${repo_name}/repo_complete missing)"
+        return 1
+    fi
+    log_info "repo = ${repo_dir} ok"
+    return 0
 }
 
 
@@ -694,7 +696,7 @@ function check_repo_file(){
     local repo_name=${1-${REPO_NAME}}
     local nginx_home=${2-${NGINX_HOME}}
     local repo_flag=${nginx_home}/${repo_name}/repo_complete
-    if [[ -f ${repo_flag} ]]; then
+    if [[ -f "${repo_flag}" ]] || sudo test -f "${repo_flag}"; then
         # if repo exists, remove or keep existing repo according to arg (-k|--keep)
         remove_existing_repo
         add_local_repo
