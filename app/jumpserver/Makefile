@@ -24,7 +24,8 @@ config:
 	$(DOCKER_COMPOSE) config
 
 restart:
-	$(DOCKER_COMPOSE) restart
+	$(DOCKER_COMPOSE) stop
+	$(DOCKER_COMPOSE) up -d
 
 stop: down
 down:

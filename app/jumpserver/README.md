@@ -16,13 +16,27 @@ vi pigsty.yml                 # change passwords, secrets, IPs, and domains
 ./app.yml                     # install JumpServer
 ```
 
-After the containers are up, run the JumpServer database migration:
+The one-shot `init` service runs database migrations, then uses a separate
+Django process to initialize a missing terminal host key and validate it. It
+never replaces an existing key. Core starts only after initialization succeeds;
+Celery and the terminal components then wait for Core's health. This avoids
+Core caching empty settings on a fresh database and KoKo failing with
+`Parse Terminal private key failed`. Check readiness with:
 
 ```bash
 cd /opt/jumpserver
-make migrate
 make health
 ```
+
+`jms_init` exiting with code 0 is expected; the other seven containers should
+be healthy. An initialization failure blocks Core instead of silently starting
+a partially configured stack.
+
+`make restart` stops the stack and brings it up through the same initialization
+gate. Do not use an unrestricted `docker compose restart`: that command restarts
+the one-shot initializer and Core in parallel without waiting for initialization
+to succeed. Redis also follows `REDIS_PORT`; its readiness check requires an
+authenticated `PONG`, not just a zero `redis-cli` exit code.
 
 ## Access
 
@@ -66,7 +80,8 @@ configuration warning from the failed request context.
 Key settings:
 
 ```ini
-JUMPSERVER_VERSION=v4.10.16-ce
+JUMPSERVER_VERSION=v4.10.19-ce
+REDIS_VERSION=7.4.11-bookworm
 JUMPSERVER_DATA=/data/jumpserver
 DOMAINS=10.10.10.10:8080,10.10.10.10,jump.pigsty
 
@@ -94,6 +109,11 @@ itself. Use the host intranet IP or a Pigsty L2 VIP.
 The app uses a fixed Docker bridge subnet and static container IPs to avoid
 Docker DNS races during JumpServer component startup. PostgreSQL HBA must allow
 the app bridge subnet, by default `192.168.250.0/24`.
+If you change `DOCKER_SUBNET`, update all component `*_IP` values, including
+`INIT_IP` (the one-shot initializer uses `192.168.250.9` by default).
+
+`HTTP_PORT` changes the published host port only. The official Web image always
+listens on port `80` inside the container.
 
 ## Operations
 
@@ -106,7 +126,7 @@ make restart   # restart containers
 make status    # show container status
 make log       # follow logs
 make health    # check HTTP/DB/Redis health
-make migrate   # run ./jms upgrade_db
+make migrate   # explicitly re-run ./jms upgrade_db during maintenance
 make exec      # enter the core container
 ```
 
