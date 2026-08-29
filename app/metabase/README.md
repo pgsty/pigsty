@@ -1,5 +1,13 @@
 # metabase
 
+The template follows `metabase/metabase:latest`; the validation snapshot
+resolved to `v0.63.15`. The application metadata uses its own `metabase`
+database and `dbuser_metabase` role; it must not share the Pigsty CMDB database.
+Provision both before starting the container.
+The health check waits for `/api/health`, which checks both Metabase and its
+application database. Initial schema migrations can take a while; wait for
+`docker compose ps` to report healthy before opening the setup wizard.
+
 Fast analytics with the friendly UX and integrated tooling to let your company explore data on their own: https://metabase.com/
 
 ```bash
@@ -58,5 +66,11 @@ services:
     restart: always
     ports:
       - "${MB_PORT}:3000"
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:3000/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
 
 ```
