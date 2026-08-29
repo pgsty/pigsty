@@ -4,8 +4,21 @@ Dify: https://dify.ai/
 
 The Innovation Engine for GenAI Applications, Dify is an open-source LLM app development platform. Orchestrate LLM apps from agents to complex AI workflows, with an RAG engine.
 
-- Last verified with Dify v1.15.0 on 2026-07-09.
-- Includes a PostgreSQL 18 compatibility patch for Dify's current `uuidv7()` migration script.
+- Targets [Dify v1.17.0](https://github.com/langgenius/dify/releases/tag/1.17.0)
+  with plugin daemon v0.6.10-local (release checked on 2026-08-27).
+- Validated on Ubuntu 24.04 arm64 with Pigsty PostgreSQL 18.6 and pgvector 0.8.6:
+  schema head `a4f8d2c9e1b0`, setup/login, collaboration handshake, an actual
+  Code workflow, Celery roundtrip, Agent Home Snapshot restore, and SSRF /
+  cross-workspace isolation. No external paid model is needed for these checks.
+- Dify v1.16+ handles PostgreSQL 18's built-in `uuidv7()` without a local patch.
+- The Dify Agent feature is Beta and is isolated behind dedicated internal
+  networks and an SSRF proxy; expose it only to trusted users. Its shellctl
+  control network still permits direct local-sandbox access to agent_backend.
+- `DIFY_PORT` changes only the published HTTP port; API/WebSocket services keep
+  port 5001 internally. `SSRF_HTTP_PORT` also updates the bundled sandbox proxy
+  URLs unless you explicitly override those URLs.
+- Beat intentionally has no worker-ping healthcheck: a worker's response does
+  not prove the scheduler is running. Monitor scheduled task cadence separately.
 - [Self-Hosting Dify](https://pigsty.io/docs/app/dify)
 - [GitHub: langgenius/Dify](https://github.com/langgenius/dify/)
 - [Pigsty: Dify Docker Compose Template](https://github.com/pgsty/pigsty/tree/master/app/dify)
@@ -41,6 +54,10 @@ all:
             conf:   # override /opt/dify/.env config file
               # A secret key for signing and encryption, gen with `openssl rand -base64 42` (CHANGE PASSWORD!)
               SECRET_KEY: sk-9f73s3ljTXVcMT3Blb3ljTqtsKiGHXVcMT3BlbkFJLK7U
+              DIFY_AGENT_API_TOKEN: change-this-agent-api-token
+              # Valid 32-byte development key; replace with secrets.token_urlsafe(32)
+              DIFY_AGENT_SERVER_SECRET_KEY: MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY
+              DIFY_AGENT_LOCAL_SANDBOX_AUTH_TOKEN: change-this-local-sandbox-auth-token
               DIFY_DATA: /data/dify
               COMPOSE_PROFILES: collaboration
               NEXT_PUBLIC_SOCKET_URL: ws://dify.pigsty
@@ -134,11 +151,34 @@ To take over nginx config back to pigsty:
 
 ## Upgrade Notes
 
-Dify v1.15.0 includes database migrations and a required plugin auto-upgrade backfill. Before upgrading an existing deployment, verify that the Pigsty PostgreSQL backup is recent, back up `/data/dify`, and then run the Dify upgrade commands after containers are updated:
+Dify v1.17.0 updates the Agent runtime, adds workspace Skills and Agent Home
+Snapshots, and includes database migrations. The local sandbox's `/home/dify`
+and `/workspace` use named volumes; include these volumes in your backup.
+Before upgrading an existing
+deployment, verify that the Pigsty PostgreSQL backup is recent, back up
+`/data/dify`, and replace the three Agent development secrets with independent
+random values. With `MIGRATION_ENABLED=true`, migrations run automatically when
+the API container starts; they can also be run explicitly after pulling images:
 
 ```bash
 docker compose exec api flask db upgrade
+```
+
+For an existing 1.16 deployment, rename `EDITION` to `DEPLOYMENT_EDITION`,
+`DIFY_AGENT_SHELLCTL_AUTH_TOKEN` to `DIFY_AGENT_LOCAL_SANDBOX_AUTH_TOKEN`, and
+`DIFY_AGENT_SHELLCTL_ENTRYPOINT` to `DIFY_AGENT_LOCAL_SANDBOX_ENDPOINT` in your
+deployment overrides. The Compose template accepts the old shellctl names as
+fallbacks, but the new names take precedence. `AGENT_BACKEND_RUN_TIMEOUT_SECONDS`
+is replaced by `DIFY_AGENT_RUN_TIMEOUT_SECONDS`; the Agent, app, and workflow
+execution deadlines now default to 3600 seconds. Keep `DIFY_AGENT_RUNTIME_BACKEND`
+set to `local` for the bundled self-hosted sandbox.
+
+Deployments upgrading from a version older than 1.15 must also run the 1.15
+plugin auto-upgrade backfill once after the schema upgrade (do not repeat it if
+it was already completed during an earlier 1.15 upgrade):
+
+```bash
 docker compose exec api flask backfill-plugin-auto-upgrade
 ```
 
-The Pigsty template keeps PostgreSQL and pgvector external. MinIO/S3 storage remains opt-in; do not point Dify at the pgBackRest backup bucket unless that is intentional.
+The Pigsty template keeps PostgreSQL and pgvector external. Silo or another S3-compatible store remains opt-in; do not point Dify at the pgBackRest backup bucket unless that is intentional.
