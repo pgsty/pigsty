@@ -2,7 +2,7 @@
 # File      :   docker-compose.yml
 # Desc      :   InsForge docker compose file (external PostgreSQL)
 # Ctime     :   2026-03-10
-# Mtime     :   2026-07-09
+# Mtime     :   2026-08-27
 # Path      :   app/insforge/docker-compose.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -25,28 +25,27 @@ services:
       PGRST_DB_SCHEMA: ${PGRST_DB_SCHEMAS:-public}
       PGRST_DB_SCHEMAS: ${PGRST_DB_SCHEMAS:-public}
       PGRST_DB_ANON_ROLE: anon
+      # Match the backend HTTP keep-alive pool for PostgREST.
+      PGRST_DB_POOL: ${PGRST_DB_POOL:-50}
       PGRST_JWT_SECRET: ${JWT_SECRET:-your-secret-key-here-must-be-32-char-or-above}
       PGRST_DB_CHANNEL_ENABLED: "true"
       PGRST_DB_CHANNEL: pgrst
     ports:
-      - "${POSTGREST_PORT:-5430}:3000"
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/3000'"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
+      - "127.0.0.1:${POSTGREST_PORT:-5430}:3000"
+    # The official PostgREST image is distroless and contains no shell or
+    # probe utility, so dependent services must wait for start rather than a
+    # container-local healthcheck.
     networks:
       - insforge-network
     security_opt:
       - no-new-privileges:true
 
   insforge:
-    image: ${INSFORGE_IMAGE:-ghcr.io/insforge/insforge-oss:${INSFORGE_VERSION:-v2.2.6}}
+    image: ${INSFORGE_IMAGE:-ghcr.io/insforge/insforge-oss:${INSFORGE_VERSION:-v2.3.1}}
     container_name: insforge
     depends_on:
       postgrest:
-        condition: service_healthy
+        condition: service_started
     ports:
       - "${APP_PORT:-${INSFORGE_API_PORT:-7130}}:7130"
     environment:
@@ -67,6 +66,7 @@ services:
       - MAX_FILE_SIZE=${MAX_FILE_SIZE:-}
       - MAX_JSON_BODY_SIZE=${MAX_JSON_BODY_SIZE:-}
       - MAX_URLENCODED_BODY_SIZE=${MAX_URLENCODED_BODY_SIZE:-}
+      - KEEP_ALIVE_TIMEOUT_MS=${KEEP_ALIVE_TIMEOUT_MS:-}
       # PostgreSQL connection (external Pigsty managed)
       - POSTGRES_HOST=${POSTGRES_HOST:-10.10.10.10}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
@@ -75,18 +75,25 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-DBUser.Insforge}
       - DATABASE_URL=postgresql://${POSTGRES_USER:-dbuser_insforge}:${POSTGRES_PASSWORD:-DBUser.Insforge}@${POSTGRES_HOST:-10.10.10.10}:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-insforge}
       - POSTGREST_BASE_URL=http://postgrest:3000
+      - POSTGREST_MAX_SOCKETS=${POSTGREST_MAX_SOCKETS:-50}
+      - POSTGREST_MAX_FREE_SOCKETS=${POSTGREST_MAX_FREE_SOCKETS:-}
+      - POSTGREST_FREE_SOCKET_TIMEOUT_MS=${POSTGREST_FREE_SOCKET_TIMEOUT_MS:-}
       # Deno runtime
       - DENO_RUNTIME_URL=http://deno:7133
       - DENO_DEPLOY_TOKEN=${DENO_DEPLOY_TOKEN:-${DENO_SUBHOSTING_TOKEN:-}}
       - DENO_DEPLOY_ORG_ID=${DENO_DEPLOY_ORG_ID:-${DENO_SUBHOSTING_ORG_ID:-}}
       - FUNCTIONS_DOMAIN=${FUNCTIONS_DOMAIN:-}
       # Storage & CDN
+      - S3_BUCKET=${S3_BUCKET:-}
+      - S3_REGION=${S3_REGION:-}
       - AWS_S3_BUCKET=${AWS_S3_BUCKET:-}
       - AWS_REGION=${AWS_REGION:-}
       - AWS_CONFIG_BUCKET=${AWS_CONFIG_BUCKET:-}
       - AWS_CONFIG_REGION=${AWS_CONFIG_REGION:-}
       - S3_ENDPOINT_URL=${S3_ENDPOINT_URL:-}
       - S3_FORCE_PATH_STYLE=${S3_FORCE_PATH_STYLE:-}
+      - S3_MAX_OBJECT_SIZE_BYTES=${S3_MAX_OBJECT_SIZE_BYTES:-}
+      - S3_USE_PRESIGNED_URLS=${S3_USE_PRESIGNED_URLS:-}
       - AWS_CLOUDFRONT_URL=${AWS_CLOUDFRONT_URL:-}
       - AWS_CLOUDFRONT_KEY_PAIR_ID=${AWS_CLOUDFRONT_KEY_PAIR_ID:-}
       - AWS_CLOUDFRONT_PRIVATE_KEY=${AWS_CLOUDFRONT_PRIVATE_KEY:-}
@@ -115,12 +122,23 @@ services:
       - FLY_API_TOKEN=${FLY_API_TOKEN:-}
       - FLY_ORG=${FLY_ORG:-}
       - COMPUTE_DOMAIN=${COMPUTE_DOMAIN:-}
+      # Docker compute is opt-in: also mount the socket below after reviewing
+      # its root-equivalent host access. No compute containers start by default.
+      - COMPUTE_PROVIDER=${COMPUTE_PROVIDER:-}
+      - DOCKER_SOCKET_PATH=${DOCKER_SOCKET_PATH:-}
+      - COMPUTE_DEFAULT_INGRESS=${COMPUTE_DEFAULT_INGRESS:-none}
+      - COMPUTE_PUBLIC_HOST=${COMPUTE_PUBLIC_HOST:-}
+      - COMPUTE_BIND_ADDRESS=${COMPUTE_BIND_ADDRESS:-127.0.0.1}
+      - COMPUTE_BUILD_MAX_CONTEXT=${COMPUTE_BUILD_MAX_CONTEXT:-}
+      - COMPUTE_BUILD_UPLOAD_IDLE_TIMEOUT=${COMPUTE_BUILD_UPLOAD_IDLE_TIMEOUT:-}
+      - COMPUTE_ISOLATE_NETWORK=${COMPUTE_ISOLATE_NETWORK:-}
       # Logs & Storage
       - LOGS_DIR=/insforge-logs
       - STORAGE_DIR=/insforge-storage
       - LOG_LEVEL=${LOG_LEVEL:-}
       - TRUST_PROXY=${TRUST_PROXY:-}
       - INSFORGE_TELEMETRY_DISABLED=${INSFORGE_TELEMETRY_DISABLED:-}
+      - INSFORGE_DEPLOYMENT_METHOD=docker-compose
       # OAuth (all optional)
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
@@ -139,6 +157,14 @@ services:
     volumes:
       - storage-data:/insforge-storage
       - insforge-logs:/insforge-logs
+      # Optional Docker compute provider (root-equivalent access; disabled):
+      # - ${DOCKER_SOCKET_PATH:-/var/run/docker.sock}:${DOCKER_SOCKET_PATH:-/var/run/docker.sock}
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:7130/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
     restart: unless-stopped
     networks:
       - insforge-network
@@ -146,18 +172,24 @@ services:
       - no-new-privileges:true
 
   deno:
-    image: ${DENO_RUNTIME_IMAGE:-ghcr.io/insforge/deno-runtime:${DENO_RUNTIME_VERSION:-latest}}
+    # v2.3.1 moved away from the stale deploy-provider runtime image; run the
+    # function host from this pinned source snapshot on official Deno.
+    image: ${DENO_RUNTIME_IMAGE:-denoland/deno:alpine-2.0.6}
     container_name: insforge-deno
     working_dir: /app
     depends_on:
       postgrest:
-        condition: service_healthy
+        condition: service_started
     ports:
-      - "${DENO_PORT:-7133}:7133"
+      - "127.0.0.1:${DENO_PORT:-7133}:7133"
     environment:
       - PORT=7133
       - DENO_ENV=production
       - DENO_DIR=/deno-dir
+      # Optional bootstrap proxy for downloading pinned Deno modules.
+      - HTTP_PROXY=${DENO_HTTP_PROXY:-}
+      - HTTPS_PROXY=${DENO_HTTPS_PROXY:-}
+      - NO_PROXY=localhost,127.0.0.1,insforge,postgrest
       - POSTGRES_HOST=${POSTGRES_HOST:-10.10.10.10}
       - POSTGRES_PORT=${POSTGRES_PORT:-5432}
       - POSTGRES_DB=${POSTGRES_DB:-insforge}
@@ -169,12 +201,19 @@ services:
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-here-must-be-32-char-or-above}
     volumes:
       - deno_cache:/deno-dir
+      - ./functions:/app/functions:ro,z
+    command: >
+      sh -c "
+        deno cache --frozen --lock=functions/deno.lock functions/server.ts functions/worker-template.js &&
+        deno run --frozen --lock=functions/deno.lock --unstable-worker-options --allow-net --allow-env --allow-read=./functions/worker-template.js functions/server.ts
+      "
     healthcheck:
       test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:7133/health"]
       interval: 10s
       timeout: 5s
       retries: 5
-      start_period: 15s
+      # A fresh cache downloads the locked host and worker dependencies first.
+      start_period: 180s
     restart: unless-stopped
     networks:
       - insforge-network
