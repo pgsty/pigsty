@@ -4,14 +4,14 @@
 {% for server in servers %}
 {% if loop.index|int > 1 %},{% endif %}
         "{{ loop.index }}": {
-            "Name": "{{ server.pg_cluster }}-{{ server.pg_seq }}",
-            "Group": "{{ server.pg_cluster }}",
-            "Host": "{{ server.pg_host }}",
+            "Name": {{ (server.pg_cluster ~ '-' ~ server.pg_seq)|to_json }},
+            "Group": {{ server.pg_cluster|to_json }},
+            "Host": {{ server.pg_host|to_json }},
             "Port": {% if server.pg_port %}{{ server.pg_port }}{% else %}5432{% endif %},
             "MaintenanceDB": "postgres",
-            "Username": "{% if server.pg_admin_username %}{{ server.pg_admin_username }}{% else %}dbuser_dba{% endif %}",
+            "Username": {{ server.pg_admin_username|default(pg_admin_username, true)|to_json }},
             "SSLMode": "disable",
-            "PassFile": "/pgpass",
+            "PassFile": "/.pgpass",
             "Timeout": 10
         }
 {% endfor %}
