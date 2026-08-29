@@ -4,19 +4,20 @@ set -euo pipefail
 # File      :   app/supabase/bin/dump
 # Desc      :   Dump Supabase Docker images to local dir
 # Ctime     :   2025-07-01
-# Mtime     :   2026-07-09
+# Mtime     :   2026-08-27
 # Args      :   [directory] (default: /tmp/docker/supabase/)
-# Usage     :   bin/load [/tmp/docker/supabase/]
+# Usage     :   bin/dump [/tmp/docker/supabase/]
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 #==============================================================#
 
 IMG_DIR=${1:-/tmp/docker/supabase}
-mkdir -p ${IMG_DIR}
+mkdir -p "${IMG_DIR}"
 echo "Dumping Supabase Docker images to: $IMG_DIR"
 
 images=(
   "supabase/storage-api:v1.60.4 storage.tgz"
-  "supabase/studio:2026.07.07-sha-a6a04f2 studio.tgz"
+  "darthsim/imgproxy:v3.30.1 imgproxy.tgz"
+  "supabase/studio:2026.08.03-sha-022b374 studio.tgz"
   "supabase/realtime:v2.102.3 realtime.tgz"
   "supabase/edge-runtime:v1.74.0 edge.tgz"
   "supabase/gotrue:v2.189.0 gotrue.tgz"
@@ -24,23 +25,32 @@ images=(
   "supabase/logflare:1.43.1 logflare.tgz"
   "postgrest/postgrest:v14.12 postgrest.tgz"
   "timberio/vector:0.53.0-alpine vector.tgz"
-  "kong/kong:3.9.1 kong.tgz"
+  "envoyproxy/envoy:v1.39.0 envoy.tgz"
+  "kong/kong:3.9.3 kong.tgz"
 )
 
-# Docker 29 on arm64 can produce incomplete archives under concurrent save.
+# The offline bundle deliberately includes both supported gateways, regardless
+# of COMPOSE_FILE. Check the entire set before writing any image archives.
+missing_image=0
+for item in "${images[@]}"; do
+  image=${item% *}
+  if ! docker image inspect "${image}" >/dev/null 2>&1; then
+    echo "Missing required image: ${image}" >&2
+    missing_image=1
+  fi
+done
+if [[ "${missing_image}" -ne 0 ]]; then
+  echo "Run 'make pull' first; the full offline bundle needs Envoy and Kong." >&2
+  exit 1
+fi
+
+# Save sequentially to limit memory and disk pressure. Preserve image metadata
+# for every service; rootfs export/import loses the original image configuration.
 for item in "${images[@]}"; do
   image=${item% *}
   archive=${item#* }
   docker save "${image}" | gzip -c -9 > "${IMG_DIR}/${archive}"
 done
 
-# imgproxy produces an incomplete docker save archive on Docker 29 arm64,
-# so export/import its rootfs instead of relying on docker save/load.
-cid=$(docker create darthsim/imgproxy:v3.30.1)
-trap 'docker rm -f "${cid}" >/dev/null 2>&1 || true' EXIT
-docker export "${cid}" | gzip -c -9 > "${IMG_DIR}/imgproxy.tgz"
-docker rm -f "${cid}" >/dev/null 2>&1 || true
-trap - EXIT
-
 echo "All Supabase Docker images dump successfully!"
-ls -alh ${IMG_DIR}/*.tgz
+ls -alh "${IMG_DIR}"/*.tgz

@@ -267,6 +267,9 @@ GRANT EXECUTE ON FUNCTION "auth"."email"() TO PUBLIC;
 -----------------------------------------
 CREATE SCHEMA IF NOT EXISTS storage AUTHORIZATION supabase_admin;
 
+-- Storage now owns its runtime migrations and needs database CREATE explicitly.
+GRANT CREATE ON DATABASE postgres TO supabase_storage_admin;
+
 GRANT USAGE ON SCHEMA storage TO anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON TABLES TO postgres, anon, authenticated, service_role;
 ALTER DEFAULT PRIVILEGES IN SCHEMA storage GRANT ALL ON FUNCTIONS TO postgres, anon, authenticated, service_role;
@@ -2143,6 +2146,58 @@ CREATE EVENT TRIGGER issue_pg_graphql_access
     ON ddl_command_end
     WHEN TAG IN ('CREATE EXTENSION')
     EXECUTE PROCEDURE extensions.grant_pg_graphql_access();
+
+-- migrate:down
+
+
+----------------------------------------------------
+-- 20260730000000_revoke_trigger_on_cron_tables_from_postgres.sql
+----------------------------------------------------
+-- migrate:up
+
+-- postgres is granted ALL on the cron tables via `grant all ... in schema cron to
+-- postgres`, which includes TRIGGER on cron.job_run_details. postgres does not need to
+-- create triggers on that table, so revoke TRIGGER there and stop grant_pg_cron_access()
+-- from re-granting it on a later CREATE EXTENSION (which re-runs `grant all`).
+do $$
+begin
+  if exists (select from pg_extension where extname = 'pg_cron') then
+    revoke trigger on cron.job_run_details from postgres;
+  end if;
+end $$;
+
+CREATE OR REPLACE FUNCTION extensions.grant_pg_cron_access() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+BEGIN
+  IF EXISTS (
+    SELECT
+    FROM pg_event_trigger_ddl_commands() AS ev
+    JOIN pg_extension AS ext
+    ON ev.objid = ext.oid
+    WHERE ext.extname = 'pg_cron'
+  )
+  THEN
+    grant usage on schema cron to postgres with grant option;
+
+    alter default privileges in schema cron grant all on tables to postgres with grant option;
+    alter default privileges in schema cron grant all on functions to postgres with grant option;
+    alter default privileges in schema cron grant all on sequences to postgres with grant option;
+
+    alter default privileges for user supabase_admin in schema cron grant all
+        on sequences to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on tables to postgres with grant option;
+    alter default privileges for user supabase_admin in schema cron grant all
+        on functions to postgres with grant option;
+
+    grant all privileges on all tables in schema cron to postgres with grant option;
+    revoke all on table cron.job from postgres;
+    grant select on table cron.job to postgres with grant option;
+    revoke trigger on cron.job_run_details from postgres;
+  END IF;
+END;
+$$;
 
 -- migrate:down
 

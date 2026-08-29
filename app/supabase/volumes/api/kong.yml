@@ -8,12 +8,12 @@ consumers:
   - username: DASHBOARD
   - username: anon
     keyauth_credentials:
-      - key: $SUPABASE_ANON_KEY
-      - key: $SUPABASE_PUBLISHABLE_KEY
+      - key: ${SUPABASE_ANON_KEY:yaml}
+      - key: ${SUPABASE_PUBLISHABLE_KEY:yaml}
   - username: service_role
     keyauth_credentials:
-      - key: $SUPABASE_SERVICE_KEY
-      - key: $SUPABASE_SECRET_KEY
+      - key: ${SUPABASE_SERVICE_KEY:yaml}
+      - key: ${SUPABASE_SECRET_KEY:yaml}
 
 ###
 ### Access Control List
@@ -29,8 +29,8 @@ acls:
 ###
 basicauth_credentials:
   - consumer: DASHBOARD
-    username: '$DASHBOARD_USERNAME'
-    password: '$DASHBOARD_PASSWORD'
+    username: ${DASHBOARD_USERNAME:yaml}
+    password: ${DASHBOARD_PASSWORD:yaml}
 
 ###
 ### API Routes
@@ -77,13 +77,14 @@ services:
           - /auth/v1/.well-known/jwks.json
     plugins:
       - name: cors
+
   - name: auth-v1-open-sso-acs
     url: "http://auth:9999/sso/saml/acs"
     routes:
       - name: auth-v1-open-sso-acs
         strip_path: true
         paths:
-          - /auth/v1/sso/saml/acs
+        - /auth/v1/sso/saml/acs
     plugins:
       - name: cors
 
@@ -93,7 +94,7 @@ services:
       - name: auth-v1-open-sso-metadata
         strip_path: true
         paths:
-          - /auth/v1/sso/saml/metadata
+        - /auth/v1/sso/saml/metadata
     plugins:
       - name: cors
 
@@ -115,10 +116,10 @@ services:
         config:
           add:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"
+              - ${LUA_AUTH_HEADER:yaml}
           replace:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"
+              - ${LUA_AUTH_HEADER:yaml}
       - name: acl
         config:
           hide_groups_header: true
@@ -143,10 +144,10 @@ services:
         config:
           add:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"
+              - ${LUA_AUTH_HEADER:yaml}
           replace:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"
+              - ${LUA_AUTH_HEADER:yaml}
       - name: acl
         config:
           hide_groups_header: true
@@ -171,10 +172,10 @@ services:
         config:
           add:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"
+              - ${LUA_AUTH_HEADER:yaml}
           replace:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"
+              - ${LUA_AUTH_HEADER:yaml}
       - name: acl
         config:
           hide_groups_header: true
@@ -201,10 +202,10 @@ services:
           add:
             headers:
               - "Content-Profile: graphql_public"
-              - "Authorization: $LUA_AUTH_EXPR"
+              - ${LUA_AUTH_HEADER:yaml}
           replace:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"
+              - ${LUA_AUTH_HEADER:yaml}
       - name: acl
         config:
           hide_groups_header: true
@@ -231,10 +232,10 @@ services:
         config:
           add:
             headers:
-              - "x-api-key:$LUA_RT_WS_EXPR"
+              - ${LUA_RT_WS_HEADER:yaml}
           replace:
             querystring:
-              - "apikey:$LUA_RT_WS_EXPR"
+              - ${LUA_RT_WS_QUERY:yaml}
       - name: acl
         config:
           hide_groups_header: true
@@ -292,10 +293,10 @@ services:
         config:
           add:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"
+              - ${LUA_AUTH_HEADER:yaml}
           replace:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"
+              - ${LUA_AUTH_HEADER:yaml}
       - name: acl
         config:
           hide_groups_header: true
@@ -326,10 +327,10 @@ services:
         config:
           add:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"
+              - ${LUA_AUTH_HEADER:yaml}
           replace:
             headers:
-              - "Authorization: $LUA_AUTH_EXPR"
+              - ${LUA_AUTH_HEADER:yaml}
       - name: post-function
         config:
           access:
@@ -364,6 +365,31 @@ services:
     plugins:
       - name: cors
 
+  ## Analytics routes
+  ## Not used - Studio and Vector talk directly to analytics via Docker networking.
+  ## If external access is needed, add routes with key-auth matching Logflare's x-api-key auth.
+  # - name: analytics-v1-api
+  #   _comment: 'Analytics: /analytics/v1/api/endpoints/* -> http://logflare:4000/api/endpoints/*'
+  #   url: http://analytics:4000/api/endpoints
+  #   routes:
+  #     - name: analytics-v1-api
+  #       strip_path: true
+  #       paths:
+  #         - /analytics/v1/api/endpoints/
+  # - name: analytics-v1
+  #   _comment: 'Analytics: /analytics/v1/* -> http://logflare:4000/*'
+  #   url: http://analytics:4000/
+  #   routes:
+  #     - name: dashboard-v1-all
+  #       strip_path: true
+  #       paths:
+  #         - /analytics/v1
+  #   plugins:
+  #     - name: cors
+  #     - name: basic-auth
+  #       config:
+  #         hide_credentials: true
+
   ## Secure Database routes
   - name: meta
     _comment: 'pg-meta: /pg/* -> http://pg-meta:8080/*'
@@ -374,6 +400,40 @@ services:
         paths:
           - /pg/
     plugins:
+      - name: cors
+        config:
+          origins:
+            - ${SUPABASE_PUBLIC_URL:yaml}
+            - '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?$'
+          methods: [GET, POST, PUT, PATCH, DELETE, OPTIONS, HEAD]
+          # Leave headers unset: Kong reflects the requested header names.
+          # A literal '*' does not authorize the Authorization header in browsers.
+          exposed_headers: ['*']
+          max_age: 3600
+      # Do not pass postgres-meta's own wildcard CORS headers to other origins.
+      - name: post-function
+        config:
+          header_filter:
+            - |
+              local origin = kong.request.get_header("origin")
+              local trusted = origin and (
+                origin == ${SUPABASE_PUBLIC_URL:lua} or
+                origin:match("^https?://localhost$") or
+                origin:match("^https?://localhost:%d+$") or
+                origin:match("^https?://127%.0%.0%.1$") or
+                origin:match("^https?://127%.0%.0%.1:%d+$")
+              )
+              if trusted then
+                kong.response.set_header("Access-Control-Allow-Origin", origin)
+              else
+                kong.response.clear_header("Access-Control-Allow-Origin")
+                kong.response.clear_header("Access-Control-Allow-Headers")
+                kong.response.clear_header("Access-Control-Allow-Methods")
+                kong.response.clear_header("Access-Control-Expose-Headers")
+                kong.response.clear_header("Access-Control-Max-Age")
+              end
+              kong.response.clear_header("Access-Control-Allow-Credentials")
+              kong.response.add_header("Vary", "Origin")
       - name: key-auth
         config:
           hide_credentials: false
@@ -393,7 +453,6 @@ services:
         paths:
           - /api/mcp
     plugins:
-      # Block access to /mcp by default
       - name: request-termination
         config:
           status_code: 403
@@ -409,6 +468,7 @@ services:
         paths:
           - /mcp
     plugins:
+      # Block access to /mcp by default
       - name: request-termination
         config:
           status_code: 403
