@@ -42,7 +42,15 @@ apps:
 
 Port `5436` is Pigsty's direct-to-primary PostgreSQL service. The Linux `host-gateway` mapping keeps the backend address local to the container host while preserving Pigsty's primary routing. The MongoDB port defaults to loopback only; set `FERRETDB_BIND_ADDR` explicitly when remote clients need access.
 
-The image's built-in health check is retained. Its debug endpoint is not published, and this app does not add a dedicated dashboard, log pipeline, or VictoriaMetrics target.
+`FERRETDB_LISTEN_ADDR` is restricted to the container's `:PORT` form, such as
+`:27019`; Compose publishes that same target using `FERRETDB_BIND_ADDR` and
+`FERRETDB_PORT` on the host. Do not put an IP or hostname into the container
+listener. `make view` resolves the effective Compose binding with Python 3,
+including shell and `COMPOSE_ENV_FILES` overrides.
+
+The image's built-in health check is retained. `make health` exits nonzero unless
+the container is healthy. Its debug endpoint is not published, and this app does
+not add a dedicated dashboard, log pipeline, or VictoriaMetrics target.
 
 FerretDB releases name a preferred DocumentDB version. Pigsty may ship a newer compatible DocumentDB package, so repeat an authenticated CRUD smoke test after either component is upgraded.
 
@@ -62,4 +70,4 @@ mongosh 'mongodb://mongod:DBUser.Mongo@10.10.10.4:27017/'
 
 The HAProxy health check is TCP-level. It removes a stopped or unreachable FerretDB process from rotation, while FerretDB's own image health check continues to validate the backend connection inside each container.
 
-The demo intentionally retains Pigsty's local pgBackRest default. A production HA deployment should use a shared MinIO/S3 repository so a newly promoted PostgreSQL primary has access to the same backup history.
+The demo intentionally retains Pigsty's local pgBackRest default. A production HA deployment should use a shared Silo/S3 repository so a newly promoted PostgreSQL primary has access to the same backup history.

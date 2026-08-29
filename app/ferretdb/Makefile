@@ -1,3 +1,5 @@
+SHELL := /bin/bash -e -o pipefail
+
 default: up view
 
 up:
@@ -7,12 +9,10 @@ down:
 	docker compose down
 
 view:
-	@addr=$$(sed -n 's/^FERRETDB_BIND_ADDR=//p' .env); \
-	port=$$(sed -n 's/^FERRETDB_PORT=//p' .env); \
-	echo "mongosh 'mongodb://mongod:<password>@$${addr:-127.0.0.1}:$${port:-27017}/'"
+	@docker compose config --format json | python3 -c 'import json,sys; p=json.load(sys.stdin)["services"]["ferretdb"]["ports"][0]; h=p.get("host_ip") or "127.0.0.1"; h="["+h+"]" if ":" in h else h; print("mongosh " + repr("mongodb://mongod:<password>@"+h+":"+str(p["published"])+"/"))'
 
 health:
-	docker inspect --format='{{.State.Health.Status}}' ferretdb
+	@status=$$(docker inspect --format='{{.State.Health.Status}}' ferretdb); printf '%s\n' "$$status"; test "$$status" = healthy
 
 ping:
 	docker exec ferretdb /ferretdb ping
@@ -40,7 +40,13 @@ rmi:
 
 save:
 	mkdir -p /tmp/docker
-	docker image save $$(docker compose config --images) | gzip -9 -c > /tmp/docker/ferretdb.tgz
+	@images="$$(docker compose config --images)"; test -n "$$images"; \
+	archive_path="/tmp/docker/ferretdb.tgz"; \
+	archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+	trap 'rm -f -- "$$archive_tmp"' EXIT; \
+	docker image save $$images | gzip -9 -c > "$$archive_tmp"; \
+	mv -f -- "$$archive_tmp" "$$archive_path"; \
+	trap - EXIT
 
 load:
 	gzip -d -c /tmp/docker/ferretdb.tgz | docker image load
