@@ -4,6 +4,9 @@ Wiki.js : https://js.wiki/
 
 The most powerful and extensible open source Wiki software.
 
+The template follows the untagged Wiki.js image; the validation snapshot
+resolved to `2.5.314`.
+
 You can serve wiki with external PostgreSQL database.
 
 
@@ -40,7 +43,7 @@ bin/pgsql-db   pg-meta wiki
 services:
   wiki:
     container_name: wiki
-    image: requarks/wiki:2
+    image: requarks/wiki
     environment:
       DB_TYPE: postgres
       DB_HOST: 10.10.10.10
