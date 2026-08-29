@@ -4,10 +4,10 @@
 # File      :   docker-compose.yml
 # Desc      :   Hindsight docker compose with external PostgreSQL
 # Ctime     :   2026-04-09
-# Mtime     :   2026-04-09
+# Mtime     :   2026-08-27
 # Path      :   app/hindsight/docker-compose.yml
 # Docs      :   https://pigsty.io/docs/app/hindsight
-# Source    :   https://github.com/vectorize-io/hindsight/blob/main/docker/docker-compose/external-pg/docker-compose.yaml
+# Source    :   https://github.com/vectorize-io/hindsight/blob/v0.9.2/docker/docker-compose/external-pg/docker-compose.yaml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -19,10 +19,29 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      # Keep shell/Compose overrides consistent with published ports and the CP.
+      HINDSIGHT_API_HOST: ${HINDSIGHT_API_HOST:-0.0.0.0}
+      HINDSIGHT_API_PORT: ${HINDSIGHT_API_PORT:-8888}
+      HINDSIGHT_CP_DATAPLANE_API_URL: ${HINDSIGHT_CP_DATAPLANE_API_URL:-http://127.0.0.1:${HINDSIGHT_API_PORT:-8888}}
     extra_hosts:
       - host.docker.internal:host-gateway
     ports:
       - '${HINDSIGHT_API_PUBLISH_PORT:-8888}:${HINDSIGHT_API_PORT:-8888}'
       - '${HINDSIGHT_UI_PUBLISH_PORT:-9999}:9999'
     volumes:
-      - '${HINDSIGHT_MODEL_CACHE:-/data/hindsight}:/home/hindsight/.cache'
+      # A named volume preserves the image's preloaded model cache via copy-up.
+      - hindsight-cache:/home/hindsight/.cache
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          curl -fsS http://127.0.0.1:$${HINDSIGHT_API_PORT:-8888}/health/ready &&
+          curl -fsS -o /dev/null 'http://127.0.0.1:9999/api/banks?limit=1'
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 180s
+
+volumes:
+  hindsight-cache:

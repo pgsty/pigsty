@@ -1,5 +1,13 @@
 # Hindsight
 
+This template follows Hindsight's `latest` image; the 2026-08-27 validation
+snapshot resolved to `0.9.2`. Its named
+`hindsight-cache` volume uses Docker copy-up so the model cache preloaded in the
+image is preserved on first start and remains persistent across replacements.
+`HF_HUB_OFFLINE=1` uses those bundled models without runtime Hub metadata
+requests. Set it to `0` and provide outbound network access when selecting a
+different Hugging Face model that is not already cached.
+
 > [Hindsight](https://github.com/vectorize-io/hindsight) -- PostgreSQL-native long-term memory for AI agents
 
 Pigsty allows you to self-host **Hindsight** with an external PostgreSQL cluster managed by Pigsty,
@@ -39,8 +47,9 @@ Access points after deployment:
 - Pigsty-managed PostgreSQL database `hindsight`
 - Pigsty-managed service user `hindsight`
 - `vector` extension enabled by default via `pgvector`
+- `pg_trgm` in `public`, as expected by the upstream trigram index migration
 - Docker Compose app with the official all-in-one image `ghcr.io/vectorize-io/hindsight:latest`
-- Persistent local cache directory `/data/hindsight` for downloaded embedding / reranker models
+- Persistent named volume `hindsight-cache` for preloaded/downloaded embedding and reranker models
 - Two Pigsty portals:
   - `hs.pigsty` -> Hindsight control plane UI (`9999`)
   - `hs-api.pigsty` -> Hindsight REST API (`8888`)
@@ -58,8 +67,22 @@ This template defaults to:
 - **`HINDSIGHT_API_LLM_PROVIDER=none`**
 
 The `none` provider keeps the stack bootable without an external model service.
-That means you can bring Hindsight up immediately, but fact extraction / consolidation / `reflect`
-will remain limited until you point it at a real LLM provider.
+Retain stores text chunks and Recall uses the bundled local embedding/reranker
+models. LLM-based fact extraction, consolidation, and `reflect` require a real
+LLM provider; `reflect` returns HTTP 400 while the provider is `none`.
+
+The health check verifies API readiness and a real request through the control
+plane's API proxy (one bank at most; response data is discarded). The tested 0.9.2 image's
+`/api/health` can return HTTP 200 and even `connected` when its SDK request fails,
+so that endpoint is not used as a readiness gate. If the internal
+`HINDSIGHT_API_PORT` changes, `HINDSIGHT_CP_DATAPLANE_API_URL` follows it, including
+shell/Compose overrides; the published host ports can be changed independently.
+
+When reusing a database from another template, verify that `pg_trgm` is in
+`public`, not a Supabase-style `extensions` schema. Upstream migrations reference
+`gin_trgm_ops` without a schema qualifier. `CREATE EXTENSION IF NOT EXISTS` does
+not relocate an already-installed extension; a database administrator must
+review and correct that placement before starting Hindsight.
 
 
 -------
@@ -110,6 +133,7 @@ HINDSIGHT_API_TEXT_SEARCH_EXTENSION=vchord
 make up
 make log
 make info
+make health
 make down
 make pull
 ```
