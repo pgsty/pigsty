@@ -18,6 +18,10 @@ This stack runs:
 This stack does not run Immich's upstream PostgreSQL container. PostgreSQL is
 provided by Pigsty through `DB_URL`.
 
+`REDIS_PORT` controls the private Valkey listener, both application environments,
+and the Redis health check together. Shell and `--env-file` overrides are
+resolved explicitly; no Redis port is published on the host.
+
 ## Usage
 
 Use the Pigsty config template:
@@ -59,10 +63,17 @@ database extensions before Immich starts:
 ```sql
 CREATE EXTENSION vchord CASCADE;
 CREATE EXTENSION earthdistance CASCADE;
+CREATE EXTENSION pg_trgm WITH SCHEMA public;
 ```
 
 `vchord` requires `vchord.so` in `shared_preload_libraries`, which is configured
 through `pg_libs`.
+
+The `pg_trgm` extension must be in `public`: Immich's migrations reference
+`gin_trgm_ops` without a schema qualifier. When reusing an existing database
+template with extensions in a separate schema (for example Supabase), inspect
+and relocate that extension in the Immich database before starting the app.
+Do not change other application databases or the cluster-wide search path.
 
 ## VectorChord Upgrades
 
@@ -128,7 +139,7 @@ To pin a specific Immich release, set `IMMICH_VERSION` in `pigsty.yml`, for
 example:
 
 ```yaml
-IMMICH_VERSION: v3.0.1
+IMMICH_VERSION: v3.1.0  # optional exact pin; the template defaults to v3
 ```
 
 Before major upgrades, check the official Immich release notes for PostgreSQL,

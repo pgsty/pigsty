@@ -4,7 +4,7 @@
 # File      :   docker-compose.yml
 # Desc      :   Immich docker compose with Pigsty PostgreSQL
 # Ctime     :   2026-07-04
-# Mtime     :   2026-07-04
+# Mtime     :   2026-08-27
 # Path      :   app/immich/docker-compose.yml
 # Docs      :   https://pigsty.io/docs/app/immich
 # Source    :   https://github.com/immich-app/immich/releases/latest/download/docker-compose.yml
@@ -27,6 +27,9 @@ services:
       - /etc/localtime:/etc/localtime:ro
     env_file:
       - .env
+    environment:
+      REDIS_HOSTNAME: ${REDIS_HOSTNAME:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
     ports:
       - '${IMMICH_HOST_PORT:-2283}:2283'
     depends_on:
@@ -46,6 +49,9 @@ services:
       - model-cache:/cache
     env_file:
       - .env
+    environment:
+      REDIS_HOSTNAME: ${REDIS_HOSTNAME:-redis}
+      REDIS_PORT: ${REDIS_PORT:-6379}
     restart: always
     healthcheck:
       disable: false
@@ -55,9 +61,12 @@ services:
   #--------------------------------------------------------------#
   redis:
     container_name: immich_redis
-    image: docker.io/valkey/valkey:9@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9
+    image: docker.io/valkey/valkey:9@sha256:8e8d64b405ce18f41b8e5ee20aa4687a8ed0022d1298f2ce31cdcf3a76e09411
+    command: ["valkey-server", "--port", "${REDIS_PORT:-6379}"]
+    environment:
+      REDIS_PORT: ${REDIS_PORT:-6379}
     healthcheck:
-      test: redis-cli ping || exit 1
+      test: ["CMD-SHELL", "redis-cli -p \"$$REDIS_PORT\" ping | grep -qx PONG"]
     restart: always
 
 volumes:
