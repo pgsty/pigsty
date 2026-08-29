@@ -13,18 +13,17 @@ services:
       KONG_PG_DATABASE: ${KONG_PG_DATABASE}
       KONG_PG_PASSWORD: ${KONG_PG_PASSWORD}
 
-      KONG_PROXY_LISTEN: 0.0.0.0:${KONG_PORT}
-      KONG_PROXY_LISTEN_SSL: 0.0.0.0:${KONG_PORT_SSL}
+      KONG_PROXY_LISTEN: 0.0.0.0:${KONG_PORT}, 0.0.0.0:${KONG_PORT_SSL} ssl
       KONG_ADMIN_LISTEN: 0.0.0.0:${KONG_ADMIN_PORT}
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://kong:${KONG_ADMIN_PORT}" ]
+      test: [ "CMD", "kong", "health" ]
       interval: 5s
       timeout: 2s
       retries: 15
     ports:
       - "${KONG_PORT}:${KONG_PORT}"
       - "${KONG_PORT_SSL}:${KONG_PORT_SSL}"
-      - "${KONG_ADMIN_PORT}:${KONG_ADMIN_PORT}"
+      - "127.0.0.1:${KONG_ADMIN_PORT}:${KONG_ADMIN_PORT}"
 
   # Kong database migration task
   kong-migration: # one time job
