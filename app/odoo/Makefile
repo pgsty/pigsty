@@ -1,20 +1,20 @@
--include .env
-export
+SHELL := /bin/bash -e -o pipefail
 
-default: init up view
+default: init
+	$(MAKE) up view
 
 # init odoo dir & database schema
-init:
-	docker compose --profile init up odoo-init
+init: dir
+	docker compose --profile init up --abort-on-container-exit --exit-code-from odoo-init odoo-init
 dir:
-	mkdir -p /data/odoo /data/odoo/webdata /data/odoo/addons
-	chown 100:101 /data/odoo /data/odoo/webdata /data/odoo/addons
+	@set -e; paths="$$(docker compose config --format json | jq -er '[.services.odoo.volumes[] | select(.target == "/var/lib/odoo" or .target == "/mnt/extra-addons")] | if length == 2 and all(.[]; .type == "bind" and (.source | contains("\n") | not)) then .[].source | split("$$$$") | join("$$") else error("Odoo requires two bind directories without newlines") end')"; \
+	printf '%s\n' "$$paths" | while IFS= read -r path; do mkdir -p "$$path"; chown 100:101 "$$path"; done
 view:
-	@echo "visit http://odoo.pigsty  or  http://10.10.10.10:8069"
+	@docker compose config --format json | jq -r '.services.odoo.ports[] | select(.target == 8069) | "visit http://odoo.pigsty (published HTTP port: \(.published))"'
 
 # administration
 up:
-	docker compose up -d
+	docker compose up -d odoo
 down:
 	docker compose down
 stop:
@@ -34,7 +34,7 @@ rm:
 logs:
 	docker compose logs -f
 port:
-	docker compose port
+	docker compose port odoo 8069
 conf:
 	docker compose config
 info:
@@ -43,8 +43,14 @@ info:
 
 save:
 	mkdir -p /tmp/docker
-	docker save odoo:$(ODOO_VERSION) | gzip -9 -c > /tmp/docker/odoo.tgz
+	@images="$$(docker compose config --images)"; test -n "$$images"; \
+	archive_path="/tmp/docker/odoo.tgz"; \
+	archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+	trap 'rm -f -- "$$archive_tmp"' EXIT; \
+	docker save $$images | gzip -9 -c > "$$archive_tmp"; \
+	mv -f -- "$$archive_tmp" "$$archive_path"; \
+	trap - EXIT
 load:
 	cat /tmp/docker/odoo.tgz | gzip -d -c - | docker load
 
-.PHONY: default init view up down stop start restart pause resume pull rm logs port conf info save load
+.PHONY: default init dir view up down stop start restart pause resume pull rm logs port conf info save load

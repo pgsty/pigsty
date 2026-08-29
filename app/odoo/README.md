@@ -8,7 +8,16 @@ Odoo pigsty installation tutorial: [Self-hosting Odoo](https://pigsty.io/docs/ap
 
 Check public demo: http://odoo.pigsty.cc, username: `test@pigsty.cc`, password: `pigsty`
 
-> The default credentials are `admin` : `admin`
+The template follows the Odoo `19.0` major-version channel; the validation
+snapshot resolved to `19.0-20260817`. Change `ODOO_ADMIN_PASSWORD` before
+deployment; it protects Odoo's database-management
+operations and is separate from the first application's administrator login.
+The fresh database's application login is `admin` / `admin`; change it at first login.
+It is passed as `ODOO_ADMIN_PASSWD`, the native Odoo 19 environment setting;
+`--admin-passwd` is not a supported command-line option.
+Database credentials also use the image's native `PGHOST`, `PGPORT`, `PGUSER`,
+and `PGPASSWORD` support, so the entrypoint does not append the password to
+the Odoo process's command line.
 
 
 --------
@@ -36,7 +45,21 @@ That's it, YOU ARE ALL SET! Odoo is serving on port 8069 by default, you can acc
 
 You can add a static entry to your `/etc/hosts` file to access odoo via `http://odoo.pigsty` through the nginx 80/443 portal
 
-> To create another odoo database, you'll have to alter the `odoo` db user to superuser to do so.
+The template deliberately disables the database manager and locks the service
+to `ODOO_DBNAME` through Odoo's exact database whitelist, with the regex filter
+disabled. Dots and other regex characters in a database name remain literal.
+Odoo interprets commas as database-list separators, so this single-database
+template does not support names containing commas. A multi-database deployment
+requires an explicit database-list design; grant only `CREATEDB` if needed,
+never `SUPERUSER`.
+
+The default `make` command initializes the database first and starts the web
+service only after the initializer exits successfully. Both services use the
+same filestore and addon directories. For manual deployment, run `make init`
+before the first `make up`; do not start the web service against an empty database.
+The directory targets read the resolved bind paths from Compose rather than
+parsing `.env` as Make syntax, so quoted paths containing spaces are supported.
+The Make helpers require `jq` on the Docker host.
 
 
 
@@ -71,7 +94,8 @@ all:
               ODOO_DATA: /data/odoo/webdata   # odoo webdata
               ODOO_ADDONS: /data/odoo/addons  # odoo plugins
               ODOO_DBNAME: odoo               # odoo database name
-              ODOO_VERSION: 19.0              # odoo image version
+              ODOO_ADMIN_PASSWORD: change-this-master-password
+              ODOO_VERSION: 19.0              # follow Odoo 19
 
     # the odoo database
     pg-odoo:
@@ -79,13 +103,13 @@ all:
       vars:
         pg_cluster: pg-odoo
         pg_users:
-          - { name: odoo    ,password: DBUser.Odoo ,pgbouncer: true ,roles: [ dbrole_admin ] ,createdb: true ,comment: admin user for odoo service }
+          - { name: odoo    ,password: DBUser.Odoo ,pgbouncer: true ,roles: [ dbrole_admin ] ,comment: admin user for odoo service }
           - { name: odoo_ro ,password: DBUser.Odoo ,pgbouncer: true ,roles: [ dbrole_readonly ]  ,comment: read only user for odoo service  }
           - { name: odoo_rw ,password: DBUser.Odoo ,pgbouncer: true ,roles: [ dbrole_readwrite ] ,comment: read write user for odoo service }
         pg_databases:
-          - { name: odoo ,owner: odoo ,revokeconn: true ,comment: odoo main database  }
+          - { name: odoo ,owner: odoo ,revokeconn: true ,extensions: [unaccent, pg_trgm] ,comment: odoo main database }
         pg_hba_rules:
-          - { user: all ,db: all ,addr: 172.17.0.0/16  ,auth: pwd ,title: 'allow access from local docker network' }
+          - { user: odoo ,db: odoo ,addr: 172.16.0.0/12 ,auth: pwd ,title: 'allow odoo access from local docker networks' }
           - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
 
 ```
@@ -109,3 +133,10 @@ To enable addon module, first entering the [Developer mode](https://www.odoo.com
 Then goes to the > Apps -> Update Apps List, then you can find the extra addons and install from the panel.
 
 Frequently used [free](https://apps.odoo.com/apps/modules/browse?order=Downloads) addons: [Accounting Kit](https://apps.odoo.com/apps/modules/19.0/base_accounting_kit/)
+
+## Upgrade Notes
+
+Before pulling a new Odoo 19 image, back up both the PostgreSQL database and
+`${ODOO_DATA}` filestore. Use a dated image tag when the deployment needs a
+reproducible rollout or rollback point. A major-version upgrade requires an Odoo
+database migration; changing only `ODOO_VERSION` is not sufficient.
