@@ -1,24 +1,18 @@
--include .env
-export
+SHELL := /bin/bash -e -o pipefail
 
 default: up view
 
-up: view
+up: dir view
 	docker compose up -d
 
 # make a /data/jupyter dir and change owner to default
 dir:
 	sudo mkdir -p /data/jupyter; sudo chown -R 1000:100 /data/jupyter
 
-run: dir
-	docker run --init --name jupyter --restart always --detach \
-		--publish $(JUPYTER_PORT):8888 \
-		--volume /data/jupyter:/home/jovyan/work \
-		--env JUPYTER_TOKEN=$(JUPYTER_TOKEN) \
-		$(JUPYTER_IMAGE)
+run: up
 
 view:
-	@echo "visit http://lab.pigsty  or  http://10.10.10.10:$(JUPYTER_PORT)"
+	@docker compose config --format json | jq -r '.services.jupyter.ports[] | select(.target == 8888) | "visit http://lab.pigsty or http://10.10.10.10:\(.published)"'
 
 log:
 	docker logs -f jupyter
@@ -40,11 +34,17 @@ pull:
 	docker compose pull
 
 rmi:
-	docker rmi $(JUPYTER_IMAGE)
+	docker rmi $$(docker compose config --images)
 
 save:
 	mkdir -p /tmp/docker
-	docker save $(JUPYTER_IMAGE) | gzip -9 -c > /tmp/docker/jupyter.tgz
+	@images="$$(docker compose config --images)"; test -n "$$images"; \
+	archive_path="/tmp/docker/jupyter.tgz"; \
+	archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+	trap 'rm -f -- "$$archive_tmp"' EXIT; \
+	docker save $$images | gzip -9 -c > "$$archive_tmp"; \
+	mv -f -- "$$archive_tmp" "$$archive_path"; \
+	trap - EXIT
 
 load:
 	cat /tmp/docker/jupyter.tgz | gzip -d -c - | docker load
