@@ -1,13 +1,9 @@
 #!/usr/bin/make
+SHELL := /bin/bash -e -o pipefail
 
 # Registry app management commands
-APP = registry
 APP_DIR ?= $(CURDIR)
-
--include .env
-REGISTRY_DATA ?= /data/$(APP)
-DATA_DIR ?= $(REGISTRY_DATA)
-REGISTRY_PORT ?= 5000
+export APP_DIR
 
 #==============================================================#
 # Docker Registry Mirror Management
@@ -17,64 +13,63 @@ default: up
 
 # create required directories
 dir:
-	mkdir -p $(DATA_DIR)
+	@data_dir="$${DATA_DIR-$$(cd "$$APP_DIR" && docker compose config --format json | jq -er '.services.registry.volumes[] | select(.type == "bind" and .target == "/var/lib/registry") | .source | split("$$$$") | join("$$")')}"; test -n "$$data_dir"; mkdir -p -- "$$data_dir"
 
 # show effective registry configuration
 conf:
-	@grep -E '^(REGISTRY_IMAGE|REGISTRY_UI_IMAGE|REGISTRY_DATA|REGISTRY_PORT|REGISTRY_UI_PORT|REGISTRY_STORAGE_DELETE_ENABLED|REGISTRY_LOG_LEVEL|REGISTRY_PROXY_REMOTEURL|REGISTRY_PROXY_TTL)=' .env 2>/dev/null || true
+	@cd "$$APP_DIR" && docker compose config --format json | jq -r '.services.registry as $$app | {REGISTRY_IMAGE: $$app.image, REGISTRY_UI_IMAGE: .services["registry-ui"].image, REGISTRY_DATA: ($$app.volumes[] | select(.target == "/var/lib/registry") | .source), REGISTRY_PORT: ($$app.ports[] | select(.target == 5000) | .published), REGISTRY_UI_PORT: (.services["registry-ui"].ports[] | select(.target == 80) | .published), REGISTRY_NO_PROXY: $$app.environment.NO_PROXY} + ($$app.environment | with_entries(select(.key | test("^REGISTRY_(STORAGE_DELETE_ENABLED|LOG_LEVEL|PROXY_REMOTEURL|PROXY_TTL)$$")))) | to_entries[] | "\(.key)=\(.value)" | split("$$$$") | join("$$")'
 
 
 # launch the registry service
 up: dir conf
-	cd $(APP_DIR) && docker compose up -d
+	cd "$$APP_DIR" && docker compose up -d
 
 # stop the registry service  
 down:
-	cd $(APP_DIR) && docker compose down
+	cd "$$APP_DIR" && docker compose down
 
 # restart the registry service
 restart: down up
 
 # remove the registry service; cached data is preserved
 clean:
-	cd $(APP_DIR) && docker compose down -v
+	cd "$$APP_DIR" && docker compose down
 
 # explicitly remove all cached registry data
 purge: clean
-	@test -n "$(DATA_DIR)" && test "$(DATA_DIR)" != "/"
-	rm -rf -- "$(DATA_DIR)"/*
+	@data_dir="$${DATA_DIR-$$(cd "$$APP_DIR" && docker compose config --format json | jq -er '.services.registry.volumes[] | select(.type == "bind" and .target == "/var/lib/registry") | .source | split("$$$$") | join("$$")')}"; test -n "$$data_dir"; test "$$data_dir" != "/"; rm -rf -- "$$data_dir"/*
 
 # show registry service status
 status:
-	cd $(APP_DIR) && docker compose ps
+	cd "$$APP_DIR" && docker compose ps
 
 # show registry service logs
 log:
-	cd $(APP_DIR) && docker compose logs -f
+	cd "$$APP_DIR" && docker compose logs -f
 
 # pull the registry image
 pull:
-	cd $(APP_DIR) && docker compose pull
+	cd "$$APP_DIR" && docker compose pull
 
 # test registry health
 health:
 	@echo "Testing registry health..."
-	@curl -f http://localhost:$(REGISTRY_PORT)/v2/ && echo "Registry is healthy" || echo "Registry is not responding"
+	@port="$$(cd "$$APP_DIR" && docker compose config --format json | jq -er '.services.registry.ports[] | select(.target == 5000) | .published')"; curl -fsS "http://127.0.0.1:$$port/v2/"; echo "Registry is healthy"
 
 # show registry catalog
 catalog:
 	@echo "Registry catalog:"
-	@curl -s http://localhost:$(REGISTRY_PORT)/v2/_catalog | jq '.' 2>/dev/null || curl -s http://localhost:$(REGISTRY_PORT)/v2/_catalog
+	@port="$$(cd "$$APP_DIR" && docker compose config --format json | jq -er '.services.registry.ports[] | select(.target == 5000) | .published')"; curl -fsS "http://127.0.0.1:$$port/v2/_catalog" | jq '.'
 
 # backup registry data
 backup:
 	@echo "Backing up registry data..."
-	tar -czf $(DATA_DIR)_backup_$(shell date +%Y%m%d_%H%M%S).tar.gz -C $(DATA_DIR) .
+	@data_dir="$${DATA_DIR-$$(cd "$$APP_DIR" && docker compose config --format json | jq -er '.services.registry.volumes[] | select(.type == "bind" and .target == "/var/lib/registry") | .source | split("$$$$") | join("$$")')}"; test -n "$$data_dir"; tar -czf "$${data_dir}_backup_$$(date +%Y%m%d_%H%M%S).tar.gz" -C "$$data_dir" .
 
 # show disk usage
 du:
 	@echo "Registry data disk usage:"
-	@du -sh $(DATA_DIR) 2>/dev/null || echo "Data directory not found"
+	@data_dir="$${DATA_DIR-$$(cd "$$APP_DIR" && docker compose config --format json | jq -er '.services.registry.volumes[] | select(.type == "bind" and .target == "/var/lib/registry") | .source | split("$$$$") | join("$$")')}"; test -n "$$data_dir"; du -sh -- "$$data_dir" 2>/dev/null || echo "Data directory not found"
 
 #==============================================================#
 # Helper commands

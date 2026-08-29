@@ -14,12 +14,21 @@ services:
       REGISTRY_STORAGE_DELETE_ENABLED: ${REGISTRY_STORAGE_DELETE_ENABLED:-true}
       REGISTRY_PROXY_REMOTEURL: ${REGISTRY_PROXY_REMOTEURL:-https://registry-1.docker.io}
       REGISTRY_PROXY_TTL: ${REGISTRY_PROXY_TTL:-168h}
+      HTTP_PROXY: ${REGISTRY_HTTP_PROXY:-}
+      HTTPS_PROXY: ${REGISTRY_HTTPS_PROXY:-}
+      NO_PROXY: ${REGISTRY_NO_PROXY:-localhost,127.0.0.1,registry}
     ports:
       - "${REGISTRY_PORT:-5000}:5000"
     volumes:
       - ${REGISTRY_DATA:-/data/registry}:/var/lib/registry
       - ./config.yml:/etc/docker/registry/config.yml:ro
     command: ["/etc/docker/registry/config.yml"]
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1:5000/v2/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   # Optional: Registry UI for management
   registry-ui:
@@ -41,4 +50,11 @@ services:
     ports:
       - "${REGISTRY_UI_PORT:-5080}:80"
     depends_on:
-      - registry
+      registry:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider -T 2 http://127.0.0.1/ && wget -q --spider -T 2 http://127.0.0.1/v2/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
