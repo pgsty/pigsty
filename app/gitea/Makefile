@@ -1,3 +1,5 @@
+SHELL := /bin/bash -e -o pipefail
+
 default: up view
 
 up: view
@@ -25,17 +27,23 @@ clean:
 	docker stop gitea; docker rm -f gitea
 
 pull:
-	docker pull gitea/gitea
+	docker compose pull
 
 rmi:
-	docker rmi gitea/gitea
+	docker rmi $$(docker compose config --images)
 
 rmdata:
 	rm -rf /data/gitea
 
 save:
 	mkdir -p /tmp/docker
-	docker save gitea/gitea | gzip -9 -c > /tmp/docker/gitea.tgz
+	@images="$$(docker compose config --images)"; test -n "$$images"; \
+	archive_path="/tmp/docker/gitea.tgz"; \
+	archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+	trap 'rm -f -- "$$archive_tmp"' EXIT; \
+	docker save $$images | gzip -9 -c > "$$archive_tmp"; \
+	mv -f -- "$$archive_tmp" "$$archive_path"; \
+	trap - EXIT
 
 load:
 	cat /tmp/docker/gitea.tgz | gzip -d -c - | docker load
