@@ -2,7 +2,9 @@
 
 [Maybe](https://github.com/maybe-finance/maybe) is an open-source personal finance application. This Pigsty app runs Maybe with Pigsty-managed PostgreSQL plus local Redis for Sidekiq jobs.
 
-The upstream Maybe repository is archived. The latest upstream release is `v0.6.0`, while GHCR publishes `stable` and `latest` image tags. Pigsty defaults to `stable` for release-based self-hosting.
+The upstream Maybe repository is archived. The template keeps its existing
+`stable` image channel; the validation snapshot resolved to the final upstream
+release, `0.6.0`. This does not imply ongoing security maintenance.
 
 ## Deploy
 
