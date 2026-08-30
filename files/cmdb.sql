@@ -1580,7 +1580,7 @@ INSERT INTO pigsty.default_var VALUES
 (875, 'pg_shared_buffer_ratio', '0.25', 'PGSQL', 'PG_BOOTSTRAP', 'float', 'C', 'postgres shared buffer memory ratio, 0.25 by default, 0.1~0.4', NULL),
 (876, 'pg_io_method', '"worker"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'io method for postgres: auto,fsync,worker,io_uring, worker by default', NULL),
 (877, 'pg_rto', '"norm"', 'PGSQL', 'PG_BOOTSTRAP', 'enum', 'C', 'shared rto mode for patroni & haproxy: fast,norm,safe,wide', NULL),
-(878, 'pg_rto_plan', '{"fast":[20,5,5,15,5,"1s","0.5s","1s",3,3],"norm":[30,5,10,25,5,"2s","1s","2s",3,3],"safe":[60,10,20,45,10,"3s","1.5s","3s",3,3],"wide":[120,20,30,95,15,"4s","2s","4s",3,3]}', 'PGSQL', 'PG_BOOTSTRAP', 'dict', 'G/C', 'shared RTO presets for Patroni and HAProxy health checks', NULL),
+(878, 'pg_rto_plan', '{"fast":[20,5,5,15,5,"1s","500ms","1s",3,3],"norm":[30,5,10,25,5,"2s","1s","2s",3,3],"safe":[60,10,20,45,10,"3s","1500ms","3s",3,3],"wide":[120,20,30,95,15,"4s","2s","4s",3,3]}', 'PGSQL', 'PG_BOOTSTRAP', 'dict', 'G/C', 'shared RTO presets for Patroni and HAProxy health checks', NULL),
 (879, 'pg_rpo', '1048576', 'PGSQL', 'PG_BOOTSTRAP', 'int', 'C', 'recovery point objective in bytes, `1MiB` at most by default', NULL),
 (880, 'pg_libs', '"pg_stat_statements, auto_explain"', 'PGSQL', 'PG_BOOTSTRAP', 'string', 'C', 'preloaded libraries, `pg_stat_statements,auto_explain` by default', NULL),
 (881, 'pg_delay', '0', 'PGSQL', 'PG_BOOTSTRAP', 'interval', 'I', 'replication apply delay for standby cluster leader', NULL),
