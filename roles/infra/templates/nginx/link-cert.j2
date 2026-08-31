@@ -17,10 +17,13 @@ set -euo pipefail
 # {{ name }} : {{ item.domain }}{% if 'domains' in item and item.domains is sequence %}{% for domain in item.domains %} {{ domain }}{% endfor %}{% endif %};
 
 {% if item.certbot is defined and item.certbot != '' %}
-if [[ -f "/etc/letsencrypt/live/{{ item.certbot }}/privkey.pem" ]]; then
+CERT_DIR="/etc/letsencrypt/live/{{ item.certbot }}"
+if [[ -s "$CERT_DIR/fullchain.pem" && -s "$CERT_DIR/privkey.pem" ]] && \
+   openssl x509 -in "$CERT_DIR/fullchain.pem" -noout -checkend 0 >/dev/null 2>&1 && \
+   openssl x509 -in "$CERT_DIR/fullchain.pem" -noout -checkhost "{{ item.domain }}" >/dev/null 2>&1; then
     # {{ name }} : {{ item.domain }} <--- /etc/letsencrypt/live/{{ item.certbot }}/
-    ln -sfn "/etc/letsencrypt/live/{{ item.certbot }}/fullchain.pem" "/etc/nginx/conf.d/cert/{{ item.domain }}.crt"
-    ln -sfn "/etc/letsencrypt/live/{{ item.certbot }}/privkey.pem"   "/etc/nginx/conf.d/cert/{{ item.domain }}.key"
+    ln -sfn "$CERT_DIR/fullchain.pem" "/etc/nginx/conf.d/cert/{{ item.domain }}.crt"
+    ln -sfn "$CERT_DIR/privkey.pem"   "/etc/nginx/conf.d/cert/{{ item.domain }}.key"
 else
     # {{ name }} : {{ item.domain }} <--- /etc/nginx/conf.d/cert/pigsty
     ln -sfn "/etc/nginx/conf.d/cert/pigsty.crt" "/etc/nginx/conf.d/cert/{{ item.domain }}.crt"
