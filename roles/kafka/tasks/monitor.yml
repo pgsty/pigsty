@@ -25,9 +25,9 @@
 #--------------------------------------------------------------#
 # Register Monitoring Targets      [add_metrics][kafka_register]
 #--------------------------------------------------------------#
-# one target file per instance under the single kafka job: the jmx target
-# carries the role label (used by the kafka_up recording rule), the protocol
-# exporter target is appended on the selected replicas
+# one target file per instance under the single kafka job. The optional jmx
+# target carries the role label; protocol exporter targets are appended on the
+# selected replicas. A node with neither exporter gets a valid empty list.
 - name: register kafka as victoria target
   tags: [ kafka_register, register, add_metrics ]
   ignore_errors: true
@@ -40,10 +40,15 @@
     mode: '0640'
     content: |
       # {{ kafka_instance }} @ {{ inventory_hostname }}
+      {% if kafka_jmx_exporter_enabled | bool %}
       - labels: { ip: {{ inventory_hostname }} , ins: {{ kafka_instance }} , cls: {{ kafka_cluster }} , role: {{ kafka_role }} , node_id: '{{ kafka_seq }}' , instance: {{ inventory_hostname }}:{{ kafka_jmx_exporter_port }} }
         targets: [ {{ inventory_hostname }}:{{ kafka_jmx_exporter_port }} ]
+      {% endif %}
       {% if inventory_hostname in kafka_exporter_hosts_internal %}
       - labels: { ip: {{ inventory_hostname }} , ins: {{ kafka_instance }} , cls: {{ kafka_cluster }} , instance: {{ inventory_hostname }}:{{ kafka_exporter_port }} }
         targets: [ {{ inventory_hostname }}:{{ kafka_exporter_port }} ]
+      {% endif %}
+      {% if not (kafka_jmx_exporter_enabled | bool) and inventory_hostname not in kafka_exporter_hosts_internal %}
+      []
       {% endif %}
 ...
