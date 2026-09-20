@@ -478,7 +478,8 @@ pull:
 ss:
 	rsync -avz --exclude=temp --exclude=dist --exclude=vagrant --exclude=terraform --delete ./ ai:/data/pigsty/
 gsync:
-	rsync -avz --delete .git/ sv:/data/pgsty/pigsty/.git/
+	rsync -avz --delete .git/ m1:~/pigsty/.git/
+	rsync -avz --delete .git/ m3:/data/pgsty/pigsty/.git/
 gpull:
 	rsync -avz --delete sv:/data/pgsty/pigsty/.git/ .git/
 grestore:
