@@ -99,6 +99,7 @@ docker pull bytebase/bytebase:latest
 docker pull quay.io/jupyter/minimal-notebook:latest
 #docker pull quay.io/jupyter/scipy-notebook:latest
 docker pull alpine
+docker pull metabase/metabase:v0.64.1.x
 docker pull registry:3.1.1
 docker pull joxit/docker-registry-ui:2.6.0
 docker pull andrewjones/schemaspy-postgres
@@ -133,6 +134,7 @@ docker save postgrest/postgrest               | gzip -9 -c > /tmp/docker/postgre
 docker save bytebase/bytebase:latest          | gzip -9 -c > /tmp/docker/bytebase.tgz
 docker save quay.io/jupyter/minimal-notebook:latest | gzip -9 -c > /tmp/docker/jupyter.tgz
 docker save alpine                           | gzip -9 -c > /tmp/docker/alpine.tgz
+docker save metabase/metabase:v0.64.1.x       | gzip -9 -c > /tmp/docker/metabase.tgz
 docker save registry:3.1.1                   | gzip -9 -c > /tmp/docker/registry.tgz
 docker save joxit/docker-registry-ui:2.6.0   | gzip -9 -c > /tmp/docker/registry-ui.tgz
 docker save andrewjones/schemaspy-postgres   | gzip -9 -c > /tmp/docker/schemaspy.tgz
@@ -170,6 +172,7 @@ cat /tmp/docker/gitea.tgz        | gzip -d -c - | docker load;
 cat /tmp/docker/kong.tgz         | gzip -d -c - | docker load;
 cat /tmp/docker/odoo.tgz         | gzip -d -c - | docker load;
 cat /tmp/docker/alpine.tgz       | gzip -d -c - | docker load;
+cat /tmp/docker/metabase.tgz    | gzip -d -c - | docker load;
 cat /tmp/docker/registry.tgz     | gzip -d -c - | docker load;
 cat /tmp/docker/registry-ui.tgz  | gzip -d -c - | docker load;
 cat /tmp/docker/schemaspy.tgz    | gzip -d -c - | docker load;
