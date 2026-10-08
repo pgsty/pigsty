@@ -3,7 +3,7 @@ SHELL := /bin/bash -e -o pipefail
 default: init
 	$(MAKE) up view
 
-# init odoo dir & database schema
+# Prepare bind directories and initialize the pre-created PostgreSQL database.
 init: dir
 	docker compose --profile init up --abort-on-container-exit --exit-code-from odoo-init odoo-init
 dir:

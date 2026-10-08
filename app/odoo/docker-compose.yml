@@ -5,7 +5,7 @@
 # File      :   docker-compose.yml
 # Desc      :   odoo docker compose template
 # Ctime     :   2024-09-19
-# Mtime     :   2026-08-27
+# Mtime     :   2026-10-08
 # Path      :   app/odoo/docker-compose.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -23,14 +23,16 @@ services:
     image: odoo:${ODOO_VERSION}
     restart: unless-stopped
     ports:
-      - ${ODOO_PORT}:8069
+      - "${ODOO_PORT}:8069"
     environment:
       - PGHOST=${PG_HOST}
       - PGPORT=${PG_PORT}
       - PGUSER=${PG_USERNAME}
       - PGPASSWORD=${PG_PASSWORD}
-      # Odoo 19 reads this setting from the environment, not a CLI option.
+      # Odoo 19 master password setting.
       - ODOO_ADMIN_PASSWD=${ODOO_ADMIN_PASSWORD}
+      # Enable proxy mode for Nginx access.
+      - ODOO_PROXY_MODE=${ODOO_PROXY_MODE:-false}
     volumes:
       - ${ODOO_DATA}:/var/lib/odoo
       - ${ODOO_ADDONS}:/mnt/extra-addons
@@ -38,8 +40,7 @@ services:
     command:
       - odoo
       - --database=${ODOO_DBNAME}
-      # Empty dbfilter makes Odoo use the exact --database whitelist.
-      # A database name is a literal identifier, not a regular expression.
+      # Use the exact database whitelist instead of a regex filter.
       - --db-filter=
       - --no-database-list
       - --http-interface=0.0.0.0
