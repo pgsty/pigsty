@@ -3,9 +3,10 @@
 > [InsForge](https://github.com/InsForge/InsForge) -- Open-source Backend-as-a-Service for AI coding agents
 
 Pigsty allows you to self-host **InsForge** with an existing managed HA PostgreSQL cluster, and launch the stateless services with docker-compose.
-This template targets the prebuilt `v2.3.1` InsForge OSS image with external PostgreSQL managed by Pigsty.
-Validated on 2026-08-27 with Ubuntu 24.04 arm64, Pigsty PostgreSQL 18.6, and
-all 67 application migrations through `064_compute-services-multi-driver`.
+This template targets the prebuilt `v2.3.3` InsForge OSS image with external PostgreSQL managed by Pigsty.
+Historical validation: InsForge v2.3.1 on 2026-08-27, Ubuntu 24.04 arm64,
+Pigsty PostgreSQL 18.6, and all 67 application migrations through
+`064_compute-services-multi-driver`.
 Runtime checks cover dashboard login, custom-schema REST/RLS, managed-table
 policy permissions, private storage uploads/downloads, Deno functions with
 encrypted secrets, and a real sub-minute HTTP schedule.
@@ -67,9 +68,9 @@ Visit `http://<your-ip>:7130` for the InsForge dashboard.
                     └──────────────────────────────────────────────┘
 ```
 
-- **InsForge App** (`ghcr.io/insforge/insforge-oss:v2.3.1`): Main application server with dashboard UI and API (port 7130)
+- **InsForge App** (`ghcr.io/insforge/insforge-oss:v2.3.3`): Main application server with dashboard UI and API (port 7130)
 - **PostgREST** (`postgrest/postgrest:v12.2.12`): Auto-generated REST API from PostgreSQL schema (port 5430)
-- **Deno Runtime** (`denoland/deno:alpine-2.0.6`): Pinned runtime executing the bundled InsForge v2.3.1 function host (port 7133)
+- **Deno Runtime** (`denoland/deno:alpine-2.0.6`): Pinned runtime executing the bundled InsForge v2.3.3 function host (port 7133)
 - **PostgreSQL**: Managed externally by Pigsty with HA, PITR, monitoring
 
 
@@ -116,7 +117,7 @@ Edit `pigsty.yml` before deploying:
 | `AWS_S3_BUCKET` | empty | Optional S3 bucket for object storage |
 | `DENO_DEPLOY_TOKEN` | empty | Optional Deno Deploy token |
 
-InsForge v2.3.1 also supports an opt-in Docker compute provider. Its environment
+InsForge also supports an opt-in Docker compute provider. Its environment
 variables and a commented socket mount are included in the template, but the
 socket is **not** mounted by default: Docker socket access is root-equivalent on
 the host. Review this boundary before enabling it; the base stack does not need
@@ -245,7 +246,7 @@ ROOT_ADMIN_USERNAME=admin@example.com
 ROOT_ADMIN_PASSWORD=pigsty
 
 # Optional image overrides when ghcr.io is slow or blocked
-#INSFORGE_IMAGE=ghcr.io/insforge/insforge-oss:v2.3.1
+#INSFORGE_IMAGE=ghcr.io/insforge/insforge-oss:v2.3.3
 #DENO_RUNTIME_IMAGE=denoland/deno:alpine-2.0.6
 
 # Database (must match pigsty.yml pg_users)
@@ -310,6 +311,49 @@ make restart  # docker compose restart
 make log      # docker compose logs -f
 make info     # docker compose ps
 ```
+
+### Upgrade to v2.3.3
+
+Back up the PostgreSQL database (including `system.migrations`), file storage,
+and deployment overrides before upgrading. Preserve the existing JWT and
+credential-encryption keys. Pull and recreate the InsForge container with the
+new image; its startup migration runner applies
+`065_restrict-http-extension-to-admin` to existing databases. PostgREST and Deno
+retain their coordinated upstream versions.
+
+Migration 065 revokes `PUBLIC` execution of the `http` extension's outbound and
+curl-option functions, while granting `project_admin` execution. Legitimate anon
+keys and normal user JWTs previously reached these functions through the main
+InsForge RPC API when the default `PUBLIC` grant remained. The new-install
+`files/insforge.sql` baseline applies the same restriction immediately.
+
+Let the v2.3.3 startup runner apply and record migration 065. Do not replay the
+full `files/insforge.sql` baseline on an existing database.
+
+Verify the migration ledger and actual permissions after startup:
+
+```sql
+SELECT name, run_on FROM system.migrations
+WHERE name = '065_restrict-http-extension-to-admin';
+
+SELECT p.oid::regprocedure AS function,
+       has_function_privilege('anon', p.oid, 'EXECUTE') AS anon_exec,
+       has_function_privilege('authenticated', p.oid, 'EXECUTE') AS user_exec,
+       has_function_privilege('project_admin', p.oid, 'EXECUTE') AS admin_exec
+FROM pg_proc p
+JOIN pg_depend d ON d.classid = 'pg_proc'::regclass AND d.objid = p.oid
+JOIN pg_extension e ON e.oid = d.refobjid AND d.deptype = 'e'
+WHERE e.extname = 'http'
+  AND p.proname IN ('http', 'http_get', 'http_post', 'http_put', 'http_patch',
+                   'http_delete', 'http_head', 'http_set_curlopt',
+                   'http_reset_curlopt', 'http_list_curlopt')
+ORDER BY 1;
+```
+
+The first query must return 065; each function must report `false`, `false`,
+`true`. Explicit grants or role memberships from a customized deployment can
+still grant access after revoking `PUBLIC`; review those if either non-admin
+column is true. Source: [v2.3.3 migration 065](https://github.com/InsForge/InsForge/blob/636d1e207d2bca246f7b8ccd0e0b6572528809fa/backend/src/infra/database/migrations/065_restrict-http-extension-to-admin.sql).
 
 ### Offline Deployment
 

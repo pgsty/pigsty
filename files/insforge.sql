@@ -65,3 +65,25 @@ DROP EVENT TRIGGER IF EXISTS create_policies_on_table_create;
 DROP EVENT TRIGGER IF EXISTS create_policies_on_rls_enable;
 DROP FUNCTION IF EXISTS public.create_default_policies() CASCADE;
 DROP FUNCTION IF EXISTS public.create_policies_after_rls() CASCADE;
+
+----------------------------------------------------------------------
+-- Restrict outbound HTTP RPC to project_admin (upstream migration 065)
+----------------------------------------------------------------------
+-- https://github.com/InsForge/InsForge/blob/636d1e207d2bca246f7b8ccd0e0b6572528809fa/backend/src/infra/database/migrations/065_restrict-http-extension-to-admin.sql
+-- Pigsty installs http in public; project_admin was granted EXECUTE above.
+
+REVOKE EXECUTE ON FUNCTION
+  public.http(public.http_request),
+  public.http_get(varchar),
+  public.http_get(varchar, jsonb),
+  public.http_post(varchar, varchar, varchar),
+  public.http_post(varchar, jsonb),
+  public.http_put(varchar, varchar, varchar),
+  public.http_patch(varchar, varchar, varchar),
+  public.http_delete(varchar),
+  public.http_delete(varchar, varchar, varchar),
+  public.http_head(varchar),
+  public.http_set_curlopt(varchar, varchar),
+  public.http_reset_curlopt(),
+  public.http_list_curlopt()
+FROM PUBLIC;
