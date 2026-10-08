@@ -4,7 +4,7 @@
 # kept external and mutable app data routed through DIFY_DATA.
 # ==================================================================
 # File: https://github.com/pgsty/pigsty/blob/main/app/dify/docker-compose.yml
-# Src:  https://github.com/langgenius/dify/blob/1.17.0/docker/docker-compose.yaml
+# Src:  https://github.com/langgenius/dify/blob/1.17.1/docker/docker-compose.yaml
 # Doc:  https://pigsty.io/docs/app/dify
 
 x-shared-env: &shared-api-worker-env
@@ -616,7 +616,7 @@ services:
 
   # API service
   api:
-    image: langgenius/dify-api:1.17.0
+    image: langgenius/dify-api:1.17.1
     restart: always
     env_file:
       - .env
@@ -660,7 +660,7 @@ services:
 
   # WebSocket service for workflow collaboration.
   api_websocket:
-    image: langgenius/dify-api:1.17.0
+    image: langgenius/dify-api:1.17.1
     restart: always
     profiles:
       - collaboration
@@ -695,7 +695,7 @@ services:
   # worker service
   # The Celery worker for processing the queue.
   worker:
-    image: langgenius/dify-api:1.17.0
+    image: langgenius/dify-api:1.17.1
     restart: always
     env_file:
       - .env
@@ -739,7 +739,7 @@ services:
   # worker_beat service
   # Celery beat for scheduling periodic tasks.
   worker_beat:
-    image: langgenius/dify-api:1.17.0
+    image: langgenius/dify-api:1.17.1
     restart: always
     env_file:
       - .env
@@ -765,7 +765,7 @@ services:
 
   # Frontend web application.
   web:
-    image: langgenius/dify-web:1.17.0
+    image: langgenius/dify-web:1.17.1
     restart: always
     environment:
       CONSOLE_API_URL: ${CONSOLE_API_URL:-}
@@ -783,6 +783,7 @@ services:
       CSP_WHITELIST: ${CSP_WHITELIST:-}
       ALLOW_EMBED: ${ALLOW_EMBED:-false}
       ALLOW_UNSAFE_DATA_SCHEME: ${ALLOW_UNSAFE_DATA_SCHEME:-false}
+      MARKDOWN_FORM_FIELD_NAME_MAX_LENGTH: ${MARKDOWN_FORM_FIELD_NAME_MAX_LENGTH:-128}
       MARKETPLACE_API_URL: ${MARKETPLACE_API_URL:-https://marketplace.dify.ai}
       MARKETPLACE_URL: ${MARKETPLACE_URL:-https://marketplace.dify.ai}
       TOP_K_MAX_VALUE: ${TOP_K_MAX_VALUE:-10}
@@ -799,6 +800,7 @@ services:
       NEXT_PUBLIC_ENABLE_SINGLE_DOLLAR_LATEX: ${NEXT_PUBLIC_ENABLE_SINGLE_DOLLAR_LATEX:-false}
       NEXT_PUBLIC_ENABLE_FEATURE_PREVIEW: ${NEXT_PUBLIC_ENABLE_FEATURE_PREVIEW:-true}
       NEXT_PUBLIC_ENABLE_AGENT_V2: ${NEXT_PUBLIC_ENABLE_AGENT_V2:-true}
+      NEXT_PUBLIC_ENABLE_AGENT_V2_IN_CHATFLOW: ${NEXT_PUBLIC_ENABLE_AGENT_V2_IN_CHATFLOW:-false}
 
 
   # The redis cache.
@@ -844,7 +846,7 @@ services:
   # default network; general HTTP(S) egress is forced through agent_ssrf_proxy.
   # The shellctl control network still permits direct access to agent_backend.
   local_sandbox:
-    image: langgenius/dify-agent-local-sandbox:1.17.0
+    image: langgenius/dify-agent-local-sandbox:1.17.1
     restart: always
     environment:
       SHELLCTL_AUTH_TOKEN: ${DIFY_AGENT_LOCAL_SANDBOX_AUTH_TOKEN:-${DIFY_AGENT_SHELLCTL_AUTH_TOKEN:-}}
@@ -933,7 +935,7 @@ services:
 
   # Dify Agent backend service.
   agent_backend:
-    image: langgenius/dify-agent-backend:1.17.0
+    image: langgenius/dify-agent-backend:1.17.1
     restart: always
     environment:
       DIFY_AGENT_REDIS_URL: ${DIFY_AGENT_REDIS_URL:-redis://:${REDIS_PASSWORD:-difyai123456}@redis:6379/2}
@@ -989,6 +991,8 @@ services:
     environment:
       HTTP_PORT: ${SSRF_HTTP_PORT:-3128}
       COREDUMP_DIR: ${SSRF_COREDUMP_DIR:-/var/spool/squid}
+      SSRF_PROXY_ALLOW_PRIVATE_IPS: ${SSRF_PROXY_ALLOW_PRIVATE_IPS:-}
+      SSRF_PROXY_ALLOW_PRIVATE_DOMAINS: ${SSRF_PROXY_ALLOW_PRIVATE_DOMAINS:-}
     networks:
       - default
       - local_sandbox_proxy_network
@@ -996,7 +1000,7 @@ services:
 
   # ssrf_proxy server
   # for more information, please refer to
-  # https://docs.dify.ai/learn-more/faq/install-faq#18-why-is-ssrf-proxy-needed%3F
+  # https://docs.dify.ai/en/self-host/deploy/troubleshooting/docker-issues#why-is-ssrf-proxy-needed
   ssrf_proxy:
     image: ubuntu/squid:latest
     restart: always

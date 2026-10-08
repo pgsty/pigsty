@@ -4,9 +4,10 @@ Dify: https://dify.ai/
 
 The Innovation Engine for GenAI Applications, Dify is an open-source LLM app development platform. Orchestrate LLM apps from agents to complex AI workflows, with an RAG engine.
 
-- Targets [Dify v1.17.0](https://github.com/langgenius/dify/releases/tag/1.17.0)
-  with plugin daemon v0.6.10-local (release checked on 2026-08-27).
-- Validated on Ubuntu 24.04 arm64 with Pigsty PostgreSQL 18.6 and pgvector 0.8.6:
+- Targets [Dify v1.17.1](https://github.com/langgenius/dify/releases/tag/1.17.1)
+  with plugin daemon v0.6.10-local and sandbox v0.2.15.
+- Historical validation: Dify v1.17.0 on 2026-08-27, Ubuntu 24.04 arm64,
+  Pigsty PostgreSQL 18.6 and pgvector 0.8.6:
   schema head `a4f8d2c9e1b0`, setup/login, collaboration handshake, an actual
   Code workflow, Celery roundtrip, Agent Home Snapshot restore, and SSRF /
   cross-workspace isolation. No external paid model is needed for these checks.
@@ -151,14 +152,31 @@ To take over nginx config back to pigsty:
 
 ## Upgrade Notes
 
-Dify v1.17.0 updates the Agent runtime, adds workspace Skills and Agent Home
-Snapshots, and includes database migrations. The local sandbox's `/home/dify`
+Dify v1.17.1 fixes document extraction, Human Input workflows, collaboration,
+and Agent behavior. It also runs the pre-1.15 legacy model type migration as
+part of `flask db upgrade`; a separate `flask data-migrate legacy-model-types`
+step is no longer needed. Previously mis-extracted CSV, Notion, or XLS documents
+must be re-imported after upgrading; the new image does not repair indexed text.
+See the [1.17.1 release notes](https://github.com/langgenius/dify/releases/tag/1.17.1).
+
+The shared `SSRF_PROXY_ALLOW_PRIVATE_IPS` and `SSRF_PROXY_ALLOW_PRIVATE_DOMAINS`
+allowlists now apply to both the workflow proxy and the Agent local-sandbox
+proxy. Leave them empty for the default private-network deny policy. With empty
+allowlists, the Agent proxy restricts internal access to `/files/` and
+`/agent-stub/`. Explicitly allowlisting `api`, `agent_backend`, or a network
+covering their IPs also permits their other ordinary paths; the preceding
+traversal deny rules still take precedence. Use precise, intentional targets.
+`MARKDOWN_FORM_FIELD_NAME_MAX_LENGTH` defaults to 128;
+`NEXT_PUBLIC_ENABLE_AGENT_V2_IN_CHATFLOW` defaults to false, matching upstream.
+
+Dify v1.17.0 updated the Agent runtime, added workspace Skills and Agent Home
+Snapshots, and included database migrations. The local sandbox's `/home/dify`
 and `/workspace` use named volumes; include these volumes in your backup.
 Before upgrading an existing
 deployment, verify that the Pigsty PostgreSQL backup is recent, back up
 `/data/dify`, and replace the three Agent development secrets with independent
 random values. With `MIGRATION_ENABLED=true`, migrations run automatically when
-the API container starts; they can also be run explicitly after pulling images:
+the API container starts; they can also be run explicitly after recreating the API container with the new image:
 
 ```bash
 docker compose exec api flask db upgrade
