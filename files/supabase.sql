@@ -2,7 +2,7 @@
 -- # File      :   supabase.sql
 -- # Desc      :   Pigsty self-hosting supabase baseline schema
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2026-06-30
+-- # Mtime     :   2026-10-08
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -2204,7 +2204,7 @@ $$;
 
 ----------------------------------------------------
 -- post migration: webhooks:
--- https://github.com/supabase/supabase/blob/master/docker/volumes/db/webhooks.sql
+-- https://github.com/supabase/supabase/blob/564eab8ad7840b13324f68b1bfac074ef8d51c21/docker/volumes/db/webhooks.sql
 ----------------------------------------------------
 BEGIN;
 -- Create pg_net extension
@@ -2330,6 +2330,9 @@ ALTER table "supabase_functions".migrations OWNER TO supabase_functions_admin;
 ALTER table "supabase_functions".hooks OWNER TO supabase_functions_admin;
 ALTER function "supabase_functions".http_request() OWNER TO supabase_functions_admin;
 GRANT supabase_functions_admin TO postgres;
+-- http_request() runs as supabase_functions_admin and can serialize extension types.
+-- https://github.com/supabase/supabase/blob/564eab8ad7840b13324f68b1bfac074ef8d51c21/docker/volumes/db/webhooks.sql
+GRANT USAGE ON SCHEMA extensions TO supabase_functions_admin;
 -- Remove unused supabase_pg_net_admin role
 DO
 $$

@@ -5,9 +5,11 @@
 Pigsty allow you to self-host **supabase** with existing managed HA postgres cluster, and launch the stateless part of supabase with docker-compose.
 Check the official tutorial for details: [Self-Hosting Supabase](https://pigsty.io/docs/app/supabase)
 
-This template tracks the official `self-hosted/v0.8.0` release. Envoy `1.39.0`
+This template tracks the official
+[`self-hosted/v0.8.2` release](https://github.com/supabase/supabase/tree/564eab8ad7840b13324f68b1bfac074ef8d51c21/docker)
+(commit `564eab8ad7840b13324f68b1bfac074ef8d51c21`). Envoy `1.39.1`
 is the default API gateway and Studio is pinned to
-`2026.08.03-sha-022b374`; PostgreSQL remains external and managed by Pigsty.
+`2026.09.07-sha-7996410`; PostgreSQL remains external and managed by Pigsty.
 Kong `3.9.3` is retained only as an optional transition fallback:
 
 ```bash
@@ -55,6 +57,9 @@ docker compose -f docker-compose.yml -f docker-compose.asymmetric.yml up -d
 
 Edge Functions always receive `SUPABASE_JWKS` from `JWT_JWKS` and fall back to
 legacy HS256 verification when it is empty.
+The worker and shared `volumes/functions/deno.jsonc` import map are updated
+together, including `@supabase/functions-js`, `@supabase/server`, and the
+per-request function slug. See [source provenance](volumes/functions/SOURCE.md).
 
 Both gateways restrict `/pg/` metadata CORS to `SUPABASE_PUBLIC_URL` and local
 development origins, removing wildcard headers emitted by postgres-meta. This
@@ -103,8 +108,46 @@ port/container-name conflicts. Review any locally added services first; do not
 indiscriminately remove orphans.
 
 `files/supabase.sql` is a fresh-install baseline, not a replayable upgrade script.
-Updating containers does not apply its new SQL grants. In the target Supabase
-database, first check the Storage role's prerequisite:
+Updating containers does not apply its new SQL grants or clear settings from an
+existing database. Version `0.8.2` removes the SQL-visible
+`app.settings.jwt_secret` and `PGRST_APP_SETTINGS_JWT_SECRET` settings; JWT
+verification remains configured by the application-level variables, and
+`app.settings.jwt_exp` remains available.
+
+Before this change, review custom SQL functions that depend on
+`current_setting('app.settings.jwt_secret')`. If they still need a signing
+secret, migrate them to a restricted Vault secret as described in
+[upstream PR #45003](https://github.com/supabase/supabase/pull/45003), with access
+limited to the function owner and no public RPC exposing the decrypted value.
+Do not copy the secret into SQL-visible settings again.
+
+After reviewing those dependencies and backing up the target database, run from
+the Pigsty installation root with an administrator connection to apply the narrow, idempotent
+[`files/supabase-0.8.2.sql`](../../files/supabase-0.8.2.sql) upgrade. It resets the
+old database-level secret and grants `extensions` schema USAGE to the webhook
+owner `supabase_functions_admin`, preserving JWT expiration and existing data:
+
+```bash
+psql -X -v ON_ERROR_STOP=1 -d '<target-supabase-database>' -f files/supabase-0.8.2.sql
+```
+
+Remove the old database parameter from your deployment inventory as well as
+updating Compose. The script only resets the database-level setting used by the
+old template. If you added the secret through `ALTER ROLE`, a server setting, or
+custom session SQL, review and remove those separate sources too. Recreate
+PostgREST with the new Compose configuration, and reconnect clients; existing
+sessions can retain the old value. Verify in a new session as an ordinary
+application role, without printing any secret:
+
+```sql
+SELECT nullif(current_setting('app.settings.jwt_secret', true), '') IS NULL
+       AS jwt_secret_removed;
+SELECT has_schema_privilege('supabase_functions_admin', 'extensions', 'USAGE')
+       AS webhook_extensions_usage;
+```
+
+For older deployments, also check the Storage role's prerequisite in the target
+Supabase database:
 
 ```sql
 SELECT current_database(),
