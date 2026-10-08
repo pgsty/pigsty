@@ -100,7 +100,7 @@ docker pull quay.io/jupyter/minimal-notebook:latest
 #docker pull quay.io/jupyter/scipy-notebook:latest
 docker pull alpine
 docker pull metabase/metabase:v0.64.1.x
-docker pull registry:3.1.1
+docker pull registry:3.1.2
 docker pull joxit/docker-registry-ui:2.6.0
 docker pull andrewjones/schemaspy-postgres
 docker pull requarks/wiki
@@ -135,7 +135,7 @@ docker save bytebase/bytebase:latest          | gzip -9 -c > /tmp/docker/bytebas
 docker save quay.io/jupyter/minimal-notebook:latest | gzip -9 -c > /tmp/docker/jupyter.tgz
 docker save alpine                           | gzip -9 -c > /tmp/docker/alpine.tgz
 docker save metabase/metabase:v0.64.1.x       | gzip -9 -c > /tmp/docker/metabase.tgz
-docker save registry:3.1.1                   | gzip -9 -c > /tmp/docker/registry.tgz
+docker save registry:3.1.2                   | gzip -9 -c > /tmp/docker/registry.tgz
 docker save joxit/docker-registry-ui:2.6.0   | gzip -9 -c > /tmp/docker/registry-ui.tgz
 docker save andrewjones/schemaspy-postgres   | gzip -9 -c > /tmp/docker/schemaspy.tgz
 docker save requarks/wiki                     | gzip -9 -c > /tmp/docker/wiki.tgz

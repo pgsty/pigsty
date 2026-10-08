@@ -4,8 +4,13 @@ This is a Docker Registry mirror service for caching Docker images, particularly
 
 Default images:
 
-- `registry:3.1.1`
+- `registry:3.1.2`
 - `joxit/docker-registry-ui:2.6.0`
+
+Registry 3.1.2 includes upstream manifest/blob digest validation fixes. Keep a
+copy of the registry configuration and cache before replacing an existing
+instance, then check `/v2/`, the UI backend, and cold/hot pulls by digest.
+See the [3.1.2 release notes](https://github.com/distribution/distribution/releases/tag/v3.1.2).
 
 ## Features
 
@@ -112,7 +117,7 @@ curl http://your-domain.com:5000/v2/library/nginx/tags/list
 - `REGISTRY_DATA`: Data storage path (default: `/data/registry`)
 - `REGISTRY_PORT`: Registry service port (default: `5000`)
 - `REGISTRY_UI_PORT`: Web UI port (default: `5080`)
-- `REGISTRY_IMAGE`: Registry image (default: `registry:3.1.1`)
+- `REGISTRY_IMAGE`: Registry image (default: `registry:3.1.2`)
 - `REGISTRY_UI_IMAGE`: Web UI image (default: `joxit/docker-registry-ui:2.6.0`)
 - `REGISTRY_PROXY_REMOTEURL`: Upstream registry (default: `https://registry-1.docker.io`)
 - `REGISTRY_PROXY_TTL`: Proxy cache TTL (default: `168h`)
@@ -129,7 +134,7 @@ those credentials can otherwise make private upstream images accessible to all m
 
 The UI health check covers both its page and the `/v2/` backend proxy. A working
 static page alone does not establish registry availability. The upstream
-Registry 3.1.1 proxy also contacts its configured upstream during startup; even a populated
+Registry 3.1.2 proxy also contacts its configured upstream during startup; even a populated
 cache is not an offline registry if its upstream is unavailable when restarted.
 
 ### Advanced Configuration
