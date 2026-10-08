@@ -109,7 +109,7 @@ docker pull odoo:19.0
 docker pull nocodb/nocodb:latest
 docker pull ghcr.io/immich-app/immich-server:v3
 docker pull ghcr.io/immich-app/immich-machine-learning:v3
-docker pull docker.io/valkey/valkey:9
+docker pull docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d
 docker pull ghcr.io/maybe-finance/maybe:stable
 docker pull redis:7-alpine
 docker pull docker.io/pgsty/silo:latest
@@ -143,7 +143,7 @@ docker save odoo:19.0                         | gzip -9 -c > /tmp/docker/odoo.tg
 docker save nocodb/nocodb:latest              | gzip -9 -c > /tmp/docker/nocodb.tgz
 docker save ghcr.io/immich-app/immich-server:v3           | gzip -9 -c > /tmp/docker/immich-server.tgz
 docker save ghcr.io/immich-app/immich-machine-learning:v3 | gzip -9 -c > /tmp/docker/immich-machine-learning.tgz
-docker save docker.io/valkey/valkey:9                     | gzip -9 -c > /tmp/docker/valkey.tgz
+docker save docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d                     | gzip -9 -c > /tmp/docker/valkey.tgz
 docker save ghcr.io/maybe-finance/maybe:stable           | gzip -9 -c > /tmp/docker/maybe.tgz
 docker save redis:7-alpine                                | gzip -9 -c > /tmp/docker/redis.tgz
 docker save docker.io/pgsty/silo:latest                   | gzip -9 -c > /tmp/docker/silo.tgz
