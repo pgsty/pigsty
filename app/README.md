@@ -75,7 +75,7 @@ pgadmin   : { domain: adm.pigsty  ,endpoint: "127.0.0.1:8885"   }
 pgweb     : { domain: cli.pigsty  ,endpoint: "127.0.0.1:8886"   }
 bytebase  : { domain: ddl.pigsty  ,endpoint: "127.0.0.1:8887"   }
 jupyter   : { domain: lab.pigsty  ,endpoint: "127.0.0.1:8888" ,websocket: true }
-gitea     : { domain: git.pigsty  ,endpoint: "127.0.0.1:8889"   }
+gitea     : { domain: git.pigsty  ,endpoint: "127.0.0.1:8889" ,websocket: true }
 silo      : { domain: sss.pigsty  ,endpoint: "127.0.0.1:9000"   }
 wiki      : { domain: wiki.pigsty ,endpoint: "127.0.0.1:9002"   }
 noco      : { domain: noco.pigsty ,endpoint: "127.0.0.1:9003"   }
