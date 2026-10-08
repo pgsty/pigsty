@@ -1,5 +1,9 @@
 # jupyter notebook
 
+The default image is `quay.io/jupyter/minimal-notebook:latest`.
+[Current Jupyter Docker Stacks builds](https://jupyter-docker-stacks.readthedocs.io/en/latest/)
+are published on Quay; the Docker Hub images have been frozen since 2023-10-20.
+
 Run jupyter notebook with docker, you have to:
 
 - 1. change the default password in [`.env`](.env): `JUPYTER_TOKEN`

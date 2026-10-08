@@ -97,7 +97,7 @@ docker pull pgsty/pg_exporter
 docker pull postgrest/postgrest
 docker pull bytebase/bytebase:latest
 docker pull quay.io/jupyter/minimal-notebook:latest
-#docker pull jupyter/scipy-notebook:latest 
+#docker pull quay.io/jupyter/scipy-notebook:latest
 docker pull alpine
 docker pull registry:3.1.1
 docker pull joxit/docker-registry-ui:2.6.0
@@ -208,7 +208,7 @@ docker pull quay.io/keycloak/keycloak:18.0.0            # 18.0.0   # 562MB
 docker pull tootsuite/mastodon                          # latest   # 1.76GB
 docker pull cptactionhank/atlassian-confluence:7.7.3    # 7.7.3    # 835MB
 docker pull cptactionhank/atlassian-jira-software:8.1.0 # 8.1.0    # 531MB
-docker pull jupyter/scipy-notebook                      # latest   # 3.01GB
+docker pull quay.io/jupyter/scipy-notebook              # latest
 docker pull gitlab/gitlab-ee                            # latest   # 2.69GB
 docker pull grafana/grafana-oss                         # latest   # 286MB
 ```
@@ -216,7 +216,7 @@ docker pull grafana/grafana-oss                         # latest   # 286MB
 **Make Cache for Software**
 
 ```bash
-docker save quay.io/keycloak/keycloak tootsuite/mastodon cptactionhank/atlassian-confluence cptactionhank/atlassian-jira-software jupyter/scipy-notebook gitlab/gitlab-ee grafana/grafana-oss | gzip -c - > docker.tgz
+docker save quay.io/keycloak/keycloak tootsuite/mastodon cptactionhank/atlassian-confluence cptactionhank/atlassian-jira-software quay.io/jupyter/scipy-notebook gitlab/gitlab-ee grafana/grafana-oss | gzip -c - > docker.tgz
 cat /tmp/docker.tgz | gzip -d -c - | docker load  
 ```
 
