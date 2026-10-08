@@ -34,10 +34,16 @@ services:
       - hindsight-cache:/home/hindsight/.cache
     healthcheck:
       test:
-        - CMD-SHELL
-        - >-
-          curl -fsS http://127.0.0.1:$${HINDSIGHT_API_PORT:-8888}/health/ready &&
-          curl -fsS -o /dev/null 'http://127.0.0.1:9999/api/banks?limit=1'
+        - CMD
+        - python3
+        - -c
+        - |
+          import os
+          from urllib.request import urlopen
+          port = os.environ.get("HINDSIGHT_API_PORT", "8888")
+          for url in (f"http://127.0.0.1:{port}/health/ready", "http://127.0.0.1:9999/api/banks?limit=1"):
+              with urlopen(url, timeout=4) as response:
+                  response.read()
       interval: 15s
       timeout: 10s
       retries: 10
