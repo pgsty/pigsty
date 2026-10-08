@@ -26,6 +26,7 @@ time when a controlled rollout or rollback window is required.
 * [JumpServer](jumpserver/) : Open-source PAM / bastion host with Pigsty PostgreSQL
 * [Jupyter](jupyter/) : Run jupyter notebook, the data analysis IDE with docker
 * [Electric](electric/) : Postgres sync engine for frontend applications
+* [Hermes](hermes/) : VM installation guide for Hermes Agent with an external GLM provider
 * [Hindsight](hindsight/) : Agent memory service backed by Postgres
 * [InsForge](insforge/) : Backend platform built on Postgres
 * [Mattermost](mattermost/) : Self-hosted team collaboration service
