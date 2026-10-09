@@ -23,7 +23,7 @@ pull:
 config:
 	$(DOCKER_COMPOSE) config
 
-restart:
+restart migrate upgrade-db:
 	$(DOCKER_COMPOSE) stop
 	$(DOCKER_COMPOSE) up -d
 
@@ -43,9 +43,6 @@ status ps:
 
 health:
 	curl -fsS "http://127.0.0.1:$$(grep -E '^HTTP_PORT=' .env | cut -d= -f2)/api/health/"
-
-migrate upgrade-db:
-	$(DOCKER_COMPOSE) exec core bash -c './jms upgrade_db'
 
 exec:
 	$(DOCKER_COMPOSE) exec core bash
