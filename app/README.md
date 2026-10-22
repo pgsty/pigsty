@@ -30,6 +30,7 @@ time when a controlled rollout or rollback window is required.
 * [Hindsight](hindsight/) : Agent memory service backed by Postgres
 * [InsForge](insforge/) : Backend platform built on Postgres
 * [Mattermost](mattermost/) : Self-hosted team collaboration service
+* [Discourse](discourse/) : Forum with Pigsty PostgreSQL and embedded Redis
 * [Silo](silo/) : S3-compatible object storage maintained by Pigsty
 * [PG Exporter](pg_exporter/) : PostgreSQL metrics exporter
 * [Registry](registry/) : Docker Registry pull-through cache and UI
@@ -86,6 +87,7 @@ dify      : { domain: dify.pigsty ,endpoint: "127.0.0.1:5001" ,websocket: true }
 immich    : { domain: photo.pigsty ,endpoint: "127.0.0.1:2283" ,websocket: true }
 maybe     : { domain: maybe.pigsty ,endpoint: "127.0.0.1:5002" ,websocket: true }
 jumpserver: { domain: jump.pigsty  ,endpoint: "127.0.0.1:8080" ,websocket: true }
+discourse : { domain: ask.pigsty   ,endpoint: "unix:/data/app/discourse/shared/nginx.http.sock" ,websocket: true }
 ```
 
 **Pull Image**

@@ -101,6 +101,7 @@ You can run docker software/app with the following templates:
 * [app/immich.yml](app/immich.yml) : launch the Immich photo management app
 * [app/insforge.yml](app/insforge.yml) : launch the InsForge backend platform
 * [app/mattermost.yml](app/mattermost.yml) : launch the mattermost team messaging app
+* [app/discourse.yml](app/discourse.yml) : launch Discourse with Pigsty PostgreSQL and embedded Redis
 * [app/teable.yml](app/teable.yml) : launch the teable no-code database app
 * [app/maybe.yml](app/maybe.yml) : launch the maybe personal finance app
 * [app/jumpserver.yml](app/jumpserver.yml) : launch the JumpServer PAM / bastion host app
