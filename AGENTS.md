@@ -483,3 +483,11 @@ Additional experimental and internal modules not recommended for production use 
 - `pg_exporter/` - Standalone PostgreSQL metrics exporter for external PostgreSQL instances
 - `piglet/` - Lightweight Pigsty variant for minimal deployments
 - `juice/`, `vibe/` - Internal development modules
+
+## Git and Large Files
+
+- Keep source, config, and essential small docs/metadata in Git. Exclude build outputs, binaries, packages, container/VM images, archives, dumps, and bulk data by default; check large text files too.
+- Store artifacts outside the repo, or add and verify `.gitignore` rules before downloading or generating them. Keep them out of staging and agent recovery/diff snapshots.
+- Before staging or committing, review file sizes, types, and the staged list. Add only needed source files; never force-add ignored files. Prefer source manifests, checksums, and reproducible download/build instructions.
+- When unsure whether binary assets, datasets, or generated files belong in Git, ask before staging or committing. Exceptions need explicit approval.
+- These rules do not authorize deleting existing files, stashes, or recovery snapshots, or rewriting history. Ignore rules do not remove existing Git objects; history cleanup requires a separately agreed scope.
