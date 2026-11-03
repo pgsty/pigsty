@@ -194,10 +194,14 @@
   loop:
     - { src: server.properties.j2 ,dest: /etc/kafka/server.properties      ,mode: "0640" }
     - { src: log4j2.yaml.j2       ,dest: /etc/kafka/log4j2.yaml            ,mode: "0640" }
-    - { src: jmx_exporter.yml.j2  ,dest: /etc/kafka/jmx_exporter.yml       ,mode: "0640" }
     - { src: kafka.env.j2         ,dest: /etc/default/kafka                ,mode: "0644" ,owner: root }
     - { src: kafka.service        ,dest: /etc/systemd/system/kafka.service ,mode: "0644" ,owner: root }
   register: kafka_render_result_internal
+
+- name: render kafka jmx exporter configuration
+  when: kafka_jmx_exporter_enabled | bool
+  template: src=jmx_exporter.yml.j2 dest=/etc/kafka/jmx_exporter.yml owner=kafka group=kafka mode=0640
+  register: kafka_jmx_render_result_internal
 
 #--------------------------------------------------------------#
 # Derive Static-State Fingerprint            [kafka_fingerprint]
@@ -217,17 +221,17 @@
   register: kafka_runtime_file_stats_internal
   no_log: "{{ kafka_security == 'scram' }}"
 
-# the render-loop order in the config section above is the fingerprint contract:
-# results[0..4] must stay server, log4j, jmx, env, unit
+# the render-loop order above is the fingerprint contract: results[0..3] must
+# stay server, log4j, env, unit; disabled jmx is fingerprinted as absent
 - name: derive the desired static state fingerprint
   set_fact:
     kafka_desired_static_fingerprint_internal: >-
       {{ ([
           'server=' ~ (kafka_render_result_internal.results[0].checksum | default('absent')),
           'log4j=' ~ (kafka_render_result_internal.results[1].checksum | default('absent')),
-          'jmx=' ~ (kafka_render_result_internal.results[2].checksum | default('absent')),
-          'env=' ~ (kafka_render_result_internal.results[3].checksum | default('absent')),
-          'unit=' ~ (kafka_render_result_internal.results[4].checksum | default('absent')),
+          'jmx=' ~ (kafka_jmx_render_result_internal.checksum | default('absent')),
+          'env=' ~ (kafka_render_result_internal.results[2].checksum | default('absent')),
+          'unit=' ~ (kafka_render_result_internal.results[3].checksum | default('absent')),
           'pem=' ~ (kafka_runtime_file_stats_internal.results[5].stat.checksum | default('absent')),
           'ca=' ~ (kafka_runtime_file_stats_internal.results[6].stat.checksum | default('absent'))
           ] | join('\n')) | hash('sha256') }}
@@ -254,6 +258,7 @@
   set_fact:
     kafka_restart_required_internal: >-
       {{ kafka_render_result_internal.changed | default(false) or
+         kafka_jmx_render_result_internal.changed | default(false) or
          kafka_security_changed_internal | default(false) or
          ((kafka_applied_state_internal.stdout_lines[0] | trim) != kafka_desired_static_fingerprint_internal
           and not kafka_static_state_loaded) or

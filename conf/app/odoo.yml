@@ -3,7 +3,7 @@
 # File      :   odoo.yml
 # Desc      :   pigsty config for running 1-node odoo app
 # Ctime     :   2025-01-11
-# Mtime     :   2025-12-12
+# Mtime     :   2026-10-08
 # Docs      :   https://pigsty.io/docs/app/odoo
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -16,9 +16,11 @@
 # ./bootstrap               # prepare local repo & ansible
 # ./configure -c app/odoo   # Use this odoo config template
 # vi pigsty.yml             # IMPORTANT: CHANGE CREDENTIALS!!
-# ./deploy.yml              # install pigsty & pgsql & minio
+# ./deploy.yml              # install Pigsty, PostgreSQL, and optional Silo
 # ./docker.yml              # install docker & docker-compose
 # ./app.yml                 # install odoo
+# Access through http://<ip>:8069 or http://odoo.pigsty after configuring DNS.
+# Odoo 19 is retained for addon compatibility.
 
 all:
   children:
@@ -39,11 +41,13 @@ all:
               PG_PORT: 5432                   # postgres port
               PG_USERNAME: odoo               # postgres user
               PG_PASSWORD: DBUser.Odoo        # postgres password
-              ODOO_PORT: 8069                 # odoo app port
-              ODOO_DATA: /data/odoo/webdata   # odoo webdata
-              ODOO_ADDONS: /data/odoo/addons  # odoo plugins
+              ODOO_PORT: 8069                 # published HTTP port on all host interfaces
+              ODOO_PROXY_MODE: true           # trust this node's Nginx forwarded headers
+              ODOO_DATA: /data/odoo/webdata    # filestore and sessions
+              ODOO_ADDONS: /data/odoo/addons   # Odoo 19 addons
               ODOO_DBNAME: odoo               # odoo database name
-              ODOO_VERSION: 19.0              # odoo image version
+              ODOO_ADMIN_PASSWORD: change-this-master-password # CHANGE ME: database manager master password
+              ODOO_VERSION: "19.0"            # stay on Odoo 19 for addon compatibility
 
     # the odoo database
     pg-odoo:
@@ -51,13 +55,13 @@ all:
       vars:
         pg_cluster: pg-odoo
         pg_users:
-          - { name: odoo    ,password: DBUser.Odoo ,pgbouncer: true ,roles: [ dbrole_admin ] ,createdb: true ,comment: admin user for odoo service }
+          - { name: odoo    ,password: DBUser.Odoo ,pgbouncer: true ,roles: [ dbrole_admin ] ,comment: admin user for odoo service }
           - { name: odoo_ro ,password: DBUser.Odoo ,pgbouncer: true ,roles: [ dbrole_readonly ]  ,comment: read only user for odoo service  }
           - { name: odoo_rw ,password: DBUser.Odoo ,pgbouncer: true ,roles: [ dbrole_readwrite ] ,comment: read write user for odoo service }
         pg_databases:
-          - { name: odoo ,owner: odoo ,revokeconn: true ,comment: odoo main database  }
+          - { name: odoo ,owner: odoo ,revokeconn: true ,extensions: [unaccent, pg_trgm] ,comment: odoo main database }
         pg_hba_rules:
-          - { user: all ,db: all ,addr: 172.17.0.0/16  ,auth: pwd ,title: 'allow access from local docker network' }
+          - { user: odoo ,db: odoo ,addr: 172.16.0.0/12 ,auth: pwd ,title: 'allow odoo access from local docker networks' }
           - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
         pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
 
@@ -86,13 +90,13 @@ all:
       minio : { domain: m.pigsty ,endpoint: "${admin_ip}:9001" ,scheme: https ,websocket: true }
       odoo:                           # nginx server config for odoo
         domain: odoo.pigsty           # REPLACE WITH YOUR OWN DOMAIN!
-        endpoint: "10.10.10.10:8069"  # odoo service endpoint: IP:PORT
-        websocket: true               # add websocket support
-        certbot: odoo.pigsty          # certbot cert name, apply with `make cert`
+        endpoint: "10.10.10.10:8069"  # Odoo host IP and published HTTP port
+        websocket: true               # HTTP and WebSocket share 8069 with the default workers=0
+        certbot: odoo.pigsty          # cert name; use your real domain for public certificates
 
     repo_enabled: false
     node_repo_modules: node,infra,pgsql
-    pg_version: 18
+    pg_version: 18                    # Odoo 19 requires PostgreSQL 13 or later
 
     #----------------------------------------------#
     # PASSWORD : https://pigsty.io/docs/setup/security/

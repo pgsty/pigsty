@@ -9,5 +9,36 @@ services:
     env_file:
       - .env
     environment:
-      - TZ=${TIMEZONE}
-      - NEXT_ENV_IMAGES_ALL_REMOTE=true
+      TZ: ${TIMEZONE}
+      NEXT_ENV_IMAGES_ALL_REMOTE: 'true'
+      REDIS_HOST: ${REDIS_HOST:-teable-cache}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      BACKEND_CACHE_REDIS_URI: ${BACKEND_CACHE_REDIS_URI:-redis://default:${REDIS_PASSWORD}@${REDIS_HOST:-teable-cache}:${REDIS_PORT:-6379}/${REDIS_DB:-0}}
+    depends_on:
+      teable-cache:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => r.json()).then(h => process.exit(h.status === 'ok' ? 0 : 1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 120s
+
+  teable-cache:
+    image: redis:${REDIS_VERSION:-7-alpine}
+    restart: always
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+      REDIS_PORT: ${REDIS_PORT:-6379}
+    command: ["redis-server", "--port", "${REDIS_PORT:-6379}", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    volumes:
+      - teable-cache:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -p \"$$REDIS_PORT\" ping | grep -qx PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  teable-cache:

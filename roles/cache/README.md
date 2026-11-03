@@ -196,10 +196,13 @@ When building the cache, some unwanted packages are automatically removed to red
 | `*i386.deb`       | DEB      | 32-bit packages not needed on x86_64         |
 | `patroni*3.0.4*`  | All      | Old version conflicts with newer patroni     |
 | `proj-data*`      | EL9+     | Large optional geospatial data (500MB+)      |
-| `*docs*`          | All RPM  | Documentation packages (reduce size)         |
 
-`cache_create` removes `proj-data*` and `*docs*` explicitly; SOW's Pigsty mode
+`cache_create` removes `proj-data*` explicitly; SOW's Pigsty mode
 removes the 32-bit and Patroni 3.0.4 packages while publishing new metadata.
+
+Documentation packages are retained because other RPMs may require them.
+For example, EL10's `annobin-plugin-gcc` requires the matching `annobin-docs`
+version; deleting it breaks offline dependency resolution.
 
 
 ## Repository Metadata
@@ -245,10 +248,10 @@ ls -la /www/pigsty/
 1. Install Pigsty normally:     ./bootstrap && ./configure && ./deploy.yml
 2. Create offline package:      ./cache.yml -l infra
 
-# Transfer tarball to air-gapped environment
+# Transfer tarball to air-gapped environment as /var/tmp/pkg.tgz
 
 # On air-gapped target machine:
-3. Bootstrap with package:      ./bootstrap -p pigsty-pkg-*.tgz
+3. Bootstrap with package:      ./bootstrap
 4. Configure:                   ./configure
 5. Install:                     ./deploy.yml
 ```

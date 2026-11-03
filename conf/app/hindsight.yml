@@ -3,14 +3,14 @@
 # File      :   hindsight.yml
 # Desc      :   pigsty config for running 1-node hindsight app
 # Ctime     :   2026-04-09
-# Mtime     :   2026-04-09
+# Mtime     :   2026-08-27
 # Docs      :   https://pigsty.io/docs/app/hindsight
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 # Hindsight: Agent memory that learns, backed by PostgreSQL
 # GitHub: https://github.com/vectorize-io/hindsight
-# Last Verified upstream deployment files: main branch on 2026-04-09
+# Validation snapshot: Hindsight 0.9.2 on 2026-08-27; default channel: latest
 #
 # how to use this template:
 #
@@ -36,14 +36,11 @@ all:
         app: hindsight   # specify app name to be installed (in the apps)
         apps:            # define all applications
           hindsight:     # app name, should have corresponding ~/pigsty/app/hindsight folder
-            file:
-              - { path: /data/hindsight ,state: directory ,mode: 0755 }
             conf:
               # image / published ports
               HINDSIGHT_VERSION: latest
               HINDSIGHT_API_PUBLISH_PORT: 8888
               HINDSIGHT_UI_PUBLISH_PORT: 9999
-              HINDSIGHT_MODEL_CACHE: /data/hindsight
 
               # database credentials (must match pg_users below)
               HINDSIGHT_DB_HOST: 10.10.10.10
@@ -61,6 +58,7 @@ all:
               HINDSIGHT_API_LLM_PROVIDER: none
               HINDSIGHT_API_LLM_MODEL: gpt-5-mini
               HINDSIGHT_API_LLM_API_KEY: ''
+              HF_HUB_OFFLINE: '1' # preloaded models; set 0 to download uncached Hugging Face models
 
               # optional: local Ollama on the same host
               #HINDSIGHT_API_LLM_PROVIDER: ollama
@@ -80,9 +78,9 @@ all:
         pg_users:
           - { name: hindsight ,password: DBUser.Hindsight ,pgbouncer: true ,pool_mode: session ,roles: [ dbrole_readwrite ] ,comment: hindsight service user }
         pg_databases:
-          - { name: hindsight ,owner: hindsight ,extensions: [ vector ] ,comment: Hindsight agent memory database }
+          - { name: hindsight ,owner: hindsight ,extensions: [ vector, { name: pg_trgm, schema: public } ] ,comment: Hindsight agent memory database }
         pg_hba_rules:
-          - { user: hindsight ,db: all ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow hindsight access from local docker network' }
+          - { user: hindsight ,db: hindsight ,addr: 172.16.0.0/12 ,auth: pwd ,title: 'allow hindsight access from local docker networks' }
         pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
 
     infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }

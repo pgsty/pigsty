@@ -4,6 +4,11 @@ PGWEB: https://github.com/sosedoff/pgweb
 
 Simple web-based and cross platform PostgreSQL database explorer.
 
+The template follows the untagged `sosedoff/pgweb` image; the 2026-08-27
+validation snapshot resolved to `0.17.0`. Override `PGWEB_PORT` in `.env` when
+needed. Keep this database administration endpoint on a trusted network or
+behind an authenticated proxy.
+
 
 ```bash
 cd ~/pigsty/app/pgweb ; make up

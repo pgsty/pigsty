@@ -3,7 +3,7 @@
 # File      :   mattermost.yml
 # Desc      :   pigsty config for running 1-node mattermost app
 # Ctime     :   2026-02-04
-# Mtime     :   2026-02-04
+# Mtime     :   2026-08-27
 # Docs      :   https://pigsty.io/docs/app/mattermost
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -47,6 +47,7 @@ all:
             conf:         # override /opt/mattermost/.env config file
               DOMAIN: mm.pigsty
               APP_PORT: 8065
+              CALLS_PORT: 8443
               TZ: UTC
 
               # postgres connection string
@@ -54,7 +55,7 @@ all:
 
               # image version
               MATTERMOST_IMAGE: mattermost-team-edition
-              MATTERMOST_IMAGE_TAG: latest
+              MATTERMOST_IMAGE_TAG: latest  # pin explicitly only for a controlled upgrade/rollback window
 
               # data directories
               MATTERMOST_CONFIG_PATH: /data/mattermost/config
@@ -63,7 +64,7 @@ all:
               MATTERMOST_PLUGINS_PATH: /data/mattermost/plugins
               MATTERMOST_CLIENT_PLUGINS_PATH: /data/mattermost/client/plugins
               MATTERMOST_BLEVE_INDEXES_PATH: /data/mattermost/bleve-indexes
-              MM_BLEVESETTINGS_INDEXDIR: /data/mattermost/bleve-indexes
+              MM_BLEVESETTINGS_INDEXDIR: /mattermost/bleve-indexes
 
     # the mattermost database
     pg-mattermost:
@@ -75,7 +76,7 @@ all:
         pg_databases:
           - { name: mattermost ,owner: dbuser_mattermost ,revokeconn: true ,comment: mattermost main database }
         pg_hba_rules:
-          - { user: dbuser_mattermost ,db: all ,addr: 172.17.0.0/16  ,auth: pwd ,title: 'allow mattermost access from local docker network' }
+          - { user: dbuser_mattermost ,db: mattermost ,addr: 172.16.0.0/12 ,auth: pwd ,title: 'allow mattermost access from local docker networks' }
           - { user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes' }
         pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ] # make a full backup every 1am
 

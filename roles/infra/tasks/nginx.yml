@@ -14,6 +14,18 @@
     - { path: "{{ nginx_home }}"        ,owner: nginx }
     - { path: "{{ nginx_home }}/acme"   ,owner: nginx }
     - { path: "{{ nginx_home }}/pigsty" ,owner: nginx }
+    - { path: /etc/letsencrypt/renewal-hooks/deploy ,owner: root ,group: root ,mode: '0755' }
+
+- name: create nginx portal cache dirs
+  tags: [ nginx_dir, nginx_config ]
+  file:
+    path: "{{ item.value.cache_dir }}"
+    state: directory
+    owner: nginx
+    group: nginx
+    mode: '0750'
+  when: item.value.cache_dir is defined and item.value.cache_dir != ''
+  with_dict: "{{ infra_portal | default({}) }}"
 
 
 #--------------------------------------------------------------#
@@ -53,6 +65,7 @@
         - { src: link-cert.j2 , dest: /etc/nginx/link-cert , mode: '0750' }
         - { src: sign-cert.j2 , dest: /etc/nginx/sign-cert , mode: '0750' }
         - { src: htpasswd.j2  , dest: /etc/nginx/.htpasswd , mode: '0640' }
+        - { src: certbot-deploy-hook , dest: /etc/letsencrypt/renewal-hooks/deploy/10-reload-nginx , mode: '0755' }
 
     - name: render nginx server conf
       when: upstream.domain is defined and upstream.domain != ''
@@ -91,6 +104,10 @@
             fi
         fi
         chown -R root:nginx "{{ nginx_data }}";
+        # Nginx cache directories are runtime-owned.  Preserve write access
+        # after normalizing the ownership of static content above.
+        find "{{ nginx_data }}" -mindepth 1 -maxdepth 1 -type d -name 'cache-*' \
+          -exec chown -R nginx:nginx {} +
         /bin/true
       args: { executable: /bin/bash }
 
@@ -139,7 +156,7 @@
         common_name: pigsty
         organization_name: pigsty
         organizational_unit_name: nginx
-        subject_alt_name: "{% set san = ['DNS:i.pigsty'] %}{% for name,srv in infra_portal.items() %}{% if srv.domain is defined and srv.domain != '' %}{{ san.append('DNS:'+srv.domain) }}{% endif %}{% endfor %}{{ san.append('DNS:localhost') }}{{ san.append('IP:' + inventory_hostname) }}{{ san | unique | list }}"
+        subject_alt_name: "{% set san = ['DNS:i.pigsty'] %}{% for name,srv in infra_portal.items() %}{% if srv.domain is defined and srv.domain != '' %}{{ san.append('DNS:'+srv.domain) }}{% endif %}{% if srv.domains is defined and srv.domains is sequence %}{% for domain in srv.domains %}{{ san.append('DNS:'+domain) }}{% endfor %}{% endif %}{% endfor %}{{ san.append('DNS:localhost') }}{{ san.append('IP:' + inventory_hostname) }}{{ san | unique | list }}"
         key_usage:
           - digitalSignature
           - keyEncipherment

@@ -19,7 +19,7 @@ The `kafka` role deploys Kafka 4.1+ clusters with:
 - **Declarative resources**: topics, users, ACLs, and quotas reconciled against live metadata
 - **Security profiles**: `plaintext` for trusted networks, or the `scram` production profile
   with Pigsty-CA node certs, controller mTLS, SASL_SSL + SCRAM-SHA-512, and default-deny ACLs
-- **Monitoring**: per-JVM JMX exporter plus at most two protocol exporter replicas,
+- **Monitoring**: optional per-JVM JMX exporter plus at most two protocol exporter replicas,
   registered to VictoriaMetrics on infra nodes
 
 The role converges one cluster to its declared state in a single idempotent pass and
@@ -54,7 +54,7 @@ a cluster name matching the role's identifier rules and a numeric, unique
 ```text
 roles/kafka/
 ├── defaults/
-│   └── main.yml              # Public API: 15 persistent variables
+│   └── main.yml              # Public API: 16 persistent variables
 ├── files/
 │   ├── kafka_health.py       # Role-owned health predicate (pigsty-kafka-health)
 │   └── kafka_provision.py    # Declarative provision helper (pigsty-kafka-provision)
@@ -185,10 +185,20 @@ everything else converges through a full run.
 
 ### Monitoring
 
-| Variable                     | Default | Description                          |
-|------------------------------|---------|--------------------------------------|
-| `kafka_jmx_exporter_port`    | `9404`  | JMX exporter port                    |
-| `kafka_exporter_port`        | `9308`  | Protocol exporter port               |
+| Variable                     | Default | Description                            |
+|------------------------------|---------|----------------------------------------|
+| `kafka_jmx_exporter_enabled` | `true`  | Enable the embedded JMX exporter agent |
+| `kafka_jmx_exporter_port`    | `9404`  | JMX exporter port                      |
+| `kafka_exporter_port`        | `9308`  | Protocol exporter port                 |
+
+Changing `kafka_jmx_exporter_enabled` requires a full `./kafka.yml` convergence
+because the Kafka JVMs must be rolling restarted; `-t register` alone only
+updates VictoriaMetrics target files. When JMX is disabled on an instance, its
+JVM, KRaft, broker, and per-instance liveness metrics and alerts are unavailable.
+Disabling JMX cluster-wide also removes that cluster from Kafka Overview and
+Kafka Instance discovery, and `KafkaDown` can no longer detect it. The separate
+`kafka_exporter` replicas remain active, so topic, partition, and consumer-group
+metrics continue to work.
 
 Topology, listeners, storage paths, replication safety, authorizer, TLS, and SASL
 keys are role-owned and cannot be overridden through `kafka_parameters`.

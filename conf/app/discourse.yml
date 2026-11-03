@@ -1,0 +1,110 @@
+---
+#==============================================================#
+# File      :   discourse.yml
+# Desc      :   Pigsty Discourse with external PostgreSQL / embedded Redis
+# Ctime     :   2026-10-14
+# Mtime     :   2026-10-14
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# Fresh host: ./configure -c app/discourse; edit pigsty.yml (passwords + SMTP)
+# ./deploy.yml; ./docker.yml; ./app.yml -l discourse
+# Existing Pigsty: merge the app/user/database/portal sections; do NOT replace
+# the running inventory or initialize an existing PostgreSQL cluster again.
+# ask.pigsty -> Pigsty Nginx :80/:443 -> Unix socket -> Discourse + Redis.
+
+all:
+  children:
+    discourse:
+      hosts: { 10.10.10.10: {} }
+      vars:
+        app: discourse
+        apps:
+          discourse:
+            dest: /data/app/discourse
+            file:
+              - { path: /data/app/discourse                    ,state: directory ,mode: '0755' }
+              - { path: /data/app/discourse/shared             ,state: directory ,mode: '0755' }
+              - { path: /data/app/discourse/shared/log/var-log ,state: directory ,mode: '0755' }
+            conf:
+              DISCOURSE_DATA: /data/app/discourse
+              DISCOURSE_HOSTNAME: ask.pigsty
+              DISCOURSE_VERSION: tests-passed
+              DISCOURSE_DOCKER_REF: 945d491ee62ac0d6e5d9076c173073c3f795d978
+              PG_HOST: 10.10.10.10
+              PG_PORT: 5432
+              PG_DBNAME: discourse
+              PG_USERNAME: discourse
+              PG_PASSWORD: DBUser.Discourse
+              UNICORN_WORKERS: 2
+              UNICORN_SIDEKIQS: 1
+              DISCOURSE_SIDEKIQ_WORKERS: 5
+              DISCOURSE_DB_POOL: 8
+              REDIS_MAX_MEMORY: 512mb
+              DISCOURSE_FORCE_HTTPS: false  # set true with a trusted HTTPS portal
+              DISCOURSE_DEVELOPER_EMAILS: admin@example.com  # CHANGE ME
+              DISCOURSE_SMTP_ADDRESS: smtp.example.com       # CHANGE ME
+              DISCOURSE_SMTP_PORT: 587
+              DISCOURSE_SMTP_USER_NAME: ''
+              DISCOURSE_SMTP_PASSWORD: ''
+              DISCOURSE_SMTP_ENABLE_START_TLS: true
+              DISCOURSE_SMTP_FORCE_TLS: false
+              DISCOURSE_NOTIFICATION_EMAIL: noreply@example.com  # CHANGE ME
+
+    pg-discourse:
+      hosts: { 10.10.10.10: { pg_seq: 1, pg_role: primary } }
+      vars:
+        pg_cluster: pg-discourse
+        pg_extensions: [ pgvector ]
+        pg_users:
+          - name: discourse
+            password: DBUser.Discourse  # CHANGE ME, same as PG_PASSWORD above
+            pgbouncer: false
+            roles: [{ name: dbrole_admin, state: revoke }]
+            comment: Discourse database owner
+        pg_databases:
+          - name: discourse
+            owner: discourse
+            encoding: UTF8
+            revokeconn: true
+            pgbouncer: false
+            baseline: discourse.sql
+            extensions: [ hstore, pg_trgm, unaccent, vector ]
+            comment: Discourse forum
+        pg_hba_rules:
+          - { user: discourse ,db: discourse ,addr: 172.16.0.0/12 ,auth: pwd ,title: 'Discourse from local Docker bridges' }
+        pg_crontab: [ '00 01 * * * /pg/bin/pg-backup full' ]
+
+    infra: { hosts: { 10.10.10.10: { infra_seq: 1 } } }
+    etcd:  { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
+
+  vars:
+    version: v4.5.0
+    admin_ip: 10.10.10.10
+    region: default
+    node_tune: oltp
+    pg_conf: oltp.yml
+    pg_version: 18
+    docker_enabled: true
+    repo_enabled: false
+    node_repo_modules: node,infra,pgsql
+    node_etc_hosts: ['${admin_ip} i.pigsty ask.pigsty']
+    infra_portal:
+      home: { domain: i.pigsty }
+      discourse:
+        domain: ask.pigsty
+        endpoint: unix:/data/app/discourse/shared/nginx.http.sock
+        websocket: true
+        config: |
+          client_max_body_size 10m;
+
+    # CHANGE these demo credentials before any public deployment.
+    grafana_admin_password: pigsty
+    grafana_view_password: DBUser.Viewer
+    pg_admin_password: DBUser.DBA
+    pg_monitor_password: DBUser.Monitor
+    pg_replication_password: DBUser.Replicator
+    patroni_password: Patroni.API
+    haproxy_admin_password: pigsty
+    etcd_root_password: Etcd.Root
+...

@@ -2,6 +2,12 @@
 
 Here are some docker compose templates for popular applications that works well with PostgreSQL
 
+Single-image utilities intentionally follow their established upstream channel
+(`latest`, an untagged image, `stable`, or a major-version tag). Exact pins are
+reserved for coordinated multi-image stacks, migrations, or vendored source
+snapshots that must move together. Pin a floating APP explicitly at deployment
+time when a controlled rollout or rollback window is required.
+
 * [Supabase](supabase/) : The open source Firebase alternative, built on Postgres
 * [FerretDB](ferretdb/) : MongoDB-compatible API backed by PostgreSQL and DocumentDB
 * [PgAdmin4](pgadmin/) : Postgres Admin Tools
@@ -20,10 +26,12 @@ Here are some docker compose templates for popular applications that works well 
 * [JumpServer](jumpserver/) : Open-source PAM / bastion host with Pigsty PostgreSQL
 * [Jupyter](jupyter/) : Run jupyter notebook, the data analysis IDE with docker
 * [Electric](electric/) : Postgres sync engine for frontend applications
+* [Hermes](hermes/) : VM installation guide for Hermes Agent with an external GLM provider
 * [Hindsight](hindsight/) : Agent memory service backed by Postgres
 * [InsForge](insforge/) : Backend platform built on Postgres
 * [Mattermost](mattermost/) : Self-hosted team collaboration service
-* [MinIO](minio/) : S3-compatible object storage
+* [Discourse](discourse/) : Forum with Pigsty PostgreSQL and embedded Redis
+* [Silo](silo/) : S3-compatible object storage maintained by Pigsty
 * [PG Exporter](pg_exporter/) : PostgreSQL metrics exporter
 * [Registry](registry/) : Docker Registry pull-through cache and UI
 * [Teable](teable/) : AI-enabled no-code database
@@ -41,6 +49,24 @@ docker login quay.io
 ```
 
 
+## Configuration overrides
+
+Values under `apps.<app>.conf` in the Pigsty inventory are **literal values**.
+`app.yml` writes them to a mode-0600 `.env` file, preserving dollar signs,
+quotes, backslashes, Unicode and whitespace through Docker Compose parsing.
+Booleans become `true`/`false`; `null` clears a value.
+
+Do not put `${OTHER_VARIABLE}` expressions in `apps.<app>.conf` expecting a
+second expansion by Compose. Resolve them with Ansible/Jinja first, provide
+the final value, or leave the application's Compose default in place. This is
+especially important when updating older inventories with derived connection
+URLs. Passwords embedded in URLs still require the application's normal URL
+encoding; dotenv quoting is not URL encoding.
+
+Hand-edited `.env` files retain Docker Compose's usual interpolation rules.
+Application Makefiles use Compose to resolve their configuration instead of
+parsing dotenv files as Make syntax.
+
 **Portals**
 
 There are several predefined portals
@@ -51,8 +77,8 @@ pgadmin   : { domain: adm.pigsty  ,endpoint: "127.0.0.1:8885"   }
 pgweb     : { domain: cli.pigsty  ,endpoint: "127.0.0.1:8886"   }
 bytebase  : { domain: ddl.pigsty  ,endpoint: "127.0.0.1:8887"   }
 jupyter   : { domain: lab.pigsty  ,endpoint: "127.0.0.1:8888" ,websocket: true }
-gitea     : { domain: git.pigsty  ,endpoint: "127.0.0.1:8889"   }
-minio     : { domain: sss.pigsty  ,endpoint: "127.0.0.1:9000"   }
+gitea     : { domain: git.pigsty  ,endpoint: "127.0.0.1:8889" ,websocket: true }
+silo      : { domain: sss.pigsty  ,endpoint: "127.0.0.1:9000"   }
 wiki      : { domain: wiki.pigsty ,endpoint: "127.0.0.1:9002"   }
 noco      : { domain: noco.pigsty ,endpoint: "127.0.0.1:9003"   }
 odoo      : { domain: odoo.pigsty ,endpoint: "127.0.0.1:8069" ,websocket: true }
@@ -61,6 +87,7 @@ dify      : { domain: dify.pigsty ,endpoint: "127.0.0.1:5001" ,websocket: true }
 immich    : { domain: photo.pigsty ,endpoint: "127.0.0.1:2283" ,websocket: true }
 maybe     : { domain: maybe.pigsty ,endpoint: "127.0.0.1:5002" ,websocket: true }
 jumpserver: { domain: jump.pigsty  ,endpoint: "127.0.0.1:8080" ,websocket: true }
+discourse : { domain: ask.pigsty   ,endpoint: "unix:/data/app/discourse/shared/nginx.http.sock" ,websocket: true }
 ```
 
 **Pull Image**
@@ -70,28 +97,31 @@ docker pull dpage/pgadmin4
 docker pull sosedoff/pgweb
 docker pull pgsty/pg_exporter
 docker pull postgrest/postgrest
-docker pull bytebase/bytebase
+docker pull bytebase/bytebase:latest
 docker pull quay.io/jupyter/minimal-notebook:latest
-#docker pull jupyter/scipy-notebook:latest 
+#docker pull quay.io/jupyter/scipy-notebook:latest
 docker pull alpine
-docker pull registry:3.1.1
+docker pull metabase/metabase:v0.64.1.x
+docker pull registry:3.1.2
 docker pull joxit/docker-registry-ui:2.6.0
 docker pull andrewjones/schemaspy-postgres
 docker pull requarks/wiki
 docker pull gitea/gitea
-docker pull kong
-docker pull odoo
+docker pull kong:latest
+docker pull odoo:19.0
+docker pull nocodb/nocodb:latest
 docker pull ghcr.io/immich-app/immich-server:v3
 docker pull ghcr.io/immich-app/immich-machine-learning:v3
-docker pull docker.io/valkey/valkey:9
+docker pull docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d
 docker pull ghcr.io/maybe-finance/maybe:stable
 docker pull redis:7-alpine
-docker pull jumpserver/core:v4.10.16-ce
-docker pull jumpserver/koko:v4.10.16-ce
-docker pull jumpserver/lion:v4.10.16-ce
-docker pull jumpserver/chen:v4.10.16-ce
-docker pull jumpserver/web:v4.10.16-ce
-docker pull redis:7.4.6-bookworm
+docker pull docker.io/pgsty/silo:latest
+docker pull registry.cn-beijing.aliyuncs.com/jumpservice/core:v5.0.0-ce
+docker pull registry.cn-beijing.aliyuncs.com/jumpservice/koko:v5.0.0-ce
+docker pull registry.cn-beijing.aliyuncs.com/jumpservice/kael:v5.0.0-ce
+docker pull registry.cn-beijing.aliyuncs.com/jumpservice/chen:v5.0.0-ce
+docker pull registry.cn-beijing.aliyuncs.com/jumpservice/web:v5.0.0-ce
+docker pull redis:7.4.11-bookworm
 ```
 
 
@@ -99,32 +129,34 @@ docker pull redis:7.4.6-bookworm
 
 ```bash
 mkdir -p /tmp/docker
-docker save dpage/pgadmin4                   | gzip -9 -c > /tmp/docker/pgadmin4.tgz
-docker save sosedoff/pgweb                   | gzip -9 -c > /tmp/docker/pgweb.tgz
-docker save pgsty/pg_exporter                | gzip -9 -c > /tmp/docker/pg_exporter.tgz
-docker save postgrest/postgrest              | gzip -9 -c > /tmp/docker/postgrest.tgz
-docker save bytebase/bytebase                | gzip -9 -c > /tmp/docker/bytebase.tgz
+docker save dpage/pgadmin4                    | gzip -9 -c > /tmp/docker/pgadmin4.tgz
+docker save sosedoff/pgweb                    | gzip -9 -c > /tmp/docker/pgweb.tgz
+docker save pgsty/pg_exporter                 | gzip -9 -c > /tmp/docker/pg_exporter.tgz
+docker save postgrest/postgrest               | gzip -9 -c > /tmp/docker/postgrest.tgz
+docker save bytebase/bytebase:latest          | gzip -9 -c > /tmp/docker/bytebase.tgz
 docker save quay.io/jupyter/minimal-notebook:latest | gzip -9 -c > /tmp/docker/jupyter.tgz
 docker save alpine                           | gzip -9 -c > /tmp/docker/alpine.tgz
-docker save registry:3.1.1                   | gzip -9 -c > /tmp/docker/registry.tgz
+docker save metabase/metabase:v0.64.1.x       | gzip -9 -c > /tmp/docker/metabase.tgz
+docker save registry:3.1.2                   | gzip -9 -c > /tmp/docker/registry.tgz
 docker save joxit/docker-registry-ui:2.6.0   | gzip -9 -c > /tmp/docker/registry-ui.tgz
 docker save andrewjones/schemaspy-postgres   | gzip -9 -c > /tmp/docker/schemaspy.tgz
-docker save requarks/wiki                    | gzip -9 -c > /tmp/docker/wiki.tgz
-docker save gitea/gitea                      | gzip -9 -c > /tmp/docker/gitea.tgz
-docker save kong                             | gzip -9 -c > /tmp/docker/kong.tgz
-docker save odoo                             | gzip -9 -c > /tmp/docker/odoo.tgz
-docker save nocodb/nocodb                    | gzip -9 -c > /tmp/docker/nocodb.tgz
+docker save requarks/wiki                     | gzip -9 -c > /tmp/docker/wiki.tgz
+docker save gitea/gitea                       | gzip -9 -c > /tmp/docker/gitea.tgz
+docker save kong:latest                       | gzip -9 -c > /tmp/docker/kong.tgz
+docker save odoo:19.0                         | gzip -9 -c > /tmp/docker/odoo.tgz
+docker save nocodb/nocodb:latest              | gzip -9 -c > /tmp/docker/nocodb.tgz
 docker save ghcr.io/immich-app/immich-server:v3           | gzip -9 -c > /tmp/docker/immich-server.tgz
 docker save ghcr.io/immich-app/immich-machine-learning:v3 | gzip -9 -c > /tmp/docker/immich-machine-learning.tgz
-docker save docker.io/valkey/valkey:9                     | gzip -9 -c > /tmp/docker/valkey.tgz
-docker save ghcr.io/maybe-finance/maybe:stable            | gzip -9 -c > /tmp/docker/maybe.tgz
+docker save docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d                     | gzip -9 -c > /tmp/docker/valkey.tgz
+docker save ghcr.io/maybe-finance/maybe:stable           | gzip -9 -c > /tmp/docker/maybe.tgz
 docker save redis:7-alpine                                | gzip -9 -c > /tmp/docker/redis.tgz
-docker save jumpserver/core:v4.10.16-ce                   | gzip -9 -c > /tmp/docker/jumpserver-core.tgz
-docker save jumpserver/koko:v4.10.16-ce                   | gzip -9 -c > /tmp/docker/jumpserver-koko.tgz
-docker save jumpserver/lion:v4.10.16-ce                   | gzip -9 -c > /tmp/docker/jumpserver-lion.tgz
-docker save jumpserver/chen:v4.10.16-ce                   | gzip -9 -c > /tmp/docker/jumpserver-chen.tgz
-docker save jumpserver/web:v4.10.16-ce                    | gzip -9 -c > /tmp/docker/jumpserver-web.tgz
-docker save redis:7.4.6-bookworm                          | gzip -9 -c > /tmp/docker/jumpserver-redis.tgz
+docker save docker.io/pgsty/silo:latest                   | gzip -9 -c > /tmp/docker/silo.tgz
+docker save registry.cn-beijing.aliyuncs.com/jumpservice/core:v5.0.0-ce | gzip -9 -c > /tmp/docker/jumpserver-core.tgz
+docker save registry.cn-beijing.aliyuncs.com/jumpservice/koko:v5.0.0-ce | gzip -9 -c > /tmp/docker/jumpserver-koko.tgz
+docker save registry.cn-beijing.aliyuncs.com/jumpservice/kael:v5.0.0-ce | gzip -9 -c > /tmp/docker/jumpserver-kael.tgz
+docker save registry.cn-beijing.aliyuncs.com/jumpservice/chen:v5.0.0-ce | gzip -9 -c > /tmp/docker/jumpserver-chen.tgz
+docker save registry.cn-beijing.aliyuncs.com/jumpservice/web:v5.0.0-ce | gzip -9 -c > /tmp/docker/jumpserver-web.tgz
+docker save redis:7.4.11-bookworm                         | gzip -9 -c > /tmp/docker/jumpserver-redis.tgz
 ```
 
 
@@ -142,6 +174,7 @@ cat /tmp/docker/gitea.tgz        | gzip -d -c - | docker load;
 cat /tmp/docker/kong.tgz         | gzip -d -c - | docker load;
 cat /tmp/docker/odoo.tgz         | gzip -d -c - | docker load;
 cat /tmp/docker/alpine.tgz       | gzip -d -c - | docker load;
+cat /tmp/docker/metabase.tgz    | gzip -d -c - | docker load;
 cat /tmp/docker/registry.tgz     | gzip -d -c - | docker load;
 cat /tmp/docker/registry-ui.tgz  | gzip -d -c - | docker load;
 cat /tmp/docker/schemaspy.tgz    | gzip -d -c - | docker load;
@@ -151,9 +184,10 @@ cat /tmp/docker/immich-machine-learning.tgz | gzip -d -c - | docker load;
 cat /tmp/docker/valkey.tgz                  | gzip -d -c - | docker load;
 cat /tmp/docker/maybe.tgz                   | gzip -d -c - | docker load;
 cat /tmp/docker/redis.tgz                   | gzip -d -c - | docker load;
+cat /tmp/docker/silo.tgz                    | gzip -d -c - | docker load;
 cat /tmp/docker/jumpserver-core.tgz         | gzip -d -c - | docker load;
 cat /tmp/docker/jumpserver-koko.tgz         | gzip -d -c - | docker load;
-cat /tmp/docker/jumpserver-lion.tgz         | gzip -d -c - | docker load;
+cat /tmp/docker/jumpserver-kael.tgz         | gzip -d -c - | docker load;
 cat /tmp/docker/jumpserver-chen.tgz         | gzip -d -c - | docker load;
 cat /tmp/docker/jumpserver-web.tgz          | gzip -d -c - | docker load;
 cat /tmp/docker/jumpserver-redis.tgz        | gzip -d -c - | docker load;
@@ -179,7 +213,7 @@ docker pull quay.io/keycloak/keycloak:18.0.0            # 18.0.0   # 562MB
 docker pull tootsuite/mastodon                          # latest   # 1.76GB
 docker pull cptactionhank/atlassian-confluence:7.7.3    # 7.7.3    # 835MB
 docker pull cptactionhank/atlassian-jira-software:8.1.0 # 8.1.0    # 531MB
-docker pull jupyter/scipy-notebook                      # latest   # 3.01GB
+docker pull quay.io/jupyter/scipy-notebook              # latest
 docker pull gitlab/gitlab-ee                            # latest   # 2.69GB
 docker pull grafana/grafana-oss                         # latest   # 286MB
 ```
@@ -187,7 +221,7 @@ docker pull grafana/grafana-oss                         # latest   # 286MB
 **Make Cache for Software**
 
 ```bash
-docker save quay.io/keycloak/keycloak tootsuite/mastodon cptactionhank/atlassian-confluence cptactionhank/atlassian-jira-software jupyter/scipy-notebook gitlab/gitlab-ee grafana/grafana-oss | gzip -c - > docker.tgz
+docker save quay.io/keycloak/keycloak tootsuite/mastodon cptactionhank/atlassian-confluence cptactionhank/atlassian-jira-software quay.io/jupyter/scipy-notebook gitlab/gitlab-ee grafana/grafana-oss | gzip -c - > docker.tgz
 cat /tmp/docker.tgz | gzip -d -c - | docker load  
 ```
 

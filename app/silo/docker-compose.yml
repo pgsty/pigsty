@@ -1,0 +1,24 @@
+# check .env files before running
+services:
+  silo:
+    container_name: silo
+    image: ${SILO_IMAGE:-docker.io/pgsty/silo:latest}
+    restart: always
+    environment:
+      # Silo preserves the MinIO-compatible environment contract.
+      MINIO_ROOT_USER: ${SILO_ROOT_USER:-siloadmin}
+      MINIO_ROOT_PASSWORD: ${SILO_ROOT_PASSWORD:-S3User.Silo}
+      MINIO_BROWSER_REDIRECT_URL: ${SILO_BROWSER_REDIRECT_URL:-}
+    ports:
+      - "${SILO_PORT:-9000}:9000"
+      - "${SILO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - ${SILO_DATA:-/data/silo}:/data
+    command: |
+      server /data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "silo", "healthcheck", "ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s

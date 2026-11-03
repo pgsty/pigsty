@@ -3,7 +3,7 @@
 # File      :   electric.yml
 # Desc      :   pigsty config for running 1-node electric app
 # Ctime     :   2025-03-29
-# Mtime     :   2025-12-12
+# Mtime     :   2026-08-24
 # Docs      :   https://pigsty.io/docs/app/electric
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -17,7 +17,7 @@
 # ./bootstrap                 # prepare local repo & ansible
 # ./configure -c app/electric # use this electric config template
 # vi pigsty.yml               # IMPORTANT: CHANGE CREDENTIALS!!
-# ./deploy.yml                # install pigsty & pgsql & minio
+# ./deploy.yml                # install Pigsty, PostgreSQL, and optional Silo
 # ./docker.yml                # install docker & docker-compose
 # ./app.yml                   # install electric with docker-compose
 
@@ -33,15 +33,18 @@ all:
           electric: # app name, should have corresponding ~/pigsty/app/electric folder
             conf:   # override /opt/electric/.env config file : https://electric-sql.com/docs/api/config
               DATABASE_URL: 'postgresql://electric:DBUser.Electric@10.10.10.10:5432/electric?sslmode=require'
-              ELECTRIC_PORT: 8002
-              ELECTRIC_PROMETHEUS_PORT: 8003
+              ELECTRIC_PORT: 3000
+              ELECTRIC_PUBLISH_PORT: 8002
+              ELECTRIC_PERSISTENT_STATE: FILE
+              ELECTRIC_STORAGE: FAST_FILE
+              ELECTRIC_STORAGE_DIR: /var/lib/electric
               ELECTRIC_INSECURE: true
               #ELECTRIC_SECRET: 1U6ItbhoQb4kGUU5wXBLbxvNf
 
     # etcd cluster for ha postgres
     etcd: { hosts: { 10.10.10.10: { etcd_seq: 1 } }, vars: { etcd_cluster: etcd } }
 
-    # minio cluster, s3 compatible object storage
+    # Silo cluster; MINIO remains the module identifier for compatibility
     #minio: { hosts: { 10.10.10.10: { minio_seq: 1 } }, vars: { minio_cluster: minio } }
 
     # postgres example cluster: pg-meta
@@ -53,7 +56,8 @@ all:
           - {name: electric ,password: DBUser.Electric ,pgbouncer: true , replication: true ,roles: [dbrole_admin] ,comment: electric main user }
         pg_databases: [{ name: electric , owner: electric }]
         pg_hba_rules:
-          - { user: electric , db: replication ,addr: infra ,auth: ssl ,title: 'allow electric intranet/docker ssl access' }
+          - { user: electric ,db: electric    ,addr: 172.16.0.0/12 ,auth: ssl ,title: 'allow electric queries from local docker networks' }
+          - { user: electric ,db: replication ,addr: 172.16.0.0/12 ,auth: ssl ,title: 'allow electric logical replication from local docker networks' }
 
   #==============================================================#
   # Global Parameters
@@ -83,7 +87,7 @@ all:
         domain: elec.pigsty
         endpoint: "${admin_ip}:8002"
         websocket: true               # apply free ssl cert with certbot: make cert
-        certbot: odoo.pigsty          # <----- replace with your own domain name!
+        certbot: elec.pigsty          # <----- replace with your own domain name!
 
     #----------------------------------#
     # Safe Guard

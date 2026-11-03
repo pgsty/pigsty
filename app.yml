@@ -119,10 +119,15 @@
       tags: app_config
       when: app_conf | length > 0
       no_log: true
+      vars:
+        app_env_value: "{{ '' if item.value is none else (item.value | string | lower if item.value is boolean else item.value | string) }}"
       lineinfile:
         path: "{{ app_dest }}/.env"
         regexp: '^{{ item.key | upper }}='
-        line: '{{ item.key | upper }}={{ item.value if item.value is not boolean else item.value | string | lower }}'
+        # apps.*.conf contains literal values, not dotenv expressions. Quote
+        # whitespace/comments/quotes and escape dollars before Compose parses it.
+        line: >-
+          {{ item.key | upper }}={{ app_env_value if (app_env_value | regex_search('^[A-Za-z0-9_./:@,+=?%-]*$')) is not none else (app_env_value | replace('$', '$$') | to_json(ensure_ascii=False)) }}
         create: yes
         mode: '0600'
       loop: "{{ app_conf | dict2items }}"
@@ -133,6 +138,9 @@
     # it may take a while to pull images, or very fast if you already have local image loaded, or proxy, mirror.
     - name: launch app
       tags: app_launch
+      # On a fresh host the destination exists only after the copy task runs;
+      # check mode must not try to chdir into that not-yet-created directory.
+      when: not ansible_check_mode
       shell:
         cmd: make {{ app_args }}
         chdir: "{{ app_dest }}"

@@ -6,6 +6,10 @@ Pigsty-managed PostgreSQL as the durable backend database.
 
 Full documentation: https://pigsty.io/docs/app/jumpserver
 
+This template follows the [official v5.0.0 CE installer](https://github.com/jumpserver/installer/tree/33785347d95677ad87c0cc2f754d4f671b4e086f), checked on 2026-10-08. Core, Celery, KoKo, Chen, Kael, and Web use the same `v5.0.0-ce` release. There is no separate Lion container in 5.x. The default image namespace is the official Aliyun mirror: Docker Hub returned `MANIFEST_UNKNOWN` for four of the five application tags at verification time.
+
+The selected application images are `linux/amd64`; ARM64 is not validated. Allow at least 4 CPUs, 8 GB RAM, and 100 GB disk. JumpServer is GPLv3; this Pigsty template is Apache-2.0.
+
 ## Quick Start
 
 ```bash
@@ -16,13 +20,27 @@ vi pigsty.yml                 # change passwords, secrets, IPs, and domains
 ./app.yml                     # install JumpServer
 ```
 
-After the containers are up, run the JumpServer database migration:
+The one-shot `init` service runs database migrations, then uses a separate
+Django process to initialize a missing terminal host key and validate it. It
+never replaces an existing key. Core starts only after initialization succeeds;
+Celery and the terminal components then wait for Core's health. This avoids
+Core caching empty settings on a fresh database and KoKo failing with
+`Parse Terminal private key failed`. Check readiness with:
 
 ```bash
 cd /opt/jumpserver
-make migrate
 make health
 ```
+
+`jms_init` exiting with code 0 is expected; the other seven containers should
+be healthy. An initialization failure blocks Core instead of silently starting
+a partially configured stack.
+
+`make restart` stops the stack and brings it up through the same initialization
+gate. Do not use an unrestricted `docker compose restart`: that command restarts
+the one-shot initializer and Core in parallel without waiting for initialization
+to succeed. Redis also follows `REDIS_PORT`; its readiness check requires an
+authenticated `PONG`, not just a zero `redis-cli` exit code.
 
 ## Access
 
@@ -66,7 +84,9 @@ configuration warning from the failed request context.
 Key settings:
 
 ```ini
-JUMPSERVER_VERSION=v4.10.16-ce
+IMAGE_PULL_PREFIX=registry.cn-beijing.aliyuncs.com/jumpservice
+JUMPSERVER_VERSION=v5.0.0-ce
+REDIS_VERSION=7.4.11-bookworm
 JUMPSERVER_DATA=/data/jumpserver
 DOMAINS=10.10.10.10:8080,10.10.10.10,jump.pigsty
 
@@ -84,6 +104,10 @@ CORE_HOST=http://192.168.250.4:8080
 
 HTTP_PORT=8080
 SSH_PORT=2222
+KOKO_WEB_PROXY_PORT=5001
+KOKO_PRIVILEGED=true
+WEB_PROXY_ALLOWED_HOSTS=localhost,127.0.0.1
+ANSIBLE_DOCKER_ENABLED=false
 CORE_WORKER=2
 CELERY_WORKER_COUNT=2
 ```
@@ -94,6 +118,15 @@ itself. Use the host intranet IP or a Pigsty L2 VIP.
 The app uses a fixed Docker bridge subnet and static container IPs to avoid
 Docker DNS races during JumpServer component startup. PostgreSQL HBA must allow
 the app bridge subnet, by default `192.168.250.0/24`.
+If you change `DOCKER_SUBNET`, update all component `*_IP` values, including
+`INIT_IP` (the one-shot initializer uses `192.168.250.9` by default).
+
+Generate `CHAT_AI_DELEGATION_SECRET` with `openssl rand -hex 32`; Core and Kael share this key.
+
+`HTTP_PORT` changes the published host port only. The official Web image always
+listens on port `80` inside the container.
+
+`WEB_PROXY_ALLOWED_HOSTS` allows Website asset target hosts. Add the hostnames or IPs of those assets while retaining `localhost,127.0.0.1` for KoKo's session-control API. Set the JumpServer Endpoint's Web proxy port to match `KOKO_WEB_PROXY_PORT`.
 
 ## Operations
 
@@ -106,14 +139,16 @@ make restart   # restart containers
 make status    # show container status
 make log       # follow logs
 make health    # check HTTP/DB/Redis health
-make migrate   # run ./jms upgrade_db
+make migrate   # ordered stop / init / start, same as restart (brief outage)
 make exec      # enter the core container
 ```
 
+Job Center is disabled by default upstream. If you enable it under System Settings → Feature Settings, keep Ansible Docker Isolation disabled for this template. `ANSIBLE_DOCKER_ENABLED=false` uses in-container execution; host Docker isolation requires a separate executor image, host socket access, and upstream host paths. Celery runs without full privileged mode. `KOKO_PRIVILEGED=true` preserves the upstream default for the expanded KoKo component; the SSH path was also tested with it disabled. RDP/VNC privilege requirements were not validated.
+
 ## PostgreSQL
 
-JumpServer 4.x requires PostgreSQL 16 or newer. The app database does not require
-extra PostgreSQL extensions.
+JumpServer 5.x requires PostgreSQL 16 or newer. The app database does not require
+extra PostgreSQL extensions. The external database path was tested with PostgreSQL 18.6 using a non-superuser application role.
 
 Use direct PostgreSQL on `5432` by default. PgBouncer is acceptable only with
 session pooling for the `jumpserver` user; do not use transaction pooling for
@@ -126,5 +161,23 @@ Back up both layers:
 - PostgreSQL: Pigsty pgBackRest / PITR for the `jumpserver` database.
 - Application state: `/opt/jumpserver/.env` and `/data/jumpserver`.
 
-`SECRET_KEY` and `BOOTSTRAP_TOKEN` must be generated once and preserved. Losing
+`SECRET_KEY`, `BOOTSTRAP_TOKEN`, and `CHAT_AI_DELEGATION_SECRET` must be generated once and preserved. Losing
 the original `SECRET_KEY` can make encrypted account secrets unrecoverable.
+
+## Upgrade from 4.10.19 to 5.0.0
+
+The [pinned official upgrade script](https://github.com/jumpserver/installer/blob/33785347d95677ad87c0cc2f754d4f671b4e086f/scripts/7_upgrade.sh) accepts source versions from v3.10.11. The tested Pigsty path is `v4.10.19-ce → v5.0.0-ce`, with no intermediate version.
+
+1. Stop the old stack during maintenance. Back up the database, the entire `/opt/jumpserver` directory, and `/data/jumpserver` together. Prove recovery in a separate database and directory.
+2. Update the full Compose file, `init.sh`, Makefile, and `.env`. Keep the original `SECRET_KEY`, `BOOTSTRAP_TOKEN`, database and Redis passwords. Add a random `CHAT_AI_DELEGATION_SECRET`.
+3. Replace `LION_IP` with `KAEL_IP` and create the Kael data directory. Stop the old Lion container and remove it or disconnect its network if needed to release the fixed IP. Preserve old data and backups.
+4. Use `make pull`, then `make up`. Init migrates first; inspect its log and verify `Exited (0)` plus seven healthy services.
+5. Verify old logins, assets, permissions, decrypted credentials, the host-key fingerprint, real sessions, and historical replay.
+
+If a migration fails, preserve logs, fix the cause, and retry. After 5.x migrations, rollback requires restoring the pre-upgrade database, files, and original keys; changing image tags back is insufficient. To restore, use the full Compose version corresponding to the backup and start through init.
+
+## Validation scope
+
+The M3 tests cover fresh 5.x installation, an actual 4.10.19 backup/restore, and an in-place 4.10.19 → 5.0.0 upgrade, all using isolated external PostgreSQL 18 databases. API/form login, user/asset/account/permission operations, negative authorization, SSH, terminal WebSockets, command auditing, and recording downloads are verified. Browser-based Chen queries against a PostgreSQL 18.6 asset return version `180006` and synthetic value `42`; a real Ansible safe-command job succeeds without privileged containers. Kael authentication, conversation/message persistence, and permission isolation are checked without an LLM provider. Ordinary conversation history resides in the Core database; Terminal AI state resides in Kael data files. Upstream discards empty conversation drafts on restart.
+
+RDP/VNC, native clients, ARM64, enterprise components, and external-model inference are outside this validation. Container health is only the first readiness check.

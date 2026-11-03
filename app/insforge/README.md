@@ -3,7 +3,13 @@
 > [InsForge](https://github.com/InsForge/InsForge) -- Open-source Backend-as-a-Service for AI coding agents
 
 Pigsty allows you to self-host **InsForge** with an existing managed HA PostgreSQL cluster, and launch the stateless services with docker-compose.
-This template targets the prebuilt `v2.2.6` InsForge OSS image with external PostgreSQL managed by Pigsty.
+This template targets the prebuilt `v2.3.3` InsForge OSS image with external PostgreSQL managed by Pigsty.
+Historical validation: InsForge v2.3.1 on 2026-08-27, Ubuntu 24.04 arm64,
+Pigsty PostgreSQL 18.6, and all 67 application migrations through
+`064_compute-services-multi-driver`.
+Runtime checks cover dashboard login, custom-schema REST/RLS, managed-table
+policy permissions, private storage uploads/downloads, Deno functions with
+encrypted secrets, and a real sub-minute HTTP schedule.
 
 InsForge is an agent-oriented BaaS platform built upon PostgreSQL.
 It provides authentication, database APIs, storage, model gateway, edge functions, compute, and site deployment features.
@@ -24,7 +30,13 @@ curl -fsSL https://repo.pigsty.io/get | bash; cd ~/pigsty
 ./bootstrap                 # prepare local repo & ansible
 ./configure -c app/insforge # use the insforge config template
 vi pigsty.yml               # IMPORTANT: CHANGE CREDENTIALS!!
-./deploy.yml                # install pigsty & pgsql
+./infra.yml                 # create the CA and initialize the infra node first
+./node.yml -l pg-meta        # provision the PostgreSQL nodes
+./pgsql.yml -l pg-meta -t pg_install # install PG packages without initializing
+# Install the required utility hook on EACH PostgreSQL node (see below).
+sudo apt-get install -y postgresql-server-dev-18 build-essential curl patch
+sudo env PG_CONFIG=/usr/lib/postgresql/18/bin/pg_config bash app/insforge/pgutils/install.sh
+./deploy.yml                # initialize PG with the utility hook and deploy infra
 ./docker.yml                # install docker & docker-compose
 ./app.yml                   # install insforge with docker-compose
 ```
@@ -56,9 +68,9 @@ Visit `http://<your-ip>:7130` for the InsForge dashboard.
                     └──────────────────────────────────────────────┘
 ```
 
-- **InsForge App** (`ghcr.io/insforge/insforge-oss:v2.2.6`): Main application server with dashboard UI and API (port 7130)
+- **InsForge App** (`ghcr.io/insforge/insforge-oss:v2.3.3`): Main application server with dashboard UI and API (port 7130)
 - **PostgREST** (`postgrest/postgrest:v12.2.12`): Auto-generated REST API from PostgreSQL schema (port 5430)
-- **Deno Runtime** (`ghcr.io/insforge/deno-runtime:latest`): Serverless edge functions runtime (port 7133)
+- **Deno Runtime** (`denoland/deno:alpine-2.0.6`): Pinned runtime executing the bundled InsForge v2.3.3 function host (port 7133)
 - **PostgreSQL**: Managed externally by Pigsty with HA, PITR, monitoring
 
 
@@ -76,9 +88,15 @@ Use the config template at `conf/app/insforge.yml`:
 
 This sets up:
 - InsForge app group with Docker deployment
+- INFRA and ETCD groups for the standalone node and Patroni's coordination store
 - PostgreSQL cluster `pg-meta` with required users, roles, and database
 - Nginx reverse proxy at `isf.pigsty`
 - Required extensions: `pgcrypto`, `http`, `pg_cron`
+- Required shared-preload library: `insforge_pg_utils` (installed before PostgreSQL initialization)
+
+The initial `infra.yml` step is required on a fresh installation: `node.yml`
+expects its CA certificate to exist. For an existing Pigsty deployment, retain
+its existing INFRA/ETCD inventory and do not repeat initialization playbooks.
 
 ### Key Parameters to Customize
 
@@ -98,6 +116,12 @@ Edit `pigsty.yml` before deploying:
 | `ACCESS_ANON_KEY` | empty | Optional public anon key override |
 | `AWS_S3_BUCKET` | empty | Optional S3 bucket for object storage |
 | `DENO_DEPLOY_TOKEN` | empty | Optional Deno Deploy token |
+
+InsForge also supports an opt-in Docker compute provider. Its environment
+variables and a commented socket mount are included in the template, but the
+socket is **not** mounted by default: Docker socket access is root-equivalent on
+the host. Review this boundary before enabling it; the base stack does not need
+that access.
 
 ### Domain Name
 
@@ -130,20 +154,55 @@ InsForge requires these PostgreSQL components:
 - **Baseline**: `insforge.sql` (grants, default privileges, project admin ACLs)
 - **Extensions**: `pgcrypto`, `http`, `pg_cron`
 
-Recent upstream InsForge PostgreSQL images preload `insforge_pg_utils`. Pigsty does not ship that extension package yet, so this template keeps the database on stock Pigsty extensions and relies on the InsForge application migrations for runtime schemas.
+InsForge requires `insforge_pg_utils` for `project_admin` to manage RLS policies
+on managed tables without taking ownership of them, and to manage extensions.
+Application migrations do **not** replace this library. The helper
+`pgutils/install.sh` downloads the official `insforge-db` v15.13.4 source at
+commit `86f0653c2dd3cbe15dab6fcc34d880d8b1b2ea9f`, verifies each source file's
+SHA-256, and applies the PostgreSQL 16-18 API compatibility patch before building
+with PGXS. It exposes no SQL objects, so no `CREATE EXTENSION` is needed.
+
+Copy the complete `pgutils/` directory (script, patch, and checksums) to each
+database node. Run the helper on **every database node**, after installing the matching
+PostgreSQL development package and before the first `./deploy.yml`. On
+Debian/Ubuntu use `postgresql-server-dev-18` and
+`PG_CONFIG=/usr/lib/postgresql/18/bin/pg_config`; on EL/RPM systems use
+`postgresql18-devel`, `gcc`, `make`, `curl`, `patch`, and
+`PG_CONFIG=/usr/pgsql-18/bin/pg_config`. Replace `18` with your selected major.
+The script retains its build directory and refuses to overwrite a different
+installed library. It does not change PostgreSQL configuration or restart a
+running cluster; plan those separately when upgrading an existing deployment.
+
+### Function Dependencies
+
+The Deno container pre-caches both the host and worker modules before starting.
+The SDK is pinned to `@insforge/sdk@1.5.2`, and `functions/deno.lock` fixes the
+dependency graph. The first bootstrap needs access to `deno.land` and
+`registry.npmjs.org`; configure `DENO_HTTP_PROXY` / `DENO_HTTPS_PROXY` if needed.
+Subsequent starts reuse the `deno_cache` volume. An image-only `make save` archive
+does not include this cache: prepare and transfer it separately for offline use.
+The runtime `/health` endpoint is a process check, not a database/function test.
 
 ### Shared Libraries
 
-`pg_cron` requires `shared_preload_libraries`:
+Both `pg_cron` and `insforge_pg_utils` require `shared_preload_libraries`:
 
 ```yaml
-pg_libs: 'pg_cron, pg_stat_statements, auto_explain'
+pg_libs: 'pg_cron, insforge_pg_utils, pg_stat_statements, auto_explain'
 pg_parameters:
   cron.database_name: insforge
+  cron.use_background_workers: true
   app.encryption_key: your-encryption-key-here-must-be-32-char-or-above
   insforge.policy_grant_role: project_admin
+  insforge.extension_grant_role: project_admin
   insforge.internal_schemas: 'ai,auth,compute,deployments,email,functions,memory,payments,realtime,schedules,storage,system'
 ```
+
+The background-worker setting lets scheduled jobs run under Pigsty's normal
+password/peer authentication rules without adding a loopback `trust` rule or
+storing an application password in the PostgreSQL OS user's `.pgpass` file.
+Reserve enough `max_worker_processes` slots for cron, replication, and other
+preloaded extensions.
 
 ### HBA Rules
 
@@ -164,8 +223,8 @@ pg_hba_rules:
 | Service | Port | Description |
 |---------|------|-------------|
 | InsForge Dashboard + API | 7130 | Main application (dashboard & API) |
-| PostgREST | 5430 | REST API auto-generated from schema |
-| Deno Runtime | 7133 | Edge functions runtime |
+| PostgREST | 127.0.0.1:5430 | Internal REST data API; use the main InsForge API remotely |
+| Deno Runtime | 127.0.0.1:7133 | Internal edge functions runtime |
 
 ### Volumes
 
@@ -187,8 +246,8 @@ ROOT_ADMIN_USERNAME=admin@example.com
 ROOT_ADMIN_PASSWORD=pigsty
 
 # Optional image overrides when ghcr.io is slow or blocked
-#INSFORGE_IMAGE=ghcr.io/insforge/insforge-oss:v2.2.6
-#DENO_RUNTIME_IMAGE=ghcr.io/insforge/deno-runtime:latest
+#INSFORGE_IMAGE=ghcr.io/insforge/insforge-oss:v2.3.3
+#DENO_RUNTIME_IMAGE=denoland/deno:alpine-2.0.6
 
 # Database (must match pigsty.yml pg_users)
 POSTGRES_HOST=10.10.10.10
@@ -252,6 +311,49 @@ make restart  # docker compose restart
 make log      # docker compose logs -f
 make info     # docker compose ps
 ```
+
+### Upgrade to v2.3.3
+
+Back up the PostgreSQL database (including `system.migrations`), file storage,
+and deployment overrides before upgrading. Preserve the existing JWT and
+credential-encryption keys. Pull and recreate the InsForge container with the
+new image; its startup migration runner applies
+`065_restrict-http-extension-to-admin` to existing databases. PostgREST and Deno
+retain their coordinated upstream versions.
+
+Migration 065 revokes `PUBLIC` execution of the `http` extension's outbound and
+curl-option functions, while granting `project_admin` execution. Legitimate anon
+keys and normal user JWTs previously reached these functions through the main
+InsForge RPC API when the default `PUBLIC` grant remained. The new-install
+`files/insforge.sql` baseline applies the same restriction immediately.
+
+Let the v2.3.3 startup runner apply and record migration 065. Do not replay the
+full `files/insforge.sql` baseline on an existing database.
+
+Verify the migration ledger and actual permissions after startup:
+
+```sql
+SELECT name, run_on FROM system.migrations
+WHERE name = '065_restrict-http-extension-to-admin';
+
+SELECT p.oid::regprocedure AS function,
+       has_function_privilege('anon', p.oid, 'EXECUTE') AS anon_exec,
+       has_function_privilege('authenticated', p.oid, 'EXECUTE') AS user_exec,
+       has_function_privilege('project_admin', p.oid, 'EXECUTE') AS admin_exec
+FROM pg_proc p
+JOIN pg_depend d ON d.classid = 'pg_proc'::regclass AND d.objid = p.oid
+JOIN pg_extension e ON e.oid = d.refobjid AND d.deptype = 'e'
+WHERE e.extname = 'http'
+  AND p.proname IN ('http', 'http_get', 'http_post', 'http_put', 'http_patch',
+                   'http_delete', 'http_head', 'http_set_curlopt',
+                   'http_reset_curlopt', 'http_list_curlopt')
+ORDER BY 1;
+```
+
+The first query must return 065; each function must report `false`, `false`,
+`true`. Explicit grants or role memberships from a customized deployment can
+still grant access after revoking `PUBLIC`; review those if either non-admin
+column is true. Source: [v2.3.3 migration 065](https://github.com/InsForge/InsForge/blob/636d1e207d2bca246f7b8ccd0e0b6572528809fa/backend/src/infra/database/migrations/065_restrict-http-extension-to-admin.sql).
 
 ### Offline Deployment
 

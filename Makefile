@@ -478,7 +478,8 @@ pull:
 ss:
 	rsync -avz --exclude=temp --exclude=dist --exclude=vagrant --exclude=terraform --delete ./ ai:/data/pigsty/
 gsync:
-	rsync -avz --delete .git/ sv:/data/pgsty/pigsty/.git/
+	rsync -avz --delete .git/ m1:~/pigsty/.git/
+	rsync -avz --delete .git/ m3:/data/pgsty/pigsty/.git/
 gpull:
 	rsync -avz --delete sv:/data/pgsty/pigsty/.git/ .git/
 grestore:
@@ -588,7 +589,7 @@ vd: # deb building environment
 va: # all building environment
 	vagrant/config all
 boot-pkg:
-	bin/boot-pkg $(VERSION)
+	bin/boot-pkg $(VERSION) $(ARCH)
 
 #------------------------------#
 # meta, single node, the devbox

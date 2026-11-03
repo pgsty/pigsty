@@ -1,0 +1,7 @@
+{% set servers = hostvars|json_query(servers_query) %}
+{% macro escape_pgpass(value) -%}
+{{ value|string|replace('\\', '\\\\')|replace(':', '\\:') }}
+{%- endmacro %}
+{% for server in servers %}
+{{ escape_pgpass(server.pg_host) }}:{{ server.pg_port|default(5432, true) }}:*:{{ escape_pgpass(server.pg_admin_username|default(pg_admin_username, true)) }}:{{ escape_pgpass(server.pg_admin_password|default(pg_admin_password, true)) }}
+{% endfor %}
