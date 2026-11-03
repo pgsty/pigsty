@@ -11,7 +11,8 @@
 # and pushes them to Docker Hub under pgsty/pigsty.
 #
 # Trigger:
-#   - Manual trigger via workflow_dispatch only
+#   - Pull requests validate the image on amd64 and arm64 without publishing
+#   - Manual workflow_dispatch publishes a release tag
 #
 # Required secrets:
 #   - DOCKERHUB_USERNAME: Docker Hub username
@@ -25,9 +26,14 @@
 
 name: Publish Docker Image
 
-run-name: Publish Docker Image ${{ inputs.version }}
+run-name: "Docker Image ${{ inputs.version || format('PR #{0}', github.event.pull_request.number) }}"
 
 on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'docker/**'
+      - '.github/workflows/docker.yml'
   workflow_dispatch:
     inputs:
       version:
@@ -50,12 +56,13 @@ env:
 permissions: read-all
 
 concurrency:
-  group: docker-publish-${{ inputs.version }}
+  group: docker-${{ github.event_name }}-${{ github.event.pull_request.number || inputs.version }}
   cancel-in-progress: false
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     permissions:
       contents: read
 
@@ -65,7 +72,7 @@ jobs:
       #--------------------------------------------------------------#
       - name: Validate version tag
         env:
-          VERSION: ${{ inputs.version }}
+          VERSION: ${{ inputs.version || 'v4.5.0' }}
         run: |
           if [[ ! "${VERSION}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$ ]]; then
             echo "Invalid version tag: ${VERSION}" >&2
@@ -77,19 +84,21 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
         with:
           fetch-depth: 0
-          ref: ${{ inputs.version }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.version || github.sha }}
 
       - name: Extract version from input
         id: version
         env:
-          VERSION: ${{ inputs.version }}
-          PUSH_LATEST: ${{ inputs.push_latest }}
+          VERSION: ${{ inputs.version || 'v4.5.0' }}
+          PUSH_LATEST: ${{ inputs.push_latest || 'false' }}
         run: |
           VERSION_NUM="${VERSION#v}"
 
-          echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
-          echo "version_num=${VERSION_NUM}" >> "${GITHUB_OUTPUT}"
-          echo "push_latest=${PUSH_LATEST}" >> "${GITHUB_OUTPUT}"
+          {
+            echo "version=${VERSION}"
+            echo "version_num=${VERSION_NUM}"
+            echo "push_latest=${PUSH_LATEST}"
+          } >> "${GITHUB_OUTPUT}"
 
           echo "Version: ${VERSION}"
           echo "Version Number: ${VERSION_NUM}"
@@ -105,6 +114,7 @@ jobs:
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Login to Docker Hub
+        if: github.event_name == 'workflow_dispatch'
         uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
@@ -135,13 +145,13 @@ jobs:
       #--------------------------------------------------------------#
       # Build and Push
       #--------------------------------------------------------------#
-      - name: Build and push Docker image
+      - name: Build Docker image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: ./docker
           file: ./docker/Dockerfile
           platforms: linux/amd64,linux/arm64
-          push: true
+          push: ${{ github.event_name == 'workflow_dispatch' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
@@ -154,23 +164,27 @@ jobs:
       # Verification
       #--------------------------------------------------------------#
       - name: Inspect image
+        if: github.event_name == 'workflow_dispatch'
         run: |
           echo "Inspecting pushed images..."
           docker buildx imagetools inspect ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
 
       - name: Summary
+        if: github.event_name == 'workflow_dispatch'
         run: |
-          echo "## Docker Image Published" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Images:**" >> $GITHUB_STEP_SUMMARY
-          echo "- \`${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}\`" >> $GITHUB_STEP_SUMMARY
-          if [ "${{ steps.version.outputs.push_latest }}" = "true" ]; then
-            echo "- \`${{ env.IMAGE_NAME }}:latest\`" >> $GITHUB_STEP_SUMMARY
-          fi
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Platforms:** linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Pull command:**" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`bash" >> $GITHUB_STEP_SUMMARY
-          echo "docker pull ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}" >> $GITHUB_STEP_SUMMARY
-          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+          {
+            echo "## Docker Image Published"
+            echo ""
+            echo "**Images:**"
+            echo "- \`${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}\`"
+            if [ "${{ steps.version.outputs.push_latest }}" = "true" ]; then
+              echo "- \`${{ env.IMAGE_NAME }}:latest\`"
+            fi
+            echo ""
+            echo "**Platforms:** linux/amd64, linux/arm64"
+            echo ""
+            echo "**Pull command:**"
+            echo "\`\`\`bash"
+            echo "docker pull ${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}"
+            echo "\`\`\`"
+          } >> "$GITHUB_STEP_SUMMARY"
