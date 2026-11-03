@@ -73,5 +73,21 @@ Add `gitea` entry to `infra_portal` to expose gitea service with nginx.
 
 ```yaml
 infra_portal:                     # domain names and upstream servers
-  gitea : { domain: git.pigsty  ,endpoint: "127.0.0.1:8889"   }
+  gitea : { domain: git.pigsty  ,endpoint: "127.0.0.1:8889" ,websocket: true }
 ```
+
+## Gitea 28 upgrades
+
+The untagged image follows the stable Gitea channel. Gitea 28 moves notifications
+to `/-/ws`, so keep `websocket: true` on the portal and verify a WebSocket
+connection after updating the proxy configuration.
+
+Before upgrading an existing deployment, back up its PostgreSQL database and
+data directory together and record the running image digest. Gitea 28 defaults
+to removing completed Actions runs, logs, and artifacts after 400 days; review
+the Actions retention settings if those records need longer retention. Check
+outbound Git mirrors and webhooks against the new egress rules and proxy
+settings. Restore the matching database and data backups when rolling back.
+
+See the [Gitea 28.0 release notes](https://blog.gitea.com/release-of-28.0.0/)
+and [upgrade guide](https://docs.gitea.com/installation/upgrade-from-gitea/).

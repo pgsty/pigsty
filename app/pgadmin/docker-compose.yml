@@ -6,8 +6,16 @@ services:
     restart: always
     env_file:
       - .env
+    environment:
+      PGADMIN_SERVER_JSON_FILE: ${PGADMIN_SERVER_JSON_FILE:-/pgadmin4/servers.json}
+      PGPASS_FILE: ${PGPASS_FILE:-/pgadmin4/pgpass}
+      PGADMIN_REPLACE_SERVERS_ON_STARTUP: ${PGADMIN_REPLACE_SERVERS_ON_STARTUP:-False}
     volumes:
-      - /infra/pgadmin/servers.json:/pgadmin4/servers.json
-      - /infra/pgadmin/pgpass:/pgadmin4/pgpass:ro
+      - pgadmin-data:/var/lib/pgadmin
+      - /infra/pgadmin/servers.json:${PGADMIN_SERVER_JSON_FILE:-/pgadmin4/servers.json}:ro
+      - /infra/pgadmin/pgpass:${PGPASS_FILE:-/pgadmin4/pgpass}:ro
     ports:
       - "${PGADMIN_PORT}:80"
+
+volumes:
+  pgadmin-data:

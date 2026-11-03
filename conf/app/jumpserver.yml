@@ -3,14 +3,14 @@
 # File      :   jumpserver.yml
 # Desc      :   pigsty config for running 1-node jumpserver app
 # Ctime     :   2026-07-09
-# Mtime     :   2026-07-09
+# Mtime     :   2026-10-09
 # Docs      :   https://pigsty.io/docs/app/jumpserver
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 # JumpServer: open-source PAM / bastion host
 # GitHub: https://github.com/jumpserver/jumpserver
-# Last Verified JumpServer Version: v4.10.16-ce on 2026-07-09
+# Last Verified JumpServer Version: v5.0.0-ce on 2026-10-09
 #
 # how to use this template:
 #
@@ -46,8 +46,8 @@ all:
               - { path: /data/jumpserver/certs           ,state: directory ,mode: 0755 }
               - { path: /data/jumpserver/koko            ,state: directory ,mode: 0755 }
               - { path: /data/jumpserver/koko/data       ,state: directory ,mode: 0755 }
-              - { path: /data/jumpserver/lion            ,state: directory ,mode: 0755 }
-              - { path: /data/jumpserver/lion/data       ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/kael            ,state: directory ,mode: 0755 }
+              - { path: /data/jumpserver/kael/data       ,state: directory ,mode: 0755 }
               - { path: /data/jumpserver/chen            ,state: directory ,mode: 0755 }
               - { path: /data/jumpserver/chen/data       ,state: directory ,mode: 0755 }
               - { path: /data/jumpserver/nginx           ,state: directory ,mode: 0755 }
@@ -61,9 +61,9 @@ all:
               DOMAINS: '10.10.10.10:8080,10.10.10.10,jump.pigsty'
 
               # image / version
-              REGISTRY: docker.io
-              JUMPSERVER_VERSION: v4.10.16-ce
-              REDIS_VERSION: 7.4.6-bookworm
+              IMAGE_PULL_PREFIX: registry.cn-beijing.aliyuncs.com/jumpservice
+              JUMPSERVER_VERSION: v5.0.0-ce
+              REDIS_VERSION: 7.4.11-bookworm
 
               # fixed Docker bridge; containers reach host PG through host IP/VIP
               JUMPSERVER_DATA: /data/jumpserver
@@ -72,14 +72,16 @@ all:
               REDIS_IP: 192.168.250.2
               CELERY_IP: 192.168.250.3
               CORE_IP: 192.168.250.4
-              LION_IP: 192.168.250.5
+              KAEL_IP: 192.168.250.5
               CHEN_IP: 192.168.250.6
               KOKO_IP: 192.168.250.7
               WEB_IP: 192.168.250.8
+              INIT_IP: 192.168.250.9
 
               # IMPORTANT: generate once and never change after production data exists
               SECRET_KEY: ChangeMeSecretKeyMustBeKeptForever0123456789ABCDEF
               BOOTSTRAP_TOKEN: ChangeMeBootstrapToken2026
+              CHAT_AI_DELEGATION_SECRET: ChangeMeKaelDelegationSecretGenerateWithOpensslRandHex32
 
               # database credentials; DB_PASSWORD must not contain single or double quotes
               DB_ENGINE: postgresql
@@ -98,6 +100,9 @@ all:
               # access and component settings
               HTTP_PORT: 8080
               SSH_PORT: 2222
+              KOKO_WEB_PROXY_PORT: 5001
+              KOKO_PRIVILEGED: true
+              WEB_PROXY_ALLOWED_HOSTS: localhost,127.0.0.1
               CLIENT_MAX_BODY_SIZE: 4096m
               CORE_HOST: http://192.168.250.4:8080
               PERIOD_TASK_ENABLED: true
@@ -108,9 +113,10 @@ all:
               USE_XPACK: 0
               LOG_LEVEL: ERROR
               TZ: Asia/Shanghai
-              CURRENT_VERSION: v4.10.16-ce
+              CURRENT_VERSION: v5.0.0-ce
               CORE_WORKER: 2
               CELERY_WORKER_COUNT: 2
+              ANSIBLE_DOCKER_ENABLED: false  # use in-container Ansible without host Docker control
 
     # the jumpserver database: single-node starter
     pg-jumpserver:
@@ -138,7 +144,7 @@ all:
     region: default                   # upstream mirror region: default|china|europe
     node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
     pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
-    pg_version: 18                    # JumpServer 4.x requires PostgreSQL >= 16
+    pg_version: 18                    # JumpServer 5.x requires PostgreSQL >= 16
     pg_packages: [ pgsql-main, pgsql-common ]
 
     docker_enabled: true              # enable docker on app group

@@ -1,0 +1,81 @@
+#!/usr/bin/env docker compose
+---
+#==============================================================#
+# File      :   docker-compose.yml
+# Desc      :   Discourse with embedded Redis and Pigsty PostgreSQL
+# Ctime     :   2026-10-14
+# Mtime     :   2026-10-14
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# Build with `make build`: this is a Launcher-built application image,
+# not discourse/base or the experimental discourse/discourse image.
+
+name: discourse
+services:
+  discourse:
+    container_name: discourse
+    image: ${DISCOURSE_IMAGE:-local_discourse/discourse:latest}
+    pull_policy: never
+    restart: unless-stopped
+    # Match the classic Launcher's build network and Pigsty's Docker HBA.
+    network_mode: bridge
+    entrypoint: ["/sbin/boot"]
+    command: []
+    shm_size: 512m
+    stop_grace_period: 10m
+    labels:
+      io.pigsty.discourse.data: ${DISCOURSE_DATA:-/data/app/discourse}
+      io.pigsty.discourse.docker-ref: ${DISCOURSE_DOCKER_REF:-945d491ee62ac0d6e5d9076c173073c3f795d978}
+      io.pigsty.discourse.version: ${DISCOURSE_VERSION:-tests-passed}
+      io.pigsty.discourse.redis-memory: ${REDIS_MAX_MEMORY:-512mb}
+    environment:
+      RAILS_ENV: production
+      LC_ALL: en_US.UTF-8
+      LANG: en_US.UTF-8
+      LANGUAGE: en_US.UTF-8
+      DISCOURSE_HOSTNAME: ${DISCOURSE_HOSTNAME:-ask.pigsty}
+      DISCOURSE_FORCE_HTTPS: ${DISCOURSE_FORCE_HTTPS:-false}
+      DISCOURSE_DEFAULT_LOCALE: ${DISCOURSE_DEFAULT_LOCALE:-en}
+      DISCOURSE_DEVELOPER_EMAILS: ${DISCOURSE_DEVELOPER_EMAILS:-admin@example.com}
+      DISCOURSE_DB_SOCKET: ""
+      DISCOURSE_DB_HOST: ${PG_HOST:-10.10.10.10}
+      DISCOURSE_DB_PORT: ${PG_PORT:-5432}
+      DISCOURSE_DB_BACKUP_HOST: ${PG_HOST:-10.10.10.10}
+      DISCOURSE_DB_BACKUP_PORT: ${PG_PORT:-5432}
+      DISCOURSE_DB_NAME: ${PG_DBNAME:-discourse}
+      DISCOURSE_DB_USERNAME: ${PG_USERNAME:-discourse}
+      DISCOURSE_DB_PASSWORD: ${PG_PASSWORD:?set PG_PASSWORD}
+      DISCOURSE_DB_POOL: ${DISCOURSE_DB_POOL:-8}
+      DISCOURSE_REDIS_HOST: 127.0.0.1
+      DISCOURSE_REDIS_PORT: "6379"
+      DISCOURSE_REDIS_DB: "0"
+      UNICORN_WORKERS: ${UNICORN_WORKERS:-2}
+      UNICORN_SIDEKIQS: ${UNICORN_SIDEKIQS:-1}
+      DISCOURSE_SIDEKIQ_WORKERS: ${DISCOURSE_SIDEKIQ_WORKERS:-5}
+      DISCOURSE_SMTP_ADDRESS: ${DISCOURSE_SMTP_ADDRESS:-smtp.example.com}
+      DISCOURSE_SMTP_PORT: ${DISCOURSE_SMTP_PORT:-587}
+      DISCOURSE_SMTP_USER_NAME: ${DISCOURSE_SMTP_USER_NAME:-}
+      DISCOURSE_SMTP_PASSWORD: ${DISCOURSE_SMTP_PASSWORD:-}
+      DISCOURSE_SMTP_ENABLE_START_TLS: ${DISCOURSE_SMTP_ENABLE_START_TLS:-true}
+      DISCOURSE_SMTP_FORCE_TLS: ${DISCOURSE_SMTP_FORCE_TLS:-false}
+      DISCOURSE_SMTP_OPENSSL_VERIFY_MODE: ${DISCOURSE_SMTP_OPENSSL_VERIFY_MODE:-peer}
+      DISCOURSE_NOTIFICATION_EMAIL: ${DISCOURSE_NOTIFICATION_EMAIL:-noreply@example.com}
+      DISCOURSE_SKIP_EMAIL_SETUP: ${DISCOURSE_SKIP_EMAIL_SETUP:-0}
+      DISCOURSE_CDN_URL: ${DISCOURSE_CDN_URL:-}
+    volumes:
+      - ${DISCOURSE_DATA:-/data/app/discourse}/shared:/shared
+      - ${DISCOURSE_DATA:-/data/app/discourse}/shared/log/var-log:/var/log
+    # Pigsty Nginx uses /shared/nginx.http.sock. No published Web/Redis ports.
+    healthcheck:
+      test: ["CMD-SHELL", 'curl -fsS --unix-socket /shared/nginx.http.sock -H "Host: $$DISCOURSE_HOSTNAME" http://localhost/srv/status >/dev/null']
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+...

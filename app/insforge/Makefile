@@ -1,8 +1,4 @@
-INSFORGE_VERSION ?= v2.2.6
-POSTGREST_VERSION ?= v12.2.12
-DENO_RUNTIME_VERSION ?= latest
-INSFORGE_IMAGE ?= ghcr.io/insforge/insforge-oss:$(INSFORGE_VERSION)
-DENO_RUNTIME_IMAGE ?= ghcr.io/insforge/deno-runtime:$(DENO_RUNTIME_VERSION)
+SHELL := /bin/bash -e -o pipefail
 
 default: up view
 
@@ -11,7 +7,7 @@ up:
 start: up
 
 view:
-	@echo "visit http://isf.pigsty (or http://10.10.10.10:7130) for InsForge dashboard"
+	@docker compose config --format json | jq -r '.services.insforge.ports[] | select(.target == 7130) | "InsForge dashboard published on port \(.published)"'
 
 log:
 	docker compose logs -f
@@ -37,9 +33,16 @@ pull:
 
 save:
 	mkdir -p /tmp/docker/insforge
-	docker save postgrest/postgrest:$(POSTGREST_VERSION)                    | gzip -c -9 > /tmp/docker/insforge/postgrest.tgz
-	docker save $(INSFORGE_IMAGE)                                           | gzip -c -9 > /tmp/docker/insforge/insforge.tgz
-	docker save $(DENO_RUNTIME_IMAGE)                                       | gzip -c -9 > /tmp/docker/insforge/deno.tgz
+	@config="$$(docker compose config --format json)"; \
+	for service in postgrest insforge deno; do \
+		image="$$(printf '%s' "$$config" | jq -er --arg service "$$service" '.services[$$service].image')"; \
+		archive_path="/tmp/docker/insforge/$$service.tgz"; \
+		archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+		trap 'rm -f -- "$$archive_tmp"' EXIT; \
+		docker save "$$image" | gzip -c -9 > "$$archive_tmp"; \
+		mv -f -- "$$archive_tmp" "$$archive_path"; \
+		trap - EXIT; \
+	done
 
 tarball: save
 	tar -cvf /tmp/insforge.tgz -C /tmp/docker insforge

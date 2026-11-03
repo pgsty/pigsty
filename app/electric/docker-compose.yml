@@ -6,9 +6,19 @@ services:
   electric:
     container_name: electric
     image: electricsql/electric
+    restart: unless-stopped
     env_file:
       - .env
+    environment:
+      # Keep the listener and storage path aligned with Compose interpolation,
+      # including overrides supplied through the shell or --env-file.
+      ELECTRIC_PORT: ${ELECTRIC_PORT:-3000}
+      ELECTRIC_STORAGE_DIR: ${ELECTRIC_STORAGE_DIR:-/var/lib/electric}
     ports:
-      - "${ELECTRIC_PORT}:${ELECTRIC_PORT}"
-      - "${ELECTRIC_PROMETHEUS_PORT}:${ELECTRIC_PROMETHEUS_PORT}"
+      - "${ELECTRIC_PUBLISH_PORT:-8002}:${ELECTRIC_PORT:-3000}"
+    volumes:
+      - electric-data:${ELECTRIC_STORAGE_DIR:-/var/lib/electric}
+
+volumes:
+  electric-data:
 ...

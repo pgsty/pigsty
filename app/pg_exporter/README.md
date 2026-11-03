@@ -6,6 +6,15 @@ Which expose meta sample database on (10.10.10.10) on local port 9632.
 
 Change `.env` file to adapt to your own postgres targets
 
+`PG_EXPORTER_PORT` selects the published host port. The container listener
+`PG_EXPORTER_LISTEN_ADDRESS` must use the `:PORT` form (for example, `:9730`),
+without an IP or hostname; its port is also used as the Compose target.
+The same value is passed explicitly to the binary's `--web.listen-address`
+flag so its exporter-toolkit listener follows the selected port.
+`make view` resolves Compose configuration with Python 3, including shell or
+`COMPOSE_ENV_FILES` overrides, and requests the actual published port and
+`PG_EXPORTER_TELEMETRY_PATH` rather than interpreting `.env` as Make syntax.
+
 ```bash
 cd ~/pigsty/app/pg_exporter ; docker compose up -d
 ```

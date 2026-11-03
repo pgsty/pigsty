@@ -31,12 +31,14 @@
 # PLAY 1: Create local directory for cache tarball   [cache_dir]
 #--------------------------------------------------------------#
 - name: CREATE LOCAL DIST DIR
-  hosts: localhost
+  hosts: all
   become: false
   gather_facts: no
   tags: cache_dir
   tasks:
     - name: create local dist directory
+      run_once: true
+      delegate_to: localhost
       file:
         path: "{{ cache_pkg_dir | default('dist/${version}') | replace('${version}', version | default('v4.5.0')) }}"
         state: directory
@@ -71,19 +73,23 @@
 # PLAY 3: Calculate checksums and display info      [cache_info]
 #--------------------------------------------------------------#
 - name: SHOW CACHE TARBALL INFO
-  hosts: localhost
+  hosts: all
   become: false
   gather_facts: no
   tags: cache_info
   tasks:
 
     - name: ensure cache directory exists
+      run_once: true
+      delegate_to: localhost
       file:
         path: "{{ cache_pkg_dir | default('dist/${version}') | replace('${version}', version | default('v4.5.0')) }}"
         state: directory
         mode: '0755'
 
     - name: calculate cache tarball checksums
+      run_once: true
+      delegate_to: localhost
       shell: |
         cd "{{ cache_pkg_dir|default('dist/${version}') | replace('${version}', version|default('v4.5.0')) }}"
         md5sum *.tgz > checksums
@@ -92,8 +98,10 @@
       register: cache_result
 
     - name: display cache information
+      run_once: true
+      delegate_to: localhost
       debug:
-        msg: "{{ cache_result.stdout_lines }}"
+        msg: "{{ cache_result.stdout_lines | default([]) }}"
 
 
 #==============================================================#

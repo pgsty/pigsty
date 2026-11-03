@@ -97,11 +97,16 @@ You can run docker software/app with the following templates:
 * [app/odoo.yml](app/odoo.yml) : launch the odoo ERP system
 * [app/dify.yml](app/dify.yml) : launch the dify AI workflow system
 * [app/electric.yml](app/electric.yml) : launch the electric sync engine app
+* [app/hindsight.yml](app/hindsight.yml) : launch the Hindsight agent memory app
+* [app/immich.yml](app/immich.yml) : launch the Immich photo management app
+* [app/insforge.yml](app/insforge.yml) : launch the InsForge backend platform
 * [app/mattermost.yml](app/mattermost.yml) : launch the mattermost team messaging app
+* [app/discourse.yml](app/discourse.yml) : launch Discourse with Pigsty PostgreSQL and embedded Redis
 * [app/teable.yml](app/teable.yml) : launch the teable no-code database app
 * [app/maybe.yml](app/maybe.yml) : launch the maybe personal finance app
 * [app/jumpserver.yml](app/jumpserver.yml) : launch the JumpServer PAM / bastion host app
 * [app/registry.yml](app/registry.yml) : launch the docker registry mirror
+* [app/silo.yml](app/silo.yml) : launch a standalone Silo object storage APP
 
 ----------
 

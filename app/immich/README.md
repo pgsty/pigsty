@@ -18,6 +18,10 @@ This stack runs:
 This stack does not run Immich's upstream PostgreSQL container. PostgreSQL is
 provided by Pigsty through `DB_URL`.
 
+`REDIS_PORT` controls the private Valkey listener, both application environments,
+and the Redis health check together. Shell and `--env-file` overrides are
+resolved explicitly; no Redis port is published on the host.
+
 ## Usage
 
 Use the Pigsty config template:
@@ -59,10 +63,17 @@ database extensions before Immich starts:
 ```sql
 CREATE EXTENSION vchord CASCADE;
 CREATE EXTENSION earthdistance CASCADE;
+CREATE EXTENSION pg_trgm WITH SCHEMA public;
 ```
 
 `vchord` requires `vchord.so` in `shared_preload_libraries`, which is configured
 through `pg_libs`.
+
+The `pg_trgm` extension must be in `public`: Immich's migrations reference
+`gin_trgm_ops` without a schema qualifier. When reusing an existing database
+template with extensions in a separate schema (for example Supabase), inspect
+and relocate that extension in the Immich database before starting the app.
+Do not change other application databases or the cluster-wide search path.
 
 ## VectorChord Upgrades
 
@@ -105,11 +116,16 @@ Images are pulled from GHCR and Docker Hub:
 ```bash
 docker pull ghcr.io/immich-app/immich-server:v3
 docker pull ghcr.io/immich-app/immich-machine-learning:v3
-docker pull docker.io/valkey/valkey:9
+docker pull docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5d4d703939b9929954112889708e1d
 ```
 
-If image pulls are slow or blocked, configure Pigsty's `proxy_env` or
-`docker_registry_mirrors` in `pigsty.yml`.
+The Valkey digest follows the [Immich v3.3.0 release Compose](https://github.com/immich-app/immich/releases/download/v3.3.0/docker-compose.yml).
+`make pull` and `make save` resolve the same pinned reference from Compose.
+
+If image pulls are slow or blocked, configure the Docker daemon proxy; a shell
+`proxy_env` alone does not configure Docker image pulls. Docker Hub mirrors do
+not redirect GHCR pulls. Use `docker compose config --images` to check the
+actual image set before pulling or saving it.
 
 ## Operations
 
@@ -128,7 +144,7 @@ To pin a specific Immich release, set `IMMICH_VERSION` in `pigsty.yml`, for
 example:
 
 ```yaml
-IMMICH_VERSION: v3.0.1
+IMMICH_VERSION: v3.3.0  # optional exact pin; the template defaults to v3
 ```
 
 Before major upgrades, check the official Immich release notes for PostgreSQL,

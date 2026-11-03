@@ -4,17 +4,48 @@
 # File      :   docker-compose.yml
 # Desc      :   JumpServer docker compose with Pigsty PostgreSQL
 # Ctime     :   2026-07-09
-# Mtime     :   2026-07-09
+# Mtime     :   2026-10-08
 # Path      :   app/jumpserver/docker-compose.yml
 # Docs      :   https://pigsty.io/docs/app/jumpserver
-# Source    :   https://github.com/jumpserver/installer/releases/tag/v4.10.16
+# Source    :   https://github.com/jumpserver/installer/tree/33785347d95677ad87c0cc2f754d4f671b4e086f
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
 name: jumpserver
 
+x-redis-client-env: &redis-client-env
+  # Match the Redis service when Compose variables are overridden in the shell.
+  REDIS_PORT: ${REDIS_PORT:-6379}
+  REDIS_PASSWORD: ${REDIS_PASSWORD}
+
 services:
+
+  # Apply migrations and initialize the terminal host key before Core caches
+  # Django settings. Existing terminal keys are validated, never replaced.
+  init:
+    container_name: jms_init
+    hostname: jms_init
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/core:${JUMPSERVER_VERSION:-v5.0.0-ce}
+    restart: "no"
+    entrypoint: ["/bin/bash", "/opt/pigsty-init.sh"]
+    command: []
+    env_file:
+      - .env
+    environment:
+      <<: *redis-client-env
+    extra_hosts:
+      - "redis:${REDIS_IP:-192.168.250.2}"
+    volumes:
+      - ./init.sh:/opt/pigsty-init.sh:ro
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/core/data:/opt/jumpserver/data
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/certs:/opt/jumpserver/data/certs
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      net:
+        ipv4_address: ${INIT_IP:-192.168.250.9}
 
   #--------------------------------------------------------------#
   # Core: Django API/web backend
@@ -22,7 +53,7 @@ services:
   core:
     container_name: jms_core
     hostname: jms_core
-    image: ${REGISTRY:-docker.io}/jumpserver/core:${JUMPSERVER_VERSION:-v4.10.16-ce}
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/core:${JUMPSERVER_VERSION:-v5.0.0-ce}
     restart: unless-stopped
     command: start web
     ulimits:
@@ -30,6 +61,7 @@ services:
     env_file:
       - .env
     environment:
+      <<: *redis-client-env
       TIME_ZONE: ${TZ:-Asia/Shanghai}
     extra_hosts:
       - "redis:${REDIS_IP:-192.168.250.2}"
@@ -39,6 +71,8 @@ services:
     depends_on:
       redis:
         condition: service_healthy
+      init:
+        condition: service_completed_successfully
     healthcheck:
       test: "check http://localhost:8080/api/health/"
       interval: 10s
@@ -55,15 +89,15 @@ services:
   celery:
     container_name: jms_celery
     hostname: jms_celery
-    image: ${REGISTRY:-docker.io}/jumpserver/core:${JUMPSERVER_VERSION:-v4.10.16-ce}
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/core:${JUMPSERVER_VERSION:-v5.0.0-ce}
     restart: unless-stopped
-    privileged: true
     command: start task
     ulimits:
       core: 0
     env_file:
       - .env
     environment:
+      <<: *redis-client-env
       LC_ALL: C.UTF-8
     extra_hosts:
       - "redis:${REDIS_IP:-192.168.250.2}"
@@ -72,6 +106,9 @@ services:
       - ${JUMPSERVER_DATA:-/data/jumpserver}/certs:/opt/jumpserver/data/certs
     depends_on:
       redis:
+        condition: service_healthy
+      # Core and init complete migrations before task workers access the DB.
+      core:
         condition: service_healthy
     healthcheck:
       test: "bash /opt/jumpserver/utils/check_celery.sh"
@@ -89,19 +126,23 @@ services:
   koko:
     container_name: jms_koko
     hostname: jms_koko
-    image: ${REGISTRY:-docker.io}/jumpserver/koko:${JUMPSERVER_VERSION:-v4.10.16-ce}
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/koko:${JUMPSERVER_VERSION:-v5.0.0-ce}
     restart: unless-stopped
-    privileged: true
+    privileged: ${KOKO_PRIVILEGED:-true}
     ulimits:
       core: 0
     env_file:
       - .env
     environment:
-      SSHD_PORT: ${SSH_PORT:-2222}
+      <<: *redis-client-env
+      WEB_PROXY_BIND_HOST: 0.0.0.0
+      WEB_PROXY_PORT: 5001
+      WEB_PROXY_ALLOWED_HOSTS: ${WEB_PROXY_ALLOWED_HOSTS:-localhost,127.0.0.1}
     extra_hosts:
       - "core:${CORE_IP:-192.168.250.4}"
     ports:
-      - "${SSH_PORT:-2222}:${SSH_PORT:-2222}"
+      - "${SSH_PORT:-2222}:2222"
+      - "${KOKO_WEB_PROXY_PORT:-5001}:5001"
     volumes:
       - ${JUMPSERVER_DATA:-/data/jumpserver}/koko/data:/opt/koko/data
       - ${JUMPSERVER_DATA:-/data/jumpserver}/certs:/opt/koko/data/certs
@@ -119,47 +160,51 @@ services:
         ipv4_address: ${KOKO_IP:-192.168.250.7}
 
   #--------------------------------------------------------------#
-  # Lion: web terminal component
+  # Kael: AI gateway (part of the official 5.x Community Edition)
   #--------------------------------------------------------------#
-  lion:
-    container_name: jms_lion
-    hostname: jms_lion
-    image: ${REGISTRY:-docker.io}/jumpserver/lion:${JUMPSERVER_VERSION:-v4.10.16-ce}
+  kael:
+    container_name: jms_kael
+    hostname: jms_kael
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/kael:${JUMPSERVER_VERSION:-v5.0.0-ce}
     restart: unless-stopped
     ulimits:
       core: 0
     env_file:
       - .env
+    environment:
+      PLATFORM_GATEWAY_ENABLED: "true"
+      PLATFORM_DELEGATION_KEY: ${CHAT_AI_DELEGATION_SECRET}
     extra_hosts:
       - "core:${CORE_IP:-192.168.250.4}"
     volumes:
-      - ${JUMPSERVER_DATA:-/data/jumpserver}/lion/data:/opt/lion/data
-      - ${JUMPSERVER_DATA:-/data/jumpserver}/certs:/opt/lion/data/certs
+      - ${JUMPSERVER_DATA:-/data/jumpserver}/kael/data:/opt/kael/data
     depends_on:
       core:
         condition: service_healthy
     healthcheck:
-      test: "check http://localhost:8081/lion/health/"
+      test: "check http://localhost:8083/kael/health/ready"
       interval: 10s
       timeout: 5s
       retries: 12
       start_period: 30s
     networks:
       net:
-        ipv4_address: ${LION_IP:-192.168.250.5}
+        ipv4_address: ${KAEL_IP:-192.168.250.5}
 
   #--------------------------------------------------------------#
-  # Chen: WebSocket/terminal support component
+  # Chen: web database connector
   #--------------------------------------------------------------#
   chen:
     container_name: jms_chen
     hostname: jms_chen
-    image: ${REGISTRY:-docker.io}/jumpserver/chen:${JUMPSERVER_VERSION:-v4.10.16-ce}
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/chen:${JUMPSERVER_VERSION:-v5.0.0-ce}
     restart: unless-stopped
     ulimits:
       core: 0
     env_file:
       - .env
+    environment:
+      <<: *redis-client-env
     extra_hosts:
       - "core:${CORE_IP:-192.168.250.4}"
     volumes:
@@ -184,13 +229,12 @@ services:
   web:
     container_name: jms_web
     hostname: jms_web
-    image: ${REGISTRY:-docker.io}/jumpserver/web:${JUMPSERVER_VERSION:-v4.10.16-ce}
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/web:${JUMPSERVER_VERSION:-v5.0.0-ce}
     restart: unless-stopped
     ulimits:
       core: 0
     environment:
       TZ: ${TZ:-Asia/Shanghai}
-      HTTP_PORT: ${HTTP_PORT:-8080}
       USE_LB: ${USE_LB:-1}
       USE_IPV6: ${USE_IPV6:-0}
       USE_XPACK: ${USE_XPACK:-0}
@@ -198,18 +242,17 @@ services:
       CLIENT_MAX_BODY_SIZE: ${CLIENT_MAX_BODY_SIZE:-4096m}
       CORE_ENABLED: ${CORE_ENABLED:-1}
       KOKO_ENABLED: ${KOKO_ENABLED:-1}
-      LION_ENABLED: ${LION_ENABLED:-1}
       CHEN_ENABLED: ${CHEN_ENABLED:-1}
-      KAEL_ENABLED: ${KAEL_ENABLED:-0}
+      KAEL_ENABLED: ${KAEL_ENABLED:-1}
       RAZOR_ENABLED: ${RAZOR_ENABLED:-0}
-      FACELIVE_ENABLED: ${FACELIVE_ENABLED:-0}
     extra_hosts:
       - "core:${CORE_IP:-192.168.250.4}"
       - "koko:${KOKO_IP:-192.168.250.7}"
-      - "lion:${LION_IP:-192.168.250.5}"
+      - "kael:${KAEL_IP:-192.168.250.5}"
       - "chen:${CHEN_IP:-192.168.250.6}"
     ports:
-      - "${HTTP_PORT:-8080}:${HTTP_PORT:-8080}"
+      # The official Web image listens on port 80; HTTP_PORT is the host port.
+      - "${HTTP_PORT:-8080}:80"
     volumes:
       - ${JUMPSERVER_DATA:-/data/jumpserver}/core/data:/opt/jumpserver/data
       - ${JUMPSERVER_DATA:-/data/jumpserver}/nginx/data/logs:/var/log/nginx
@@ -218,12 +261,12 @@ services:
         condition: service_healthy
       koko:
         condition: service_healthy
-      lion:
+      kael:
         condition: service_healthy
       chen:
         condition: service_healthy
     healthcheck:
-      test: "check http://localhost:51980/api/health/"
+      test: "check http://localhost:51980/web/health/"
       interval: 10s
       timeout: 5s
       retries: 12
@@ -238,17 +281,18 @@ services:
   redis:
     container_name: jms_redis
     hostname: redis
-    image: redis:${REDIS_VERSION:-7.4.6-bookworm}
+    image: redis:${REDIS_VERSION:-7.4.11-bookworm}
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
+    command: ["redis-server", "--port", "${REDIS_PORT:-6379}", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
     environment:
       TZ: ${TZ:-Asia/Shanghai}
       REDIS_PORT: ${REDIS_PORT:-6379}
       REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
     volumes:
       - ${JUMPSERVER_DATA:-/data/jumpserver}/redis/data:/data
     healthcheck:
-      test: "redis-cli -h 127.0.0.1 -p ${REDIS_PORT:-6379} -a ${REDIS_PASSWORD} ping"
+      test: ["CMD-SHELL", "redis-cli -h 127.0.0.1 -p \"$$REDIS_PORT\" ping | grep -qx PONG"]
       interval: 10s
       timeout: 5s
       retries: 6

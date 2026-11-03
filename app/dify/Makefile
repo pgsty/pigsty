@@ -1,18 +1,8 @@
+SHELL := /bin/bash -e -o pipefail
+
 default: up view
 
 DOCKER_IMAGE_DIR=/tmp/docker/dify
-DIFY_VERSION?=1.15.0
-DIFY_SANDBOX_VERSION?=0.2.15
-DIFY_PLUGIN_DAEMON_VERSION?=0.6.3-local
-DIFY_IMAGES= \
-	langgenius/dify-api:$(DIFY_VERSION) \
-	langgenius/dify-web:$(DIFY_VERSION) \
-	langgenius/dify-sandbox:$(DIFY_SANDBOX_VERSION) \
-	langgenius/dify-plugin-daemon:$(DIFY_PLUGIN_DAEMON_VERSION) \
-	redis:6-alpine \
-	ubuntu/squid:latest \
-	nginx:latest \
-	busybox:latest
 
 up: view
 	docker compose up -d
@@ -32,23 +22,28 @@ stop:
 
 clean:
 	docker compose rm
-	sudo rm -rf volumes/app;
-	@echo "dont' forget to nuke the dify database in postgres"
+	@echo "Application files, signing keys and PostgreSQL data are preserved."
 
 pull:
 	docker compose pull
 
 save:
-	mkdir -p $(DOCKER_IMAGE_DIR)
-	for image in $(DIFY_IMAGES); do \
-		file=$$(echo $$image | tr '/:' '__'); \
-		docker save $$image | gzip -c -9 > $(DOCKER_IMAGE_DIR)/$$file.tgz; \
+	mkdir -p "$(DOCKER_IMAGE_DIR)"
+	@images="$$(docker compose config --images | sort -u)"; test -n "$$images"; \
+	for image in $$images; do \
+		file=$$(printf '%s' "$$image" | tr '/:' '__'); \
+		archive_path="$(DOCKER_IMAGE_DIR)/$$file.tgz"; \
+		archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+		trap 'rm -f -- "$$archive_tmp"' EXIT; \
+		docker save "$$image" | gzip -c -9 > "$$archive_tmp"; \
+		mv -f -- "$$archive_tmp" "$$archive_path"; \
+		trap - EXIT; \
 	done
 
 tarball: save
 	tar -cvf /tmp/dify.tgz -C /tmp/docker dify
 
 load:
-	for image in $(DOCKER_IMAGE_DIR)/*.tgz; do \
-		gzip -d -c $$image | docker load; \
+	for image in "$(DOCKER_IMAGE_DIR)"/*.tgz; do \
+		gzip -d -c "$$image" | docker load; \
 	done

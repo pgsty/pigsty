@@ -1,16 +1,17 @@
+SHELL := /bin/bash -e -o pipefail
+
 default: up view
 
 up:
 	docker compose up -d
+	$(MAKE) pass
 down:
 	docker compose down
-run:
-	docker run --init --name pgadmin --restart always --detach --publish 8885:80 \
-	-e PGADMIN_DEFAULT_EMAIL=admin@pigsty.cc -e PGADMIN_DEFAULT_PASSWORD=pigsty \
-	dpage/pgadmin4
+run: up
 view:
-	@echo "visit http://adm.pigsty  or  http://10.10.10.10:8885"
-	@echo "cred: admin@pigsty.cc  /  pigsty"
+	@echo "visit http://adm.pigsty or the published endpoint below"
+	@docker compose port pgadmin 80
+	@echo "use the PGADMIN_DEFAULT_EMAIL and PGADMIN_DEFAULT_PASSWORD configured in .env"
 log:
 	docker logs -f pgadmin
 info:
@@ -22,38 +23,44 @@ edit:
 pull:
 	docker compose pull
 rmi:
-	docker rmi dpage/pgadmin4
+	docker rmi $$(docker compose config --images)
 start:
 	docker compose start
+	$(MAKE) pass
 stop:
 	docker compose stop
 restart:
 	docker compose restart
+	$(MAKE) pass
 exec:
 	docker exec -u 0 -it pgadmin /bin/bash
 
 reload: list pass
 conf: list pass
 pass:
-	docker exec pgadmin cp /pgadmin4/pgpass /var/lib/pgadmin/storage/admin_pigsty.cc/pgpass;
+	@set -e; source="$$(docker compose config --format json | jq -er '.services.pgadmin as $$s | $$s.volumes[] | select(.type == "bind" and .target == $$s.environment.PGPASS_FILE) | .source | split("$$$$") | join("$$")')"; \
+	docker compose exec -T pgadmin /bin/sh -ec 'dir="/var/lib/pgadmin/storage/$$(printf "%s" "$$PGADMIN_DEFAULT_EMAIL" | tr "@" "_")"; mkdir -p "$$dir"; umask 077; cat > "$$dir/.pgpass"; chmod 600 "$$dir/.pgpass"' < "$$source"
 list:
-	docker exec pgadmin /venv/bin/python3 /pgadmin4/setup.py load-servers --replace --user admin@pigsty.cc /pgadmin4/servers.json
+	@set -e; source="$$(docker compose config --format json | jq -er '.services.pgadmin as $$s | $$s.volumes[] | select(.type == "bind" and .target == $$s.environment.PGADMIN_SERVER_JSON_FILE) | .source | split("$$$$") | join("$$")')"; \
+	jq -e '.Servers | type == "object"' "$$source" >/dev/null; \
+	docker compose exec -T pgadmin /bin/sh -ec 'set --; if [ "$$PGADMIN_REPLACE_SERVERS_ON_STARTUP" = "True" ]; then set -- --replace; fi; exec /venv/bin/python3 /pgadmin4/setup.py load-servers /dev/stdin --user "$$PGADMIN_DEFAULT_EMAIL" "$$@"' < "$$source"
 
 # load pigsty server list manually
-servers:
-	docker cp /infra/pgadmin/servers.json pgadmin:/tmp/servers.json;
-	docker exec -u 0 -it pgadmin chown pgadmin /tmp/servers.json;
-	docker exec -it pgadmin /venv/bin/python3 /pgadmin4/setup.py load-servers --replace --user admin@pigsty.cc /tmp/servers.json
+servers: list
 # load pgpass manually
-pgpass:
-	docker cp /infra/pgadmin/pgpass pgadmin:/var/lib/pgadmin/storage/admin_pigsty.cc/pgpass;
-	docker exec -u 0 -it pgadmin chown pgadmin /var/lib/pgadmin/storage/admin_pigsty.cc/pgpass;
+pgpass: pass
 
 
 dump: save
 save:
 	mkdir -p /tmp/docker
-	docker save dpage/pgadmin4 | gzip -9 -c > /tmp/docker/pgadmin4.tgz
+	@images="$$(docker compose config --images)"; test -n "$$images"; \
+	archive_path="/tmp/docker/pgadmin4.tgz"; \
+	archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+	trap 'rm -f -- "$$archive_tmp"' EXIT; \
+	docker save $$images | gzip -9 -c > "$$archive_tmp"; \
+	mv -f -- "$$archive_tmp" "$$archive_path"; \
+	trap - EXIT
 load:
 	cat /tmp/docker/pgadmin4.tgz | gzip -d -c - | docker load
 
