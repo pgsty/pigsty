@@ -1,15 +1,11 @@
+SHELL := /bin/bash -e -o pipefail
+
 default: up view
 
 up: view
 	docker compose up -d
 
-run:
-	docker run -d --name nocodb \
-		-v "/data/nocodb:/usr/app/data/" \
-		-p 9003:8080 \
-		-e DATABASE_URL="postgres://dbuser_noco:DBUser.Noco@10.10.10.10:5432/noco" \
-		-e NC_AUTH_JWT_SECRET="some-secret-password" \
-		nocodb/nocodb:latest
+run: up
 
 view:
 	@echo "visit http://noco.pigsty  or  http://10.10.10.10:9003"
@@ -27,14 +23,20 @@ clean:
 	docker stop nocodb; docker rm -f nocodb
 
 pull:
-	docker pull nocodb/nocodb:latest
+	docker compose pull
 
 rmi:
-	docker rmi nocodb/nocodb:latest
+	docker rmi $$(docker compose config --images)
 
 save:
 	mkdir -p /tmp/docker
-	docker save nocodb/nocodb:latest | gzip -9 -c > /tmp/docker/nocodb.tgz
+	@images="$$(docker compose config --images)"; test -n "$$images"; \
+	archive_path="/tmp/docker/nocodb.tgz"; \
+	archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+	trap 'rm -f -- "$$archive_tmp"' EXIT; \
+	docker save $$images | gzip -9 -c > "$$archive_tmp"; \
+	mv -f -- "$$archive_tmp" "$$archive_path"; \
+	trap - EXIT
 
 load:
 	cat /tmp/docker/nocodb.tgz | gzip -d -c - | docker load

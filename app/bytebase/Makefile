@@ -1,20 +1,12 @@
+SHELL := /bin/bash -e -o pipefail
+
 default: up view
 
 up: view
 	docker compose up -d
 
 # run with local data dir & external pg
-run: pg
-	mkdir -p /data/bytebase/data;
-	docker run --init --name bytebase \
-        --restart always --detach \
-        --publish 8887:8887 \
-        --volume /data/bytebase/data:/var/opt/bytebase \
-        -e PG_URL=postgresql://dbuser_bytebase:DBUser.Bytebase@10.10.10.10:5432/bytebase \
-        bytebase/bytebase:latest \
-        --data /var/opt/bytebase \
-        --external-url http://ddl.pigsty \
-        --port 8887
+run: up
 
 view:
 	@echo "visit http://ddl.pigsty  or  http://10.10.10.10:8887"
@@ -38,14 +30,20 @@ clean:
 	docker stop bytebase; docker rm -f bytebase
 
 pull:
-	docker pull bytebase/bytebase:latest
+	docker compose pull
 
 rmi:
-	docker rmi bytebase/bytebase:latest
+	docker rmi $$(docker compose config --images)
 
 save:
 	mkdir -p /tmp/docker
-	docker save bytebase/bytebase:latest | gzip -9 -c > /tmp/docker/bytebase.tgz
+	@images="$$(docker compose config --images)"; test -n "$$images"; \
+	archive_path="/tmp/docker/bytebase.tgz"; \
+	archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+	trap 'rm -f -- "$$archive_tmp"' EXIT; \
+	docker save $$images | gzip -9 -c > "$$archive_tmp"; \
+	mv -f -- "$$archive_tmp" "$$archive_path"; \
+	trap - EXIT
 
 load:
 	cat /tmp/docker/bytebase.tgz | gzip -d -c - | docker load

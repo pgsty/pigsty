@@ -30,6 +30,8 @@ edit:
 
 pull:
 	docker compose pull
+	docker pull envoyproxy/envoy:v1.39.1
+	docker pull kong/kong:3.9.3
 
 dump: save
 save:

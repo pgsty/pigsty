@@ -1,15 +1,13 @@
+SHELL := /bin/bash -e -o pipefail
+
 default: up view
 
 DOCKER_IMAGE_DIR=/tmp/docker/immich
-IMMICH_VERSION ?= v3
-VALKEY_IMAGE = docker.io/valkey/valkey:9@sha256:4963247afc4cd33c7d3b2d2816b9f7f8eeebab148d29056c2ca4d7cbc966f2d9
-
 up: view
 	docker compose up -d
 
 view:
-	@echo "visit http://photo.pigsty or http://10.10.10.10:$$(grep -E '^IMMICH_HOST_PORT=' .env | cut -d= -f2)"
-	@grep -E '^(IMMICH_VERSION|IMMICH_HOST_PORT|UPLOAD_LOCATION|DB_VECTOR_EXTENSION|REDIS_HOSTNAME|REDIS_PORT)=' .env
+	@docker compose config --format json | jq -r '.services["immich-server"] as $$app | "visit http://photo.pigsty or http://10.10.10.10:\($$app.ports[] | select(.target == 2283) | .published)", "image: \($$app.image)", "media: \($$app.volumes[] | select(.target == "/data") | .source)", "vector extension: \($$app.environment.DB_VECTOR_EXTENSION // "default")", "redis: \($$app.environment.REDIS_HOSTNAME):\($$app.environment.REDIS_PORT)" | split("$$$$") | join("$$")'
 
 log logs:
 	docker compose logs -f
@@ -35,10 +33,29 @@ clean:
 	@echo "dont' forget to remove the immich database and /data/immich media files if needed"
 
 save:
-	mkdir -p $(DOCKER_IMAGE_DIR)
-	docker save ghcr.io/immich-app/immich-server:$(IMMICH_VERSION) | gzip -c -9 > $(DOCKER_IMAGE_DIR)/immich-server.tgz
-	docker save ghcr.io/immich-app/immich-machine-learning:$(IMMICH_VERSION) | gzip -c -9 > $(DOCKER_IMAGE_DIR)/immich-machine-learning.tgz
-	docker save $(VALKEY_IMAGE) | gzip -c -9 > $(DOCKER_IMAGE_DIR)/valkey.tgz
+	@config="$$(docker compose config --format json)"; \
+	server="$$(printf '%s' "$$config" | jq -er '.services["immich-server"].image')"; \
+	ml="$$(printf '%s' "$$config" | jq -er '.services["immich-machine-learning"].image')"; \
+	cache="$$(printf '%s' "$$config" | jq -er '.services.redis.image')"; \
+	mkdir -p "$(DOCKER_IMAGE_DIR)"; \
+	archive_path="$(DOCKER_IMAGE_DIR)/immich-server.tgz"; \
+	archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+	trap 'rm -f -- "$$archive_tmp"' EXIT; \
+	docker save "$$server" | gzip -c -9 > "$$archive_tmp"; \
+	mv -f -- "$$archive_tmp" "$$archive_path"; \
+	trap - EXIT; \
+	archive_path="$(DOCKER_IMAGE_DIR)/immich-machine-learning.tgz"; \
+	archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+	trap 'rm -f -- "$$archive_tmp"' EXIT; \
+	docker save "$$ml" | gzip -c -9 > "$$archive_tmp"; \
+	mv -f -- "$$archive_tmp" "$$archive_path"; \
+	trap - EXIT; \
+	archive_path="$(DOCKER_IMAGE_DIR)/valkey.tgz"; \
+	archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+	trap 'rm -f -- "$$archive_tmp"' EXIT; \
+	docker save "$$cache" | gzip -c -9 > "$$archive_tmp"; \
+	mv -f -- "$$archive_tmp" "$$archive_path"; \
+	trap - EXIT
 
 tarball: save
 	tar -cvf /tmp/immich.tgz -C /tmp/docker immich

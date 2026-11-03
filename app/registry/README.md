@@ -4,12 +4,17 @@ This is a Docker Registry mirror service for caching Docker images, particularly
 
 Default images:
 
-- `registry:3.1.1`
+- `registry:3.1.2`
 - `joxit/docker-registry-ui:2.6.0`
+
+Registry 3.1.2 includes upstream manifest/blob digest validation fixes. Keep a
+copy of the registry configuration and cache before replacing an existing
+instance, then check `/v2/`, the UI backend, and cold/hot pulls by digest.
+See the [3.1.2 release notes](https://github.com/distribution/distribution/releases/tag/v3.1.2).
 
 ## Features
 
-- **Registry Mirror**: Cache Docker images from Docker Hub and other registries
+- **Registry Mirror**: Pull-through cache for one upstream, Docker Hub by default
 - **Web UI**: Optional web interface for managing cached images
 - **High Performance**: Local caching reduces pull times significantly
 - **Storage Management**: Configurable storage cleanup and management
@@ -79,7 +84,9 @@ Default images:
 
 #### Pull images through the mirror
 
-Once configured, all `docker pull` commands will automatically use the mirror:
+Once configured, Docker Hub pulls will automatically use the mirror. Docker's
+`registry-mirrors` setting does not redirect explicit GHCR, Quay, or other
+third-party registry references. A pull-through cache does not accept image pushes.
 
 ```bash
 # These commands will now use your mirror
@@ -100,7 +107,7 @@ curl http://your-domain.com:5000/v2/
 curl http://your-domain.com:5000/v2/_catalog
 
 # Check specific image tags
-curl http://your-domain.com:5000/v2/nginx/tags/list
+curl http://your-domain.com:5000/v2/library/nginx/tags/list
 ```
 
 ## Configuration
@@ -110,12 +117,25 @@ curl http://your-domain.com:5000/v2/nginx/tags/list
 - `REGISTRY_DATA`: Data storage path (default: `/data/registry`)
 - `REGISTRY_PORT`: Registry service port (default: `5000`)
 - `REGISTRY_UI_PORT`: Web UI port (default: `5080`)
-- `REGISTRY_IMAGE`: Registry image (default: `registry:3.1.1`)
+- `REGISTRY_IMAGE`: Registry image (default: `registry:3.1.2`)
 - `REGISTRY_UI_IMAGE`: Web UI image (default: `joxit/docker-registry-ui:2.6.0`)
 - `REGISTRY_PROXY_REMOTEURL`: Upstream registry (default: `https://registry-1.docker.io`)
 - `REGISTRY_PROXY_TTL`: Proxy cache TTL (default: `168h`)
 - `REGISTRY_STORAGE_DELETE_ENABLED`: Enable image deletion (default: `true`)
 - `REGISTRY_LOG_LEVEL`: Registry log level (default: `info`)
+- `REGISTRY_HTTP_PROXY` / `REGISTRY_HTTPS_PROXY`: Optional outbound proxy for the
+  registry process itself; the Docker daemon's pull proxy is not inherited by containers.
+- `REGISTRY_NO_PROXY`: Outbound proxy exclusions (default: `localhost,127.0.0.1,registry`)
+
+Use a proxy address reachable from the container, not `127.0.0.1` on the host.
+Keep the default unauthenticated mirror on a trusted network. If upstream
+credentials are configured, protect the mirror with authentication too, because
+those credentials can otherwise make private upstream images accessible to all mirror users.
+
+The UI health check covers both its page and the `/v2/` backend proxy. A working
+static page alone does not establish registry availability. The upstream
+Registry 3.1.2 proxy also contacts its configured upstream during startup; even a populated
+cache is not an offline registry if its upstream is unavailable when restarted.
 
 ### Advanced Configuration
 

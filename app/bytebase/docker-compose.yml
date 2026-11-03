@@ -11,3 +11,10 @@ services:
       - "${BB_PORT}:${BB_PORT}"
     command: |
       --external-url ${BB_DOMAIN} --port ${BB_PORT}
+    # The image's built-in probe is hard-coded to 8080; follow BB_PORT instead.
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "--silent", "http://127.0.0.1:${BB_PORT}/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s

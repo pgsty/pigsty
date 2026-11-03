@@ -58,8 +58,8 @@
 # - *i386.deb (DEB): 32-bit packages not needed on x86_64
 # - patroni*3.0.4*: Old version that conflicts with newer patroni
 # - proj-data* (EL9+): Large optional geospatial data (~500MB)
-# - *docs*: Documentation packages (unnecessary for runtime)
 #
+# Keep documentation packages: other RPMs may require them (e.g. annobin-docs).
 # Sow creates RPM/DEB metadata; --pigsty removes 32-bit and Patroni 3.0.4 packages
 #--------------------------------------------------------------#
 - name: create and trim local repo
@@ -67,7 +67,6 @@
   become: true
   shell: |
     {% if os_package|default('rpm') == 'rpm' and os_version|int >= 9 %}rm -rf proj-data*;{% endif %}
-    {% if os_package|default('rpm') == 'rpm' %}rm -rf *docs*;{% endif %}
     sow create --pigsty --timeout 10m -- "{{ repo_home }}/{{ repo_name }}"
   args: { executable: /bin/bash, chdir: "{{ repo_home }}/{{ repo_name }}" }
 

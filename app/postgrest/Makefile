@@ -1,27 +1,18 @@
--include .env
-export
+SHELL := /bin/bash -e -o pipefail
 
 default: up view
 
 up: view
 	docker compose up -d
 
-run:
-	docker run --init --name postgrest --restart always --detach \
-		--publish $(POSTGREST_SERVER_PORT):$(POSTGREST_SERVER_PORT) \
-		--env PGRST_DB_URI=$(POSTGREST_DB_URI) \
-		--env PGRST_DB_SCHEMA=$(POSTGREST_DB_SCHEMA) \
-		--env PGRST_DB_ANON_ROLE=$(POSTGREST_DB_ANON_ROLE) \
-		--env PGRST_SERVER_PORT=$(POSTGREST_SERVER_PORT) \
-		--env PGRST_JWT_SECRET=$(POSTGREST_JWT_SECRET) \
-		postgrest/postgrest
+run: up
 
 ui:
-	docker run --init --name swagger -d -p 8883:8080 \
-		-e API_URL=http://10.10.10.10:$(POSTGREST_SERVER_PORT) swaggerapi/swagger-ui
+	@port="$$(docker compose config --format json | jq -er '.services.postgrest.ports[0].published')"; \
+	docker run --init --name swagger -d -p 127.0.0.1:8883:8080 -e "API_URL=http://127.0.0.1:$$port" swaggerapi/swagger-ui
 
 view:
-	@echo "visit http://10.10.10.10:$(POSTGREST_SERVER_PORT) for API Spec"
+	@docker compose config --format json | jq -r '.services.postgrest.ports[0] | "visit http://127.0.0.1:\(.published) for API Spec"'
 
 log:
 	docker logs -f postgrest
@@ -39,14 +30,20 @@ rmui:
 	docker rm -f swagger
 
 pull:
-	docker pull postgrest/postgrest
+	docker compose pull
 
 rmi:
-	docker rmi postgrest/postgrest
+	@images="$$(docker compose config --images)"; test -n "$$images"; docker rmi $$images
 
 save:
 	mkdir -p /tmp/docker
-	docker save postgrest/postgrest | gzip -9 -c > /tmp/docker/postgrest.tgz
+	@images="$$(docker compose config --images)"; test -n "$$images"; \
+	archive_path="/tmp/docker/postgrest.tgz"; \
+	archive_tmp=$$(mktemp "$$archive_path.tmp.XXXXXX"); \
+	trap 'rm -f -- "$$archive_tmp"' EXIT; \
+	docker save $$images | gzip -9 -c > "$$archive_tmp"; \
+	mv -f -- "$$archive_tmp" "$$archive_path"; \
+	trap - EXIT
 
 load:
 	cat /tmp/docker/postgrest.tgz | gzip -d -c - | docker load

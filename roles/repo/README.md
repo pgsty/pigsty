@@ -187,6 +187,9 @@ These packages can cause:
 The cleanup and metadata publication happen atomically in `repo_create`
 through `sow create --pigsty`.
 
+Documentation packages are retained because other RPMs may require them.
+For example, EL10's `annobin-plugin-gcc` requires the matching `annobin-docs`.
+
 
 ## Common Commands
 

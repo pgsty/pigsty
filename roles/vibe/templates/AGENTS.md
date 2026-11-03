@@ -119,3 +119,13 @@ It can handle domain names, https certs, make good use of it: https://pigsty.io/
 - [PGSQL Admin](https://pigsty.io/docs/pgsql/admin/) | [User](https://pigsty.io/docs/pgsql/user/) | [Database](https://pigsty.io/docs/pgsql/db/) | [Backup](https://pigsty.io/docs/pgsql/backup/)
 - [Config](https://pigsty.io/docs/config/) | [Playbook](https://pigsty.io/docs/pgsql/playbook/) | [Extensions](https://pigsty.io/ext)
 - [CLI Tools](https://pigsty.io/docs/pgsql/admin/#pigsty-cli-tools): `bin/pgsql-*`, `bin/node-*`, `bin/redis-*`
+
+## Git and Large Files
+
+Repository rules set by the user on 2026-10-10:
+
+- Keep source code, configuration, and essential lightweight docs and metadata in Git. Exclude build outputs, binaries, packages, container/VM images, downloaded archives, database dumps, and bulk raw data by default. Check large text data files too.
+- Before downloading or generating these files, use a location outside the repository or add `.gitignore` rules and verify that the actual paths are ignored. This keeps staging and agent recovery/diff snapshots from adding them to Git's object store.
+- Before staging or committing, check new file sizes and types and review the staged file list. Include only source files needed for the task; never force-add ignored files. Prefer source manifests, checksums, and reproducible download/build instructions.
+- If unsure whether binary assets, datasets, or generated files belong in Git, ask the user before staging or committing. Exceptions require explicit user approval.
+- These rules do not authorize deleting existing files, stashes, or recovery snapshots, or rewriting Git history. Ignore rules do not remove existing Git objects; history cleanup requires a separately agreed scope.

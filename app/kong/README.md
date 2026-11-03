@@ -5,6 +5,11 @@ Kong the API Gateway: https://konghq.com/
 Build delightful customer experiences and unleash developer productivity with Kong, the fastest cloud native API
 platform.
 
+The OSS template follows the official `kong:latest` image; the 2026-08-27
+validation snapshot resolved to `3.9.3`. The Admin API is published only on host
+loopback; use an SSH tunnel for remote administration. The proxy HTTP and HTTPS
+listeners remain on ports 8000 and 8443.
+
 ## TL;DR
 
 Check [`.env`](.env) for postgres credentials and ports:

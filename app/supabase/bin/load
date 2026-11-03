@@ -4,7 +4,7 @@ set -euo pipefail
 # File      :   app/supabase/bin/load
 # Desc      :   Load Supabase Docker images from local
 # Ctime     :   2025-07-01
-# Mtime     :   2026-04-11
+# Mtime     :   2026-08-27
 # Args      :   [directory] - directory containing tgz files (default: /tmp/docker/supabase/)
 # Usage     :   bin/load [/tmp/docker/supabase/]
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -26,30 +26,22 @@ archives=(
   logflare.tgz
   postgrest.tgz
   vector.tgz
+  envoy.tgz
   kong.tgz
 )
 
-# Concurrent docker load may race on /data/docker/tmp/docker-import-*.
+# Reject incomplete bundles before importing any images.
 for archive in "${archives[@]}"; do
-  if [[ "${archive}" == "imgproxy.tgz" ]]; then
-    gzip -d -c "${IMG_DIR}/${archive}" | docker import \
-      --change 'USER 999' \
-      --change 'ENV PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' \
-      --change 'ENV VIPS_WARNING=0' \
-      --change 'ENV MALLOC_ARENA_MAX=2' \
-      --change 'ENV FONTCONFIG_PATH=/etc/fonts' \
-      --change 'ENV IMGPROXY_MALLOC=malloc' \
-      --change 'ENV AWS_LWA_READINESS_CHECK_PATH=/health' \
-      --change 'ENV AWS_LWA_INVOKE_MODE=response_stream' \
-      --change 'ENV AWS_LWA_ASYNC_INIT=true' \
-      --change 'ENV VIPS_VECTOR=167772160' \
-      --change 'EXPOSE 8080' \
-      --change 'ENTRYPOINT ["entrypoint.sh"]' \
-      --change 'CMD ["imgproxy"]' \
-      - darthsim/imgproxy:v3.30.1 >/dev/null
-  else
-    gzip -d -c "${IMG_DIR}/${archive}" | docker load
+  if [[ ! -s "${IMG_DIR}/${archive}" ]]; then
+    echo "Missing or empty archive: ${IMG_DIR}/${archive}" >&2
+    echo "Regenerate the complete bundle with 'make pull && make save'." >&2
+    exit 1
   fi
+done
+
+# Load complete local archives sequentially. Docker detects gzip automatically.
+for archive in "${archives[@]}"; do
+  docker load --input "${IMG_DIR}/${archive}"
 done
 
 echo "All Supabase Docker images loaded successfully!"

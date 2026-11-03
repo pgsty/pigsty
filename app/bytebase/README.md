@@ -6,7 +6,13 @@ open-source schema migrator for PostgreSQL (and other databases)
 
 Check public demo: http://ddl.pigsty.io, username: `admin@pigsty.cc`, password: `pigsty`
 
-If you want to access bytebase through SSL, you have to trust `files/pki/ca/ca.crt` on your browser (or use the dirty hack `thisisunsafe` in chrome)
+For HTTPS, use a publicly trusted certificate or install Pigsty's public
+`files/pki/ca/ca.crt` in your trust store. Do not bypass certificate validation.
+
+The template follows Bytebase's upstream `latest` image; the 2026-08-27
+validation snapshot resolved to `3.21.1`. It uses the external PostgreSQL
+connection from `BB_PGURL`. Its health check follows `BB_PORT`; the image's default probe
+otherwise checks port 8080 even when the server is configured for another port.
 
 
 ## Get Started
@@ -30,8 +36,8 @@ Visit [http://ddl.pigsty](http://ddl.pigsty) or http://10.10.10.10:8887
 ## Makefile
 
 ```bash
-make up         # pull up bytebase with docker compose in minimal mode
-make run        # launch bytebase with docker , local data dir and external PostgreSQL
+make up         # launch Bytebase with Docker Compose and external PostgreSQL
+make run        # alias for make up
 make view       # print bytebase access point
 make log        # tail -f bytebase logs
 make info       # introspect bytebase with jq
@@ -45,7 +51,8 @@ make load       # load bytebase image from /tmp/docker/bytebase.tgz
 
 ## Use External PostgreSQL
 
-Bytebase use its internal PostgreSQL database by default, You can use external PostgreSQL for higher durability.
+This template uses external PostgreSQL for metadata durability. Create the
+database and its owning role before starting Bytebase:
 
 ```yaml
 pg_users: [ { name: dbuser_bytebase ,password: DBUser.Bytebase ,pgbouncer: true ,roles: [ dbrole_admin ]    ,comment: admin user for bytebase database } ]

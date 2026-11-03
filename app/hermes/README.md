@@ -1,13 +1,13 @@
 # Hermes Agent on Pigsty VM
 
-本文记录一次真实执行过的 bring-up，目标非常单纯：
+本文提供固定稳定版 `0.21.5`（tag `v2026.9.24`）的安装步骤，并保留早期 `0.8.0` 的真实 bring-up 记录：
 
 - 在一台已经部署 Pigsty 的 `Ubuntu 24.04` 虚拟机上把 [Hermes Agent](https://github.com/NousResearch/hermes-agent) 跑起来
 - 不在这台小虚机上部署本地 Ollama / vLLM
 - 直接使用外部 `z.ai / GLM` API 作为推理后端
 - 把所有关键操作沉淀为可复现文档，便于后续扩展成 Pigsty Enormous 方案
 
-本次实际目标机是 `ssh meta` 对应的虚机，最终验收结果是：
+历史 `0.8.0` 验收使用 `ssh meta` 对应的虚机，结果如下；这些对话结果不代表新版已经调用过付费 API：
 
 - Hermes 安装路径：`/home/vagrant/.hermes/hermes-agent`
 - Hermes 版本：`v0.8.0 (2026.4.8)`
@@ -24,7 +24,7 @@
 ssh meta 'hostnamectl; echo; uname -a; echo; nproc; free -h; df -h /'
 ```
 
-本次实际观测结果：
+历史 `meta` 实际观测结果：
 
 - OS: `Ubuntu 24.04.3 LTS`
 - Arch: `arm64`
@@ -36,40 +36,43 @@ ssh meta 'hostnamectl; echo; uname -a; echo; nproc; free -h; df -h /'
 
 - 这台虚机资源很小，不适合再拉本地大模型
 - Ubuntu 24.04 自带 `python3.12`
-- 直接用系统 Python + `uv` 安装 Hermes，比在这台机子上再折腾本地推理框架更合适
+- 直接用系统 Python + 独立虚拟环境 安装 Hermes，比在这台机子上再折腾本地推理框架更合适
 
 
 ## 2. 固定上游版本
 
 为了复现，**不要**直接跟浮动的 `main`。
 
-本次实际固定的上游版本：
+当前安装步骤固定上游稳定版：
 
 - Repo: `https://github.com/NousResearch/hermes-agent`
-- Commit: `af9caec44fdab7a1b883dede16fe1ce8c2d60fb9`
-- Commit Time: `2026-04-11T10:29:09Z`
+- Tag: [`v2026.9.24`](https://github.com/NousResearch/hermes-agent/releases/tag/v2026.9.24)
+- Package: `0.21.5`
+- Commit: `f97608f178d1ffeca59860195ab7da295f7c8e5f`
+- Commit Time: `2026-09-24T10:08:47Z`
+- Tarball SHA-256: `babbdb9706ad1c96708d75914afb45d809cd4b73dec1ceae233a6814f5ed97e3`
 
-对应源码 tarball：
+历史 `0.8.0` 使用 commit `af9caec44fdab7a1b883dede16fe1ce8c2d60fb9`；新安装使用以下源码 tarball：
 
 ```text
-https://codeload.github.com/NousResearch/hermes-agent/tar.gz/af9caec44fdab7a1b883dede16fe1ce8c2d60fb9
+https://codeload.github.com/NousResearch/hermes-agent/tar.gz/f97608f178d1ffeca59860195ab7da295f7c8e5f
 ```
 
 
 ## 3. 网络与代理
 
-这台 VM 如果需要通过宿主机代理访问外网，优先使用：
+这台 VM 下载源码或依赖需要代理时，按需使用宿主机的 Xray；先确认该入口在容器或 VM 内可达：
 
 ```text
-http://10.0.2.2:8118
+http://10.0.2.2:8888
 ```
 
-这是本次在 `meta` 上实际可用的宿主机代理入口。
+2026-10-01 起通用下载统一使用 8888；本文原始安装时在 `meta` 验证过的是 8118。m1/m5 的 8118 仅用于 AI 派活或模型调用。
 
 如果 GitHub 下载不通，可以在命令前加：
 
 ```bash
-export PROXY=http://10.0.2.2:8118
+export PROXY=http://10.0.2.2:8888
 export HTTP_PROXY=$PROXY
 export HTTPS_PROXY=$PROXY
 export ALL_PROXY=$PROXY
@@ -86,10 +89,10 @@ export ALL_PROXY=$PROXY
 ### 4.1 检查基础命令
 
 ```bash
-ssh meta 'python3 --version; uv --version; git --version; curl --version | head -n 1'
+ssh meta 'python3.12 --version; git --version; curl --version | head -n 1'
 ```
 
-本次环境里这些命令都已经存在，因此不需要额外安装 Python / uv。
+需要 Python 3.12 和 `python3.12-venv`。Ubuntu 24.04 的系统 Python 满足当前 `>=3.11,<3.14` 的要求；使用独立虚拟环境安装。
 
 
 ### 4.2 下载固定版本源码
@@ -100,7 +103,7 @@ ssh meta 'python3 --version; uv --version; git --version; curl --version | head 
 ssh meta '
 set -euo pipefail
 wget -O /tmp/hermes-agent.tar.gz \
-  https://codeload.github.com/NousResearch/hermes-agent/tar.gz/af9caec44fdab7a1b883dede16fe1ce8c2d60fb9
+  https://codeload.github.com/NousResearch/hermes-agent/tar.gz/f97608f178d1ffeca59860195ab7da295f7c8e5f
 ls -lh /tmp/hermes-agent.tar.gz
 '
 ```
@@ -110,49 +113,59 @@ ls -lh /tmp/hermes-agent.tar.gz
 ```bash
 ssh meta '
 set -euo pipefail
-export PROXY=http://10.0.2.2:8118
+export PROXY=http://10.0.2.2:8888
 export HTTP_PROXY=$PROXY HTTPS_PROXY=$PROXY ALL_PROXY=$PROXY
+export http_proxy=$PROXY https_proxy=$PROXY all_proxy=$PROXY
 wget -O /tmp/hermes-agent.tar.gz \
-  https://codeload.github.com/NousResearch/hermes-agent/tar.gz/af9caec44fdab7a1b883dede16fe1ce8c2d60fb9
+  https://codeload.github.com/NousResearch/hermes-agent/tar.gz/f97608f178d1ffeca59860195ab7da295f7c8e5f
 ls -lh /tmp/hermes-agent.tar.gz
 '
 ```
 
 
-### 4.3 解压并安装到 `~/.hermes/hermes-agent`
+### 4.3 校验并安装到独立版本目录
+
+保留现有安装和配置，先在新的版本目录验收：
 
 ```bash
 ssh meta '
 set -euo pipefail
-INSTALL_DIR="$HOME/.hermes/hermes-agent"
-mkdir -p "$HOME/.hermes" "$HOME/.local/bin"
-
-SRC_DIR="$(tar -tzf /tmp/hermes-agent.tar.gz | head -1 | cut -d/ -f1)"
-rm -rf "$INSTALL_DIR" "/tmp/$SRC_DIR"
+printf "%s  %s\n" \
+  babbdb9706ad1c96708d75914afb45d809cd4b73dec1ceae233a6814f5ed97e3 \
+  /tmp/hermes-agent.tar.gz | sha256sum -c -
+INSTALL_DIR="$HOME/.hermes/hermes-agent-v2026.9.24"
+test ! -e "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"
-
-tar -xzf /tmp/hermes-agent.tar.gz -C /tmp
-shopt -s dotglob
-mv "/tmp/$SRC_DIR"/* "$INSTALL_DIR"/
-rmdir "/tmp/$SRC_DIR"
-
+tar -xzf /tmp/hermes-agent.tar.gz -C "$INSTALL_DIR" --strip-components=1
 cd "$INSTALL_DIR"
-uv venv venv --python /usr/bin/python3
+python3.12 -m venv venv
 . venv/bin/activate
-uv pip install -e ".[cli,pty,mcp,cron]"
-
-ln -sf "$INSTALL_DIR/venv/bin/hermes" "$HOME/.local/bin/hermes"
-ln -sf "$INSTALL_DIR/venv/bin/hermes-agent" "$HOME/.local/bin/hermes-agent"
-
-"$HOME/.local/bin/hermes" --help | sed -n "1,80p"
+python -m pip install --upgrade pip
+python -m pip install -e ".[pty,mcp,cron]"
+python -m pip check
+./venv/bin/hermes --help
+./venv/bin/hermes --version
 '
 ```
 
-说明：
+以该 tag 的 [`pyproject.toml`](https://github.com/NousResearch/hermes-agent/blob/v2026.9.24/pyproject.toml) 为准：
 
-- `.[cli,pty,mcp,cron]` 足够完成当前阶段 bring-up
-- 这比在小 VM 上装 `.[all]` 更保守
-- 这里直接使用系统 `python3.12`
+- CLI 依赖已经属于核心包，删除旧的 `cli` extra。
+- `pty` 和 `cron` extra 为空，保留名称表示选用这些功能；MCP extra 安装 MCP 2、httpx2 和 Starlette。
+- 无需安装 `.[all]`；当前路线继续使用 Python 3.12 与外部 Z.AI / GLM。
+
+上游禁止普通 wheel/sdist 构建，使用上述 editable 源码安装。
+
+先用新二进制和独立 `HERMES_HOME` 运行 `--version` / `doctor`。需要切换正式入口时，保留旧目录再更新符号链接：
+
+```bash
+ssh meta '
+set -euo pipefail
+mkdir -p "$HOME/.local/bin"
+ln -sfn "$HOME/.hermes/hermes-agent-v2026.9.24/venv/bin/hermes" "$HOME/.local/bin/hermes"
+ln -sfn "$HOME/.hermes/hermes-agent-v2026.9.24/venv/bin/hermes-agent" "$HOME/.local/bin/hermes-agent"
+'
+```
 
 
 ## 5. 配置远端 GLM API
@@ -181,7 +194,7 @@ Hermes 对 `z.ai / GLM` 的环境变量名是：
 ```bash
 ssh meta '
 set -euo pipefail
-cd ~/.hermes/hermes-agent
+cd ~/.hermes/hermes-agent-v2026.9.24
 GLM_API_KEY="<YOUR_GLM_API_KEY>" ./venv/bin/python - <<'"'"'PY'"'"'
 import json, os
 from hermes_cli.auth import detect_zai_endpoint
@@ -190,7 +203,7 @@ PY
 '
 ```
 
-本次实际探测结果：
+历史 `0.8.0` 实际探测结果：
 
 ```json
 {"id":"global","base_url":"https://api.z.ai/api/paas/v4","model":"glm-5","label":"Global"}
@@ -242,7 +255,7 @@ chmod 600 ~/.hermes/.env
 
 ### 5.4 写入最小可用 `~/.hermes/config.yaml`
 
-这一步不需要整份默认配置，下面这份最小配置已经做过真实验证，可以直接用：
+下面这份最小配置在历史 `0.8.0` 环境通过真实 GLM 验证。新版安装后先运行 `doctor`，再用已授权的 API key 验证对应 provider：
 
 ```bash
 ssh meta '
@@ -276,6 +289,11 @@ EOF
 
 ### 6.1 运行 `hermes doctor`
 
+正式运行前检查目标 VM 中 Python 链接的 SQLite 版本及状态数据库的 journal mode。
+已有 WAL 数据库不会由 Hermes 自动切换模式；WAL 并发写入或 checkpoint 应使用
+[修复了 WAL-reset 缺陷的 SQLite](https://sqlite.org/wal.html#walresetbug)
+（`3.51.3+`、`3.50.7` 或 `3.44.6`）。保留本文固定源码，不要直接运行 `hermes update` 改变版本。
+
 ```bash
 ssh meta '
 set -euo pipefail
@@ -284,7 +302,7 @@ source ~/.profile
 '
 ```
 
-本次实际关键结果是：
+历史 `0.8.0` 使用真实 API key 时的关键结果是：
 
 ```text
 Checking Z.AI / GLM API...
@@ -302,7 +320,7 @@ source ~/.profile
 '
 ```
 
-本次实际返回：
+历史 `0.8.0` 实际返回：
 
 ```text
 hermes-final-ok provider=zai model=glm-5
@@ -317,7 +335,7 @@ hermes-final-ok provider=zai model=glm-5
 - 终端后端可用
 
 
-## 7. 最小配置已验证
+## 7. 历史最小配置验证
 
 为了保证文档本身可复现，本次还单独用一个临时目录做过最小配置验证：
 
@@ -355,7 +373,7 @@ HERMES_HOME="$TMP" ~/.local/bin/hermes chat -q "只回复 minimal-config-ok"
 '
 ```
 
-本次实际返回：
+历史 `0.8.0` 实际返回：
 
 ```text
 minimal-config-ok
@@ -364,7 +382,7 @@ minimal-config-ok
 这证明文中的最小配置不是理论写法，而是实际跑通过的。
 
 
-## 8. 清理本地试验组件
+## 8. 历史试验组件清理记录
 
 本次最终交付**不使用本地 Ollama，也不使用本地 smoke endpoint**。
 
@@ -385,9 +403,9 @@ sudo systemctl daemon-reload
 本次实际执行后，相关 service/binary/path 都已经被清掉。
 
 
-## 9. 当前最终状态
+## 9. 历史 0.8.0 最终状态
 
-在 `meta` 上，本次最终状态如下：
+早期 `0.8.0` 验收结束时，`meta` 的状态如下：
 
 - Hermes 安装在 `~/.hermes/hermes-agent`
 - 实际运行 provider 是 `zai`

@@ -3,6 +3,8 @@ services:
     container_name: pg_exporter
     image: pgsty/pg_exporter
     restart: always
+    # The exporter-toolkit listener needs its CLI flag, not only the legacy env.
+    command: ["--web.listen-address=${PG_EXPORTER_LISTEN_ADDRESS:-:9630}"]
     environment:
       PG_EXPORTER_URL: ${PG_EXPORTER_URL}
       PG_EXPORTER_CONFIG: ${PG_EXPORTER_CONFIG}
@@ -16,8 +18,8 @@ services:
       PG_EXPORTER_NAMESPACE: ${PG_EXPORTER_NAMESPACE}
       PG_EXPORTER_FAIL_FAST: ${PG_EXPORTER_FAIL_FAST}
       PG_EXPORTER_CONNECT_TIMEOUT: ${PG_EXPORTER_CONNECT_TIMEOUT}
-      PG_EXPORTER_LISTEN_ADDRESS: ${PG_EXPORTER_LISTEN_ADDRESS}
-      PG_EXPORTER_TELEMETRY_PATH: ${PG_EXPORTER_TELEMETRY_PATH}
+      PG_EXPORTER_LISTEN_ADDRESS: ${PG_EXPORTER_LISTEN_ADDRESS:-:9630}
+      PG_EXPORTER_TELEMETRY_PATH: ${PG_EXPORTER_TELEMETRY_PATH:-/metrics}
 
       #PG_EXPORTER_URL: 'postgres://dbuser_monitor:DBUser.Monitor@10.10.10.10:5432/postgres?sslmode=disable'
       #PG_EXPORTER_CONFIG: '/etc/pg_exporter.yml'
@@ -34,4 +36,5 @@ services:
       #PG_EXPORTER_LISTEN_ADDRESS: ":9630"
       #PG_EXPORTER_TELEMETRY_PATH: "/metrics"
     ports:
-      - "${PG_EXPORTER_PORT}:9630"
+      # LISTEN_ADDRESS is deliberately restricted to :PORT inside this container.
+      - "${PG_EXPORTER_PORT:-9632}${PG_EXPORTER_LISTEN_ADDRESS:-:9630}"

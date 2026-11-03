@@ -44,14 +44,14 @@ echo "-----------------------------------------------------------------"
 echo "issue {{ cert_name }} : {{ domains|join(', ') }}"
 
 if [ -f "/etc/letsencrypt/renewal/{{ cert_name }}.conf" ]; then
-    echo "  -> Certificate exists. Attempting to expand/renew if needed..."
-    certbot certonly --non-interactive --cert-name {{ cert_name }} \
+    echo "  -> Certificate exists. Reconciling the exact domain set if needed..."
+    certbot certonly --non-interactive --cert-name "{{ cert_name }}" \
         --webroot --webroot-path="$WEBROOT" \
-        --email "$EMAIL" --agree-tos --no-eff-email --expand \
+        --email "$EMAIL" --agree-tos --no-eff-email --renew-with-new-domains \
         {% for domain in domains %}-d "{{ domain }}" {% endfor %} $OPTIONS
 else
     echo "  -> Certificate does not exist. Obtaining a new certificate..."
-    certbot certonly --non-interactive --cert-name {{ cert_name }} \
+    certbot certonly --non-interactive --cert-name "{{ cert_name }}" \
         --webroot --webroot-path="$WEBROOT" \
         --email "$EMAIL" --agree-tos --no-eff-email \
         {% for domain in domains %}-d "{{ domain }}" {% endfor %} $OPTIONS
@@ -66,5 +66,7 @@ echo "-----------------------------------------------------------------"
 echo "All certificate operations finished."
 echo "Now you can link certs with /etc/nginx/link-cert"
 /etc/nginx/link-cert
+
+nginx -t
 
 ls -alh /etc/nginx/conf.d/cert

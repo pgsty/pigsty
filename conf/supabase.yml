@@ -3,18 +3,19 @@
 # File      :   supabase.yml
 # Desc      :   Pigsty configuration for self-hosting supabase
 # Ctime     :   2023-09-19
-# Mtime     :   2026-07-09
+# Mtime     :   2026-10-08
 # Docs      :   https://pigsty.io/docs/conf/supabase
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
 
+# Template baseline: self-hosted/v0.8.2 (commit 564eab8), updated 2026-10-08
 # supabase is available on el8/el9/u22/u24/u26/d12 with pg15,16,17,18
 # tutorial: https://pigsty.io/docs/app/supabase
 # Usage:
 #   curl https://repo.pigsty.io/get | bash    # install pigsty
 #   ./configure -c supabase   # use this supabase conf template
-#   ./deploy.yml              # install pigsty & pgsql & minio
+#   ./deploy.yml              # install Pigsty, PostgreSQL, and Silo
 #   ./docker.yml              # install docker & docker compose
 #   ./app.yml                 # launch supabase with docker compose
 
@@ -42,7 +43,7 @@ all:
         etcd_safeguard: false  # enable to prevent purging running etcd instance
 
     #----------------------------------------------#
-    # MINIO : https://pigsty.io/docs/minio
+    # MINIO module (deploys Silo): https://pigsty.io/docs/minio
     #----------------------------------------------#
     minio:
       hosts:
@@ -75,13 +76,15 @@ all:
           - { name: supabase_storage_admin     ,password: 'DBUser.Supa' ,pgbouncer: true ,inherit: false  ,roles: [ dbrole_admin, authenticated ,anon ,service_role ] ,createrole: true }
           - { name: supabase_functions_admin   ,password: 'DBUser.Supa' ,pgbouncer: true ,inherit: false  ,roles: [ dbrole_admin ] ,createrole: true }
           - { name: supabase_replication_admin ,password: 'DBUser.Supa' ,replication: true ,roles: [ dbrole_admin ]}
-          - { name: supabase_etl_admin         ,password: 'DBUser.Supa' ,replication: true ,roles: [ pg_read_all_data, dbrole_readonly ]}
+          - { name: supabase_etl_admin         ,password: 'DBUser.Supa' ,replication: true ,bypassrls: true ,roles: [ pg_read_all_data, dbrole_readonly ]}
           - { name: supabase_read_only_user    ,password: 'DBUser.Supa' ,bypassrls: true ,roles:   [ pg_read_all_data, dbrole_readonly ]}
         pg_databases:
           - name: postgres
             baseline: supabase.sql
             owner: supabase_admin
             comment: supabase postgres database
+            # Keep expiration synchronized with JWT_EXPIRY below; signing keys stay outside SQL.
+            parameters: { 'app.settings.jwt_exp': 3600 }
             schemas: [ extensions ,auth ,realtime ,storage ,graphql_public ,supabase_functions ,_realtime ]
             extensions:
               - { name: pgcrypto         ,schema: extensions } # cryptographic functions
@@ -110,9 +113,9 @@ all:
         pg_parameters: { cron.database_name: postgres }
         pg_hba_rules: # supabase hba rules, require access from docker network
           - { user: all ,db: postgres  ,addr: intra         ,auth: pwd ,title: 'allow supabase access from intranet'    ,order: 50 }
-          - { user: all ,db: postgres  ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow access from local docker network' ,order: 50 }
+          - { user: all ,db: postgres  ,addr: 172.16.0.0/12 ,auth: pwd ,title: 'allow access from local docker networks' ,order: 50 }
           - { user: all ,db: _supabase ,addr: intra         ,auth: pwd ,title: 'allow supabase internal access from intranet'    ,order: 50 }
-          - { user: all ,db: _supabase ,addr: 172.17.0.0/16 ,auth: pwd ,title: 'allow internal access from local docker network' ,order: 50 }
+          - { user: all ,db: _supabase ,addr: 172.16.0.0/12 ,auth: pwd ,title: 'allow internal access from local docker networks' ,order: 50 }
         pg_crontab:
           - '00 01 * * * /pg/bin/pg-backup full'  # make a full backup every 1am
           - '*  *  * * * /pg/bin/supa-kick'       # kick supabase _analytics lag per minute: https://github.com/pgsty/pigsty/issues/581
@@ -170,7 +173,7 @@ all:
               API_EXTERNAL_URL: https://supa.pigsty/auth/v1 # <------- Auth service external URL, keep /auth/v1 suffix
               SUPABASE_PUBLIC_URL: https://supa.pigsty      # <------- DO NOT FORGET TO PUT IT IN infra_portal!
 
-              # if using s3/minio as file storage
+              # if using Silo/S3 as file storage
               S3_BUCKET: data
               GLOBAL_S3_BUCKET: data
               S3_ENDPOINT: https://sss.pigsty:9000
@@ -190,6 +193,7 @@ all:
               IMGPROXY_AUTO_WEBP: true
               FUNCTIONS_VERIFY_JWT: false
               DOCKER_SOCKET_LOCATION: /var/run/docker.sock
+              API_GW_HTTP_PORT: 8000
 
               # if using SMTP (optional)
               #SMTP_ADMIN_EMAIL: admin@example.com

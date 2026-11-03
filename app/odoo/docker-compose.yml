@@ -5,7 +5,7 @@
 # File      :   docker-compose.yml
 # Desc      :   odoo docker compose template
 # Ctime     :   2024-09-19
-# Mtime     :   2025-01-12
+# Mtime     :   2026-10-08
 # Path      :   app/odoo/docker-compose.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -21,27 +21,51 @@ services:
   odoo:
     container_name: odoo
     image: odoo:${ODOO_VERSION}
+    restart: unless-stopped
     ports:
-      - ${ODOO_PORT}:8069
+      - "${ODOO_PORT}:8069"
     environment:
-      - HOST=${PG_HOST}
-      - PORT=${PG_PORT}
-      - USER=${PG_USERNAME}
-      - PASSWORD=${PG_PASSWORD}
+      - PGHOST=${PG_HOST}
+      - PGPORT=${PG_PORT}
+      - PGUSER=${PG_USERNAME}
+      - PGPASSWORD=${PG_PASSWORD}
+      # Odoo 19 master password setting.
+      - ODOO_ADMIN_PASSWD=${ODOO_ADMIN_PASSWORD}
+      # Enable proxy mode for Nginx access.
+      - ODOO_PROXY_MODE=${ODOO_PROXY_MODE:-false}
     volumes:
       - ${ODOO_DATA}:/var/lib/odoo
       - ${ODOO_ADDONS}:/mnt/extra-addons
       #- ./config:/etc/odoo
+    command:
+      - odoo
+      - --database=${ODOO_DBNAME}
+      # Use the exact database whitelist instead of a regex filter.
+      - --db-filter=
+      - --no-database-list
+      - --http-interface=0.0.0.0
 
-  # run this init schema migration with: docker compose --profile init up odoo-init
+  # Run with `make init`; it propagates the initializer's exit status.
   odoo-init:
     image: odoo:${ODOO_VERSION}
     profiles: ["init"]
-    command: [ odoo, --stop-after-init , --init=base , -d,  "${ODOO_DBNAME}" ]  #--without-demo
+    command:
+      - odoo
+      - --stop-after-init
+      - --init=base
+      - --without-demo
+      - --database=${ODOO_DBNAME}
+      - --db-filter=
+      - --no-database-list
+      - --http-interface=0.0.0.0
     environment:
-      - HOST=${PG_HOST}
-      - PORT=${PG_PORT}
-      - USER=${PG_USERNAME}
-      - PASSWORD=${PG_PASSWORD}
+      - PGHOST=${PG_HOST}
+      - PGPORT=${PG_PORT}
+      - PGUSER=${PG_USERNAME}
+      - PGPASSWORD=${PG_PASSWORD}
+      - ODOO_ADMIN_PASSWD=${ODOO_ADMIN_PASSWORD}
+    volumes:
+      - ${ODOO_DATA}:/var/lib/odoo
+      - ${ODOO_ADDONS}:/mnt/extra-addons
     restart: "no"
 ...
