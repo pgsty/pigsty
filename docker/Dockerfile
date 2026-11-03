@@ -2,11 +2,11 @@
 # File      :   Dockerfile
 # Desc      :   Pigsty Docker Image based on Debian 13 (Trixie)
 # Ctime     :   2025-01-27
-# Mtime     :   2025-01-27
+# Mtime     :   2026-10-31
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
-FROM debian:13.7@sha256:9cc080028c43b27d2074d63a5f9caf7166d731494965616c1a6d2827a004585c
+FROM debian:13.7@sha256:2dc419c6d7fe3dad0a2f9fd469c34cc90b0f9ba642d8fde837fe3d7d34a0e7f1
 
 ARG VERSION=4.5.0
 
