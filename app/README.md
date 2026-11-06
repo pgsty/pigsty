@@ -116,12 +116,12 @@ docker pull docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5
 docker pull ghcr.io/maybe-finance/maybe:stable
 docker pull redis:7-alpine
 docker pull docker.io/pgsty/silo:latest
-docker pull registry.cn-beijing.aliyuncs.com/jumpservice/core:v5.0.0-ce
-docker pull registry.cn-beijing.aliyuncs.com/jumpservice/koko:v5.0.0-ce
-docker pull registry.cn-beijing.aliyuncs.com/jumpservice/kael:v5.0.0-ce
-docker pull registry.cn-beijing.aliyuncs.com/jumpservice/chen:v5.0.0-ce
-docker pull registry.cn-beijing.aliyuncs.com/jumpservice/web:v5.0.0-ce
-docker pull redis:7.4.11-bookworm
+docker pull registry.cn-beijing.aliyuncs.com/jumpservice/core:v5.1.1-ce
+docker pull registry.cn-beijing.aliyuncs.com/jumpservice/koko:v5.1.1-ce
+docker pull registry.cn-beijing.aliyuncs.com/jumpservice/kael:v5.1.1-ce
+docker pull registry.cn-beijing.aliyuncs.com/jumpservice/chen:v5.1.1-ce
+docker pull registry.cn-beijing.aliyuncs.com/jumpservice/web:v5.1.1-ce
+docker pull redis:7.4.12-bookworm
 ```
 
 
@@ -151,12 +151,12 @@ docker save docker.io/valkey/valkey:9@sha256:c123e3715db63d06d4ad6964884037aa0d5
 docker save ghcr.io/maybe-finance/maybe:stable           | gzip -9 -c > /tmp/docker/maybe.tgz
 docker save redis:7-alpine                                | gzip -9 -c > /tmp/docker/redis.tgz
 docker save docker.io/pgsty/silo:latest                   | gzip -9 -c > /tmp/docker/silo.tgz
-docker save registry.cn-beijing.aliyuncs.com/jumpservice/core:v5.0.0-ce | gzip -9 -c > /tmp/docker/jumpserver-core.tgz
-docker save registry.cn-beijing.aliyuncs.com/jumpservice/koko:v5.0.0-ce | gzip -9 -c > /tmp/docker/jumpserver-koko.tgz
-docker save registry.cn-beijing.aliyuncs.com/jumpservice/kael:v5.0.0-ce | gzip -9 -c > /tmp/docker/jumpserver-kael.tgz
-docker save registry.cn-beijing.aliyuncs.com/jumpservice/chen:v5.0.0-ce | gzip -9 -c > /tmp/docker/jumpserver-chen.tgz
-docker save registry.cn-beijing.aliyuncs.com/jumpservice/web:v5.0.0-ce | gzip -9 -c > /tmp/docker/jumpserver-web.tgz
-docker save redis:7.4.11-bookworm                         | gzip -9 -c > /tmp/docker/jumpserver-redis.tgz
+docker save registry.cn-beijing.aliyuncs.com/jumpservice/core:v5.1.1-ce | gzip -9 -c > /tmp/docker/jumpserver-core.tgz
+docker save registry.cn-beijing.aliyuncs.com/jumpservice/koko:v5.1.1-ce | gzip -9 -c > /tmp/docker/jumpserver-koko.tgz
+docker save registry.cn-beijing.aliyuncs.com/jumpservice/kael:v5.1.1-ce | gzip -9 -c > /tmp/docker/jumpserver-kael.tgz
+docker save registry.cn-beijing.aliyuncs.com/jumpservice/chen:v5.1.1-ce | gzip -9 -c > /tmp/docker/jumpserver-chen.tgz
+docker save registry.cn-beijing.aliyuncs.com/jumpservice/web:v5.1.1-ce | gzip -9 -c > /tmp/docker/jumpserver-web.tgz
+docker save redis:7.4.12-bookworm                         | gzip -9 -c > /tmp/docker/jumpserver-redis.tgz
 ```
 
 

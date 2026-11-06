@@ -3,7 +3,7 @@
 # File      :   jumpserver.yml
 # Desc      :   pigsty config for running 1-node jumpserver app
 # Ctime     :   2026-07-09
-# Mtime     :   2026-10-09
+# Mtime     :   2026-11-06
 # Docs      :   https://pigsty.io/docs/app/jumpserver
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
@@ -11,6 +11,7 @@
 # JumpServer: open-source PAM / bastion host
 # GitHub: https://github.com/jumpserver/jumpserver
 # Last Verified JumpServer Version: v5.0.0-ce on 2026-10-09
+# Current Template Version: v5.1.1-ce (images and compose checked on 2026-11-06)
 #
 # how to use this template:
 #
@@ -62,8 +63,8 @@ all:
 
               # image / version
               IMAGE_PULL_PREFIX: registry.cn-beijing.aliyuncs.com/jumpservice
-              JUMPSERVER_VERSION: v5.0.0-ce
-              REDIS_VERSION: 7.4.11-bookworm
+              JUMPSERVER_VERSION: v5.1.1-ce
+              REDIS_VERSION: 7.4.12-bookworm
 
               # fixed Docker bridge; containers reach host PG through host IP/VIP
               JUMPSERVER_DATA: /data/jumpserver
@@ -81,7 +82,6 @@ all:
               # IMPORTANT: generate once and never change after production data exists
               SECRET_KEY: ChangeMeSecretKeyMustBeKeptForever0123456789ABCDEF
               BOOTSTRAP_TOKEN: ChangeMeBootstrapToken2026
-              CHAT_AI_DELEGATION_SECRET: ChangeMeKaelDelegationSecretGenerateWithOpensslRandHex32
 
               # database credentials; DB_PASSWORD must not contain single or double quotes
               DB_ENGINE: postgresql
@@ -107,13 +107,15 @@ all:
               CORE_HOST: http://192.168.250.4:8080
               PERIOD_TASK_ENABLED: true
               SESSION_EXPIRE_AT_BROWSER_CLOSE: false
+              # browser Origins allowed on Core WebSockets (5.1+): keep in sync with DOMAINS, never empty
+              WS_ALLOWED_ORIGINS: 'http://10.10.10.10:8080,http://10.10.10.10,http://jump.pigsty,https://jump.pigsty'
 
               USE_LB: 1
               USE_IPV6: 0
               USE_XPACK: 0
               LOG_LEVEL: ERROR
               TZ: Asia/Shanghai
-              CURRENT_VERSION: v5.0.0-ce
+              CURRENT_VERSION: v5.1.1-ce
               CORE_WORKER: 2
               CELERY_WORKER_COUNT: 2
               ANSIBLE_DOCKER_ENABLED: false  # use in-container Ansible without host Docker control
