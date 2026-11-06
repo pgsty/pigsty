@@ -6,11 +6,13 @@ Pigsty allow you to self-host **supabase** with existing managed HA postgres clu
 Check the official tutorial for details: [Self-Hosting Supabase](https://pigsty.io/docs/app/supabase)
 
 This template tracks the official
-[`self-hosted/v0.8.2` release](https://github.com/supabase/supabase/tree/564eab8ad7840b13324f68b1bfac074ef8d51c21/docker)
-(commit `564eab8ad7840b13324f68b1bfac074ef8d51c21`). Envoy `1.39.1`
+[`self-hosted/v0.8.4` release](https://github.com/supabase/supabase/tree/189adda99d1b56da55fc5a6ee3f849354aaea92a/docker)
+(commit `189adda99d1b56da55fc5a6ee3f849354aaea92a`), a security update for
+Storage, Realtime, Envoy, imgproxy, and Edge Runtime. Envoy `1.39.6`
 is the default API gateway and Studio is pinned to
-`2026.09.07-sha-7996410`; PostgreSQL remains external and managed by Pigsty.
-Kong `3.9.3` is retained only as an optional transition fallback:
+`2026.11.02-sha-a05e7ec`; PostgreSQL remains external and managed by Pigsty.
+Kong `3.9.3` is retained only as an optional transition fallback (upstream
+plans to remove its Kong override in a future release):
 
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.kong.yml up -d
@@ -60,6 +62,14 @@ legacy HS256 verification when it is empty.
 The worker and shared `volumes/functions/deno.jsonc` import map are updated
 together, including `@supabase/functions-js`, `@supabase/server`, and the
 per-request function slug. See [source provenance](volumes/functions/SOURCE.md).
+As on the Supabase platform, the gateways leave `/functions/v1/` CORS to the
+function: preflights reach the function and its responses pass through
+unchanged, so functions called from a browser must set their own
+[CORS headers](https://supabase.com/docs/guides/functions/cors). Both gateways
+translate `sb_` publishable/secret keys on this route into an internal
+`sb-api-key` header for the worker. The functions container is limited to
+`FUNCTIONS_MEMORY_LIMIT` (default `2g`) shared by all workers, with up to
+256 MiB per worker; idle workers are reclaimed under memory pressure.
 
 Both gateways restrict `/pg/` metadata CORS to `SUPABASE_PUBLIC_URL` and local
 development origins, removing wildcard headers emitted by postgres-meta. This
@@ -98,6 +108,61 @@ with configured DNS for public domain, or a local `/etc/hosts` record with `supa
 ## Existing deployments
 
 Back up PostgreSQL, object storage, and application volumes before upgrading.
+
+### From 0.8.2 to 0.8.4
+
+**Back up the database first: Storage migrations in this update are one-way.**
+Storage `v1.89.12` migrates the `storage` schema when it starts; after that,
+going back to Storage `v1.74.0` makes every upload fail. Confirm a recent
+recoverable PostgreSQL backup (`pb info`) before recreating the containers. If
+the instance ever ran Storage `v1.72.0`-`v1.72.3` (Pigsty did not ship those;
+only possible with a manually pinned image), apply the fix from
+[storage#1394](https://github.com/supabase/storage/issues/1394) first.
+
+There is no `files/supabase-0.8.4.sql` and `files/supabase.sql` is unchanged:
+upstream `docker/volumes/db/` and its bundled `supabase/postgres` image are
+identical in 0.8.2 and 0.8.4. Auth, Storage, and Realtime apply their own schema
+migrations at startup with their existing roles. A database that has not yet
+been upgraded to 0.8.2 still needs the steps in the next section first.
+
+Review these behavior changes before updating:
+
+- Edge Functions: the gateway no longer answers preflights or adds CORS headers
+  on `/functions/v1/`; browser-called functions must handle CORS, including
+  `OPTIONS`, themselves. Only the main worker's own errors (`404 NOT_FOUND`,
+  `401`, `503 BOOT_ERROR`) carry CORS headers. The sample `hello` function does
+  not set any.
+- Edge Functions: set `FUNCTIONS_MEMORY_LIMIT` in `apps.supabase.conf` (or
+  `.env`) before recreating if your functions need more than the default `2g`;
+  memory-pressure cleanup requires cgroup v2. Requests now time out after 150 s
+  of inactivity (400 s wall clock); the Pigsty Nginx portal still applies its
+  own 120 s `proxy_read_timeout`. Legacy roots such as DigiCert Global Root CA
+  were removed from the runtime's TLS store; if `fetch()` fails for such
+  servers, add `DENO_TLS_CA_STORE: mozilla,system` to the `functions`
+  environment.
+- OAuth/OIDC discovery: the bare `/.well-known/oauth-authorization-server`
+  route is removed. Use `/.well-known/oauth-authorization-server/auth/v1`,
+  `/auth/v1/.well-known/oauth-authorization-server`, or
+  `/auth/v1/.well-known/openid-configuration`; the `/auth/v1/` discovery routes
+  no longer require an API key.
+- Realtime runs as UID 65534 (`nobody`). The template mounts no files into it;
+  custom mounts such as `DB_SSL_CA_CERT` must be readable by that UID. Postgres
+  Changes subscriptions now match schema and table names exactly. The 0.8.3
+  `REGION: us-east-1` workaround is not needed.
+- Storage: writes blocked by a trigger on `storage.objects` return
+  `AccessDenied`; resumable (TUS) uploads idle for 60 s are aborted.
+- Auth: creating users through the admin API, including Studio, enforces the
+  password strength policy.
+- imgproxy 4 ignores removed 3.x variables; the template sets none of them.
+  Logflare stays on `1.50.x`, because `1.52+` breaks Studio log queries on the
+  Postgres backend.
+
+Service names are unchanged, so update the files and recreate the stack with the
+same Compose override combination as before. For the default Envoy + HS256 stack,
+`./app.yml -l supabase` updates `/opt/supabase` and runs `docker compose up -d`.
+
+### From releases before 0.8.2
+
 The old template used a Compose service named `kong`; this release calls the
 gateway `api-gw`. Before replacing the old Compose files, run `docker compose
 down` with the **old** configuration, without `-v`. This stops the old gateway
