@@ -101,11 +101,11 @@ docker pull bytebase/bytebase:latest
 docker pull quay.io/jupyter/minimal-notebook:latest
 #docker pull quay.io/jupyter/scipy-notebook:latest
 docker pull alpine
-docker pull metabase/metabase:v0.64.1.x
+docker pull metabase/metabase:v0.64.x
 docker pull registry:3.1.2
 docker pull joxit/docker-registry-ui:2.6.0
 docker pull andrewjones/schemaspy-postgres
-docker pull requarks/wiki
+docker pull requarks/wiki:2
 docker pull gitea/gitea
 docker pull kong:latest
 docker pull odoo:19.0
@@ -136,11 +136,11 @@ docker save postgrest/postgrest               | gzip -9 -c > /tmp/docker/postgre
 docker save bytebase/bytebase:latest          | gzip -9 -c > /tmp/docker/bytebase.tgz
 docker save quay.io/jupyter/minimal-notebook:latest | gzip -9 -c > /tmp/docker/jupyter.tgz
 docker save alpine                           | gzip -9 -c > /tmp/docker/alpine.tgz
-docker save metabase/metabase:v0.64.1.x       | gzip -9 -c > /tmp/docker/metabase.tgz
+docker save metabase/metabase:v0.64.x         | gzip -9 -c > /tmp/docker/metabase.tgz
 docker save registry:3.1.2                   | gzip -9 -c > /tmp/docker/registry.tgz
 docker save joxit/docker-registry-ui:2.6.0   | gzip -9 -c > /tmp/docker/registry-ui.tgz
 docker save andrewjones/schemaspy-postgres   | gzip -9 -c > /tmp/docker/schemaspy.tgz
-docker save requarks/wiki                     | gzip -9 -c > /tmp/docker/wiki.tgz
+docker save requarks/wiki:2                   | gzip -9 -c > /tmp/docker/wiki.tgz
 docker save gitea/gitea                       | gzip -9 -c > /tmp/docker/gitea.tgz
 docker save kong:latest                       | gzip -9 -c > /tmp/docker/kong.tgz
 docker save odoo:19.0                         | gzip -9 -c > /tmp/docker/odoo.tgz

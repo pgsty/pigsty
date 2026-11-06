@@ -3,7 +3,7 @@
 > [InsForge](https://github.com/InsForge/InsForge) -- Open-source Backend-as-a-Service for AI coding agents
 
 Pigsty allows you to self-host **InsForge** with an existing managed HA PostgreSQL cluster, and launch the stateless services with docker-compose.
-This template targets the prebuilt `v2.3.3` InsForge OSS image with external PostgreSQL managed by Pigsty.
+This template targets the prebuilt `v2.3.5` InsForge OSS image with external PostgreSQL managed by Pigsty.
 Historical validation: InsForge v2.3.1 on 2026-08-27, Ubuntu 24.04 arm64,
 Pigsty PostgreSQL 18.6, and all 67 application migrations through
 `064_compute-services-multi-driver`.
@@ -68,9 +68,9 @@ Visit `http://<your-ip>:7130` for the InsForge dashboard.
                     └──────────────────────────────────────────────┘
 ```
 
-- **InsForge App** (`ghcr.io/insforge/insforge-oss:v2.3.3`): Main application server with dashboard UI and API (port 7130)
+- **InsForge App** (`ghcr.io/insforge/insforge-oss:v2.3.5`): Main application server with dashboard UI and API (port 7130)
 - **PostgREST** (`postgrest/postgrest:v12.2.12`): Auto-generated REST API from PostgreSQL schema (port 5430)
-- **Deno Runtime** (`denoland/deno:alpine-2.0.6`): Pinned runtime executing the bundled InsForge v2.3.3 function host (port 7133)
+- **Deno Runtime** (`denoland/deno:alpine-2.0.6`): Pinned runtime executing the bundled InsForge v2.3.5 function host (port 7133)
 - **PostgreSQL**: Managed externally by Pigsty with HA, PITR, monitoring
 
 
@@ -246,7 +246,7 @@ ROOT_ADMIN_USERNAME=admin@example.com
 ROOT_ADMIN_PASSWORD=pigsty
 
 # Optional image overrides when ghcr.io is slow or blocked
-#INSFORGE_IMAGE=ghcr.io/insforge/insforge-oss:v2.3.3
+#INSFORGE_IMAGE=ghcr.io/insforge/insforge-oss:v2.3.5
 #DENO_RUNTIME_IMAGE=denoland/deno:alpine-2.0.6
 
 # Database (must match pigsty.yml pg_users)
@@ -311,6 +311,36 @@ make restart  # docker compose restart
 make log      # docker compose logs -f
 make info     # docker compose ps
 ```
+
+### Upgrade to v2.3.5
+
+v2.3.5 is a patch release with dependency security fixes. PostgREST
+`v12.2.12`, Deno `alpine-2.0.6`, and the vendored `functions/` runtime are
+unchanged. When upgrading from a release before v2.3.3, also follow the v2.3.3
+section below.
+
+Take the same backups as below, then pull and recreate the InsForge container.
+Its startup migration runner applies
+`066_storage-objects-default-owner-policies`. It only acts when
+`storage.objects` has **no** policies: it then creates owner-only
+`storage_objects_owner_*` policies for `authenticated` (reads also allow
+objects in public buckets, through the new `storage.public_buckets()` helper)
+and enables RLS on `storage.objects`. Projects that already have any policy on
+the table are left unchanged. Objects written through the S3 protocol have
+`uploaded_by = NULL`, so end users cannot see them in private buckets or
+modify them; API-key / `project_admin` callers bypass RLS. Review custom
+policies if a project mixes the user API and the S3 protocol on the same keys.
+The `files/insforge.sql` baseline does not touch `storage`; do not replay it.
+
+```sql
+SELECT name, run_on FROM system.migrations
+WHERE name = '066_storage-objects-default-owner-policies';
+
+SELECT polname FROM pg_policy
+WHERE polrelid = 'storage.objects'::regclass ORDER BY 1;
+```
+
+Source: [v2.3.5 migration 066](https://github.com/InsForge/InsForge/blob/c1c886e775d286433e4b50c78c24335783e8fc00/backend/src/infra/database/migrations/066_storage-objects-default-owner-policies.sql).
 
 ### Upgrade to v2.3.3
 
