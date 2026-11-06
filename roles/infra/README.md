@@ -188,12 +188,38 @@ infra (full role)
 
 ### Grafana
 
-| Variable                 | Default  | Description    |
-|--------------------------|----------|----------------|
-| `grafana_enabled`        | `true`   | Enable Grafana |
-| `grafana_port`           | `3000`   | Listen port    |
-| `grafana_admin_username` | `admin`  | Admin username |
-| `grafana_admin_password` | `pigsty` | Admin password |
+| Variable                 | Default         | Description                                  |
+|--------------------------|-----------------|----------------------------------------------|
+| `grafana_enabled`        | `true`          | Enable Grafana                               |
+| `grafana_port`           | `3000`          | Listen port                                  |
+| `grafana_clean`          | `false`         | Clean Grafana data and configuration on init  |
+| `grafana_admin_username` | `admin`         | Admin username                               |
+| `grafana_admin_password` | `pigsty`        | Initial admin password                       |
+| `grafana_anon_enabled`   | `true`          | Allow anonymous access with the Viewer role   |
+| `grafana_auth_proxy`     | `false`         | Enable authentication through a trusted proxy |
+| `grafana_pgurl`          | `''`            | External PostgreSQL URL for Grafana's own data |
+| `grafana_view_password`  | `DBUser.Viewer`  | Password for the `meta` PostgreSQL datasource |
+
+Anonymous access is enabled by default. Set `grafana_anon_enabled: false` in
+`all.vars` or the `infra` group's variables to require authentication:
+
+```yaml
+grafana_anon_enabled: false
+```
+
+Render the configuration and restart Grafana for the change to take effect:
+
+```bash
+./infra.yml -l infra -t grafana_config,grafana_launch
+```
+
+Use `-l <infra-node>` to apply the change to a single node. The `grafana_config`
+tag alone only writes the configuration. `grafana_auth_proxy` remains independent:
+enable it as needed when authentication is provided by a trusted reverse proxy.
+
+`grafana_view_password` authenticates the PostgreSQL datasource, not visitors to
+Grafana. Disabling anonymous access protects Grafana; other infrastructure
+endpoints still need their own network or portal access controls.
 
 ### Blackbox Exporter
 
