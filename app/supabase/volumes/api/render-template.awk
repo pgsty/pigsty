@@ -41,13 +41,20 @@ BEGIN {
             auth = auth " or (headers.apikey == " secret " and " quote_string("Bearer " ENVIRON["SERVICE_ROLE_KEY_ASYMMETRIC"], "lua") ")"
             auth = auth " or (headers.apikey == " publishable " and " quote_string("Bearer " ENVIRON["ANON_KEY_ASYMMETRIC"], "lua") ")"
             websocket = "$((query_params.apikey == " secret " and " service_jwt ") or (query_params.apikey == " publishable " and " anon_jwt ") or query_params.apikey)"
+            # Functions: emit the internal JWT as a raw sb-api-key header from
+            # an apikey header or Bearer sb_ key; nil is stripped by the route.
+            functions = "$((headers.apikey == " secret " and " service_jwt ") or (headers.apikey == " publishable " and " anon_jwt ")"
+            functions = functions " or (headers.authorization == " quote_string("Bearer " ENVIRON["SUPABASE_SECRET_KEY"], "lua") " and " service_jwt ")"
+            functions = functions " or (headers.authorization == " quote_string("Bearer " ENVIRON["SUPABASE_PUBLISHABLE_KEY"], "lua") " and " anon_jwt ") or nil)"
         } else {
             websocket = "$(query_params.apikey)"
+            functions = "$(nil)"
         }
         auth = auth " or headers.apikey)"
         values["LUA_AUTH_HEADER"] = "Authorization: " auth
         values["LUA_RT_WS_HEADER"] = "x-api-key:" websocket
         values["LUA_RT_WS_QUERY"] = "apikey:" websocket
+        values["LUA_FUNCTIONS_HEADER"] = "sb-api-key:" functions
     }
 }
 

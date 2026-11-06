@@ -1,7 +1,9 @@
 # metabase
 
-The template defaults to `metabase/metabase:v0.64.1.x`, the official OSS image
-for Metabase 64.1. `METABASE_IMAGE` can override that reference for a controlled
+The template defaults to `metabase/metabase:v0.64.x`, the official OSS image
+channel for the latest Metabase 64 release (also published as `v0.64-lts`;
+`0.64.5.2` as of 2026-11-06). The previous `v0.64.1.x` channel stopped at the
+64.1 line. `METABASE_IMAGE` can override that reference for a controlled
 upgrade or rollback. The application metadata uses its own `metabase` database
 and `dbuser_metabase` role; it must not share the Pigsty CMDB database. Provision
 both before starting the container.
@@ -68,7 +70,7 @@ Visit [http://mtbs.pigsty](http://mtbs.pigsty) or http://10.10.10.10:9004 with:
 services:
   metabase:
     container_name: metabase
-    image: ${METABASE_IMAGE:-metabase/metabase:v0.64.1.x}
+    image: ${METABASE_IMAGE:-metabase/metabase:v0.64.x}
     environment:
       MB_DB_TYPE: "${MB_DB_TYPE}"
       MB_DB_DBNAME: "${MB_DB_DBNAME}"

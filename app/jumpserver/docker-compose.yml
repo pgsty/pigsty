@@ -4,10 +4,10 @@
 # File      :   docker-compose.yml
 # Desc      :   JumpServer docker compose with Pigsty PostgreSQL
 # Ctime     :   2026-07-09
-# Mtime     :   2026-10-08
+# Mtime     :   2026-11-06
 # Path      :   app/jumpserver/docker-compose.yml
 # Docs      :   https://pigsty.io/docs/app/jumpserver
-# Source    :   https://github.com/jumpserver/installer/tree/33785347d95677ad87c0cc2f754d4f671b4e086f
+# Source    :   https://github.com/jumpserver/installer/tree/83facb768be7b60e7d38d498ed24214538899c67
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -26,7 +26,7 @@ services:
   init:
     container_name: jms_init
     hostname: jms_init
-    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/core:${JUMPSERVER_VERSION:-v5.0.0-ce}
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/core:${JUMPSERVER_VERSION:-v5.1.1-ce}
     restart: "no"
     entrypoint: ["/bin/bash", "/opt/pigsty-init.sh"]
     command: []
@@ -53,7 +53,7 @@ services:
   core:
     container_name: jms_core
     hostname: jms_core
-    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/core:${JUMPSERVER_VERSION:-v5.0.0-ce}
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/core:${JUMPSERVER_VERSION:-v5.1.1-ce}
     restart: unless-stopped
     command: start web
     ulimits:
@@ -89,7 +89,7 @@ services:
   celery:
     container_name: jms_celery
     hostname: jms_celery
-    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/core:${JUMPSERVER_VERSION:-v5.0.0-ce}
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/core:${JUMPSERVER_VERSION:-v5.1.1-ce}
     restart: unless-stopped
     command: start task
     ulimits:
@@ -126,7 +126,7 @@ services:
   koko:
     container_name: jms_koko
     hostname: jms_koko
-    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/koko:${JUMPSERVER_VERSION:-v5.0.0-ce}
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/koko:${JUMPSERVER_VERSION:-v5.1.1-ce}
     restart: unless-stopped
     privileged: ${KOKO_PRIVILEGED:-true}
     ulimits:
@@ -165,15 +165,15 @@ services:
   kael:
     container_name: jms_kael
     hostname: jms_kael
-    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/kael:${JUMPSERVER_VERSION:-v5.0.0-ce}
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/kael:${JUMPSERVER_VERSION:-v5.1.1-ce}
     restart: unless-stopped
     ulimits:
       core: 0
     env_file:
       - .env
     environment:
+      # 5.1 forwards the user's Core session; no delegation key is needed.
       PLATFORM_GATEWAY_ENABLED: "true"
-      PLATFORM_DELEGATION_KEY: ${CHAT_AI_DELEGATION_SECRET}
     extra_hosts:
       - "core:${CORE_IP:-192.168.250.4}"
     volumes:
@@ -197,7 +197,7 @@ services:
   chen:
     container_name: jms_chen
     hostname: jms_chen
-    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/chen:${JUMPSERVER_VERSION:-v5.0.0-ce}
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/chen:${JUMPSERVER_VERSION:-v5.1.1-ce}
     restart: unless-stopped
     ulimits:
       core: 0
@@ -229,7 +229,7 @@ services:
   web:
     container_name: jms_web
     hostname: jms_web
-    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/web:${JUMPSERVER_VERSION:-v5.0.0-ce}
+    image: ${IMAGE_PULL_PREFIX:-registry.cn-beijing.aliyuncs.com/jumpservice}/web:${JUMPSERVER_VERSION:-v5.1.1-ce}
     restart: unless-stopped
     ulimits:
       core: 0
@@ -281,7 +281,7 @@ services:
   redis:
     container_name: jms_redis
     hostname: redis
-    image: redis:${REDIS_VERSION:-7.4.11-bookworm}
+    image: redis:${REDIS_VERSION:-7.4.12-bookworm}
     restart: unless-stopped
     command: ["redis-server", "--port", "${REDIS_PORT:-6379}", "--appendonly", "yes", "--requirepass", "${REDIS_PASSWORD}"]
     environment:

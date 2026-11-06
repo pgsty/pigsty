@@ -4,12 +4,16 @@ Wiki.js : https://js.wiki/
 
 The most powerful and extensible open source Wiki software.
 
-The template follows the untagged Wiki.js image; the validation snapshot
-resolved to `2.5.314`.
+The template follows the Wiki.js `2` major-version tag (`requarks/wiki:2`,
+`2.5.317` as of 2026-11-06). Stable 2.x releases are maintained in
+[`requarks/wiki-v2`](https://github.com/requarks/wiki-v2/releases).
 
-Stable 2.x releases are maintained in
-[`requarks/wiki-v2`](https://github.com/requarks/wiki-v2/releases);
-the original `requarks/wiki` repository contains 3.x beta releases.
+Wiki.js 3.0 reached GA in November 2026 and is published under the `3` tag.
+It is a major rewrite with its own
+[requirements](https://docs.js.wiki/setup/requirements) and
+[upgrade procedure](https://docs.js.wiki/setup/upgrade); do not switch an
+existing 2.x deployment to it by changing the image tag. The tag is pinned to
+`2` so an upstream move of `latest` to 3.x cannot upgrade it implicitly.
 
 You can serve wiki with external PostgreSQL database.
 
@@ -47,7 +51,7 @@ bin/pgsql-db   pg-meta wiki
 services:
   wiki:
     container_name: wiki
-    image: requarks/wiki
+    image: requarks/wiki:2
     environment:
       DB_TYPE: postgres
       DB_HOST: 10.10.10.10

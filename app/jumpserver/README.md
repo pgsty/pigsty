@@ -6,7 +6,7 @@ Pigsty-managed PostgreSQL as the durable backend database.
 
 Full documentation: https://pigsty.io/docs/app/jumpserver
 
-This template follows the [official v5.0.0 CE installer](https://github.com/jumpserver/installer/tree/33785347d95677ad87c0cc2f754d4f671b4e086f), checked on 2026-10-08. Core, Celery, KoKo, Chen, Kael, and Web use the same `v5.0.0-ce` release. There is no separate Lion container in 5.x. The default image namespace is the official Aliyun mirror: Docker Hub returned `MANIFEST_UNKNOWN` for four of the five application tags at verification time.
+This template follows the [official v5.1.1 CE installer](https://github.com/jumpserver/installer/tree/83facb768be7b60e7d38d498ed24214538899c67), checked on 2026-11-06. Core, Celery, KoKo, Chen, Kael, and Web use the same `v5.1.1-ce` release. There is no separate Lion container in 5.x. The default image namespace is the official Aliyun mirror. On 2026-11-06 both the Aliyun mirror and Docker Hub (`IMAGE_PULL_PREFIX=docker.io/jumpserver`) served all five `v5.1.1-ce` tags; the two registries publish separate builds with different digests.
 
 The selected application images are `linux/amd64`; ARM64 is not validated. Allow at least 4 CPUs, 8 GB RAM, and 100 GB disk. JumpServer is GPLv3; this Pigsty template is Apache-2.0.
 
@@ -85,10 +85,11 @@ Key settings:
 
 ```ini
 IMAGE_PULL_PREFIX=registry.cn-beijing.aliyuncs.com/jumpservice
-JUMPSERVER_VERSION=v5.0.0-ce
-REDIS_VERSION=7.4.11-bookworm
+JUMPSERVER_VERSION=v5.1.1-ce
+REDIS_VERSION=7.4.12-bookworm
 JUMPSERVER_DATA=/data/jumpserver
 DOMAINS=10.10.10.10:8080,10.10.10.10,jump.pigsty
+WS_ALLOWED_ORIGINS=http://10.10.10.10:8080,http://10.10.10.10,http://jump.pigsty,https://jump.pigsty
 
 DB_HOST=10.10.10.10
 DB_PORT=5432
@@ -121,7 +122,9 @@ the app bridge subnet, by default `192.168.250.0/24`.
 If you change `DOCKER_SUBNET`, update all component `*_IP` values, including
 `INIT_IP` (the one-shot initializer uses `192.168.250.9` by default).
 
-Generate `CHAT_AI_DELEGATION_SECRET` with `openssl rand -hex 32`; Core and Kael share this key.
+Since 5.1.0, Core rejects browser WebSocket connections (task logs, site messages, system tools, LDAP) whose `Origin` is not allowed. Without `WS_ALLOWED_ORIGINS`, Core derives the list from `SITE_URL` and `DOMAINS`; with the default loopback `SITE_URL`, scheme-less public `DOMAINS` entries only allow `https://` Origins. `WS_ALLOWED_ORIGINS` therefore lists every browser origin explicitly, including plain-HTTP ones. Keep it in sync with `DOMAINS`, use comma-separated `scheme://host[:port]` values without paths or wildcards, and never set it to an empty value: Core fails to start on an invalid list.
+
+Kael 5.1 forwards the user's Core session instead of signing delegation tokens, so 5.1 no longer uses `CHAT_AI_DELEGATION_SECRET`.
 
 `HTTP_PORT` changes the published host port only. The official Web image always
 listens on port `80` inside the container.
@@ -161,12 +164,23 @@ Back up both layers:
 - PostgreSQL: Pigsty pgBackRest / PITR for the `jumpserver` database.
 - Application state: `/opt/jumpserver/.env` and `/data/jumpserver`.
 
-`SECRET_KEY`, `BOOTSTRAP_TOKEN`, and `CHAT_AI_DELEGATION_SECRET` must be generated once and preserved. Losing
+`SECRET_KEY` and `BOOTSTRAP_TOKEN` must be generated once and preserved. Losing
 the original `SECRET_KEY` can make encrypted account secrets unrecoverable.
+
+## Upgrade from 5.0.0 to 5.1.1
+
+The official installer changed no PostgreSQL-related setting between v5.0.0 and v5.1.1. Pigsty-relevant changes are the version bump, the removal of the Kael delegation key, Redis `7.4.12-bookworm`, and the WebSocket Origin check described above. This path has not yet been run end to end.
+
+1. Back up the database, the entire `/opt/jumpserver` directory, and `/data/jumpserver` together, as for a major upgrade.
+2. Update the full Compose file and `.env` (or `apps.jumpserver.conf` in `pigsty.yml`). Keep the original `SECRET_KEY`, `BOOTSTRAP_TOKEN`, database and Redis passwords. Add `WS_ALLOWED_ORIGINS` with every origin browsers use. `CHAT_AI_DELEGATION_SECRET` is no longer used and can be removed.
+3. Use `make pull`, then `make restart`. Init migrates first; inspect its log and verify `Exited (0)` plus seven healthy services.
+4. Verify old logins, credentials, the host-key fingerprint, real sessions, historical replay, a task log or job output in the browser, and the Kael assistant.
+
+After 5.1 migrations, rollback requires restoring the pre-upgrade database, files, and keys.
 
 ## Upgrade from 4.10.19 to 5.0.0
 
-The [pinned official upgrade script](https://github.com/jumpserver/installer/blob/33785347d95677ad87c0cc2f754d4f671b4e086f/scripts/7_upgrade.sh) accepts source versions from v3.10.11. The tested Pigsty path is `v4.10.19-ce → v5.0.0-ce`, with no intermediate version.
+The [pinned official upgrade script](https://github.com/jumpserver/installer/blob/33785347d95677ad87c0cc2f754d4f671b4e086f/scripts/7_upgrade.sh) accepts source versions from v3.10.11. The tested Pigsty path is `v4.10.19-ce → v5.0.0-ce`, with no intermediate version. These steps use the v5.0.0 template files; continue with the 5.0.0 → 5.1.1 steps afterwards.
 
 1. Stop the old stack during maintenance. Back up the database, the entire `/opt/jumpserver` directory, and `/data/jumpserver` together. Prove recovery in a separate database and directory.
 2. Update the full Compose file, `init.sh`, Makefile, and `.env`. Keep the original `SECRET_KEY`, `BOOTSTRAP_TOKEN`, database and Redis passwords. Add a random `CHAT_AI_DELEGATION_SECRET`.
@@ -177,6 +191,8 @@ The [pinned official upgrade script](https://github.com/jumpserver/installer/blo
 If a migration fails, preserve logs, fix the cause, and retry. After 5.x migrations, rollback requires restoring the pre-upgrade database, files, and original keys; changing image tags back is insufficient. To restore, use the full Compose version corresponding to the backup and start through init.
 
 ## Validation scope
+
+The runtime tests below were run against `v5.0.0-ce`. For `v5.1.1-ce`, only the Compose rendering and the image manifests on both registries have been checked so far.
 
 The M3 tests cover fresh 5.x installation, an actual 4.10.19 backup/restore, and an in-place 4.10.19 → 5.0.0 upgrade, all using isolated external PostgreSQL 18 databases. API/form login, user/asset/account/permission operations, negative authorization, SSH, terminal WebSockets, command auditing, and recording downloads are verified. Browser-based Chen queries against a PostgreSQL 18.6 asset return version `180006` and synthetic value `42`; a real Ansible safe-command job succeeds without privileged containers. Kael authentication, conversation/message persistence, and permission isolation are checked without an LLM provider. Ordinary conversation history resides in the Core database; Terminal AI state resides in Kael data files. Upstream discards empty conversation drafts on restart.
 
