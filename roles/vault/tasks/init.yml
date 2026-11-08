@@ -1,0 +1,89 @@
+---
+#--------------------------------------------------------------#
+# Init vault cluster                                [vault_init]
+#--------------------------------------------------------------#
+# `bao operator init` runs ONLY when ALL of the following hold:
+#   1. this member has the smallest vault_seq in group `vault`
+#   2. every member is reachable AND reports "not initialized"
+#   3. there is no files/pki/vault/init.json on admin node
+# so appending a member with `-l <ip>`, or rebuilding one member,
+# never bootstraps a second, empty cluster. new members join the
+# existing cluster with raft retry_join and auto-unseal.
+- name: init vault cluster
+  when: vault_seq|int == vault_seq_min|int
+  block:
+
+    - name: probe init state of vault members
+      command: >-
+        curl -fsS --max-time 5 --cacert /etc/openbao/tls/ca.crt
+        https://{{ item }}:{{ vault_port }}/v1/sys/init
+      loop: "{{ vault_members }}"
+      register: vault_init_probe
+      changed_when: false
+      failed_when: false
+
+    - name: check vault init material on admin node
+      become: false
+      delegate_to: localhost
+      stat: path=files/pki/vault/init.json
+      register: vault_init_json
+
+    - name: summarize vault init state
+      set_fact:
+        vault_unreachable: "{{ vault_init_probe.results | rejectattr('rc', 'equalto', 0) | map(attribute='item') | list }}"
+        vault_initialized: "{{ vault_init_probe.results | selectattr('rc', 'equalto', 0) | map(attribute='stdout') | map('from_json') | selectattr('initialized') | list | length > 0 }}"
+
+    - name: abort if vault init state is unknown
+      when: not vault_initialized|bool and vault_unreachable|length > 0
+      fail: msg="vault members {{ vault_unreachable }} are unreachable, cluster init state unknown, abort to avoid bootstrapping a split cluster"
+
+    - name: abort if vault was initialized before
+      when: not vault_initialized|bool and vault_init_json.stat.exists
+      fail:
+        msg: >-
+          no vault member is initialized, but files/pki/vault/init.json exists: this cluster was initialized before
+          and its data is gone. Restore it from a snapshot (see https://pigsty.io/docs/vault/admin),
+          or move files/pki/vault/init.json away to bootstrap a brand-new EMPTY cluster.
+
+    - name: initialize vault cluster
+      when: not vault_initialized|bool
+      command: bao operator init -recovery-shares=5 -recovery-threshold=3 -format=json
+      environment:
+        BAO_ADDR: "https://127.0.0.1:{{ vault_port }}"
+        BAO_CACERT: /etc/openbao/tls/ca.crt
+      register: vault_init_result
+      no_log: true
+
+    # init material = root token + recovery keys, the root of all vault access
+    - name: persist vault init material
+      when: not vault_initialized|bool
+      block:
+        - name: save vault init material to admin node
+          become: false
+          delegate_to: localhost
+          no_log: true
+          copy: content="{{ vault_init_result.stdout }}" dest=files/pki/vault/init.json mode=0600
+      rescue:
+        - name: keep vault init material on vault member
+          no_log: true
+          copy: content="{{ vault_init_result.stdout }}" dest=/root/vault-init.json owner=root group=root mode=0600
+        - name: abort after saving vault init material on vault member
+          fail: msg="fail to save init material to admin node, it is kept in /root/vault-init.json on {{ inventory_hostname }}, move it to files/pki/vault/init.json manually"
+
+
+#--------------------------------------------------------------#
+# Wait for vault member ready                       [vault_init]
+#--------------------------------------------------------------#
+# every member should be initialized & unsealed: new members join
+# the cluster with retry_join, and unseal with the static key
+- name: wait for vault member unsealed
+  command: bao status -format=json
+  environment:
+    BAO_ADDR: "https://127.0.0.1:{{ vault_port }}"
+    BAO_CACERT: /etc/openbao/tls/ca.crt
+  register: vault_status
+  changed_when: false
+  until: vault_status.rc == 0 and (vault_status.stdout|from_json).initialized and not (vault_status.stdout|from_json).sealed
+  retries: 24
+  delay: 5
+...

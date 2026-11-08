@@ -1,0 +1,153 @@
+---
+#==============================================================#
+# File      :   vault.yml
+# Ctime     :   2026-07-30
+# Mtime     :   2026-11-08
+# Desc      :   Record & alert rules for vault (openbao)
+# Path      :   /infra/rules/vault.yml
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# OpenBao keeps the upstream `vault_` metric prefix on /v1/sys/metrics
+# https://openbao.org/docs/internals/telemetry/metrics/
+# go-metrics summaries are emitted in ms, counters carry no _total suffix
+# autopilot & follower metrics are emitted by the leader only, and are
+# kept by the sink for 24h after step-down: read them from the current
+# active member, node_id / peer_id equals vault_instance (ins)
+#==============================================================#
+
+groups:
+  ################################################################
+  #                         Vault Rules                          #
+  ################################################################
+  - name: vault-rules
+    rules:
+
+      # request rate per second (non-login & login)
+      - record: vault:ins:req_rps
+        expr: rate(vault_core_handle_request_count{job="vault"}[1m])
+      - record: vault:ins:login_rps
+        expr: rate(vault_core_handle_login_request_count{job="vault"}[1m])
+
+      # mean request latency in seconds over 5m (source metric is in ms)
+      # no request in window -> 0/0 = NaN, which is dropped (no data)
+      - record: vault:ins:req_rt_avg_5m
+        expr: >-
+          rate(vault_core_handle_request_sum{job="vault"}[5m])
+          / rate(vault_core_handle_request_count{job="vault"}[5m]) / 1000
+      - record: vault:cls:req_rt_avg_5m
+        expr: >-
+          sum by (job,cls) (rate(vault_core_handle_request_sum{job="vault"}[5m]))
+          / sum by (job,cls) (rate(vault_core_handle_request_count{job="vault"}[5m])) / 1000
+
+      # unsealed & active (leader) members of cluster, active should be exactly 1
+      - record: vault:cls:unsealed
+        expr: sum by (job,cls) (vault_core_unsealed{job="vault"})
+      - record: vault:cls:active
+        expr: sum by (job,cls) (vault_core_active{job="vault"})
+
+      # autopilot view of the current active member
+      - record: vault:cls:autopilot_healthy
+        expr: max by (job,cls) (vault_autopilot_healthy{job="vault"} and on(ins) (vault_core_active{job="vault"} == 1))
+      - record: vault:cls:failure_tolerance
+        expr: max by (job,cls) (vault_autopilot_failure_tolerance{job="vault"} and on(ins) (vault_core_active{job="vault"} == 1))
+      - record: vault:ins:autopilot_healthy
+        expr: max by (job,cls,ins) (label_replace(vault_autopilot_node_healthy{job="vault"} and on(ins) (vault_core_active{job="vault"} == 1), "ins", "$1", "node_id", "(.+)"))
+
+      # raft replication lag (log entries) & last heartbeat (ms) of each follower
+      - record: vault:ins:raft_lag
+        expr: max by (job,cls,ins) (label_replace(vault_raft_storage_follower_applied_index_delta{job="vault"} and on(ins) (vault_core_active{job="vault"} == 1), "ins", "$1", "peer_id", "(.+)"))
+      - record: vault:ins:raft_heartbeat_ms
+        expr: max by (job,cls,ins) (label_replace(vault_raft_storage_follower_last_heartbeat_ms{job="vault"} and on(ins) (vault_core_active{job="vault"} == 1), "ins", "$1", "peer_id", "(.+)"))
+
+      # audit device failures in last 5m: openbao rejects requests when audit fails
+      # failure counters only show up after the first failure, increase_pure counts from 0
+      - record: vault:ins:audit_failure_5m
+        expr: sum by (job,cls,ins,ip,instance) (increase_pure({__name__=~"vault_audit_log_(request|response)_failure",job="vault"}[5m]))
+
+      # latest successful local raft snapshot of each member (node_exporter textfile)
+      - record: vault:ins:backup_time
+        expr: max by (ip) (vault_backup_last_success_timestamp_seconds) + on(ip) group_right() vault_up * 0
+      - record: vault:ins:backup_size
+        expr: max by (ip) (vault_backup_size_bytes) + on(ip) group_right() vault_up * 0
+
+
+  ################################################################
+  #                         Vault Alert                          #
+  ################################################################
+  - name: vault-alert
+    rules:
+
+      # metrics scrape failure: process down or unreachable (sealed members are still scraped)
+      - alert: VaultDown
+        expr: vault_up < 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: vault }
+        annotations:
+          summary: "CRIT VaultDown {{ $labels.ins }}@{{ $labels.instance }}"
+          description: |
+            vault_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
+            metrics of the member can not be scraped: check openbao service on {{ $labels.ip }}
+            /ui/d/vault-overview
+
+      # member reports itself sealed: a sealed single node also triggers VaultNoLeader
+      - alert: VaultSealed
+        expr: vault_core_unsealed{job="vault"} < 1
+        for: 1m
+        labels: { level: 1, severity: WARN, category: vault }
+        annotations:
+          summary: "WARN VaultSealed {{ $labels.ins }}@{{ $labels.instance }}"
+          description: |
+            vault_core_unsealed[ins={{ $labels.ins }}] = {{ $value }} < 1
+            the member is sealed and can not serve keys: check `bao status` on {{ $labels.ip }}
+            /ui/d/vault-overview?var-cls={{ $labels.cls }}
+
+      # not exactly one active member observed: kms outage for cache misses & restarts
+      - alert: VaultNoLeader
+        expr: vault:cls:active != 1
+        for: 30s
+        labels: { level: 0, severity: CRIT, category: vault }
+        annotations:
+          summary: "CRIT VaultNoLeader: {{ $labels.cls }} {{ $value }}"
+          description: |
+            vault:cls:active[cls={{ $labels.cls }}] = {{ $value }} != 1
+            /ui/d/vault-overview?from=now-5m&to=now&var-cls={{ $labels.cls }}
+
+      # audit device rejects writes: openbao rejects requests, check disk
+      - alert: VaultAuditFailure
+        expr: vault:ins:audit_failure_5m > 0
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: vault }
+        annotations:
+          summary: "CRIT VaultAuditFailure: {{ $labels.cls }} {{ $labels.ins }}"
+          description: |
+            vault:ins:audit_failure_5m[ins={{ $labels.ins }}] = {{ $value | printf "%.0f" }} > 0
+            requests are rejected while the audit log can not be written, check disk on {{ $labels.ip }}
+            /ui/d/vault-overview?var-cls={{ $labels.cls }}
+
+      # production cluster (3+ members) can not survive another member failure
+      - alert: VaultNoFailureTolerance
+        expr: >-
+          (vault:cls:failure_tolerance < 1)
+          and on (job,cls) (count by (job,cls) (vault_up) >= 3)
+        for: 2m
+        labels: { level: 1, severity: WARN, category: vault }
+        annotations:
+          summary: "WARN VaultNoFailureTolerance: {{ $labels.cls }} {{ $value }}"
+          description: |
+            vault:cls:failure_tolerance[cls={{ $labels.cls }}] = {{ $value }} < 1
+            losing one more member loses quorum
+            /ui/d/vault-overview?var-cls={{ $labels.cls }}
+
+      # no successful local snapshot on the member for 26h (or never)
+      - alert: VaultBackupStale
+        expr: time() - (vault:ins:backup_time or vault_up * 0) > 26 * 3600
+        for: 5m
+        labels: { level: 1, severity: WARN, category: vault }
+        annotations:
+          summary: "WARN VaultBackupStale {{ $labels.ins }}@{{ $labels.instance }}"
+          description: |
+            last successful snapshot of {{ $labels.ins }} is {{ $value | humanizeDuration }} ago (or never)
+            check `journalctl -t vault-backup` and node_exporter on {{ $labels.ip }}
+            /ui/d/vault-overview?var-cls={{ $labels.cls }}
+...

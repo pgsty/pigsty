@@ -87,11 +87,15 @@
     - name: config node_exporter systemd unit
       copy: src=node_exporter.svc dest=/etc/systemd/system/node_exporter.service
 
+    # modules (e.g. vault-backup) drop <module>.prom files here
+    - name: create node_exporter textfile directory
+      file: path=/var/lib/node_exporter/textfile state=directory owner=root group=root mode=0755
+
     - name: config default node_exporter options
       copy:
         dest: /etc/default/node_exporter
         content: |
-          NODE_EXPORTER_OPTS="--web.listen-address=':{{ node_exporter_port }}' --web.telemetry-path='{{ exporter_metrics_path }}' {{ node_exporter_options }}"
+          NODE_EXPORTER_OPTS="--web.listen-address=':{{ node_exporter_port }}' --web.telemetry-path='{{ exporter_metrics_path }}' --collector.textfile.directory=/var/lib/node_exporter/textfile {{ node_exporter_options }}"
 
 #--------------------------------------------------------------#
 # Launch node_exporter                    [node_exporter_launch]

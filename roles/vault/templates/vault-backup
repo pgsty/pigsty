@@ -1,0 +1,65 @@
+#!/bin/bash
+set -euo pipefail
+umask 077
+#==============================================================#
+# File      :   vault-backup
+# Desc      :   take a raft snapshot from the ACTIVE vault member
+# Path      :   /usr/local/bin/vault-backup
+# Usage     :   vault-backup [keep]     # keep latest N snapshots, 7 by default
+# Output    :   path of the new snapshot file on the last stdout line
+# Note      :   ANSIBLE MANAGED, DO NOT CHANGE!
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# restore: keep the matching unseal.key, init.json and service/TLS configuration
+#   bao operator raft snapshot restore -force <file>
+#==============================================================#
+KEEP="${1:-7}"
+[[ "${KEEP}" =~ ^[1-9][0-9]*$ ]] || { echo 'keep must be a positive integer' >&2; exit 1; }
+BACKUP_DIR="{{ vault_data }}/backup"
+TOKEN_FILE="/etc/openbao/backup.token"
+export BAO_CACERT="/etc/openbao/tls/ca.crt"
+export BAO_ADDR="https://127.0.0.1:{{ vault_port }}"
+
+if [[ ! -s "${TOKEN_FILE}" ]]; then
+    echo "$(date '+%F %T') [FAIL] backup token ${TOKEN_FILE} not found" >&2
+    exit 1
+fi
+
+# a standby may serve its own (possibly stale) raft state, always ask the active member
+LEADER=$(curl -fsS --max-time 10 --cacert "${BAO_CACERT}" "${BAO_ADDR}/v1/sys/leader" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("leader_address") or "")')
+if [[ -z "${LEADER}" ]]; then
+    echo "$(date '+%F %T') [FAIL] no active vault member found" >&2
+    exit 2
+fi
+
+mkdir -p "${BACKUP_DIR}"
+FILE="${BACKUP_DIR}/vault-$(date +%Y%m%d-%H%M%S)-$$.snap"
+trap 'rm -f "${FILE}.tmp"' EXIT
+BAO_ADDR="${LEADER}" BAO_TOKEN="$(cat "${TOKEN_FILE}")" bao operator raft snapshot save "${FILE}.tmp"
+chmod 0600 "${FILE}.tmp"
+mv -f "${FILE}.tmp" "${FILE}"
+
+# export snapshot metrics to node_exporter textfile collector (if enabled), only on success
+PROM_DIR="/var/lib/node_exporter/textfile"
+if [[ -d "${PROM_DIR}" ]]; then
+    printf '%s\n' \
+        '# HELP vault_backup_last_success_timestamp_seconds unix time of the latest successful local vault snapshot' \
+        '# TYPE vault_backup_last_success_timestamp_seconds gauge' \
+        "vault_backup_last_success_timestamp_seconds $(date +%s)" \
+        '# HELP vault_backup_size_bytes size of the latest successful local vault snapshot' \
+        '# TYPE vault_backup_size_bytes gauge' \
+        "vault_backup_size_bytes $(stat -c %s "${FILE}")" > "${PROM_DIR}/vault.prom.tmp"
+    mv -f "${PROM_DIR}/vault.prom.tmp" "${PROM_DIR}/vault.prom"
+fi
+
+# retention: keep latest ${KEEP} snapshots
+python3 - "${BACKUP_DIR}" "${KEEP}" <<'PY'
+import pathlib, sys
+snapshots = sorted(pathlib.Path(sys.argv[1]).glob('vault-*.snap'), key=lambda p: p.stat().st_mtime, reverse=True)
+for snapshot in snapshots[int(sys.argv[2]):]:
+    snapshot.unlink(missing_ok=True)
+PY
+
+echo "$(date '+%F %T') [ OK ] snapshot from ${LEADER} saved to ${FILE}" >&2
+echo "${FILE}"

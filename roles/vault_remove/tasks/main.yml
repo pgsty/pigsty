@@ -1,0 +1,144 @@
+---
+#--------------------------------------------------------------#
+# HONOR VAULT_SAFEGUARD                        [vault_safeguard]
+#--------------------------------------------------------------#
+- name: ABORT due to vault_safeguard enabled
+  connection: local
+  when: vault_safeguard|bool
+  tags: [ always , vault_safeguard ]
+  any_errors_fatal: true
+  ignore_errors: false
+  fail: msg="Abort due to vault_safeguard for {{ vault_cluster }}-{{ vault_seq }} @ {{ inventory_hostname }} is enabled (TRUE by default), override with -e vault_safeguard=false"
+
+- name: build vault identity
+  tags: always
+  set_fact:
+    vault_instance: "{{ vault_cluster }}-{{ vault_seq }}"
+    vault_members: "{{ groups['vault'] | default([]) | sort }}"
+    vault_remove_all: "{{ (groups['vault'] | default([]) | difference(ansible_play_hosts_all) | length) == 0 }}"
+
+- name: validate vault data path before removal
+  tags: always
+  assert:
+    that:
+      - vault_data is match('^/[^/]+/[^/]+') and '..' not in vault_data.split('/')
+      - vault_data not in ['/var/lib', '/var/log', '/home/dba', '/etc/openbao/tls']
+    fail_msg: 'vault_data must be a dedicated absolute directory, never a shared parent directory'
+
+#--------------------------------------------------------------#
+# LIST DEPENDENT CONSUMERS                      [vault_consumer]
+#--------------------------------------------------------------#
+# when removing the entire cluster, show which pg_tde clusters (tde/*)
+# and kes clusters (kes/*) will lose their keys forever
+- name: list vault consumers before removal
+  no_log: true
+  tags: vault_consumer
+  when: vault_remove_all|bool
+  run_once: true
+  ignore_errors: true
+  environment:
+    BAO_ADDR: "https://127.0.0.1:{{ vault_port }}"
+    BAO_CACERT: /etc/openbao/tls/ca.crt
+    BAO_TOKEN: "{{ (lookup('file', playbook_dir + '/files/pki/vault/init.json', errors='ignore') | default('{}', true) | from_json).root_token | default('') }}"
+  shell: bao secrets list -format=json | python3 -c 'import json,sys; print(" ".join(k for k in json.load(sys.stdin) if k.startswith(("tde/","kes/"))))'
+  args: { executable: /bin/bash }
+  register: vault_consumers
+
+- name: show vault consumers that will lose their keys
+  tags: vault_consumer
+  when: vault_remove_all|bool and vault_consumers is defined and vault_consumers.stdout|default('') != ''
+  run_once: true
+  debug:
+    msg: "WARNING: removing vault makes data of these consumers PERMANENTLY unreadable: {{ vault_consumers.stdout }}"
+
+#--------------------------------------------------------------#
+# PAUSE FOR CONFIRMATION                           [vault_pause]
+#--------------------------------------------------------------#
+# pause longer than other modules on purpose: this destroys key material
+- name: "pause for confirmation, Use Ctrl-C to ABORT"
+  tags: vault_pause
+  pause: { seconds: 5 }
+
+#--------------------------------------------------------------#
+# remove vault targets from victoria          [vault_deregister]
+#--------------------------------------------------------------#
+- name: remove vault from victoria targets
+  tags: [ vault_deregister, deregister , rm_metrics ]
+  ignore_errors: true
+  delegate_to: '{{ item }}'
+  loop: '{{ groups["infra"]|default([]) }}'
+  file: path="/infra/targets/vault/{{ vault_instance }}.yml" state=absent
+
+#--------------------------------------------------------------#
+# leave vault raft cluster                         [vault_leave]
+#--------------------------------------------------------------#
+# only when part of the cluster survives this play
+- import_tasks: leave.yml
+  tags: vault_leave
+  when: not vault_remove_all|bool
+
+#--------------------------------------------------------------#
+# Remove vault service                               [vault_svc]
+#--------------------------------------------------------------#
+# stop scheduled backup and drop backup metrics, even if data is kept
+- name: remove vault backup crontab and metrics
+  tags: vault_svc
+  file: path={{ item }} state=absent
+  loop:
+    - /etc/cron.d/vault-backup
+    - /var/lib/node_exporter/textfile/vault.prom
+
+- name: stop openbao service
+  tags: vault_svc
+  ignore_errors: true
+  shell: |
+    systemctl disable openbao 2>/dev/null
+    systemctl stop openbao 2>/dev/null
+    # kill if still exists
+    if pgrep -u openbao -f 'bao server' >/dev/null; then
+        sleep 2; pkill -u openbao -f 'bao server'
+    fi
+    if pgrep -u openbao -f 'bao server' >/dev/null; then
+        sleep 5; pkill -9 -u openbao -f 'bao server'
+    fi
+    exit 0
+  args: { executable: /bin/bash }
+
+- name: remove vault haproxy service
+  tags: vault_svc
+  ignore_errors: true
+  shell: |
+    if [ -f /etc/haproxy/conf.d/vault.cfg ]; then
+        rm -f /etc/haproxy/conf.d/vault.cfg
+        systemctl reload haproxy 2>/dev/null || true
+    fi
+    exit 0
+  args: { executable: /bin/bash }
+
+#--------------------------------------------------------------#
+# Remove vault data                                 [vault_data]
+#--------------------------------------------------------------#
+# /etc/openbao holds tls keys, the node copy of unseal key & backup token.
+# local snapshots in {{ vault_data }}/backup go with the data dir.
+# admin node files/pki/vault/* and /var/log/openbao are NEVER touched.
+- name: remove vault data
+  tags: vault_data
+  when: vault_rm_data|bool
+  file: path={{ item }} state=absent
+  loop:
+    - /etc/openbao
+    - "{{ vault_data }}"
+    - /etc/systemd/system/openbao.service
+    - /etc/profile.d/bao.sh
+    - /etc/logrotate.d/openbao
+    - /usr/local/bin/vault-backup
+
+#--------------------------------------------------------------#
+# Uninstall openbao packages                         [vault_pkg]
+#--------------------------------------------------------------#
+- name: uninstall openbao package
+  tags: vault_pkg
+  when: vault_rm_pkg|bool
+  ignore_errors: true
+  package: name=openbao state=absent
+...

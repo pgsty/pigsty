@@ -1,0 +1,211 @@
+---
+#--------------------------------------------------------------#
+# Vault identity                                  [vault_assert]
+#--------------------------------------------------------------#
+# vault members are defined in the fixed group `vault`, like `etcd`
+# topology is derived from member count: 1 = lab, 3 = production
+- name: vault identity
+  tags: [ always, vault_assert ]
+  block:
+
+    - name: assert vault identity
+      assert:
+        that:
+          - vault_seq is defined and vault_seq|string is match('^[0-9]+$') and vault_seq|int >= 0
+          - "'vault' in group_names"
+          - groups['vault'] | map('extract', hostvars, 'vault_seq') | map('int') | unique | length == groups['vault'] | length
+          - vault_data is match('^/[^/]+/[^/]+') and '..' not in vault_data.split('/')
+        fail_msg: "group 'vault' requires unique nonnegative integer vault_seq values and a dedicated absolute vault_data directory"
+
+    # vault_instance : vault-<seq>, raft node id and cert common name
+    # vault_members  : sorted member ip list
+    # vault_seq_min  : the member with the smallest seq bootstraps the cluster
+    # vault_vip      : node l2 vip of vault cluster (if enabled), entry of haproxy
+    - name: build vault identity
+      set_fact:
+        vault_instance: "{{ vault_cluster }}-{{ vault_seq }}"
+        vault_members: "{{ groups['vault'] | sort }}"
+        vault_seq_min: "{{ groups['vault'] | map('extract', hostvars, 'vault_seq') | map('int') | min }}"
+        vault_vip: "{{ (vip_address|default('')).split('/')[0] if (vip_enabled|bool) else '' }}"
+
+    - name: warn about two-member vault cluster
+      when: groups['vault'] | length == 2
+      run_once: true
+      debug:
+        msg: "WARNING: a 2-member raft cluster tolerates NO failure, losing either member loses quorum. Use 1 (lab) or 3 (production) members."
+
+
+#--------------------------------------------------------------#
+# Install openbao                                [vault_install]
+#--------------------------------------------------------------#
+- name: install openbao
+  tags: vault_install
+  block:
+    - name: install openbao package
+      environment: "{{ proxy_env | default({}) }}"
+      package: name=openbao state=present
+    - name: ensure openbao os group exists
+      group: name=openbao system=yes
+    - name: ensure openbao os user exists
+      user: name=openbao group=openbao system=yes create_home=no
+
+
+#--------------------------------------------------------------#
+# Create vault directories                           [vault_dir]
+#--------------------------------------------------------------#
+- name: create vault directories
+  tags: vault_dir
+  block:
+    - name: ensure node_data directory exists
+      when: vault_data.startswith(node_data)
+      file: path={{ node_data }} state=directory owner=root group=root mode=0755
+    - name: ensure vault directories exist
+      file: path={{ item.path }} state=directory owner={{ item.owner }} group={{ item.group }} mode={{ item.mode }}
+      loop:
+        - { path: "/etc/openbao"             ,owner: "root"    ,group: "openbao" ,mode: "0750" }
+        - { path: "/etc/openbao/tls"         ,owner: "root"    ,group: "openbao" ,mode: "0750" }
+        - { path: "{{ vault_data }}"         ,owner: "openbao" ,group: "openbao" ,mode: "0700" }
+        - { path: "{{ vault_data }}/raft"    ,owner: "openbao" ,group: "openbao" ,mode: "0700" }
+        - { path: "{{ vault_data }}/backup"  ,owner: "root"    ,group: "root"    ,mode: "0700" }
+        - { path: "/var/log/openbao"         ,owner: "openbao" ,group: "openbao" ,mode: "0750" }
+
+
+#--------------------------------------------------------------#
+# Config vault                                    [vault_config]
+#--------------------------------------------------------------#
+- import_tasks: config.yml
+  tags: vault_config
+
+
+#--------------------------------------------------------------#
+# Launch vault                                    [vault_launch]
+#--------------------------------------------------------------#
+# restart only when cert / seal / config changed, start otherwise
+# Serialize the whole restart/readiness sequence, including in deploy.yml.
+- name: record vault restart requirement
+  tags: vault_launch
+  set_fact:
+    vault_restart_required: "{{ (vault_cert_copy|default({})) is changed or (vault_seal_copy|default({})) is changed or (vault_conf|default({})) is changed or (vault_unit|default({})) is changed }}"
+
+- name: launch vault members one at a time
+  tags: vault_launch
+  when: not ansible_check_mode
+  run_once: true
+  include_tasks:
+    file: launch.yml
+    apply: { tags: vault_launch }
+  loop: "{{ ansible_play_hosts }}"
+  loop_control: { loop_var: vault_launch_host }
+
+
+#--------------------------------------------------------------#
+# Init vault                                        [vault_init]
+#--------------------------------------------------------------#
+- import_tasks: init.yml
+  tags: vault_init
+  when: not ansible_check_mode
+
+
+#--------------------------------------------------------------#
+# Provision vault                              [vault_provision]
+#--------------------------------------------------------------#
+- import_tasks: provision.yml
+  tags: vault_provision
+  when: not ansible_check_mode
+
+
+#--------------------------------------------------------------#
+# Vault HA entry                                 [vault_haproxy]
+#--------------------------------------------------------------#
+# when node vip is enabled on vault cluster: bind haproxy on vip:port
+# and route requests to the active member (/v1/sys/health == 200)
+- name: setup vault haproxy entry
+  tags: vault_haproxy
+  when: haproxy_enabled|default(true)|bool
+  block:
+    - name: render vault haproxy service
+      when: vault_vip != '' and vault_members|length > 1
+      template: src=vault.cfg dest=/etc/haproxy/conf.d/vault.cfg owner=root mode=0644
+      register: vault_haproxy_render
+    - name: remove vault haproxy service
+      when: not (vault_vip != '' and vault_members|length > 1)
+      file: path=/etc/haproxy/conf.d/vault.cfg state=absent
+      register: vault_haproxy_remove
+    - name: check haproxy config before reload
+      when: vault_haproxy_render is changed or vault_haproxy_remove is changed
+      command: /usr/sbin/haproxy -Ws -f /etc/haproxy/haproxy.cfg -f /etc/haproxy/conf.d -c -q
+    - name: reload haproxy for vault service
+      when: vault_haproxy_render is changed or vault_haproxy_remove is changed
+      systemd: name=haproxy state=reloaded enabled=yes daemon_reload=yes
+
+
+#--------------------------------------------------------------#
+# Vault backup                                    [vault_backup]
+#--------------------------------------------------------------#
+# every member takes a daily snapshot from the active member
+- name: setup vault backup
+  tags: vault_backup
+  block:
+    - name: install vault backup token
+      when: (playbook_dir + '/files/pki/vault/backup.token') is file
+      no_log: true
+      diff: false
+      copy: src={{ playbook_dir }}/files/pki/vault/backup.token dest=/etc/openbao/backup.token owner=root group=root mode=0600
+    - name: install vault-backup script
+      template: src=vault-backup dest=/usr/local/bin/vault-backup owner=root group=root mode=0755
+    - name: install vault-backup crontab
+      copy:
+        dest: /etc/cron.d/vault-backup
+        owner: root
+        group: root
+        mode: '0644'
+        content: |
+          # {{ vault_instance }} daily raft snapshot, managed by pigsty, logs: journalctl -t vault-backup
+          {{ (vault_seq|int * 10) % 60 }} 3 * * * root /usr/local/bin/vault-backup 2>&1 | logger -t vault-backup
+
+    # right after a fresh init, keep an initial snapshot on admin node
+    - name: take initial vault snapshot
+      when: vault_seq|int == vault_seq_min|int and (vault_init_result|default({})) is changed
+      command: /usr/local/bin/vault-backup
+      register: vault_initial_snapshot
+    - name: fetch initial vault snapshot to admin node
+      when: vault_seq|int == vault_seq_min|int and (vault_init_result|default({})) is changed
+      fetch: src={{ vault_initial_snapshot.stdout_lines | last }} dest={{ playbook_dir }}/files/pki/vault/backup/ flat=yes
+    - name: restrict initial snapshot permissions on admin node
+      when: vault_seq|int == vault_seq_min|int and (vault_init_result|default({})) is changed
+      become: false
+      delegate_to: localhost
+      file:
+        path: "{{ playbook_dir }}/files/pki/vault/backup/{{ vault_initial_snapshot.stdout_lines | last | basename }}"
+        mode: '0600'
+
+    # every member keeps its own local snapshot (and backup metrics) from day one
+    - name: take first vault snapshot on each member
+      command: /usr/local/bin/vault-backup
+      args: { creates: /var/lib/node_exporter/textfile/vault.prom }
+
+
+#--------------------------------------------------------------#
+# Register Vault to VictoriaMetrics             [vault_register]
+#--------------------------------------------------------------#
+- name: register vault as victoria target
+  tags: [ vault_register, register, add_metrics ]
+  ignore_errors: true
+  block:
+    - name: ensure vault target directory exists
+      delegate_to: '{{ item }}'
+      loop: '{{ groups["infra"]|default([]) }}'
+      file: path=/infra/targets/vault state=directory owner=victoria group=infra mode=0750
+    - name: render vault victoria target
+      delegate_to: '{{ item }}'
+      loop: '{{ groups["infra"]|default([]) }}'
+      copy:
+        dest: "/infra/targets/vault/{{ vault_instance }}.yml"
+        owner: victoria
+        group: infra
+        mode: '0640'
+        content: |
+          # {{ vault_instance }} @ {{ inventory_hostname }}
+          - labels: { ip: {{ inventory_hostname }} , ins: {{ vault_instance }} , cls: {{ vault_cluster }} }
+            targets: [ {{ inventory_hostname }}:{{ vault_port }} ]
+...

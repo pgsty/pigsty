@@ -1,0 +1,34 @@
+---
+# A single loop iteration must finish before the next member is restarted.
+- name: check vault member before restart
+  delegate_to: "{{ vault_launch_host }}"
+  command: >-
+    curl -fsS --max-time 5 --cacert /etc/openbao/tls/ca.crt
+    https://127.0.0.1:{{ vault_port }}/v1/sys/init
+  register: vault_before_restart
+  changed_when: false
+  failed_when: false
+
+- name: launch openbao service
+  delegate_to: "{{ vault_launch_host }}"
+  systemd:
+    name: openbao
+    enabled: yes
+    daemon_reload: yes
+    state: "{{ 'restarted' if hostvars[vault_launch_host].vault_restart_required|bool else 'started' }}"
+
+- name: wait for openbao online
+  delegate_to: "{{ vault_launch_host }}"
+  wait_for: host=127.0.0.1 port={{ vault_port }} state=started timeout=60
+
+- name: wait for existing vault member to rejoin before continuing
+  delegate_to: "{{ vault_launch_host }}"
+  when: vault_before_restart.rc == 0 and (vault_before_restart.stdout | from_json).initialized
+  command: >-
+    curl -fsS --max-time 5 --cacert /etc/openbao/tls/ca.crt
+    https://127.0.0.1:{{ vault_port }}/v1/sys/leader
+  register: vault_after_restart
+  changed_when: false
+  until: vault_after_restart.rc == 0 and (vault_after_restart.stdout | from_json).leader_address | default('') != ''
+  retries: 24
+  delay: 5

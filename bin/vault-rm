@@ -1,0 +1,171 @@
+#!/bin/bash
+set -uo pipefail
+#==============================================================#
+# File      :   vault-rm
+# Desc      :   Remove VAULT Cluster / Remove Members
+# Ctime     :   2026-11-08
+# Mtime     :   2026-11-08
+# Path      :   bin/vault-rm
+# Deps      :   ansible-playbook, vault-rm.yml
+# Docs      :   https://pigsty.io/docs/vault/admin
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+APP_DIR="$(cd "$(dirname "$0")" && pwd)"
+PIGSTY_HOME=$(cd "$(dirname "${APP_DIR}")" && pwd)
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+# bin/vault-rm              # remove entire vault cluster
+# bin/vault-rm [ip...]      # remove members from vault cluster
+
+
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+__CN='\033[0m';__CK='\033[0;30m';__CR='\033[0;31m';__CG='\033[0;32m';
+__CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';__CC='\033[0;36m';__CW='\033[0;37m';
+function log_info() {  printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n";   }
+function log_warn() {  printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n";   }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n";   }
+function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n"; }
+function log_input() { printf "[${__CM} IN ${__CN}] ${__CM}$*\n=> ${__CN}"; }
+function log_hint()  { printf "${__CB}$*${__CN}\n"; }
+function log_line()  { printf "${__CM}[$*] ===========================================${__CN}\n"; }
+function is_valid_ip(){
+    if [[ "$1" =~ ^(([0-9]|[0-9]{2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9]{2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])$ ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+#--------------------------------------------------------------#
+# Param
+#--------------------------------------------------------------#
+VAULT_CLUSTER=vault
+cd "${PIGSTY_HOME}" || exit 1
+
+#--------------------------------------------------------------#
+# Remove Entire Cluster                   [ 0 arg = remove all ]
+#--------------------------------------------------------------#
+# if no args given, remove entire vault cluster
+if (($# == 0)); then
+    log_line "WARNING"
+    log_warn "You are about to perform a vault Remove Operation!"
+    log_warn "This operation will Remove the vault cluster!"
+    log_warn "Keys in vault will be destroyed: pg_tde / kes encrypted data and backups become UNREADABLE forever!"
+    log_warn "Snapshots + files/pki/vault/unseal.key on admin node are the ONLY way back."
+
+    # vault_safeguard is TRUE by default: require the exact cluster name to proceed
+    log_input "type the vault cluster name '${VAULT_CLUSTER}' to confirm removal"
+    read -r VAULT_CONFIRM
+    if [[ "${VAULT_CONFIRM}" != "${VAULT_CLUSTER}" ]]; then
+        log_error "confirmation mismatch, abort"
+        exit 1
+    fi
+
+    # Countdown from 5 to 1
+    for i in 5 4 3 2 1; do
+        log_hint "\rCountdown: $i seconds remaining..."
+        sleep 1
+    done
+    log_warn "Proceeding with vault cluster remove operation."
+
+    log_line "EXECUTE"
+    log_warn "remove entire vault cluster '${VAULT_CLUSTER}'"
+    log_hint "$ ./vault-rm.yml -l ${VAULT_CLUSTER} -e vault_safeguard=false"
+
+    "${PIGSTY_HOME}/vault-rm.yml" -l "${VAULT_CLUSTER}" -e vault_safeguard=false
+
+    if [[ $? -ne 0 ]]; then
+      log_line "FAILURE"
+      log_error "fail to remove vault cluster '${VAULT_CLUSTER}'"
+      exit 2
+    fi
+    log_line "SUMMARY"
+    log_info "remove vault cluster ${VAULT_CLUSTER} complete!"
+    log_warn "nodes will not be removed from pigsty, to do so:"
+    log_hint "$ bin/node-rm ${VAULT_CLUSTER}"
+    exit 0
+fi
+
+
+#--------------------------------------------------------------#
+# Remove Members                       [1+ args = remove ips ]
+#--------------------------------------------------------------#
+# if args given, remove specific vault members by IP
+IP_LIST=""
+TARGET_PATTERN=""
+EXISTS_PATTERN="${VAULT_CLUSTER}"
+for ((i=1; i<=$#; i++))
+do
+  if ! is_valid_ip "${!i}"; then
+    log_error "invalid ip address given: ${!i}"
+    exit 1
+  fi
+  IP_LIST="${IP_LIST} ${!i}"
+  if [[ -z "${TARGET_PATTERN}" ]]; then
+    TARGET_PATTERN="${!i}"
+  else
+    TARGET_PATTERN="${TARGET_PATTERN},${!i}"
+  fi
+  EXISTS_PATTERN="${EXISTS_PATTERN},!${!i}"
+done
+
+#---------------------------------#
+# Planning
+#---------------------------------#
+log_line "PLANNING"
+log_info "remove vault members:${IP_LIST} from cluster '${VAULT_CLUSTER}'"
+log_warn "  remove members from cluster:"
+log_info "    $ ./vault-rm.yml -l '${TARGET_PATTERN}' -e vault_safeguard=false"
+
+log_line "WARNING"
+log_warn "You are about to perform a vault instance Remove Operation!"
+log_warn "This operation will Remove a vault instance from cluster!"
+log_warn "if this is not what your want, Ctrl+C to abort before start!"
+
+# Countdown from 5 to 1
+for i in 3 2 1; do
+    log_hint "\rCountdown: $i seconds remaining..."
+    sleep 1
+done
+log_warn "Proceeding with vault cluster remove operation."
+
+#---------------------------------#
+# Remove Members
+#---------------------------------#
+log_line "EXECUTE"
+log_warn "remove vault members${IP_LIST} from ${VAULT_CLUSTER}"
+log_hint "$ ./vault-rm.yml -l '${TARGET_PATTERN}' -e vault_safeguard=false"
+
+"${PIGSTY_HOME}/vault-rm.yml" -l "${TARGET_PATTERN}" -e vault_safeguard=false
+
+if [[ $? -ne 0 ]]; then
+  log_line "FAILURE"
+  log_error "fail to remove vault members ${IP_LIST} from ${VAULT_CLUSTER}"
+  exit 4
+fi
+log_info "remove vault members ${IP_LIST} from ${VAULT_CLUSTER} complete"
+
+#---------------------------------#
+# Summary
+#---------------------------------#
+log_line "SUMMARY"
+log_info "remove vault members ${IP_LIST} from ${VAULT_CLUSTER} success"
+
+log_line "INSTRUCTIONS"
+
+log_warn "NOW REMOVE OR COMMENT ${IP_LIST} IN THE CONFIG INVENTORY"
+log_hint "$ vi pigsty.yml"
+
+log_warn "also refresh haproxy entry & config of remaining vault members with"
+log_hint "$ ./vault.yml -l '${EXISTS_PATTERN}' -t vault_haproxy,vault_conf"
+
+log_warn "nodes will not be removed, if you want to remove this node:"
+log_hint "$ bin/node-rm  ${IP_LIST}"
+
+exit 0

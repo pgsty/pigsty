@@ -1,0 +1,72 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   vault.yml
+# Desc      :   init vault (openbao) cluster on fixed group vault
+# Ctime     :   2026-08-16
+# Mtime     :   2026-11-08
+# Path      :   vault.yml
+# Docs      :   https://pigsty.io/docs/vault/playbook
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: VAULT INIT
+  hosts: vault
+  gather_facts: no
+  become: true
+  roles:
+    - { role: node_id , tags: id  }
+    - { role: vault }
+
+#---------------------------------------------------------------
+# Usage
+#---------------------------------------------------------------
+# 1. define vault members in the fixed group `vault`
+#
+#  lab: 1 member              production: 3 members + l2 vip
+#  vault:                     vault:
+#    hosts:                     hosts:
+#      10.10.10.10:               10.10.10.11: { vault_seq: 1 }
+#        { vault_seq: 1 }         10.10.10.12: { vault_seq: 2 }
+#                                 10.10.10.13: { vault_seq: 3 }
+#                               vars:
+#                                 node_cluster: vault
+#                                 vip_enabled: true
+#                                 vip_vrid: 129
+#                                 vip_address: 10.10.10.8
+#
+#    and point `vault.pigsty` to the member (lab) or vip (prod):
+#    node_etc_hosts: [ '10.10.10.8 vault.pigsty' ]
+#
+# 2. Run playbook: ./vault.yml -l vault
+#    It will create the vault cluster, then auto-unseal on restart
+#    init material is saved to files/pki/vault/{init.json,unseal.key}
+#
+# 3. Add Member: define it in the inventory, then:
+#    ./vault.yml -l 10.10.10.14
+#    ./vault.yml -l vault -t vault_haproxy    # refresh haproxy members
+#
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+# bin/vault-add               # create or update vault cluster
+# bin/vault-add 10.10.10.14   # expand vault cluster with new member
+#
+#---------------------------------------------------------------
+# Tasks
+#---------------------------------------------------------------
+# vault_assert     : validate vault identity, derive topology
+# vault_install    : install openbao package
+# vault_dir        : create vault data & conf directories
+# vault_config     : generate vault config
+#   - vault_cert   : issue & copy vault server certificates
+#   - vault_seal   : generate & copy static unseal key
+#   - vault_conf   : render openbao.hcl, systemd unit, cli env
+# vault_launch     : launch openbao service (restart on change)
+# vault_init       : init cluster on the smallest seq member, once
+# vault_provision  : enable secret/ transit/ approle, backup token
+# vault_haproxy    : expose vip:8200 via haproxy (if vip enabled)
+# vault_backup     : install vault-backup script & daily crontab
+# vault_register   : register vault to victoria-metrics
+#---------------------------------------------------------------
+...

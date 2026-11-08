@@ -3,7 +3,7 @@
 # File      :   bootstrap
 # Desc      :   setup local repo & install boot utils
 # Ctime     :   2022-10-16
-# Mtime     :   2026-06-26
+# Mtime     :   2026-11-08
 # Path      :   bootstrap
 # Docs      :   https://pigsty.io/docs/setup/offline
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -15,46 +15,39 @@ PIGSTY_VERSION=v4.6.0
 #--------------------------------------------------------------#
 # Usage
 #--------------------------------------------------------------#
-#  boostrap [-r <region>] [-p <path>] [-k|--keep]
+#  ./bootstrap [-r|--region <region>] [-p|--path|--pkg <path>] [-k|--keep]
 #
-#  ./boostrap
-#     [-r|--region <region]   [default,china,europe]
-#     [-p|--path <path>]      specify another offline pkg path
-#     [-k|--keep]             keep existing upstream repo during bootstrap
+#  ./bootstrap
+#     [-h|--help]               show usage and exit
+#     [-r|--region <region>]    [default,china,europe]
+#     [-p|--path|--pkg <path>]  specify another offline pkg path
+#     [-k|--keep]               skip moving existing repo files to backup
 #--------------------------------------------------------------#
 # args
-#  -r  --region <region> : mirror region to use (default|china|europe)
-#  -p  --path   <path>   : offline packages path, /var/tmp/pkg.tgz by default
-#  -k  --keep            : keep upstream repo during bootstrap?
+#  -r  --region <region>   : mirror region to use (default|china|europe)
+#  -p  --path --pkg <path> : offline packages path, /var/tmp/pkg.tgz by default
+#  -k  --keep              : skip repo backup; generated repo files may still be replaced
 #--------------------------------------------------------------#
-REGION=""               # which mirror to use? (default|china)
-REMOVE_REPO="yes"       # keep existing upstream repo file?
+REGION=""               # which mirror to use? (default|china|europe)
+REMOVE_REPO="yes"       # move existing upstream repo files to backup?
 PKG_PATH=/var/tmp/pkg.tgz   # which pkg to be used ? (/var/tmp/pkg.tgz by default)
 
 
 #--------------------------------------------------------------#
 # Logic
 #--------------------------------------------------------------#
-# This script make sure two things:
-#    1. ansible is installed
-#    2. local repo is prepared, if /var/tmp/pkg.tgz exists
-# It perform following tasks:
-# 1. check preconditions
-#
-# 2. check local repo exists ?
-#    Y -> Extract and use local offline pkg if exists
-#    N -> Internet access available ?
-#        |- [Y] -> add internet upstream repo (optional keeping existing repo)
-#        |- [N] -> always keep existing repo, and leave it to user to install
-#  after step 2, we have software repo available: Local > Internet > Existing
-
-# 3. install boot utils from available repo
-#     nginx,wget,sshpass,yum-utils
-#     dnf-utils
-#     python3.12-jmespath (el8)
-#     python3-jmespath (el9)
-#
-# 4. Check ansible availability.
+# On Linux, prepare package repositories and install Ansible:
+# 1. Check the platform and passwordless sudo; try to fix localhost SSH.
+# 2. Reuse /www/pigsty if repo_complete exists. Otherwise, extract an
+#    existing offline package (default: /var/tmp/pkg.tgz, then /tmp/pkg.tgz).
+#    No offline package is downloaded. Failed extraction is cleaned up.
+# 3. Configure the local file repo if ready; otherwise, add upstream repos
+#    when the Internet probe succeeds. Keep existing repos if it fails.
+#    -k skips the normal move to backup, but generated files can be replaced;
+#    the legacy EL7 upstream setup always moves existing repo files.
+# 4. Refresh package metadata, then install Ansible and boot utilities if
+#    ansible-playbook is absent. Existing Ansible skips only this install.
+# On macOS, skip Linux setup and suggest brew install ansible if needed.
 #--------------------------------------------------------------#
 
 
@@ -266,7 +259,7 @@ function check_sudo(){
 # ssh
 #----------------------------------------------#
 # One MUST have nopass to localhost with same user
-# configure can fix that for you (via ssh-keygen)
+# bootstrap tries to fix that for you (via ssh-keygen and authorized_keys)
 
 function can_nopass_ssh(){
     local current_user=$(whoami)
@@ -316,7 +309,7 @@ function check_repo(){
     if [[ ${KERNEL} == "Darwin" ]]; then
         return 0
     fi
-    local pkg_path=${1-${PKG_PATH}}         # default download path : /var/tmp/pkg.tgz
+    local pkg_path=${1-${PKG_PATH}}         # default archive path : /var/tmp/pkg.tgz
     local repo_dir=${2-${REPO_DIR}}         # default repo directory: /www/pigsty
     local nginx_home=$(dirname ${repo_dir})
     local repo_name=$(basename ${repo_dir})
@@ -714,7 +707,7 @@ function check_repo_file(){
 #----------------------------------------------#
 # check utils
 #----------------------------------------------#
-# install ansible sshpass unzip wget yum , etc...
+# install ansible, sshpass, unzip, wget and platform-specific dependencies
 function check_utils(){
     local repo_name=${1-${REPO_NAME}}
     local nginx_home=${2-${NGINX_HOME}}
@@ -776,7 +769,7 @@ function main(){
     while [ $# -gt 0 ]; do
         case $1 in
             -h|--help)
-                echo './bootstrap [-r|--region <region>] [-p|--path <pkg>] [-y|--yes]'
+                echo './bootstrap [-r|--region <region>] [-p|--path|--pkg <path>] [-k|--keep]'
                 exit 0;;
             -r|--region) REGION="$2"       ; shift ;;
             -p|--path|--pkg) PKG_PATH="$2" ; shift ;;
@@ -799,7 +792,7 @@ function main(){
     check_repo || exit $? # create repo from pkg.tgz if exists
     check_repo_file       # create local file repo file if repo exists
     check_utils           # check ansible sshpass and other utils installed
-    log_info "boostrap pigsty complete"
+    log_info "bootstrap pigsty complete"
     log_hint "proceed with ./configure\n"
 }
 
