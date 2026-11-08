@@ -1,8 +1,8 @@
 #==============================================================#
 # File      :   digitalocean.tf
-# Desc      :   1-node pigsty meta for DigitalOcean (Debian 12/13)
+# Desc      :   1-node pigsty meta for DigitalOcean (Debian 13)
 # Ctime     :   2025-01-07
-# Mtime     :   2026-08-24
+# Mtime     :   2026-11-07
 # Path      :   terraform/spec/digitalocean.tf
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -14,15 +14,20 @@
 # Variables
 #===========================================================#
 variable "distro" {
-  description = "The distro code (d12 or d13)"
+  description = "The distro code (d13 = Debian 13)"
   type        = string
-  default     = "d12"      # d12 = Debian 12, d13 = Debian 13
+  default     = "d13"
+
+  validation {
+    condition     = var.distro == "d13"
+    error_message = "DigitalOcean has retired its Debian 12 image; use distro = \"d13\" (Debian 13)."
+  }
 }
 
 variable "region" {
   description = "DigitalOcean region"
   type        = string
-  default     = "sfo3"     # nyc1, nyc3, sfo3, ams3, sgp1, lon1, fra1, tor1, blr1
+  default     = "sfo3" # nyc1, nyc3, sfo3, ams3, sgp1, lon1, fra1, tor1, blr1
 }
 
 locals {
@@ -30,12 +35,11 @@ locals {
   # s-1vcpu-1gb: 1 vCPU, 1GB RAM, 25GB SSD, $6/mo
   # s-1vcpu-2gb: 1 vCPU, 2GB RAM, 50GB SSD, $12/mo
   # s-2vcpu-4gb: 2 vCPU, 4GB RAM, 80GB SSD, $24/mo
-  droplet_size = "s-2vcpu-4gb"  # 2 vCPU, 4GB RAM
+  droplet_size = "s-2vcpu-4gb" # 2 vCPU, 4GB RAM
 
-  # DigitalOcean image slugs are rolling per major release
-  # (Pigsty baseline: Debian 12.15 / 13.6).
+  # DigitalOcean retired its Debian 12 image. Use the rolling Debian 13 slug
+  # (Pigsty upstream baseline: Debian 13.7).
   image_map = {
-    d12 = "debian-12-x64"
     d13 = "debian-13-x64"
   }
 
@@ -82,7 +86,7 @@ resource "digitalocean_ssh_key" "pigsty_key" {
 resource "digitalocean_vpc" "pigsty_vpc" {
   name     = "pigsty-vpc"
   region   = var.region
-  ip_range = "10.10.0.0/16"  # DigitalOcean auto-assigns private IPs from this range
+  ip_range = "10.10.0.0/16" # DigitalOcean auto-assigns private IPs from this range
 }
 
 

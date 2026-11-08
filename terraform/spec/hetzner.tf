@@ -49,7 +49,7 @@ locals {
   }
 
   # Hetzner image names are rolling per major release
-  # (Pigsty baseline: Debian 12.15 / 13.6).
+  # (Pigsty baseline: Debian 12.15 / 13.7).
   image_map = {
     d12 = "debian-12"
     d13 = "debian-13"

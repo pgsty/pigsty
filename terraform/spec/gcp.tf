@@ -54,7 +54,7 @@ locals {
   }
 
   # Debian image families in project debian-cloud.
-  # Families are rolling per major release (Pigsty baseline: Debian 12.15 / 13.6).
+  # Families are rolling per major release (Pigsty baseline: Debian 12.15 / 13.7).
   image_family_map = {
     amd64 = {
       d12 = "debian-12"

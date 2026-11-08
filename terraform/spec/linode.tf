@@ -42,7 +42,7 @@ locals {
   instance_type = "g6-standard-2"  # 2 vCPU, 4GB RAM
 
   # Linode image IDs are rolling per major release
-  # (Pigsty baseline: Debian 12.15 / 13.6).
+  # (Pigsty baseline: Debian 12.15 / 13.7).
   image_map = {
     d12 = "linode/debian12"
     d13 = "linode/debian13"

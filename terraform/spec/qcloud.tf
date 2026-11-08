@@ -71,7 +71,7 @@ locals {
 
   # Image names for Debian on QCloud.
   # TencentCloud exposes major-release OS names; the data source resolves the
-  # current public image for that major version (Pigsty baseline: Debian 12.15 / 13.6).
+  # current public image for that major version (Pigsty baseline: Debian 12.15 / 13.7).
   image_name_map = {
     amd64 = {
       d12 = "Debian Server 12"

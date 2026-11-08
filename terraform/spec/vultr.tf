@@ -34,7 +34,7 @@ locals {
 
   # Vultr OS IDs (use data source to get dynamically).
   # Vultr publishes major-release labels, not point-release labels
-  # (Pigsty baseline: Debian 12.15 / 13.6).
+  # (Pigsty baseline: Debian 12.15 / 13.7).
   # Debian 12: os_id = 2136
   # Debian 13: os_id = 2625
   os_map = {

@@ -49,7 +49,7 @@ locals {
 
   # Debian image references.
   # Azure Marketplace versions are selected with "latest" for each major release
-  # (Pigsty baseline: Debian 12.15 / 13.6).
+  # (Pigsty baseline: Debian 12.15 / 13.7).
   image_map = {
     amd64 = {
       d12 = {

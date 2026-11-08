@@ -2,7 +2,7 @@
 # File      :   aliyun.tf
 # Desc      :   1-node pigsty meta for Aliyun (all distros, amd64/arm64)
 # Ctime     :   2020-05-12
-# Mtime     :   2026-08-24
+# Mtime     :   2026-11-07
 # Path      :   terraform/spec/aliyun.tf
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -55,7 +55,7 @@ locals {
       el10 = "^rockylinux_10_2_x64"
       d11  = "^debian_11_11_x64"
       d12  = "^debian_12_15_x64"
-      d13  = "^debian_13_6_x64"
+      d13  = "^debian_13_7_x64"
       u20  = "^ubuntu_20_04_x64"
       u22  = "^ubuntu_22_04_x64_20G"
       u24  = "^ubuntu_24_04_x64_20G"
@@ -68,7 +68,7 @@ locals {
       el9  = "^rockylinux_9_8_arm64"
       el10 = "^rockylinux_10_2_arm64"
       d12  = "^debian_12_15_arm64"
-      d13  = "^debian_13_6_arm64"
+      d13  = "^debian_13_7_arm64"
       u22  = "^ubuntu_22_04_arm64_20G"
       u24  = "^ubuntu_24_04_arm64_20G"
       u26  = "^ubuntu_26_04_arm64_20G"

@@ -49,7 +49,7 @@ locals {
 
   # Debian AMI owner: 136693071363 (Debian official)
   # Debian AMI names are rolling per major release; select the latest official
-  # image for the major version (Pigsty baseline: Debian 12.15 / 13.6).
+  # image for the major version (Pigsty baseline: Debian 12.15 / 13.7).
   ami_name_map = {
     amd64 = {
       d12 = "debian-12-amd64-*"
