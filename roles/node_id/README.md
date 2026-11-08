@@ -149,7 +149,7 @@ Each vars file (`vars/<os_code>.<arch>.yml`) provides ~700 variables including:
 The PostgreSQL 14-18 package-alias maps for all 16 currently supported
 EL8+/Debian 12+/Ubuntu 22+ platform and architecture combinations include
 `pg_local_cache` and `pg_policy`, keeping package resolution aligned with the
-575-extension online catalog. EL7 remains a legacy fallback map.
+626-extension online catalog. EL7 remains a legacy fallback map.
 
 China-region repository routes in these vars files now prefer Tencent Cloud
 for PGDG, operating-system, Docker, Grafana, Percona, and supported MongoDB
