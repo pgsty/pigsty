@@ -156,32 +156,34 @@ u24  -> cloud-image/ubuntu-24.04
 u26  -> cloud-image/ubuntu-26.04
 ```
 
-The generator pins every supported `cloud-image/*` box to the newest version verified on Vagrant Cloud, for reproducible amd64 and arm64 environments. Current pins are:
+The generator pins each `cloud-image/*` box to a published version for reproducible environments. On 2026-11-07, all 20 pins in `config` matched the latest active versions returned by the [Vagrant Cloud metadata API](https://vagrantcloud.com/api/v2/vagrant/cloud-image/ubuntu-24.04). All 13 `cloud-image/*` pins include both amd64 and arm64 builds for VirtualBox and libvirt. This check verifies published metadata; it does not test VM boot or provisioning. Current pins are:
 
 | Alias  | Vagrant box                | Version           |
 |--------|----------------------------|-------------------|
 | `el8`  | `cloud-image/rocky-8`      | `8.10.20240528.0` |
 | `el9`  | `cloud-image/rocky-9`      | `9.8.20260525.0`  |
 | `el10` | `cloud-image/rocky-10`     | `10.2.20260525.0` |
-| `d12`  | `cloud-image/debian-12`    | `20260806.2562.0` |
-| `d13`  | `cloud-image/debian-13`    | `20260810.2566.0` |
-| `u22`  | `cloud-image/ubuntu-22.04` | `20260810.0.0`    |
-| `u24`  | `cloud-image/ubuntu-24.04` | `20260801.0.0`    |
-| `u26`  | `cloud-image/ubuntu-26.04` | `20260731.0.0`    |
+| `d12`  | `cloud-image/debian-12`    | `20260923.2610.0` |
+| `d13`  | `cloud-image/debian-13`    | `20260914.2601.0` |
+| `u22`  | `cloud-image/ubuntu-22.04` | `20260926.0.0`    |
+| `u24`  | `cloud-image/ubuntu-24.04` | `20260926.0.0`    |
+| `u26`  | `cloud-image/ubuntu-26.04` | `20260927.0.0`    |
 
 AlmaLinux and legacy shortcuts are pinned by the same generator:
 
 | Alias    | Vagrant box                | Version           | Comment                             |
 |----------|----------------------------|-------------------|-------------------------------------|
-| `alma8`  | `cloud-image/almalinux-8`  | `8.10.20260803`   | EL8 vendor variant                  |
+| `alma8`  | `cloud-image/almalinux-8`  | `8.10.20260928`   | EL8 vendor variant                  |
 | `alma9`  | `cloud-image/almalinux-9`  | `9.8.20260810`    | EL9 vendor variant                  |
-| `alma10` | `cloud-image/almalinux-10` | `10.2.20260526.0` | EL10 vendor variant                 |
+| `alma10` | `cloud-image/almalinux-10` | `10.2.20260817.0` | EL10 vendor variant                 |
 | `d11`    | `cloud-image/debian-11`    | `20260618.2513.0` | EOL, outside the support matrix     |
 | `u20`    | `cloud-image/ubuntu-20.04` | `20250624.0.0`    | EOL, outside the support matrix     |
 
 Legacy `generic/*` fixtures (`rhel7/8/9`, `oracle7/8/9`, `centos7`) are pinned to their last published box release `4.3.12`.
 These discontinued images are amd64-only (except `generic/rhel9`) and no longer track current OS minors,
 so they remain only for explicit vendor-compatibility experiments.
+
+To review updates, query `https://vagrantcloud.com/api/v2/vagrant/<organization>/<box>` and check the active version's provider and architecture entries. A newer upstream cloud image does not imply that a corresponding Vagrant box has been published. When a compatible box update is available, update `BOX_VERSION_PINS` in `config` and the tables above, then regenerate `Vagrantfile` with the intended spec and provider.
 
 
 --------
