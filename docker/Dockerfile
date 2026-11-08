@@ -8,7 +8,7 @@
 #==============================================================#
 FROM debian:13.7@sha256:2dc419c6d7fe3dad0a2f9fd469c34cc90b0f9ba642d8fde837fe3d7d34a0e7f1
 
-ARG VERSION=4.5.0
+ARG VERSION=4.6.0
 
 LABEL maintainer="Ruohang Feng <rh@vonng.com>"
 LABEL org.opencontainers.image.title="Pigsty"
