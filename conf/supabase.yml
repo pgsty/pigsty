@@ -83,7 +83,7 @@ all:
             baseline: supabase.sql
             owner: supabase_admin
             comment: supabase postgres database
-            # Keep expiration synchronized with JWT_EXPIRY below; signing keys stay outside SQL.
+            # Match JWT_EXPIRY in app/supabase/.env (auth token lifetime, not static API key expiry).
             parameters: { 'app.settings.jwt_exp': 3600 }
             schemas: [ extensions ,auth ,realtime ,storage ,graphql_public ,supabase_functions ,_realtime ]
             extensions:
@@ -138,11 +138,15 @@ all:
           supabase:                                       # the definition of supabase app
             conf:                                         # override /opt/supabase/.env
 
-              # IMPORTANT: CHANGE JWT_SECRET AND REGENERATE CREDENTIAL ACCORDING!!!!!!!!!!!
-              # https://supabase.com/docs/guides/self-hosting/docker#securing-your-services
-              JWT_SECRET: your-super-secret-jwt-token-with-at-least-32-characters-long
-              ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJhbm9uIiwKICAgICJpc3MiOiAic3VwYWJhc2UtZGVtbyIsCiAgICAiaWF0IjogMTY0MTc2OTIwMCwKICAgICJleHAiOiAxNzk5NTM1NjAwCn0.dc_X5iR_VP_qT0zsiyj_I_OZ2T9FtRU2BBNWN8Bu4GE
-              SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyAgCiAgICAicm9sZSI6ICJzZXJ2aWNlX3JvbGUiLAogICAgImlzcyI6ICJzdXBhYmFzZS1kZW1vIiwKICAgICJpYXQiOiAxNjQxNzY5MjAwLAogICAgImV4cCI6IDE3OTk1MzU2MDAKfQ.DaYlNEoUrrEn2Ig7tqibS-PHK5vgusbcbo7X36XVt4Q
+              # Demo API keys follow the official Docker generate-keys.sh signing logic:
+              # Public demo JWT_SECRET; HS256 keys, issuer "supabase", five-year expiry.
+              # Source: https://github.com/supabase/supabase/blob/self-hosted/v0.8.4/docker/utils/generate-keys.sh
+              # This demo set was issued at 2026-11-08T00:28:01Z and expires at 2031-11-07T00:28:01Z.
+              # Regenerate JWT_SECRET, ANON_KEY, and SERVICE_ROLE_KEY together before production use.
+              # https://supabase.com/docs/guides/self-hosting/docker#configuring-and-securing-supabase
+              JWT_SECRET: pigsty-demo-jwt-secret-2026-11-08-change-before-production
+              ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYW5vbiIsImlzcyI6InN1cGFiYXNlIiwiaWF0IjoxNzk0MDk3NjgxLCJleHAiOjE5NTE3Nzc2ODF9.8-Y5zflO5LNwRP5qKm9Kgw2cMboaiTzWEeamQFSMHoM
+              SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoic2VydmljZV9yb2xlIiwiaXNzIjoic3VwYWJhc2UiLCJpYXQiOjE3OTQwOTc2ODEsImV4cCI6MTk1MTc3NzY4MX0.W3_AFd0Y2RrHEmAOezvuX6AeCqrfjpQonbYZ8plmAYE
               SUPABASE_PUBLISHABLE_KEY: ""
               SUPABASE_SECRET_KEY: ""
               JWT_KEYS: ""

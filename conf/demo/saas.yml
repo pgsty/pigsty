@@ -79,7 +79,8 @@ all:
         pg_hba_rules:
           - {user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes'}
         pg_libs: 'timescaledb,pg_stat_statements, auto_explain'  # add timescaledb to shared_preload_libraries
-        node_crontab:  # make one full backup 1 am everyday
+        pg_extensions: [ timescaledb, postgis, pgvector ] # packages required by pg_libs and meta
+        pg_crontab:  # make one full backup 1 am everyday
           - '00 01 * * * /pg/bin/pg-backup full'
 
     redis-ms: # redis classic primary & replica
@@ -110,7 +111,7 @@ all:
       wiki         : { domain: wiki.pigsty ,endpoint: "127.0.0.1:9002" }
       noco         : { domain: noco.pigsty ,endpoint: "127.0.0.1:9003" }
       supa         : { domain: supa.pigsty ,endpoint: "10.10.10.10:8000", websocket: true }
-      dify         : { domain: dify.pigsty ,endpoint: "10.10.10.10:8001", websocket: true }
+      dify         : { domain: dify.pigsty ,endpoint: "10.10.10.10:5001", websocket: true }
       odoo         : { domain: odoo.pigsty, endpoint: "127.0.0.1:8069"  , websocket: true }
 
     #----------------------------------#
@@ -142,7 +143,7 @@ all:
         retention_full_type: time     # retention full backup by time on minio repo
         retention_full: 14            # keep full backup for last 14 days
     node_etc_hosts: [ "${admin_ip} i.pigsty sss.pigsty" ]
-    dns_records: [ "${admin_ip} api.pigsty adm.pigsty cli.pigsty ddl.pigsty lab.pigsty git.pigsty wiki.pigsty noco.pigsty supa.pigsty dify.pigsty odoo.pigsty" ]
+    dns_records: [ "${admin_ip} i.pigsty m.pigsty api.pigsty adm.pigsty cli.pigsty ddl.pigsty lab.pigsty git.pigsty wiki.pigsty noco.pigsty supa.pigsty dify.pigsty odoo.pigsty" ]
 
     #----------------------------------#
     # Safe Guard
@@ -156,7 +157,7 @@ all:
     #----------------------------------#
     repo_remove: true                 # remove existing repo on admin node during repo bootstrap
     node_repo_remove: true            # remove existing node repo for node managed by pigsty
-    repo_extra_packages: [ pg17-core ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
+    repo_extra_packages: [ pg18-core ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
     pg_version: 18                    # default postgres version
     #pg_extensions: [ pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
 

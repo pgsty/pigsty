@@ -59,7 +59,7 @@ all:
         pg_databases:
           - { name: meta ,baseline: cmdb.sql ,comment: pigsty meta database ,schemas: [ pigsty ] ,extensions: [ { name: vector } ] }
         pg_services:
-          - { name: standby , ip: "*" ,port: 5435 , dest: default ,selector: "[]" , backup: "[? pg_role == `primary`]" }
+          - { name: standby , ip: "*" ,port: 5435 , dest: default ,selector: "[]" ,check: /sync , backup: "[? pg_role == `primary`]" }
         pg_crontab:     # https://pigsty.io/docs/pgsql/admin/crontab
           - '00 01 * * * /pg/bin/pg-backup full'
         pg_listen: '${ip},${vip},${lo}'
@@ -79,6 +79,7 @@ all:
     version: v4.5.0                   # pigsty version string
     admin_ip: 10.10.10.10             # admin node ip address
     region: default                   # upstream mirror region: default|china|europe
+    node_etc_hosts: [ "${admin_ip} i.pigsty sss.pigsty" ]
     node_tune: oltp                   # node tuning specs: oltp,olap,tiny,crit
     pg_conf: oltp.yml                 # pgsql tuning specs: {oltp,olap,tiny,crit}.yml
     #docker_registry_mirrors: ["https://docker.1panel.live","https://docker.1ms.run","https://docker.xuanyuan.me","https://registry-1.docker.io"]
@@ -165,7 +166,7 @@ all:
     node_repo_remove: true            # remove existing node repo for node managed by pigsty
     #node_selinux_mode: enforcing     # set selinux mode: enforcing,permissive,disabled
     node_firewall_mode: zone          # firewall mode: zone (default), off (disable), none (skip & self-managed)
-    repo_extra_packages: [ pg18-main ] #,pg18-core ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
+    repo_extra_packages: [ pg18-main, pg18-sec ] # security extensions used by this template
     pg_version: 18                    # default postgres version
     #pg_extensions: [ pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
 
@@ -174,7 +175,7 @@ all:
     #----------------------------------------------#
     #grafana_admin_username: admin
     grafana_admin_password: You.Have2Use-A_VeryStrongPassword
-    grafana_view_password: DBUser.Viewer
+    grafana_view_password: Make.3ure-Compl1ance
     #pg_admin_username: dbuser_dba
     pg_admin_password: PessWorb.Should8eStrong-eNough
     #pg_monitor_username: dbuser_monitor

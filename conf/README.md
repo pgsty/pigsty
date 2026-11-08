@@ -2,7 +2,7 @@
 
 This directory (`conf`) contains pigsty config templates, Which will be used during [`configure`](https://pigsty.io/docs/concept/iac/configure) procedure.
 
-Config templates can be designated using `./configure -c <conf>`, where the conf is a relative path to `conf` directory (with or without `.yml` suffix).
+Config templates can be designated using `./configure -c <conf>`, where the conf is a relative path to the `conf` directory. Bare names are searched in the root directory, then `ha/`, `fork/`, `app/`, `demo/`, and `build/`; explicit paths such as `fork/pgsql` are also accepted, with or without the `.yml` suffix. The OpenHalo kernel template is named `halo` so that `mysql` remains available for the standalone MySQL demo.
 
 ```bash
 ./configure                     # use the meta.yml config template by default
@@ -11,16 +11,16 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c slim             # use the minimal 1-node template
 
 # use different kernels
-./configure -c pgsql            # Vanilla PostgreSQL kernel with basic features (14~18)
-./configure -c mssql            # Babelfish kernel with SQL Server wire-compatibility (17)
-./configure -c polar            # PolarDB PG kernel for Aurora / RAC flavor postgres (17)
-./configure -c ivory            # IvorySQL Kernel for Oracle grammar compatibility (18)
-./configure -c mysql            # OpenHalo Kernel for MySQL Compatibility (14)
-./configure -c pgtde            # Percona PostgreSQL Server with TDE (18)
-./configure -c oriole           # OrioleDB Kernel for OLTP Enhancement (16/17/18)
+./configure -c fork/pgsql       # Vanilla PostgreSQL kernel with basic features (14~18)
+./configure -c fork/mssql       # Babelfish kernel with SQL Server wire-compatibility (17/18)
+./configure -c fork/polar       # PolarDB PG kernel for Aurora / RAC flavor postgres (17)
+./configure -c fork/ivory       # IvorySQL Kernel for Oracle grammar compatibility (18)
+./configure -c halo             # OpenHalo Kernel for MySQL Compatibility (14)
+./configure -c fork/pgtde       # Percona PostgreSQL Server with TDE (18)
+./configure -c fork/oriole      # OrioleDB Kernel for OLTP Enhancement (16/17/18)
 ./configure -c fork/agens       # AgensGraph kernel for Graph DB workloads (18)
-./configure -c mongo            # 1-node PostgreSQL Mongo mode (DocumentDB + FerretDB APP)
-./configure -c pgedge           # pgEdge kernel for distributed PostgreSQL workloads (18)
+./configure -c fork/mongo       # 1-node PostgreSQL Mongo mode (DocumentDB + FerretDB APP)
+./configure -c fork/pgedge      # pgEdge kernel for distributed PostgreSQL workloads (18)
 ./configure -c supabase         # PostgreSQL configured for Supabase self-hosting (15~18)
 ./configure -c pg19             # PostgreSQL 19 beta with PGDG testing repo and minimal runtime packages
 
@@ -28,6 +28,8 @@ Config templates can be designated using `./configure -c <conf>`, where the conf
 ./configure -c ha/dual          # use the 2-node HA template
 ./configure -c ha/trio          # use the 3-node HA template
 ./configure -c ha/full          # use the 4-node HA template
+./configure -c ha/safe          # use the 3-node security enhanced template
+./configure -c ha/octo          # use the 8-node HA template
 ./configure -c ha/citus         # use the 13-node HA citus template
 ./configure -c ha/simu          # use the 20-node HA prod template
 
@@ -53,20 +55,20 @@ These are 1-node config template, which can be used to install pigsty on a singl
 * [fat.yml](fat.yml) : extreme feature-rich config with all extensions installed!
 * [infra.yml](infra.yml) : only install the infra components without postgres
 * [vibe.yml](vibe.yml) : 1-node vibe coding devbox with pgsql and various tools
-* [mongo.yml](mongo.yml) : 1-node PostgreSQL Mongo mode with DocumentDB + FerretDB APP
+* [fork/mongo.yml](fork/mongo.yml) : 1-node PostgreSQL Mongo mode with DocumentDB + FerretDB APP
 * [docker.yml](docker.yml) : 1-node docker coding environment
 
 **Templates for exotic DBMS and kernels:**
 
-* [pgsql.yml](pgsql.yml) : Vanilla PostgreSQL kernel with basic features (14~18)
-* [mssql.yml](mssql.yml) : Babelfish kernel with SQL Server wire-compatibility (17)
-* [polar.yml](polar.yml) : PolarDB PG kernel for Aurora / RAC flavor postgres (17)
-* [ivory.yml](ivory.yml) : IvorySQL Kernel for Oracle grammar compatibility (18)
-* [mysql.yml](mysql.yml) : OpenHalo Kernel for MySQL Compatibility (14)
-* [pgtde.yml](pgtde.yml) : Percona PostgreSQL Server with TDE (18)
-* [oriole.yml](oriole.yml) : OrioleDB Kernel for OLTP Enhancement (17)
+* [fork/pgsql.yml](fork/pgsql.yml) : Vanilla PostgreSQL kernel with basic features (14~18)
+* [fork/mssql.yml](fork/mssql.yml) : Babelfish kernel with SQL Server wire-compatibility (17/18)
+* [fork/polar.yml](fork/polar.yml) : PolarDB PG kernel for Aurora / RAC flavor postgres (17)
+* [fork/ivory.yml](fork/ivory.yml) : IvorySQL Kernel for Oracle grammar compatibility (18)
+* [fork/halo.yml](fork/halo.yml) : OpenHalo Kernel for MySQL Compatibility (14)
+* [fork/pgtde.yml](fork/pgtde.yml) : Percona PostgreSQL Server with TDE (18)
+* [fork/oriole.yml](fork/oriole.yml) : OrioleDB Kernel for OLTP Enhancement (16/17/18)
 * [fork/agens.yml](fork/agens.yml) : AgensGraph kernel for Graph DB workloads (18)
-* [pgedge.yml](pgedge.yml) : pgEdge kernel for distributed PostgreSQL workloads (18)
+* [fork/pgedge.yml](fork/pgedge.yml) : pgEdge kernel for distributed PostgreSQL workloads (15~18)
 * [supabase.yml](supabase.yml) : PostgreSQL configured for Supabase self-hosting (15~18)
 * [pg19.yml](pg19.yml) : PostgreSQL 19 beta with PGDG testing repo and minimal runtime packages
 
@@ -82,7 +84,8 @@ You can configure pigsty to run on multiple nodes to form a high availability (H
 * [ha/dual.yml](ha/dual.yml) : 2-node semi-ha deployment
 * [ha/trio.yml](ha/trio.yml) : 3-node standard ha deployment
 * [ha/full.yml](ha/full.yml) : 4-node standard deployment
-* [ha/safe.yml](ha/safe.yml) : 4-node security enhanced setup with delayed replica
+* [ha/safe.yml](ha/safe.yml) : 3-node security enhanced setup
+* [ha/octo.yml](ha/octo.yml) : 8-node HA deployment with shared Silo VIP
 * [ha/citus.yml](ha/citus.yml) : 13-node distributive citus cluster
 * [ha/simu.yml](ha/simu.yml) : 20-node Production simulation
 
@@ -115,13 +118,14 @@ You can run docker software/app with the following templates:
 In addition to the main templates, Pigsty provides a set of demo templates for different scenarios.
 
 * [demo/bare.yml](demo/bare.yml) : minimal barebone 1-node starter config.
-* [demo/el.yml](demo/el.yml) : config file with all default parameters for EL 8/9 systems.
-* [demo/debian.yml](demo/debian.yml) : config file with all default parameters for debian/ubuntu systems.
+* [demo/el.yml](demo/el.yml) : four-node EL 8/9/10 sandbox reference configuration.
+* [demo/debian.yml](demo/debian.yml) : four-node Debian/Ubuntu sandbox reference configuration.
 * [demo/kernel.yml](demo/kernel.yml) : 10-node kernel matrix demo with one config file.
 * [demo/remote.yml](demo/remote.yml) : example config for monitoring a remote pgsql cluster or RDS PG.
 * [demo/redis.yml](demo/redis.yml) : example config for redis clusters
-* [demo/minio.yml](demo/minio.yml) : example config for a 3-node minio clusters
-* [demo/saas.yml](demo/saas.yml) : feature-rich 1-node template with all extensions.
+* [demo/minio.yml](demo/minio.yml) : example config for a 4-node Silo cluster
+* [demo/kafka.yml](demo/kafka.yml) : example config for Kafka KRaft clusters
+* [demo/saas.yml](demo/saas.yml) : feature-rich 1-node application template with a broad extension cache.
 * [demo/wool.yml](demo/wool.yml) : low-cost Aliyun ECS demo template.
 * [demo/demo.yml](demo/demo.yml) : config file for the pigsty [public demo](https://demo.pigsty.io)
 * [demo/mysql.yml](demo/mysql.yml) : experimental MySQL 8.4 standalone + 3-node InnoDB Cluster example
@@ -133,4 +137,4 @@ In addition to the main templates, Pigsty provides a set of demo templates for d
 These config templates are used for development and testing purposes.
 
 * [build/oss.yml](build/oss.yml) : building config for EL 9, 10, Debian 12/13, and Ubuntu 22.04/24.04/26.04 OSS.
-* [build/dev.yml](build/dev.yml) : 3-node local build development config.
+* [build/dev.yml](build/dev.yml) : 7-node local build development config.
