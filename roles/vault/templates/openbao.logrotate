@@ -1,0 +1,15 @@
+# {{ ansible_managed }}
+# openbao audit & backup log rotation, SIGHUP makes openbao reopen the audit file
+/var/log/openbao/*.log {
+    daily
+    rotate 7
+    missingok
+    notifempty
+    compress
+    delaycompress
+    create 0640 openbao openbao
+    sharedscripts
+    postrotate
+        /bin/systemctl reload openbao >/dev/null 2>&1 || true
+    endscript
+}

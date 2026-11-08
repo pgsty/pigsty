@@ -22,7 +22,7 @@
 # - infra         : init nginx, dns, victoria, grafana
 # - node-monitor  : init node-exporter vector
 # - etcd          : init etcd (required for pgsql HA)
-# - openbao       : init openbao (optional for pg_tde)
+# - vault         : init vault (optional, kms for pg_tde & kes)
 # - minio         : init minio (optional)
 # - pgsql         : init pgsql
 # - pgsql-monitor : init pgsql
@@ -31,7 +31,7 @@
 # - infra.yml   -l infra   deploy infrastructure on group 'infra'
 # - node.yml    -l all     init all nodes
 # - etcd.yml    -l etcd    init etcd on group 'etcd' for pg ha
-# - openbao.yml -l openbao init openbao on group 'openbao' for pg_tde
+# - vault.yml   -l vault   init vault on group 'vault' for pg_tde & kes
 # - minio.yml   -l <group> init minio hosts marked with minio_cluster
 # - pgsql.yml   -l all     init pgsql database clusters on all nodes
 #==============================================================#
@@ -118,14 +118,14 @@
 
 
 #---------------------------------------------------------------
-# OPENBAO INIT
+# VAULT INIT
 #---------------------------------------------------------------
-- name: OPENBAO INIT
+- name: VAULT INIT
   become: true
-  hosts: openbao
+  hosts: vault
   gather_facts: no
-  tags: openbao
-  roles: [ { role: openbao ,when: openbao_cluster is defined } ]
+  tags: vault
+  roles: [ { role: vault } ]   # init vault on fixed group 'vault'
 
 
 #---------------------------------------------------------------

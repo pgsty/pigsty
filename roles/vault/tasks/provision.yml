@@ -1,0 +1,79 @@
+---
+#--------------------------------------------------------------#
+# Provision vault                              [vault_provision]
+#--------------------------------------------------------------#
+# enable default engines for business use:
+#   secret/  : kv v2 secret engine
+#   transit/ : encryption as a service
+#   approle/ : app credential auth method
+# allow long-lived tokens (10y) on token auth for pigsty consumers,
+# and issue a snapshot-only token for vault-backup.
+# consumers (pgsql pg_tde, minio kes) register their own mount, policy
+# and credential when they are deployed.
+- name: provision vault
+  when: vault_seq|int == vault_seq_min|int and (playbook_dir + '/files/pki/vault/init.json') is file
+  environment:
+    BAO_ADDR: "https://127.0.0.1:{{ vault_port }}"
+    BAO_CACERT: /etc/openbao/tls/ca.crt
+    BAO_TOKEN: "{{ (lookup('file', playbook_dir + '/files/pki/vault/init.json') | from_json).root_token }}"
+  block:
+
+    - name: list vault secret engines
+      command: bao secrets list -format=json
+      register: vault_mounts
+      changed_when: false
+
+    - name: enable kv v2 secret engine on secret/
+      when: "'secret/' not in (vault_mounts.stdout | from_json)"
+      command: bao secrets enable -path=secret -version=2 -description="pigsty kv secrets" kv
+
+    - name: enable transit secret engine on transit/
+      when: "'transit/' not in (vault_mounts.stdout | from_json)"
+      command: bao secrets enable -path=transit -description="pigsty transit encryption" transit
+
+    - name: list vault auth methods
+      command: bao auth list -format=json
+      register: vault_auths
+      changed_when: false
+
+    - name: enable approle auth method
+      when: "'approle/' not in (vault_auths.stdout | from_json)"
+      command: bao auth enable approle
+
+    - name: allow long-lived tokens on token auth
+      command: bao auth tune -max-lease-ttl=87600h token/
+      changed_when: false
+
+    - name: write vault-backup policy
+      command:
+        cmd: bao policy write vault-backup -
+        stdin: |
+          path "sys/storage/raft/snapshot" { capabilities = ["read"] }
+      changed_when: false
+
+    - name: check vault backup token on admin node
+      become: false
+      delegate_to: localhost
+      stat: path=files/pki/vault/backup.token
+      register: vault_backup_token_stat
+
+    - name: issue vault backup token
+      when: not vault_backup_token_stat.stat.exists
+      block:
+        - name: create vault backup token
+          no_log: true
+          command: >-
+            bao token create -orphan -no-default-policy -policy=vault-backup
+            -display-name=vault-backup -ttl=87600h -format=json
+          register: vault_backup_token
+        - name: verify vault backup token ttl
+          assert:
+            that: (vault_backup_token.stdout | from_json).auth.lease_duration | int >= 315360000 - 600
+            fail_msg: "vault backup token ttl is capped below 87600h, check token auth max_lease_ttl"
+            quiet: true
+        - name: save vault backup token to admin node
+          become: false
+          delegate_to: localhost
+          no_log: true
+          copy: content="{{ (vault_backup_token.stdout | from_json).auth.client_token }}" dest=files/pki/vault/backup.token mode=0600
+...

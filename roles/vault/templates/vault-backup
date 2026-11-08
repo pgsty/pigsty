@@ -1,0 +1,44 @@
+#!/bin/bash
+set -euo pipefail
+#==============================================================#
+# File      :   vault-backup
+# Desc      :   take a raft snapshot from the ACTIVE vault member
+# Path      :   /usr/local/bin/vault-backup
+# Usage     :   vault-backup [keep]     # keep latest N snapshots, 7 by default
+# Output    :   path of the new snapshot file on the last stdout line
+# Note      :   ANSIBLE MANAGED, DO NOT CHANGE!
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# restore: a snapshot + files/pki/vault/unseal.key is all you need
+#   bao operator raft snapshot restore -force <file>
+#==============================================================#
+KEEP="${1:-7}"
+BACKUP_DIR="{{ vault_data }}/backup"
+TOKEN_FILE="/etc/openbao/backup.token"
+export BAO_CACERT="/etc/openbao/tls/ca.crt"
+export BAO_ADDR="https://127.0.0.1:{{ vault_port }}"
+
+if [[ ! -s "${TOKEN_FILE}" ]]; then
+    echo "$(date '+%F %T') [FAIL] backup token ${TOKEN_FILE} not found" >&2
+    exit 1
+fi
+
+# a standby may serve its own (possibly stale) raft state, always ask the active member
+LEADER=$(bao status -format=json | python3 -c 'import json,sys; print(json.load(sys.stdin).get("leader_address") or "")')
+if [[ -z "${LEADER}" ]]; then
+    echo "$(date '+%F %T') [FAIL] no active vault member found" >&2
+    exit 2
+fi
+
+mkdir -p "${BACKUP_DIR}"
+FILE="${BACKUP_DIR}/vault-$(date +%Y%m%d-%H%M%S).snap"
+BAO_ADDR="${LEADER}" BAO_TOKEN="$(cat "${TOKEN_FILE}")" bao operator raft snapshot save "${FILE}.tmp"
+chmod 0600 "${FILE}.tmp"
+mv -f "${FILE}.tmp" "${FILE}"
+
+# retention: keep latest ${KEEP} snapshots
+ls -1t "${BACKUP_DIR}"/vault-*.snap 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
+
+echo "$(date '+%F %T') [ OK ] snapshot from ${LEADER} saved to ${FILE}" >&2
+echo "${FILE}"

@@ -1,0 +1,63 @@
+#!/usr/bin/env ansible-playbook
+---
+#==============================================================#
+# File      :   vault-rm.yml
+# Desc      :   remove vault (openbao) cluster or members
+# Ctime     :   2026-07-30
+# Mtime     :   2026-11-08
+# Path      :   vault-rm.yml
+# Docs      :   https://pigsty.io/docs/vault/playbook
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+- name: VAULT REMOVE
+  become: true
+  hosts: vault
+  gather_facts: no
+  ignore_errors: true
+  vars:
+    #vault_safeguard: true            # safeguard for vault remove, TRUE by default, halts execution
+    #vault_rm_data: true              # remove vault data & config during remove? true by default
+    #vault_rm_pkg: false              # uninstall openbao package during remove? false by default
+  roles: [ { role: node_id }, { role: vault_remove } ]
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+#  Remove entire vault cluster
+#     ./vault-rm.yml -l vault -e vault_safeguard=false
+#  It aborts unless `vault_safeguard` is explicitly set to `false`
+#
+#  Remove a vault member:
+#     ./vault-rm.yml -l 10.10.10.13 -e vault_safeguard=false
+#     vi pigsty.yml                            # remove 10.10.10.13 from group `vault`
+#     ./vault.yml -l vault -t vault_haproxy    # refresh haproxy members
+#
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+# bin/vault-rm                # remove the entire vault cluster
+# bin/vault-rm 10.10.10.13    # remove member 10.10.10.13 from vault cluster
+#
+#--------------------------------------------------------------#
+# Tasks
+#--------------------------------------------------------------#
+# vault_safeguard  : abort unless safeguard is disabled (enabled by default)
+# vault_consumer   : list tde/* & kes/* consumers before removing entire cluster
+# vault_pause      : pause for confirmation (5s)
+# vault_deregister : remove vault targets from victoria-metrics
+# vault_leave      : raft remove-peer on a surviving member (partial removal only)
+# vault_svc        : stop openbao service, remove haproxy entry
+# vault_data       : remove data, config, tls, node unseal key copy & snapshots
+# vault_pkg        : uninstall openbao package (enable with `vault_rm_pkg=true`)
+#
+#--------------------------------------------------------------#
+# DANGER
+#--------------------------------------------------------------#
+# Destroying the vault cluster destroys the pg_tde & kes keys.
+# Encrypted PostgreSQL clusters, objects and ALL their backups
+# become permanently unreadable, unless restored from a snapshot
+# with files/pki/vault/unseal.key, which are kept on admin node.
+#--------------------------------------------------------------#
+...

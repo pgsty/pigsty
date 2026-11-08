@@ -1,0 +1,41 @@
+#==============================================================#
+# File      :   openbao.service
+# Desc      :   OpenBao server systemd service for {{ vault_instance }}
+# Path      :   /etc/systemd/system/openbao.service
+# Note      :   ANSIBLE MANAGED, DO NOT CHANGE!
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+[Unit]
+Description=OpenBao Secret Management Server (Pigsty VAULT)
+Documentation=https://openbao.org/docs/
+Requires=network-online.target
+After=network-online.target
+ConditionFileNotEmpty=/etc/openbao/openbao.hcl
+
+[Service]
+User=openbao
+Group=openbao
+ExecStart=/usr/bin/bao server -config=/etc/openbao/openbao.hcl
+ExecReload=/bin/kill --signal HUP $MAINPID
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=30
+LimitNOFILE=65536
+LimitMEMLOCK=infinity
+MemorySwapMax=0
+KillMode=process
+KillSignal=SIGINT
+
+# Hardening and protections
+ProtectSystem=full
+ProtectHome=read-only
+PrivateTmp=yes
+PrivateDevices=yes
+SecureBits=keep-caps
+AmbientCapabilities=CAP_IPC_LOCK
+CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK
+NoNewPrivileges=yes
+
+[Install]
+WantedBy=multi-user.target

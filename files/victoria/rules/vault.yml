@@ -1,0 +1,118 @@
+---
+#==============================================================#
+# File      :   vault.yml
+# Ctime     :   2026-07-30
+# Mtime     :   2026-11-08
+# Desc      :   Record & alert rules for vault (openbao)
+# Path      :   /infra/rules/vault.yml
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+# OpenBao keeps the upstream `vault_` metric prefix on /v1/sys/metrics
+# https://openbao.org/docs/internals/telemetry/metrics/
+# go-metrics summaries are emitted in ms, counters carry no _total suffix
+#==============================================================#
+
+groups:
+  ################################################################
+  #                         Vault Rules                          #
+  ################################################################
+  - name: vault-rules
+    rules:
+
+      # request rate per second (non-login & login)
+      - record: vault:ins:req_rps
+        expr: rate(vault_core_handle_request_count{job="vault"}[1m])
+      - record: vault:ins:login_rps
+        expr: rate(vault_core_handle_login_request_count{job="vault"}[1m])
+
+      # mean request latency in seconds over 5m (source metric is in ms)
+      - record: vault:ins:req_rt_avg_5m
+        expr: >-
+          rate(vault_core_handle_request_sum{job="vault"}[5m])
+          / clamp_min(rate(vault_core_handle_request_count{job="vault"}[5m]), 1) / 1000
+
+      # unsealed & active (leader) members of cluster, active should be exactly 1
+      - record: vault:cls:unsealed
+        expr: sum by (job,cls) (vault_core_unsealed{job="vault"})
+      - record: vault:cls:active
+        expr: sum by (job,cls) (vault_core_active{job="vault"})
+
+      # raft replication lag of followers, in log entries
+      - record: vault:ins:raft_lag
+        expr: vault_raft_storage_follower_applied_index_delta{job="vault"}
+
+      # audit device failure rate: openbao blocks requests when audit fails
+      - record: vault:ins:audit_failure_rps
+        expr: >-
+          rate(vault_audit_log_request_failure{job="vault"}[1m])
+          + rate(vault_audit_log_response_failure{job="vault"}[1m])
+
+
+  ################################################################
+  #                         Vault Alert                          #
+  ################################################################
+  - name: vault-alert
+    rules:
+
+      # member unreachable: process down, or sealed (503 on /sys/metrics)
+      - alert: VaultDown
+        expr: vault_up < 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: vault }
+        annotations:
+          summary: "CRIT VaultDown {{ $labels.ins }}@{{ $labels.instance }}"
+          description: |
+            vault_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
+            the member is down or sealed: check `bao status` on {{ $labels.ip }}
+            /ui/d/vault-overview
+
+      # member reports itself sealed: keys can not be served by it
+      - alert: VaultSealed
+        expr: vault_core_unsealed{job="vault"} < 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: vault }
+        annotations:
+          summary: "CRIT VaultSealed {{ $labels.ins }}@{{ $labels.instance }}"
+          description: |
+            vault_core_unsealed[ins={{ $labels.ins }}] = {{ $value }} < 1
+            the member is sealed: pg_tde / kes keys can not be fetched from it
+            /ui/d/vault-overview?var-cls={{ $labels.cls }}
+
+      # no active member in cluster: total kms outage for cache misses & restarts
+      - alert: VaultNoLeader
+        expr: vault:cls:active < 1
+        for: 30s
+        labels: { level: 0, severity: CRIT, category: vault }
+        annotations:
+          summary: "CRIT VaultNoLeader: {{ $labels.cls }} {{ $value }}"
+          description: |
+            vault:cls:active[cls={{ $labels.cls }}] = {{ $value }} < 1
+            /ui/d/vault-overview?from=now-5m&to=now&var-cls={{ $labels.cls }}
+
+      # audit device rejects writes: openbao blocks ALL requests, check disk
+      - alert: VaultAuditFailure
+        expr: vault:ins:audit_failure_rps > 0
+        for: 1m
+        labels: { level: 1, severity: WARN, category: vault }
+        annotations:
+          summary: "WARN VaultAuditFailure: {{ $labels.cls }} {{ $labels.ins }}"
+          description: |
+            vault:ins:audit_failure_rps[ins={{ $labels.ins }}] = {{ $value | printf "%.3f" }} > 0
+            requests are blocked while the audit log can not be written, check disk on {{ $labels.ip }}
+            /ui/d/vault-overview?var-cls={{ $labels.cls }}
+
+      # production cluster (3+ members) can not survive another member failure
+      - alert: VaultNoFailureTolerance
+        expr: >-
+          (min by (job,cls) (vault_autopilot_failure_tolerance{job="vault"}) < 1)
+          and on (job,cls) (count by (job,cls) (vault_up) >= 3)
+        for: 2m
+        labels: { level: 1, severity: WARN, category: vault }
+        annotations:
+          summary: "WARN VaultNoFailureTolerance: {{ $labels.cls }} {{ $value }}"
+          description: |
+            vault_autopilot_failure_tolerance[cls={{ $labels.cls }}] = {{ $value }} < 1
+            losing one more member loses quorum
+            /ui/d/vault-overview?var-cls={{ $labels.cls }}
+...

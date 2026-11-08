@@ -1,0 +1,139 @@
+---
+#--------------------------------------------------------------#
+# Issue vault certs                           [vault_cert_issue]
+#--------------------------------------------------------------#
+# server certs are signed by pigsty ca on admin node, and kept in
+# files/pki/vault/<vault_instance>.{crt,key} along with the CA key
+- name: generate vault server certs
+  tags: [ vault_cert, vault_cert_issue ]
+  become: false
+  connection: local
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  block:
+
+    - name: ensure vault pki directory exists
+      file: path={{ item }} state=directory mode=0700
+      with_items: [ files/pki/vault, files/pki/vault/backup ]
+
+    - name: generate vault private key
+      openssl_privatekey:
+        path: files/pki/vault/{{ vault_instance }}.key
+        mode: 0600
+
+    - name: generate vault signing request
+      openssl_csr:
+        path: "files/pki/csr/{{ vault_instance }}.csr"
+        privatekey_path: "files/pki/vault/{{ vault_instance }}.key"
+        common_name: "{{ vault_instance }}"
+        organization_name: pigsty
+        organizational_unit_name: vault
+        subject_alt_name: "{{ ['DNS:localhost', 'DNS:' + vault_instance, 'DNS:' + vault_domain, 'IP:127.0.0.1', 'IP:' + inventory_hostname] + ((vault_vip != '') | ternary(['IP:' + vault_vip], [])) }}"
+
+    - name: issue vault server certificate
+      openssl_certificate:
+        path: "files/pki/vault/{{ vault_instance }}.crt"
+        csr_path: "files/pki/csr/{{ vault_instance }}.csr"
+        provider: ownca
+        ownca_path: files/pki/ca/ca.crt
+        ownca_privatekey_path: files/pki/ca/ca.key
+        ownca_not_after: "+{{ cert_validity }}"
+        mode: 0644
+
+
+#--------------------------------------------------------------#
+# Copy vault certs                             [vault_cert_copy]
+#--------------------------------------------------------------#
+- name: copy vault certs
+  tags: [ vault_cert, vault_cert_copy ]
+  copy: src={{ item.src }} dest={{ item.dest }} owner=root group=openbao mode=0640
+  register: vault_cert_copy
+  with_items:
+    - { src: "files/pki/ca/ca.crt"                       ,dest: "/etc/openbao/tls/ca.crt"     }
+    - { src: "files/pki/vault/{{ vault_instance }}.crt"  ,dest: "/etc/openbao/tls/server.crt" }
+    - { src: "files/pki/vault/{{ vault_instance }}.key"  ,dest: "/etc/openbao/tls/server.key" }
+
+
+#--------------------------------------------------------------#
+# Vault unseal key                                  [vault_seal]
+#--------------------------------------------------------------#
+# static seal: a 32-byte key generated once on admin node, and kept in
+# files/pki/vault/unseal.key. members auto-unseal with it on restart.
+# a snapshot plus this key is everything needed to restore vault.
+- name: setup vault unseal key
+  tags: vault_seal
+  block:
+
+    - name: generate vault unseal key if not exists
+      run_once: true
+      become: false
+      connection: local
+      shell: |
+        set -e
+        mkdir -p files/pki/vault && chmod 0700 files/pki/vault
+        if [ ! -s files/pki/vault/unseal.key ]; then
+          umask 077 && openssl rand -out files/pki/vault/unseal.key 32
+          echo created
+        fi
+      args: { executable: /bin/bash }
+      register: vault_seal_gen
+      changed_when: "'created' in vault_seal_gen.stdout"
+
+    - name: stat vault unseal key on admin node
+      become: false
+      delegate_to: localhost
+      stat: { path: files/pki/vault/unseal.key, get_checksum: true, checksum_algorithm: sha256 }
+      register: vault_seal_local
+
+    - name: stat vault unseal key on vault member
+      stat: { path: /etc/openbao/unseal.key, get_checksum: true, checksum_algorithm: sha256 }
+      register: vault_seal_remote
+
+    # never overwrite a divergent key: data sealed by it would be lost
+    - name: abort if vault member has a divergent unseal key
+      when: vault_seal_remote.stat.exists and vault_seal_remote.stat.checksum != vault_seal_local.stat.checksum
+      any_errors_fatal: true
+      fail: msg="unseal key on {{ inventory_hostname }} differs from files/pki/vault/unseal.key, abort to avoid sealing data with a wrong key"
+
+    - name: derive vault unseal key id
+      set_fact:
+        vault_seal_key_id: "{{ vault_cluster }}-{{ vault_seal_local.stat.checksum[:12] }}"
+
+    - name: copy vault unseal key
+      copy: src=files/pki/vault/unseal.key dest=/etc/openbao/unseal.key owner=root group=openbao mode=0640
+      register: vault_seal_copy
+
+
+#--------------------------------------------------------------#
+# Config vault                                      [vault_conf]
+#--------------------------------------------------------------#
+- name: render vault config
+  tags: vault_conf
+  block:
+
+    # vault_seal_key_id is derived from the key content, recompute it when running this tag alone
+    - name: derive vault unseal key id
+      when: vault_seal_key_id is not defined
+      block:
+        - name: stat vault unseal key on admin node
+          become: false
+          delegate_to: localhost
+          stat: { path: files/pki/vault/unseal.key, get_checksum: true, checksum_algorithm: sha256 }
+          register: vault_seal_local
+        - name: set vault unseal key id
+          set_fact:
+            vault_seal_key_id: "{{ vault_cluster }}-{{ vault_seal_local.stat.checksum[:12] }}"
+
+    - name: render openbao config
+      template: src=openbao.hcl dest=/etc/openbao/openbao.hcl owner=root group=openbao mode=0640
+      register: vault_conf
+
+    - name: render openbao systemd service
+      template: src=openbao.svc dest=/etc/systemd/system/openbao.service owner=root group=root mode=0644
+
+    - name: render bao cli environment
+      template: src=bao.sh dest=/etc/profile.d/bao.sh owner=root group=root mode=0644
+
+    - name: render openbao logrotate config
+      template: src=openbao.logrotate dest=/etc/logrotate.d/openbao owner=root group=root mode=0644
+...

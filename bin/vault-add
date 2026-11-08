@@ -1,0 +1,157 @@
+#!/bin/bash
+set -uo pipefail
+#==============================================================#
+# File      :   vault-add
+# Desc      :   Create VAULT Cluster / Append Members
+# Ctime     :   2026-11-08
+# Mtime     :   2026-11-08
+# Path      :   bin/vault-add
+# Deps      :   ansible-playbook, vault.yml
+# Docs      :   https://pigsty.io/docs/vault/admin
+# License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
+# Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
+#==============================================================#
+APP_NAME="$(basename $0)"
+APP_DIR="$(cd $(dirname $0) && pwd)"
+PIGSTY_HOME=$(cd $(dirname ${APP_DIR}) && pwd)
+
+
+#--------------------------------------------------------------#
+# Usage
+#--------------------------------------------------------------#
+# bin/vault-add             # create vault cluster
+# bin/vault-add [ip...]     # add new members to existing cluster
+
+
+#--------------------------------------------------------------#
+# Utils
+#--------------------------------------------------------------#
+__CN='\033[0m';__CK='\033[0;30m';__CR='\033[0;31m';__CG='\033[0;32m';
+__CY='\033[0;33m';__CB='\033[0;34m';__CM='\033[0;35m';__CC='\033[0;36m';__CW='\033[0;37m';
+function log_info() {  printf "[${__CG} OK ${__CN}] ${__CG}$*${__CN}\n";   }
+function log_warn() {  printf "[${__CY}WARN${__CN}] ${__CY}$*${__CN}\n";   }
+function log_error() { printf "[${__CR}FAIL${__CN}] ${__CR}$*${__CN}\n";   }
+function log_debug() { printf "[${__CB}HINT${__CN}] ${__CB}$*${__CN}\n"; }
+function log_input() { printf "[${__CM} IN ${__CN}] ${__CM}$*\n=> ${__CN}"; }
+function log_hint()  { printf "${__CB}$*${__CN}\n"; }
+function log_line()  { printf "${__CM}[$*] ===========================================${__CN}\n"; }
+function is_valid_ip(){
+    if [[ "$1" =~ (([0-9]|[0-9]{2}|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[0-9]{2}|1[0-9]{2}|2[0-4][0-9]|25[0-5]) ]]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+#--------------------------------------------------------------#
+# Param
+#--------------------------------------------------------------#
+VAULT_CLUSTER=${VAULT_CLUSTER:-'vault'}
+cd "${PIGSTY_HOME}"
+
+#--------------------------------------------------------------#
+# Create Entire Cluster                   [ 0 arg = create all ]
+#--------------------------------------------------------------#
+# if no args given, create entire vault cluster
+if (($# == 0)); then
+    log_line "WARNING"
+    log_warn "You are about to perform a vault Create Operation!"
+    log_warn "This operation will CREATE or UPDATE the vault cluster!"
+    log_warn "It will not remove existing vault cluster, data, or keys"
+    log_warn "but mis-configuration could lead to DOWNTIME!"
+    log_warn "if this is not what your want, Ctrl+C to abort before start!"
+
+    # Countdown from 5 to 1
+    for i in 5 4 3 2 1; do
+        log_hint "\rCountdown: $i seconds remaining..."
+        sleep 1
+    done
+    log_warn "Proceeding with vault cluster create operation."
+
+    log_line "EXECUTE"
+    log_warn "create vault cluster '${VAULT_CLUSTER}'"
+    log_hint "$ ./vault.yml -l ${VAULT_CLUSTER}"
+
+    "${PIGSTY_HOME}/vault.yml" -l "${VAULT_CLUSTER}"
+
+    if [[ $? -ne 0 ]]; then
+      log_line "FAILURE"
+      log_error "fail to create vault cluster '${VAULT_CLUSTER}'"
+      exit 2
+    fi
+    log_line "SUMMARY"
+    log_info "create vault cluster ${VAULT_CLUSTER} complete!"
+    exit 0
+fi
+
+
+#--------------------------------------------------------------#
+# Append Members                            [1+ args = add ips ]
+#--------------------------------------------------------------#
+# if args given, append specific vault members by IP
+IP_LIST=""
+TARGET_PATTERN=""
+EXISTS_PATTERN="${VAULT_CLUSTER}"
+for ((i=1; i<=$#; i++))
+do
+  if ! is_valid_ip "${!i}"; then
+    log_error "invalid ip address given: ${!i}"
+    exit 1
+  fi
+  IP_LIST="${IP_LIST} ${!i}"
+  if [[ -z "${TARGET_PATTERN}" ]]; then
+    TARGET_PATTERN="${!i}"
+  else
+    TARGET_PATTERN="${TARGET_PATTERN},${!i}"
+  fi
+  EXISTS_PATTERN="${EXISTS_PATTERN},!${!i}"
+done
+
+#---------------------------------#
+# Planning
+#---------------------------------#
+log_line "PLANNING"
+log_info "append new vault members: ${IP_LIST} to cluster '${VAULT_CLUSTER}'"
+log_warn "  append new members to cluster:"
+log_info "    $ ./vault.yml -l '${TARGET_PATTERN}'"
+
+log_line "WARNING"
+log_warn "You are about to perform a vault cluster expand Operation!"
+log_warn "This operation will append new member to the existing vault cluster!"
+log_warn "Mis-configuration could lead to DOWNTIME!"
+log_warn "if this is not what your want, Ctrl+C to abort before start!"
+
+# Countdown from 3 to 1
+for i in 3 2 1; do
+    log_hint "\rCountdown: $i seconds remaining..."
+    sleep 1
+done
+log_warn "Proceeding with vault cluster expand operation."
+
+#---------------------------------#
+# Append Members
+#---------------------------------#
+log_line "EXECUTE"
+log_warn "append vault members${IP_LIST} to ${VAULT_CLUSTER}"
+log_hint "$ ./vault.yml -l '${TARGET_PATTERN}'"
+
+"${PIGSTY_HOME}/vault.yml" -l "${TARGET_PATTERN}"
+
+if [[ $? -ne 0 ]]; then
+  log_line "FAILURE"
+  log_error "fail to append vault members${IP_LIST} to ${VAULT_CLUSTER}"
+  exit 4
+fi
+log_info "append vault members${IP_LIST} to ${VAULT_CLUSTER} complete"
+
+#---------------------------------#
+# Summary
+#---------------------------------#
+log_line "SUMMARY"
+log_info "append vault members ${IP_LIST} to ${VAULT_CLUSTER} success"
+
+log_line "INSTRUCTIONS"
+log_warn "also refresh haproxy entry & config of existing vault members with"
+log_hint "$ ./vault.yml -l '${EXISTS_PATTERN}' -t vault_haproxy,vault_conf"
+
+exit 0

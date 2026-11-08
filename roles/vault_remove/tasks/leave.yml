@@ -1,0 +1,34 @@
+---
+#--------------------------------------------------------------#
+# Leave vault raft cluster                         [vault_leave]
+#--------------------------------------------------------------#
+# `bao operator raft remove-peer` runs on a SURVIVING member with the
+# root token in files/pki/vault/init.json. If it fails, abort BEFORE
+# wiping this member: a dead peer left in raft silently eats the
+# failure tolerance of the remaining cluster.
+#--------------------------------------------------------------#
+- name: pick a surviving vault member
+  set_fact:
+    vault_surviving_peer: "{{ vault_members | difference(ansible_play_hosts_all) | first | default('') }}"
+
+- name: remove this member from vault raft
+  delegate_to: "{{ vault_surviving_peer }}"
+  ignore_errors: false
+  any_errors_fatal: true
+  environment:
+    BAO_ADDR: "https://127.0.0.1:{{ vault_port }}"
+    BAO_CACERT: /etc/openbao/tls/ca.crt
+    BAO_TOKEN: "{{ (lookup('file', playbook_dir + '/files/pki/vault/init.json', errors='ignore') | default('{}', true) | from_json).root_token | default('') }}"
+  shell: |
+    if bao operator raft list-peers -format=json | python3 -c 'import json,sys; ids=[s["node_id"] for s in json.load(sys.stdin)["data"]["config"]["servers"]]; sys.exit(0 if "{{ vault_instance }}" in ids else 1)'; then
+        bao operator raft remove-peer {{ vault_instance }}
+    else
+        echo "{{ vault_instance }} is not a raft peer, skip"
+    fi
+  args: { executable: /bin/bash }
+  register: vault_leave_result
+
+- name: report vault leave result
+  debug:
+    msg: "{{ vault_instance }} @ {{ inventory_hostname }} left raft via {{ vault_surviving_peer }}: {{ vault_leave_result.stdout | default('') }}"
+...
