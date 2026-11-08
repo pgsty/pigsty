@@ -631,7 +631,7 @@ There are other pro, beta, or pilot modules, and there will be more coming in th
 
 ## Compatibility
 
-We recommend using Rocky Linux 9.8 / 10.2, Debian 12.15 / 13.6, and Ubuntu 22.04.5 / 24.04.4 / 26.04.0 for production use.
+We recommend using Rocky Linux 9.8 / 10.2, Debian 12.15 / 13.7, and Ubuntu 22.04.5 / 24.04.5 / 26.04.1 for production use.
 
 Pigsty runs directly on bare Linux, and focuses on actively maintained mainstream LTS [**Linux Distributions**](https://pigsty.io/docs/ref/linux):
 
@@ -640,10 +640,10 @@ Pigsty runs directly on bare Linux, and focuses on actively maintained mainstrea
 | **EL10** | RHEL / Rocky / Alma 10  | 10.2    | [`el10.x86_64`](roles/node_id/vars/el10.x86_64.yml) | [`el10.aarch64`](roles/node_id/vars/el10.aarch64.yml) |
 | **EL9**  | RHEL / Rocky / Alma 9   | 9.8     |  [`el9.x86_64`](roles/node_id/vars/el9.x86_64.yml)  |  [`el9.aarch64`](roles/node_id/vars/el9.aarch64.yml)  |
 | **EL8**  | RHEL / Rocky / Alma 8   | 8.10    |  [`el8.x86_64`](roles/node_id/vars/el8.x86_64.yml)  |  [`el8.aarch64`](roles/node_id/vars/el8.aarch64.yml)  |
-| **U26**  | Ubuntu 26.04 (resolute) | 26.04.0 |  [`u26.x86_64`](roles/node_id/vars/u26.x86_64.yml)  |  [`u26.aarch64`](roles/node_id/vars/u26.aarch64.yml)  |
-| **U24**  | Ubuntu 24.04 (noble)    | 24.04.4 |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  |
+| **U26**  | Ubuntu 26.04 (resolute) | 26.04.1 |  [`u26.x86_64`](roles/node_id/vars/u26.x86_64.yml)  |  [`u26.aarch64`](roles/node_id/vars/u26.aarch64.yml)  |
+| **U24**  | Ubuntu 24.04 (noble)    | 24.04.5 |  [`u24.x86_64`](roles/node_id/vars/u24.x86_64.yml)  |  [`u24.aarch64`](roles/node_id/vars/u24.aarch64.yml)  |
 | **U22**  | Ubuntu 22.04 (jammy)    | 22.04.5 |  [`u22.x86_64`](roles/node_id/vars/u22.x86_64.yml)  |  [`u22.aarch64`](roles/node_id/vars/u22.aarch64.yml)  |
-| **D13**  | Debian 13 (trixie)      | 13.6    |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |
+| **D13**  | Debian 13 (trixie)      | 13.7    |  [`d13.x86_64`](roles/node_id/vars/d13.x86_64.yml)  |  [`d13.aarch64`](roles/node_id/vars/d13.aarch64.yml)  |
 | **D12**  | Debian 12 (bookworm)    | 12.15   |  [`d12.x86_64`](roles/node_id/vars/d12.x86_64.yml)  |  [`d12.aarch64`](roles/node_id/vars/d12.aarch64.yml)  |
 
 

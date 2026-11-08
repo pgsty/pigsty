@@ -2,7 +2,7 @@
 -- # File      :   cmdb.sql
 -- # Desc      :   Pigsty CMDB baseline
 -- # Ctime     :   2021-04-21
--- # Mtime     :   2026-08-02
+-- # Mtime     :   2026-11-08
 -- # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 -- # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 -- ######################################################################
@@ -1305,7 +1305,7 @@ INSERT INTO pigsty.default_var VALUES
 (126, 'repo_upstream', '[]', 'INFRA', 'REPO', 'upstream[]', 'G', 'where to download upstream packages', NULL),
 (127, 'repo_packages', '[]', 'INFRA', 'REPO', 'string[]', 'G', 'which packages to be included', NULL),
 (128, 'repo_extra_packages', '[]', 'INFRA', 'REPO', 'string[]', 'G/C/I', 'extra repo packages to be included', NULL),
-(129, 'repo_url_packages', '[]', 'INFRA', 'REPO', 'string[]', 'G', 'extra packages from url', NULL),
+(129, 'repo_url_packages', '[]', 'INFRA', 'REPO', '(string|dict)[]', 'G', 'extra package URL strings or objects with url and optional name', NULL),
 
 (130, 'nginx_enabled', 'true', 'INFRA', 'NGINX', 'bool', 'G/I', 'enable nginx on this infra node?', NULL),
 (131, 'nginx_clean', 'false', 'INFRA', 'NGINX', 'bool', 'G/A', 'clean existing nginx config during init?', NULL),
@@ -1443,7 +1443,7 @@ INSERT INTO pigsty.default_var VALUES
 (292, 'vector_data', '"/data/vector"', 'NODE', 'VECTOR', 'path', 'C', 'vector data dir, /data/vector by default', NULL),
 (293, 'vector_port', '9598', 'NODE', 'VECTOR', 'port', 'C', 'vector metrics port, 9598 by default', NULL),
 (294, 'vector_read_from', '"beginning"', 'NODE', 'VECTOR', 'enum', 'C', 'vector read from beginning or end', NULL),
-(295, 'vector_log_endpoint', '["infra"]', 'NODE', 'VECTOR', 'cidr[]', 'C', 'if defined, sending vector log to this endpoint.', NULL),
+(295, 'vector_log_endpoint', '["infra"]', 'NODE', 'VECTOR', 'string[]', 'C', 'log receiver URLs, ["infra"] discovers infra VictoriaLogs endpoints, [] disables forwarding', NULL),
 
 -- DOCKER PARAMETERS
 (400, 'docker_enabled', 'false', 'DOCKER', 'DOCKER', 'bool', 'C', 'enable docker on this node?', NULL),
@@ -1481,12 +1481,14 @@ INSERT INTO pigsty.default_var VALUES
 (607, 'minio_domain', '"sss.pigsty"', 'MINIO', 'MINIO', 'string', 'G', 'minio service domain name, `sss.pigsty` by default', NULL),
 (608, 'minio_port', '9000', 'MINIO', 'MINIO', 'port', 'C', 'minio service port, 9000 by default', NULL),
 (609, 'minio_admin_port', '9001', 'MINIO', 'MINIO', 'port', 'C', 'minio console port, 9001 by default', NULL),
+(610, 'minio_volumes', NULL, 'MINIO', 'MINIO', 'string', 'C', 'override storage volumes, calculated from cluster topology and minio_data if unset', NULL),
 (620, 'minio_access_key', '"minioadmin"', 'MINIO', 'MINIO', 'username', 'C', 'root access key, `minioadmin` by default', NULL),
 (621, 'minio_secret_key', '"S3User.MinIO"', 'MINIO', 'MINIO', 'password', 'C', 'root secret key, `S3User.MinIO` by default', NULL),
 (622, 'minio_extra_vars', '""', 'MINIO', 'MINIO', 'string', 'C', 'extra environment variables for minio server', NULL),
 (630, 'minio_provision', 'true', 'MINIO', 'MINIO', 'bool', 'G/C', 'run minio provisioning tasks?', NULL),
 (631, 'minio_alias', '"sss"', 'MINIO', 'MINIO', 'string', 'G', 'alias name for local minio deployment', NULL),
 (632, 'minio_buckets', '[{"name": "pgsql"}, {"name": "meta", "versioning": true}, {"name": "data"}]', 'MINIO', 'MINIO', 'bucket[]', 'C', 'list of minio bucket to be created', NULL),
+(633, 'minio_endpoint', NULL, 'MINIO', 'MINIO', 'url', 'G/C', 'provisioning endpoint, derived from minio_https, minio_domain and minio_port if unset', NULL),
 (634, 'minio_users', '[{"access_key": "pgbackrest", "secret_key": "S3User.Backup", "policy": "pgsql"}, {"access_key": "s3user_meta", "secret_key": "S3User.Meta", "policy": "meta"}, {"access_key": "s3user_data", "secret_key": "S3User.Data", "policy": "data"}]', 'MINIO', 'MINIO', 'user[]', 'C', 'list of minio user to be created', NULL),
 (650, 'minio_safeguard', 'false', 'MINIO', 'MINIO_REMOVE', 'bool', 'G/C/A', 'prevents purging minio instance? false by default', NULL),
 (651, 'minio_rm_data', 'true', 'MINIO', 'MINIO_REMOVE', 'bool', 'G/C/A', 'purging minio data and config? true by default', NULL),
@@ -1544,7 +1546,7 @@ INSERT INTO pigsty.default_var VALUES
 (837, 'pg_dbsu_password', '""', 'PGSQL', 'PG_BUSINESS', 'password', 'G/C', 'postgres dbsu password, empty string disable it by default', NULL),
 
 (840, 'pg_dbsu', '"postgres"', 'PGSQL', 'PG_INSTALL', 'username', 'C', 'os dbsu name, postgres by default, better not change it', NULL),
-(841, 'pg_dbsu_uid', '26', 'PGSQL', 'PG_INSTALL', 'int', 'C', 'os dbsu uid and gid, 26 for default postgres users and groups', NULL),
+(841, 'pg_dbsu_uid', '26', 'PGSQL', 'PG_INSTALL', 'int', 'C', 'os dbsu uid and gid, 26 by default; DEB systems convert 26 to 543', NULL),
 (842, 'pg_dbsu_sudo', '"limit"', 'PGSQL', 'PG_INSTALL', 'enum', 'C', 'dbsu sudo privilege, none,limit,all,nopass. limit by default', NULL),
 (843, 'pg_dbsu_home', '"/var/lib/pgsql"', 'PGSQL', 'PG_INSTALL', 'path', 'C', 'postgresql home directory, `/var/lib/pgsql` by default', NULL),
 (844, 'pg_dbsu_ssh_exchange', 'true', 'PGSQL', 'PG_INSTALL', 'bool', 'C', 'exchange postgres dbsu ssh key among same pgsql cluster', NULL),
@@ -1645,6 +1647,8 @@ INSERT INTO pigsty.default_var VALUES
 (956, 'pgbackrest_exporter_port', '9854', 'PGSQL', 'PG_MONITOR', 'port', 'C', 'pgbackrest_exporter listen port, 9854 by default', NULL),
 (957, 'pgbackrest_exporter_options', '"--collect.interval=120 --log.level=info"', 'PGSQL', 'PG_MONITOR', 'arg', 'C', 'overwrite extra options for pgbackrest_exporter', NULL),
 
+(960, 'pg_pitr', NULL, 'PGSQL', 'PG_PITR', 'dict', 'C/A', 'PITR task defining the recovery target, source repository and restore options', NULL),
+
 (980, 'pg_safeguard', 'false', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'prevent purging running postgres instance? false by default', NULL),
 (981, 'pg_rm_data', 'true', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'remove postgres data during remove? true by default', NULL),
 (982, 'pg_rm_backup', 'true', 'PGSQL', 'PG_REMOVE', 'bool', 'G/C/A', 'remove pgbackrest backup during primary remove? true by default', NULL),
@@ -1668,4 +1672,43 @@ INSERT INTO pigsty.default_var VALUES
 (1042, 'claude_env', '{}', 'VIBE', 'CLAUDE', 'dict', 'C', 'extra env vars to merge with otel defaults', NULL),
 (1050, 'nodejs_enabled', 'true', 'VIBE', 'NODEJS', 'bool', 'C', 'install standalone nodejs runtime task', NULL),
 (1051, 'nodejs_registry', '""', 'VIBE', 'NODEJS', 'url', 'C', 'npm registry, auto china mirror if empty', NULL),
-(1052, 'npm_packages', '[]', 'VIBE', 'NODEJS', 'string[]', 'C', 'list of extra global npm packages to install', NULL);
+(1052, 'npm_packages', '[]', 'VIBE', 'NODEJS', 'string[]', 'C', 'list of extra global npm packages to install', NULL),
+
+-- KAFKA PARAMETERS
+(1101, 'kafka_cluster', NULL, 'KAFKA', 'KAFKA', 'string', 'C', 'kafka cluster name, REQUIRED', NULL),
+(1102, 'kafka_seq', NULL, 'KAFKA', 'KAFKA', 'int', 'I', 'unique KRaft node identifier, REQUIRED', NULL),
+(1103, 'kafka_role', '"combined"', 'KAFKA', 'KAFKA', 'enum', 'I', 'kafka node role: combined,broker,controller', NULL),
+(1104, 'kafka_cluster_id', NULL, 'KAFKA', 'KAFKA', 'string', 'C/A', 'explicit cluster ID for recovery or adoption; generated during bootstrap if unset', NULL),
+(1105, 'kafka_data', '"/data/kafka"', 'KAFKA', 'KAFKA', 'path', 'C', 'persistent kafka data directory, /data/kafka by default', NULL),
+(1106, 'kafka_heap_opts', '"-Xms1G -Xmx1G"', 'KAFKA', 'KAFKA', 'arg', 'C/I', 'JVM heap options for kafka', NULL),
+(1107, 'kafka_port', '9092', 'KAFKA', 'KAFKA', 'port', 'C', 'kafka broker listener port, 9092 by default', NULL),
+(1108, 'kafka_controller_port', '9093', 'KAFKA', 'KAFKA', 'port', 'C', 'KRaft controller listener port, 9093 by default', NULL),
+(1109, 'kafka_parameters', '{}', 'KAFKA', 'KAFKA', 'dict', 'C', 'extra kafka server properties', NULL),
+(1110, 'kafka_exporter_port', '9308', 'KAFKA', 'KAFKA', 'port', 'C', 'kafka_exporter listen port, 9308 by default', NULL),
+(1111, 'kafka_jmx_exporter_enabled', 'true', 'KAFKA', 'KAFKA', 'bool', 'C', 'enable the embedded JMX exporter Java agent?', NULL),
+(1112, 'kafka_jmx_exporter_port', '9404', 'KAFKA', 'KAFKA', 'port', 'C', 'JMX exporter listen port, 9404 by default', NULL),
+(1113, 'kafka_security', '"plaintext"', 'KAFKA', 'KAFKA', 'enum', 'C', 'kafka security mode: plaintext,scram', NULL),
+(1114, 'kafka_users', '[]', 'KAFKA', 'KAFKA', 'user[]', 'C', 'kafka users with SCRAM credentials, ACLs and quotas', NULL),
+(1115, 'kafka_topics', '[]', 'KAFKA', 'KAFKA', 'topic[]', 'C', 'kafka topics to provision', NULL),
+(1180, 'kafka_safeguard', 'false', 'KAFKA', 'KAFKA_REMOVE', 'bool', 'G/C/A', 'prevent purging a running kafka cluster?', NULL),
+(1181, 'kafka_rm_data', 'true', 'KAFKA', 'KAFKA_REMOVE', 'bool', 'G/C/A', 'remove kafka data and local recovery state?', NULL),
+(1182, 'kafka_rm_pkg', 'false', 'KAFKA', 'KAFKA_REMOVE', 'bool', 'G/C/A', 'uninstall kafka and kafka-exporter packages?', NULL),
+
+-- MYSQL PARAMETERS
+(1201, 'mysql_cluster', NULL, 'MYSQL', 'MYSQL_ID', 'string', 'C', 'mysql cluster name, REQUIRED', NULL),
+(1202, 'mysql_seq', NULL, 'MYSQL', 'MYSQL_ID', 'int', 'I', 'mysql instance sequence number, REQUIRED', NULL),
+(1210, 'mysql_root_password', '"DBUser.Root"', 'MYSQL', 'MYSQL_BUSINESS', 'password', 'C', 'mysql root password', NULL),
+(1211, 'mysql_monitor_password', '"DBUser.Monitor"', 'MYSQL', 'MYSQL_BUSINESS', 'password', 'C', 'mysql monitor user password', NULL),
+(1212, 'mysql_cluster_password', '"DBUser.Cluster"', 'MYSQL', 'MYSQL_BUSINESS', 'password', 'C', 'mysql cluster administration and backup user password', NULL),
+(1213, 'mysql_databases', '[]', 'MYSQL', 'MYSQL_BUSINESS', 'database[]', 'C', 'mysql business databases', NULL),
+(1214, 'mysql_users', '[]', 'MYSQL', 'MYSQL_BUSINESS', 'user[]', 'C', 'mysql business users and privileges', NULL),
+(1215, 'mysql_parameters', '{}', 'MYSQL', 'MYSQL_BUSINESS', 'dict', 'C', 'extra mysqld options', NULL),
+(1220, 'mysql_backup_enabled', 'true', 'MYSQL', 'MYSQL_BACKUP', 'bool', 'C', 'enable mysql backup configuration?', NULL),
+(1221, 'mysql_backup_repo', '{"local":{"path":"/data/backups/mysql","retention":7}}', 'MYSQL', 'MYSQL_BACKUP', 'dict', 'C', 'mysql backup repository settings', NULL),
+(1230, 'mysql_exporter_enabled', 'true', 'MYSQL', 'MYSQL_MONITOR', 'bool', 'C', 'enable mysqld_exporter on mysql nodes?', NULL),
+(1280, 'mysql_safeguard', 'true', 'MYSQL', 'MYSQL_REMOVE', 'bool', 'G/C/A', 'prevent mysql removal unless explicitly disabled', NULL),
+(1281, 'mysql_rm_confirm', '""', 'MYSQL', 'MYSQL_REMOVE', 'string', 'A', 'exact mysql instance or cluster name required to confirm removal', NULL),
+
+-- JUICE PARAMETERS
+(1301, 'juice_cache', '"/data/juice"', 'JUICE', 'JUICE', 'path', 'C/I', 'shared JuiceFS cache directory, /data/juice by default', NULL),
+(1302, 'juice_instances', '{}', 'JUICE', 'JUICE', 'dict', 'C/I', 'JuiceFS instances keyed by filesystem name, with mount and metadata settings', NULL);
