@@ -49,12 +49,20 @@
         common_name: "{{ pg_cluster }}-{{ pg_seq }}"
         organization_name: pigsty
         organizational_unit_name: postgres
-        subject_alt_name:
-          - "DNS:localhost"
-          - "DNS:{{ pg_cluster }}"
-          - "DNS:{{ pg_cluster }}-{{ pg_seq }}"
-          - "IP:127.0.0.1"
-          - "IP:{{ inventory_hostname }}"
+        subject_alt_name: >-
+          {{ [
+            'DNS:localhost',
+            'DNS:' ~ pg_cluster,
+            'DNS:' ~ pg_cluster ~ '-' ~ pg_seq,
+            'IP:127.0.0.1',
+            'IP:' ~ inventory_hostname
+          ] + (
+            ['IP:' ~ pg_vip_address.split('/')[0]]
+            if pg_vip_enabled|bool else []
+          ) + (
+            ['IP:' ~ vip_address.split('/')[0]]
+            if vip_enabled|default(false)|bool else []
+          ) }}
 
     - name: issue pg server certificate
       connection: local
