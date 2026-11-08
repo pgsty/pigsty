@@ -1,5 +1,6 @@
 #!/bin/bash
 set -euo pipefail
+umask 077
 #==============================================================#
 # File      :   vault-backup
 # Desc      :   take a raft snapshot from the ACTIVE vault member
@@ -10,10 +11,11 @@ set -euo pipefail
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
-# restore: a snapshot + files/pki/vault/unseal.key is all you need
+# restore: keep the matching unseal.key, init.json and service/TLS configuration
 #   bao operator raft snapshot restore -force <file>
 #==============================================================#
 KEEP="${1:-7}"
+[[ "${KEEP}" =~ ^[1-9][0-9]*$ ]] || { echo 'keep must be a positive integer' >&2; exit 1; }
 BACKUP_DIR="{{ vault_data }}/backup"
 TOKEN_FILE="/etc/openbao/backup.token"
 export BAO_CACERT="/etc/openbao/tls/ca.crt"
@@ -25,14 +27,15 @@ if [[ ! -s "${TOKEN_FILE}" ]]; then
 fi
 
 # a standby may serve its own (possibly stale) raft state, always ask the active member
-LEADER=$(bao status -format=json | python3 -c 'import json,sys; print(json.load(sys.stdin).get("leader_address") or "")')
+LEADER=$(curl -fsS --max-time 10 --cacert "${BAO_CACERT}" "${BAO_ADDR}/v1/sys/leader" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("leader_address") or "")')
 if [[ -z "${LEADER}" ]]; then
     echo "$(date '+%F %T') [FAIL] no active vault member found" >&2
     exit 2
 fi
 
 mkdir -p "${BACKUP_DIR}"
-FILE="${BACKUP_DIR}/vault-$(date +%Y%m%d-%H%M%S).snap"
+FILE="${BACKUP_DIR}/vault-$(date +%Y%m%d-%H%M%S)-$$.snap"
+trap 'rm -f "${FILE}.tmp"' EXIT
 BAO_ADDR="${LEADER}" BAO_TOKEN="$(cat "${TOKEN_FILE}")" bao operator raft snapshot save "${FILE}.tmp"
 chmod 0600 "${FILE}.tmp"
 mv -f "${FILE}.tmp" "${FILE}"
@@ -51,7 +54,12 @@ if [[ -d "${PROM_DIR}" ]]; then
 fi
 
 # retention: keep latest ${KEEP} snapshots
-ls -1t "${BACKUP_DIR}"/vault-*.snap 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
+python3 - "${BACKUP_DIR}" "${KEEP}" <<'PY'
+import pathlib, sys
+snapshots = sorted(pathlib.Path(sys.argv[1]).glob('vault-*.snap'), key=lambda p: p.stat().st_mtime, reverse=True)
+for snapshot in snapshots[int(sys.argv[2]):]:
+    snapshot.unlink(missing_ok=True)
+PY
 
 echo "$(date '+%F %T') [ OK ] snapshot from ${LEADER} saved to ${FILE}" >&2
 echo "${FILE}"

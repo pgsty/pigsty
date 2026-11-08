@@ -15,12 +15,16 @@
   delegate_to: "{{ vault_surviving_peer }}"
   ignore_errors: false
   any_errors_fatal: true
+  no_log: true
   environment:
     BAO_ADDR: "https://127.0.0.1:{{ vault_port }}"
     BAO_CACERT: /etc/openbao/tls/ca.crt
     BAO_TOKEN: "{{ (lookup('file', playbook_dir + '/files/pki/vault/init.json', errors='ignore') | default('{}', true) | from_json).root_token | default('') }}"
   shell: |
-    if bao operator raft list-peers -format=json | python3 -c 'import json,sys; ids=[s["node_id"] for s in json.load(sys.stdin)["data"]["config"]["servers"]]; sys.exit(0 if "{{ vault_instance }}" in ids else 1)'; then
+    set -euo pipefail
+    peers=$(bao operator raft list-peers -format=json)
+    present=$(python3 -c 'import json,sys; ids=[s["node_id"] for s in json.load(sys.stdin)["data"]["config"]["servers"]]; print("yes" if sys.argv[1] in ids else "no")' {{ vault_instance | quote }} <<< "$peers")
+    if [[ "$present" == yes ]]; then
         bao operator raft remove-peer {{ vault_instance }}
     else
         echo "{{ vault_instance }} is not a raft peer, skip"

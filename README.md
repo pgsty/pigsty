@@ -168,7 +168,7 @@ Installed:
 
 Complete!
 [ OK ] ansible = ansible [core 2.16.14]
-[ OK ] boostrap pigsty complete
+[ OK ] bootstrap pigsty complete
 proceed with ./configure
 ```
 

@@ -17,12 +17,21 @@
     vault_members: "{{ groups['vault'] | default([]) | sort }}"
     vault_remove_all: "{{ (groups['vault'] | default([]) | difference(ansible_play_hosts_all) | length) == 0 }}"
 
+- name: validate vault data path before removal
+  tags: always
+  assert:
+    that:
+      - vault_data is match('^/[^/]+/[^/]+') and '..' not in vault_data.split('/')
+      - vault_data not in ['/var/lib', '/var/log', '/home/dba', '/etc/openbao/tls']
+    fail_msg: 'vault_data must be a dedicated absolute directory, never a shared parent directory'
+
 #--------------------------------------------------------------#
 # LIST DEPENDENT CONSUMERS                      [vault_consumer]
 #--------------------------------------------------------------#
 # when removing the entire cluster, show which pg_tde clusters (tde/*)
 # and kes clusters (kes/*) will lose their keys forever
 - name: list vault consumers before removal
+  no_log: true
   tags: vault_consumer
   when: vault_remove_all|bool
   run_once: true

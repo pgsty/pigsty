@@ -11,9 +11,11 @@
     - name: assert vault identity
       assert:
         that:
-          - vault_seq is defined and vault_seq|int >= 0
+          - vault_seq is defined and vault_seq|string is match('^[0-9]+$') and vault_seq|int >= 0
           - "'vault' in group_names"
-        fail_msg: "vault_seq is required, and vault members must be defined in the fixed group 'vault'"
+          - groups['vault'] | map('extract', hostvars, 'vault_seq') | map('int') | unique | length == groups['vault'] | length
+          - vault_data is match('^/[^/]+/[^/]+') and '..' not in vault_data.split('/')
+        fail_msg: "group 'vault' requires unique nonnegative integer vault_seq values and a dedicated absolute vault_data directory"
 
     # vault_instance : vault-<seq>, raft node id and cert common name
     # vault_members  : sorted member ip list
@@ -79,18 +81,21 @@
 # Launch vault                                    [vault_launch]
 #--------------------------------------------------------------#
 # restart only when cert / seal / config changed, start otherwise
-# use `-f 1` to roll config changes one member at a time
-- name: launch vault server
+# Serialize the whole restart/readiness sequence, including in deploy.yml.
+- name: record vault restart requirement
   tags: vault_launch
-  block:
-    - name: launch openbao service
-      systemd:
-        name: openbao
-        enabled: yes
-        daemon_reload: yes
-        state: "{{ 'restarted' if ((vault_cert_copy|default({})) is changed or (vault_seal_copy|default({})) is changed or (vault_conf|default({})) is changed) else 'started' }}"
-    - name: wait for openbao online
-      wait_for: host={{ inventory_hostname }} port={{ vault_port }} state=started timeout=60
+  set_fact:
+    vault_restart_required: "{{ (vault_cert_copy|default({})) is changed or (vault_seal_copy|default({})) is changed or (vault_conf|default({})) is changed or (vault_unit|default({})) is changed }}"
+
+- name: launch vault members one at a time
+  tags: vault_launch
+  when: not ansible_check_mode
+  run_once: true
+  include_tasks:
+    file: launch.yml
+    apply: { tags: vault_launch }
+  loop: "{{ ansible_play_hosts }}"
+  loop_control: { loop_var: vault_launch_host }
 
 
 #--------------------------------------------------------------#
@@ -98,6 +103,7 @@
 #--------------------------------------------------------------#
 - import_tasks: init.yml
   tags: vault_init
+  when: not ansible_check_mode
 
 
 #--------------------------------------------------------------#
@@ -105,6 +111,7 @@
 #--------------------------------------------------------------#
 - import_tasks: provision.yml
   tags: vault_provision
+  when: not ansible_check_mode
 
 
 #--------------------------------------------------------------#
@@ -141,6 +148,8 @@
   block:
     - name: install vault backup token
       when: (playbook_dir + '/files/pki/vault/backup.token') is file
+      no_log: true
+      diff: false
       copy: src={{ playbook_dir }}/files/pki/vault/backup.token dest=/etc/openbao/backup.token owner=root group=root mode=0600
     - name: install vault-backup script
       template: src=vault-backup dest=/usr/local/bin/vault-backup owner=root group=root mode=0755
@@ -162,6 +171,13 @@
     - name: fetch initial vault snapshot to admin node
       when: vault_seq|int == vault_seq_min|int and (vault_init_result|default({})) is changed
       fetch: src={{ vault_initial_snapshot.stdout_lines | last }} dest={{ playbook_dir }}/files/pki/vault/backup/ flat=yes
+    - name: restrict initial snapshot permissions on admin node
+      when: vault_seq|int == vault_seq_min|int and (vault_init_result|default({})) is changed
+      become: false
+      delegate_to: localhost
+      file:
+        path: "{{ playbook_dir }}/files/pki/vault/backup/{{ vault_initial_snapshot.stdout_lines | last | basename }}"
+        mode: '0600'
 
     # every member keeps its own local snapshot (and backup metrics) from day one
     - name: take first vault snapshot on each member

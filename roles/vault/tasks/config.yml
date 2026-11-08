@@ -22,6 +22,7 @@
         mode: 0600
 
     - name: generate vault signing request
+      when: not ansible_check_mode or (playbook_dir + '/files/pki/vault/' + vault_instance + '.key') is file
       openssl_csr:
         path: "files/pki/csr/{{ vault_instance }}.csr"
         privatekey_path: "files/pki/vault/{{ vault_instance }}.key"
@@ -31,6 +32,7 @@
         subject_alt_name: "{{ ['DNS:localhost', 'DNS:' + vault_instance, 'DNS:' + vault_domain, 'IP:127.0.0.1', 'IP:' + inventory_hostname] + ((vault_vip != '') | ternary(['IP:' + vault_vip], [])) }}"
 
     - name: issue vault server certificate
+      when: not ansible_check_mode or (playbook_dir + '/files/pki/csr/' + vault_instance + '.csr') is file
       openssl_certificate:
         path: "files/pki/vault/{{ vault_instance }}.crt"
         csr_path: "files/pki/csr/{{ vault_instance }}.csr"
@@ -46,6 +48,8 @@
 #--------------------------------------------------------------#
 - name: copy vault certs
   tags: [ vault_cert, vault_cert_copy ]
+  when: not ansible_check_mode or (playbook_dir + '/' + item.src) is file
+  diff: false
   copy: src={{ item.src }} dest={{ item.dest }} owner=root group=openbao mode=0640
   register: vault_cert_copy
   with_items:
@@ -59,7 +63,7 @@
 #--------------------------------------------------------------#
 # static seal: a 32-byte key generated once on admin node, and kept in
 # files/pki/vault/unseal.key. members auto-unseal with it on restart.
-# a snapshot plus this key is everything needed to restore vault.
+# keep snapshots, this key, init.json and the service/TLS configuration together.
 - name: setup vault unseal key
   tags: vault_seal
   block:
@@ -91,15 +95,18 @@
 
     # never overwrite a divergent key: data sealed by it would be lost
     - name: abort if vault member has a divergent unseal key
-      when: vault_seal_remote.stat.exists and vault_seal_remote.stat.checksum != vault_seal_local.stat.checksum
+      when: vault_seal_remote.stat.exists and vault_seal_remote.stat.checksum != vault_seal_local.stat.checksum|default('')
       any_errors_fatal: true
       fail: msg="unseal key on {{ inventory_hostname }} differs from files/pki/vault/unseal.key, abort to avoid sealing data with a wrong key"
 
     - name: derive vault unseal key id
       set_fact:
-        vault_seal_key_id: "{{ vault_cluster }}-{{ vault_seal_local.stat.checksum[:12] }}"
+        vault_seal_key_id: "{{ vault_cluster }}-{{ (vault_seal_local.stat.checksum | default('check-mode'))[:12] }}"
 
     - name: copy vault unseal key
+      when: vault_seal_local.stat.exists
+      no_log: true
+      diff: false
       copy: src=files/pki/vault/unseal.key dest=/etc/openbao/unseal.key owner=root group=openbao mode=0640
       register: vault_seal_copy
 
@@ -121,8 +128,14 @@
           stat: { path: files/pki/vault/unseal.key, get_checksum: true, checksum_algorithm: sha256 }
           register: vault_seal_local
         - name: set vault unseal key id
+          when: ansible_check_mode or vault_seal_local.stat.exists
           set_fact:
-            vault_seal_key_id: "{{ vault_cluster }}-{{ vault_seal_local.stat.checksum[:12] }}"
+            vault_seal_key_id: "{{ vault_cluster }}-{{ (vault_seal_local.stat.checksum | default('check-mode'))[:12] }}"
+
+    - name: require a seal key before rendering live config
+      assert:
+        that: vault_seal_key_id is defined
+        fail_msg: 'Run vault_seal first; the existing cluster seal key must be present on the controller'
 
     - name: render openbao config
       template: src=openbao.hcl dest=/etc/openbao/openbao.hcl owner=root group=openbao mode=0640
@@ -130,6 +143,7 @@
 
     - name: render openbao systemd service
       template: src=openbao.svc dest=/etc/systemd/system/openbao.service owner=root group=root mode=0644
+      register: vault_unit
 
     - name: render bao cli environment
       template: src=bao.sh dest=/etc/profile.d/bao.sh owner=root group=root mode=0644
