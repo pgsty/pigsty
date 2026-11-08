@@ -151,8 +151,8 @@
         group: root
         mode: '0644'
         content: |
-          # {{ vault_instance }} daily raft snapshot, managed by pigsty
-          {{ (vault_seq|int * 10) % 60 }} 3 * * * root /usr/local/bin/vault-backup >> /var/log/openbao/backup.log 2>&1
+          # {{ vault_instance }} daily raft snapshot, managed by pigsty, logs: journalctl -t vault-backup
+          {{ (vault_seq|int * 10) % 60 }} 3 * * * root /usr/local/bin/vault-backup 2>&1 | logger -t vault-backup
 
     # right after a fresh init, keep an initial snapshot on admin node
     - name: take initial vault snapshot
@@ -162,6 +162,11 @@
     - name: fetch initial vault snapshot to admin node
       when: vault_seq|int == vault_seq_min|int and (vault_init_result|default({})) is changed
       fetch: src={{ vault_initial_snapshot.stdout_lines | last }} dest={{ playbook_dir }}/files/pki/vault/backup/ flat=yes
+
+    # every member keeps its own local snapshot (and backup metrics) from day one
+    - name: take first vault snapshot on each member
+      command: /usr/local/bin/vault-backup
+      args: { creates: /var/lib/node_exporter/textfile/vault.prom }
 
 
 #--------------------------------------------------------------#

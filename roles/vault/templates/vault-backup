@@ -37,6 +37,19 @@ BAO_ADDR="${LEADER}" BAO_TOKEN="$(cat "${TOKEN_FILE}")" bao operator raft snapsh
 chmod 0600 "${FILE}.tmp"
 mv -f "${FILE}.tmp" "${FILE}"
 
+# export snapshot metrics to node_exporter textfile collector (if enabled), only on success
+PROM_DIR="/var/lib/node_exporter/textfile"
+if [[ -d "${PROM_DIR}" ]]; then
+    printf '%s\n' \
+        '# HELP vault_backup_last_success_timestamp_seconds unix time of the latest successful local vault snapshot' \
+        '# TYPE vault_backup_last_success_timestamp_seconds gauge' \
+        "vault_backup_last_success_timestamp_seconds $(date +%s)" \
+        '# HELP vault_backup_size_bytes size of the latest successful local vault snapshot' \
+        '# TYPE vault_backup_size_bytes gauge' \
+        "vault_backup_size_bytes $(stat -c %s "${FILE}")" > "${PROM_DIR}/vault.prom.tmp"
+    mv -f "${PROM_DIR}/vault.prom.tmp" "${PROM_DIR}/vault.prom"
+fi
+
 # retention: keep latest ${KEEP} snapshots
 ls -1t "${BACKUP_DIR}"/vault-*.snap 2>/dev/null | tail -n +$((KEEP + 1)) | xargs -r rm -f
 

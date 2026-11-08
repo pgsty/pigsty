@@ -47,105 +47,149 @@
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "description": "Raft autopilot verdict on the whole cluster: 1 = all voters healthy",
+      "description": "Members: registered vault members of this cluster\n\nUnsealed: members that report themselves unsealed\n\nQuorum: floor(members / 2) + 1\n\nTolerance: autopilot failure tolerance reported by the active member",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
-          "decimals": 0,
+          "noValue": "N/A",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 3,
+        "x": 0,
+        "y": 1
+      },
+      "id": 149,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 18,
+          "valueSize": 32
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(up{job=\"vault\", cls=\"$cls\"})",
+          "legendFormat": "Members",
+          "refId": "A",
+          "exemplar": false,
+          "instant": true,
+          "range": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(vault_core_unsealed{job=\"vault\", cls=\"$cls\"}) or on() vector(0)",
+          "legendFormat": "Unsealed",
+          "refId": "B",
+          "exemplar": false,
+          "instant": true,
+          "range": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "floor(count(up{job=\"vault\", cls=\"$cls\"}) / 2) + 1",
+          "legendFormat": "Quorum",
+          "refId": "C",
+          "exemplar": false,
+          "instant": true,
+          "range": false
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "vault:cls:failure_tolerance{cls=\"$cls\"}",
+          "legendFormat": "Tolerance",
+          "refId": "D",
+          "exemplar": false,
+          "instant": true,
+          "range": false
+        }
+      ],
+      "title": "Vault Spec",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [
             {
+              "type": "value",
               "options": {
                 "0": {
                   "color": "#cc4637d9",
                   "index": 0,
-                  "text": "Degraded"
+                  "text": "Down"
                 },
                 "1": {
-                  "color": "#346f36cc",
+                  "color": "#b783af",
                   "index": 1,
-                  "text": "Healthy"
+                  "text": "Sealed"
+                },
+                "2": {
+                  "color": "#346f36cc",
+                  "index": 2,
+                  "text": "Standby"
+                },
+                "3": {
+                  "color": "#3e668f",
+                  "index": 3,
+                  "text": "Active"
                 }
-              },
-              "type": "value"
+              }
             }
           ],
-          "noValue": "N/A",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#cc4637d9",
-                "value": 0
-              },
-              {
-                "color": "#346f36cc",
-                "value": 1
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 0,
-        "y": 1
-      },
-      "id": 101,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "pluginVersion": "13.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "expr": "min(vault_autopilot_healthy{job=\"vault\", cls=\"$cls\"})",
-          "legendFormat": "Autopilot",
-          "refId": "A",
-          "exemplar": false,
-          "instant": true,
-          "range": false
-        }
-      ],
-      "title": "Autopilot",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "ds-prometheus"
-      },
-      "description": "Number of members in the raft configuration",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "noValue": "N/A",
           "thresholds": {
             "mode": "absolute",
             "steps": [
@@ -154,18 +198,16 @@
                 "value": 0
               }
             ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
+          }
+        }
       },
       "gridPos": {
-        "h": 4,
+        "h": 7,
         "w": 4,
-        "x": 4,
+        "x": 3,
         "y": 1
       },
-      "id": 102,
+      "id": 150,
       "options": {
         "colorMode": "background",
         "graphMode": "area",
@@ -180,7 +222,7 @@
           "values": false
         },
         "showPercentChange": false,
-        "textMode": "value",
+        "textMode": "value_and_name",
         "wideLayout": true
       },
       "pluginVersion": "13.0.0",
@@ -191,346 +233,44 @@
             "uid": "ds-prometheus"
           },
           "editorMode": "code",
-          "expr": "max(vault_raft_peers{job=\"vault\", cls=\"$cls\"})",
-          "legendFormat": "Peers",
+          "expr": "(max by (ins, instance) (up{job=\"vault\", cls=\"$cls\"}) * (1 + max by (ins, instance) (vault_core_unsealed{job=\"vault\", cls=\"$cls\"}) * (1 + max by (ins, instance) (vault_core_active{job=\"vault\", cls=\"$cls\"})))) or max by (ins, instance) (up{job=\"vault\", cls=\"$cls\"})",
+          "legendFormat": "{{ ins }} @ {{ instance }}",
           "refId": "A",
           "exemplar": false,
           "instant": true,
           "range": false
         }
       ],
-      "title": "Raft Peers",
-      "type": "stat"
+      "title": "Vault Members",
+      "type": "stat",
+      "description": "Member state: Active (leader, serves requests), Standby, Sealed, or Down (metrics can not be scraped)"
     },
     {
       "datasource": {
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "description": "How many more members can fail before quorum is lost",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "noValue": "N/A",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#cc4637d9",
-                "value": 0
-              },
-              {
-                "color": "#f79f64",
-                "value": 1
-              },
-              {
-                "color": "#346f36cc",
-                "value": 2
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 8,
-        "y": 1
-      },
-      "id": 103,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "pluginVersion": "13.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "expr": "min(vault_autopilot_failure_tolerance{job=\"vault\", cls=\"$cls\"})",
-          "legendFormat": "Tolerance",
-          "refId": "A",
-          "exemplar": false,
-          "instant": true,
-          "range": false
-        }
-      ],
-      "title": "Failure Tolerance",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "ds-prometheus"
-      },
-      "description": "Members currently unsealed and able to serve secrets",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "noValue": "N/A",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#cc4637d9",
-                "value": 0
-              },
-              {
-                "color": "#f79f64",
-                "value": 1
-              },
-              {
-                "color": "#346f36cc",
-                "value": 2
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 12,
-        "y": 1
-      },
-      "id": 104,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "pluginVersion": "13.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "expr": "vault:cls:unsealed{job=\"vault\", cls=\"$cls\"}",
-          "legendFormat": "Unsealed",
-          "refId": "A",
-          "exemplar": false,
-          "instant": true,
-          "range": false
-        }
-      ],
-      "title": "Unsealed Members",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "ds-prometheus"
-      },
-      "description": "Members claiming the active (leader) role, must be exactly 1",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "noValue": "N/A",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#cc4637d9",
-                "value": 0
-              },
-              {
-                "color": "#346f36cc",
-                "value": 1
-              },
-              {
-                "color": "#f79f64",
-                "value": 2
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 16,
-        "y": 1
-      },
-      "id": 105,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "pluginVersion": "13.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "expr": "vault:cls:active{job=\"vault\", cls=\"$cls\"}",
-          "legendFormat": "Active",
-          "refId": "A",
-          "exemplar": false,
-          "instant": true,
-          "range": false
-        }
-      ],
-      "title": "Active Node",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "ds-prometheus"
-      },
-      "description": "Total number of leases eligible for eventual expiry",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "thresholds"
-          },
-          "decimals": 0,
-          "mappings": [],
-          "noValue": "N/A",
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#3e668f",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "none"
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 4,
-        "w": 4,
-        "x": 20,
-        "y": 1
-      },
-      "id": 106,
-      "options": {
-        "colorMode": "background",
-        "graphMode": "area",
-        "justifyMode": "auto",
-        "orientation": "horizontal",
-        "percentChangeColorMode": "standard",
-        "reduceOptions": {
-          "calcs": [
-            "last"
-          ],
-          "fields": "",
-          "values": false
-        },
-        "showPercentChange": false,
-        "textMode": "value",
-        "wideLayout": true
-      },
-      "pluginVersion": "13.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "expr": "max(vault_expire_num_leases{job=\"vault\", cls=\"$cls\"})",
-          "legendFormat": "Leases",
-          "refId": "A",
-          "exemplar": false,
-          "instant": true,
-          "range": false
-        }
-      ],
-      "title": "Leases",
-      "type": "stat"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "ds-prometheus"
-      },
-      "description": "One row per vault member of cluster $cls",
+      "description": "All members of vault cluster ${cls}\n\nIP: go to node dashboard\n\nRole: Active member serves requests, Standby forwards to it\n\nAutopilot: member health seen by the active member\n\nLag: raft log entries behind the leader\n\nBackup Age: time since the latest successful local snapshot of this member, red after 26h",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
           },
           "custom": {
-            "align": "auto",
+            "align": "center",
             "cellOptions": {
               "type": "auto"
             },
-            "filterable": false,
+            "footer": {
+              "reducers": []
+            },
             "inspect": false
           },
-          "mappings": [],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "text",
+                "color": "#e3e3e3e0",
                 "value": 0
               }
             ]
@@ -540,13 +280,63 @@
           {
             "matcher": {
               "id": "byName",
+              "options": "Instance"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": null
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "IP"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 120
+              },
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Node Instance : ${__data.fields.Instance} @ ${__data.fields.IP}",
+                    "url": "/d/node-instance?var-id=${__data.fields.IP}&${__url_time_range}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Address"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 150
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
               "options": "Alive"
             },
             "properties": [
               {
+                "id": "custom.width",
+                "value": 80
+              },
+              {
                 "id": "mappings",
                 "value": [
                   {
+                    "type": "value",
                     "options": {
                       "0": {
                         "color": "#cc4637d9",
@@ -558,15 +348,14 @@
                         "index": 1,
                         "text": "Alive"
                       }
-                    },
-                    "type": "value"
+                    }
                   }
                 ]
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "color-text"
+                  "type": "color-background"
                 }
               }
             ]
@@ -578,29 +367,33 @@
             },
             "properties": [
               {
+                "id": "custom.width",
+                "value": 90
+              },
+              {
                 "id": "mappings",
                 "value": [
                   {
+                    "type": "value",
                     "options": {
                       "0": {
                         "color": "#cc4637d9",
                         "index": 0,
-                        "text": "🔒 Sealed"
+                        "text": "Sealed"
                       },
                       "1": {
                         "color": "#346f36cc",
                         "index": 1,
-                        "text": "🔓 Unsealed"
+                        "text": "Unsealed"
                       }
-                    },
-                    "type": "value"
+                    }
                   }
                 ]
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "color-text"
+                  "type": "color-background"
                 }
               }
             ]
@@ -612,29 +405,34 @@
             },
             "properties": [
               {
+                "id": "custom.width",
+                "value": 90
+              },
+              {
                 "id": "mappings",
                 "value": [
                   {
+                    "type": "value",
                     "options": {
                       "0": {
-                        "color": "#3e668f",
+                        "color": "#346f36cc",
                         "index": 0,
                         "text": "Standby"
                       },
                       "1": {
-                        "color": "#346f36cc",
+                        "color": "#3e668f",
                         "index": 1,
                         "text": "Active"
                       }
-                    },
-                    "type": "value"
+                    }
                   }
                 ]
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "color-text"
+                  "mode": "gradient",
+                  "type": "color-background"
                 }
               }
             ]
@@ -642,13 +440,18 @@
           {
             "matcher": {
               "id": "byName",
-              "options": "Healthy"
+              "options": "Autopilot"
             },
             "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
               {
                 "id": "mappings",
                 "value": [
                   {
+                    "type": "value",
                     "options": {
                       "0": {
                         "color": "#cc4637d9",
@@ -660,15 +463,147 @@
                         "index": 1,
                         "text": "Healthy"
                       }
-                    },
-                    "type": "value"
+                    }
+                  },
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "text": "Unknown",
+                        "color": "#b783af",
+                        "index": 2
+                      }
+                    }
                   }
                 ]
               },
               {
                 "id": "custom.cellOptions",
                 "value": {
-                  "type": "color-text"
+                  "type": "color-background"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Applied"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 90
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Lag"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 70
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "text": "-",
+                        "color": "transparent",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Leases"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Tokens"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 80
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Backup Age"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 100
+              },
+              {
+                "id": "unit",
+                "value": "s"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#346f36cc",
+                      "value": 0
+                    },
+                    {
+                      "color": "#cc4637d9",
+                      "value": 93600
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "text": "N/A",
+                        "color": "#b783af",
+                        "index": 0
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
                 }
               }
             ]
@@ -677,21 +612,13 @@
       },
       "gridPos": {
         "h": 7,
-        "w": 24,
-        "x": 0,
-        "y": 5
+        "w": 17,
+        "x": 7,
+        "y": 1
       },
       "id": 107,
       "options": {
         "cellHeight": "sm",
-        "footer": {
-          "countRows": false,
-          "fields": "",
-          "reducer": [
-            "sum"
-          ],
-          "show": false
-        },
         "showHeader": true,
         "sortBy": [
           {
@@ -708,7 +635,7 @@
             "uid": "ds-prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (ins,instance) (vault_up{job=\"vault\", cls=\"$cls\"})",
+          "expr": "max by (ins, ip, instance) (up{job=\"vault\", cls=\"$cls\"})",
           "legendFormat": "",
           "refId": "A",
           "exemplar": false,
@@ -750,7 +677,7 @@
             "uid": "ds-prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (ins) (vault_autopilot_node_healthy{job=\"vault\", cls=\"$cls\"})",
+          "expr": "max by (ins) (vault:ins:autopilot_healthy{job=\"vault\", cls=\"$cls\"})",
           "legendFormat": "",
           "refId": "D",
           "exemplar": false,
@@ -778,7 +705,7 @@
             "uid": "ds-prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (ins) (vault_raft_storage_stats_commit_index{job=\"vault\", cls=\"$cls\"})",
+          "expr": "max by (ins) (vault:ins:raft_lag{job=\"vault\", cls=\"$cls\"})",
           "legendFormat": "",
           "refId": "F",
           "exemplar": false,
@@ -792,7 +719,7 @@
             "uid": "ds-prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (ins) (vault_raft_storage_stats_fsm_pending{job=\"vault\", cls=\"$cls\"})",
+          "expr": "max by (ins) (vault_expire_num_leases{job=\"vault\", cls=\"$cls\"})",
           "legendFormat": "",
           "refId": "G",
           "exemplar": false,
@@ -806,7 +733,7 @@
             "uid": "ds-prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (ins) (vault_expire_num_leases{job=\"vault\", cls=\"$cls\"})",
+          "expr": "max by (ins) (vault_token_count{job=\"vault\", cls=\"$cls\"})",
           "legendFormat": "",
           "refId": "H",
           "exemplar": false,
@@ -820,23 +747,9 @@
             "uid": "ds-prometheus"
           },
           "editorMode": "code",
-          "expr": "max by (ins) (vault_token_count{job=\"vault\", cls=\"$cls\"})",
+          "expr": "max by (ins) (time() - vault:ins:backup_time{job=\"vault\", cls=\"$cls\"})",
           "legendFormat": "",
           "refId": "I",
-          "exemplar": false,
-          "instant": true,
-          "range": false,
-          "format": "table"
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "expr": "max by (ins) (vault_runtime_num_goroutines{job=\"vault\", cls=\"$cls\"})",
-          "legendFormat": "",
-          "refId": "J",
           "exemplar": false,
           "instant": true,
           "range": false,
@@ -864,36 +777,38 @@
               "Time 7": true,
               "Time 8": true,
               "Time 9": true,
-              "Time 10": true
+              "Time 10": true,
+              "Time 11": true,
+              "Time 12": true
             },
             "includeByName": {},
             "indexByName": {
               "ins": 0,
-              "instance": 1,
-              "Value #A": 2,
-              "Value #B": 3,
-              "Value #C": 4,
-              "Value #D": 5,
-              "Value #E": 6,
-              "Value #F": 7,
-              "Value #G": 8,
-              "Value #H": 9,
-              "Value #I": 10,
-              "Value #J": 11
+              "ip": 1,
+              "instance": 2,
+              "Value #A": 3,
+              "Value #B": 4,
+              "Value #C": 5,
+              "Value #D": 6,
+              "Value #E": 7,
+              "Value #F": 8,
+              "Value #G": 9,
+              "Value #H": 10,
+              "Value #I": 11
             },
             "renameByName": {
               "ins": "Instance",
-              "instance": "Endpoint",
+              "ip": "IP",
+              "instance": "Address",
               "Value #A": "Alive",
               "Value #B": "Seal",
               "Value #C": "Role",
-              "Value #D": "Healthy",
-              "Value #E": "Applied Index",
-              "Value #F": "Commit Index",
-              "Value #G": "FSM Pending",
-              "Value #H": "Leases",
-              "Value #I": "Tokens",
-              "Value #J": "Goroutines"
+              "Value #D": "Autopilot",
+              "Value #E": "Applied",
+              "Value #F": "Lag",
+              "Value #G": "Leases",
+              "Value #H": "Tokens",
+              "Value #I": "Backup Age"
             }
           }
         }
@@ -905,11 +820,328 @@
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "description": "Scrape result per member. A sealed node answers 503 and shows up as Down here",
       "fieldConfig": {
         "defaults": {
           "color": {
             "mode": "thresholds"
+          },
+          "noValue": "N/A",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Vault Health"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "color": "#cc4637d9",
+                        "index": 0,
+                        "text": "Degraded"
+                      },
+                      "1": {
+                        "color": "#346f36cc",
+                        "index": 1,
+                        "text": "Healthy"
+                      }
+                    }
+                  },
+                  {
+                    "type": "special",
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "text": "Unknown",
+                        "color": "#b783af",
+                        "index": 2
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "#cc4637d9",
+                      "value": 0
+                    },
+                    {
+                      "color": "#346f36cc",
+                      "value": 1
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 3,
+        "x": 0,
+        "y": 8
+      },
+      "id": 151,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "valueSize": 32
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "vault:cls:autopilot_healthy{cls=\"$cls\"}",
+          "legendFormat": "Vault Health",
+          "refId": "A",
+          "exemplar": false,
+          "instant": true,
+          "range": false
+        }
+      ],
+      "title": "",
+      "type": "stat",
+      "description": "Autopilot health of the cluster, reported by the active member. Unknown when there is no active member"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "noValue": "N/A",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Has Leader"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "0": {
+                        "color": "#cc4637d9",
+                        "index": 0,
+                        "text": "No"
+                      },
+                      "1": {
+                        "color": "#346f36cc",
+                        "index": 1,
+                        "text": "Yes"
+                      }
+                    },
+                    "type": "value"
+                  },
+                  {
+                    "options": {
+                      "match": "null+nan",
+                      "result": {
+                        "color": "#b783af",
+                        "index": 2,
+                        "text": "Unknown"
+                      }
+                    },
+                    "type": "special"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 2,
+        "w": 4,
+        "x": 3,
+        "y": 8
+      },
+      "id": 152,
+      "maxDataPoints": 100,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "valueSize": 32
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "(max(vault:cls:active{cls=\"$cls\"}) == bool 1) or on() vector(0)",
+          "legendFormat": "Has Leader",
+          "refId": "A",
+          "exemplar": false,
+          "instant": true,
+          "range": false
+        }
+      ],
+      "title": "",
+      "type": "stat",
+      "description": "Exactly one active member is observed"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Worst member: time since the latest successful local snapshot, daily snapshot is expected, alert after 26h",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "links": [],
+          "min": 0,
+          "noValue": "∅",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              },
+              {
+                "color": "#f79f64",
+                "value": 90000
+              },
+              {
+                "color": "#cc4637d9",
+                "value": 93600
+              }
+            ]
+          },
+          "unit": "s",
+          "decimals": 1
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 3,
+        "y": 10
+      },
+      "id": 153,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max(time() - vault:ins:backup_time{cls=\"$cls\"})",
+          "legendFormat": "Backup Age",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "transparent"
           },
           "custom": {
             "axisPlacement": "auto",
@@ -927,6 +1159,7 @@
           "min": -1,
           "mappings": [
             {
+              "type": "value",
               "options": {
                 "0": {
                   "color": "#cc4637d9",
@@ -934,37 +1167,62 @@
                   "text": "Down"
                 },
                 "1": {
-                  "color": "#346f36cc",
+                  "color": "#b783af",
                   "index": 1,
-                  "text": "Alive"
+                  "text": "Sealed"
+                },
+                "2": {
+                  "color": "#346f36cc",
+                  "index": 2,
+                  "text": "Standby"
+                },
+                "3": {
+                  "color": "#3e668f",
+                  "index": 3,
+                  "text": "Active"
                 }
-              },
-              "type": "value"
+              }
             }
-          ],
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
+          ]
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Vault Cluster Healthy"
+            },
+            "properties": [
               {
-                "color": "#cc4637d9",
-                "value": 0
-              },
-              {
-                "color": "#346f36cc",
-                "value": 1
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "color": "#cc4637d9",
+                        "index": 0,
+                        "text": "🔥NOLEADER"
+                      },
+                      "1": {
+                        "color": "#3e668f",
+                        "index": 1,
+                        "text": "OK"
+                      }
+                    }
+                  }
+                ]
               }
             ]
           }
-        },
-        "overrides": []
+        ]
       },
       "gridPos": {
         "h": 6,
-        "w": 12,
-        "x": 0,
-        "y": 12
+        "w": 17,
+        "x": 7,
+        "y": 8
       },
-      "id": 108,
+      "id": 154,
       "options": {
         "alignValue": "left",
         "annotations": {
@@ -978,7 +1236,7 @@
         },
         "mergeValues": true,
         "rowHeight": 0.96,
-        "showValue": "never",
+        "showValue": "auto",
         "tooltip": {
           "hideZeros": false,
           "mode": "single",
@@ -993,9 +1251,20 @@
             "uid": "ds-prometheus"
           },
           "editorMode": "code",
-          "expr": "vault_up{job=\"vault\", cls=\"$cls\"}",
-          "legendFormat": "{{ ins }}",
+          "expr": "(max(vault:cls:active{cls=\"$cls\"}) == bool 1) or on() vector(0)",
+          "legendFormat": "Vault Cluster Healthy",
           "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "(max by (ins, ip) (up{job=\"vault\", cls=\"$cls\"}) * (1 + max by (ins, ip) (vault_core_unsealed{job=\"vault\", cls=\"$cls\"}) * (1 + max by (ins, ip) (vault_core_active{job=\"vault\", cls=\"$cls\"})))) or max by (ins, ip) (up{job=\"vault\", cls=\"$cls\"})",
+          "legendFormat": "{{ ins }} @ {{ ip }}",
+          "refId": "B",
           "range": true
         }
       ],
@@ -1007,195 +1276,76 @@
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "description": "Unsealed state (1 = unsealed) and active role (1 = active/leader)",
       "fieldConfig": {
         "defaults": {
           "color": {
-            "mode": "thresholds"
+            "mode": "palette-classic"
           },
           "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
             "axisPlacement": "auto",
-            "fillOpacity": 70,
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "gradientMode": "none",
             "hideFrom": {
               "legend": false,
               "tooltip": false,
               "viz": false
             },
             "insertNulls": false,
+            "lineInterpolation": "stepBefore",
             "lineWidth": 0,
-            "spanNulls": false
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
           },
           "decimals": 0,
-          "min": -1,
-          "mappings": [
-            {
-              "options": {
-                "0": {
-                  "color": "#cc4637d9",
-                  "index": 0,
-                  "text": "🔒 Sealed"
-                },
-                "1": {
-                  "color": "#346f36cc",
-                  "index": 1,
-                  "text": "🔓 Unsealed"
-                }
-              },
-              "type": "value"
-            }
-          ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
               {
-                "color": "#cc4637d9",
+                "color": "green",
                 "value": 0
-              },
-              {
-                "color": "#346f36cc",
-                "value": 1
               }
             ]
           }
-        },
-        "overrides": []
+        }
       },
       "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 12,
-        "y": 12
+        "h": 4,
+        "w": 7,
+        "x": 0,
+        "y": 14
       },
-      "id": 109,
+      "id": 155,
       "options": {
-        "alignValue": "left",
         "annotations": {
           "clustering": -1,
           "multiLane": false
         },
         "legend": {
+          "calcs": [],
           "displayMode": "list",
           "placement": "bottom",
           "showLegend": false
         },
-        "mergeValues": true,
-        "rowHeight": 0.96,
-        "showValue": "never",
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "single",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "13.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "expr": "vault_core_unsealed{job=\"vault\", cls=\"$cls\"}",
-          "legendFormat": "{{ ins }} seal",
-          "refId": "A",
-          "range": true
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "expr": "vault_core_active{job=\"vault\", cls=\"$cls\"}",
-          "legendFormat": "{{ ins }} role",
-          "refId": "B",
-          "range": true
-        }
-      ],
-      "title": "Seal Status & Role",
-      "type": "state-timeline"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "ds-prometheus"
-      },
-      "description": "Raft elections won and candidacies started in the last 5m",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#346f36cc",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "short",
-          "decimals": 0,
-          "min": 0
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 0,
-        "y": 18
-      },
-      "id": 110,
-      "options": {
-        "annotations": {
-          "clustering": -1,
-          "multiLane": false
-        },
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
         "tooltip": {
           "hideZeros": false,
           "mode": "multi",
@@ -1210,128 +1360,1134 @@
             "uid": "ds-prometheus"
           },
           "editorMode": "code",
-          "expr": "increase(vault_raft_state_leader{job=\"vault\", cls=\"$cls\"}[5m])",
-          "legendFormat": "{{ ins }} leader",
-          "refId": "A",
-          "range": true
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "expr": "increase(vault_raft_state_candidate{job=\"vault\", cls=\"$cls\"}[5m])",
-          "legendFormat": "{{ ins }} candidate",
-          "refId": "B",
-          "range": true
-        }
-      ],
-      "title": "Leadership Changes",
-      "type": "timeseries"
-    },
-    {
-      "datasource": {
-        "type": "prometheus",
-        "uid": "ds-prometheus"
-      },
-      "description": "Healthy nodes in excess of quorum, 0 means the next failure breaks the cluster",
-      "fieldConfig": {
-        "defaults": {
-          "color": {
-            "mode": "palette-classic"
-          },
-          "custom": {
-            "axisBorderShow": false,
-            "axisCenteredZero": false,
-            "axisColorMode": "text",
-            "axisLabel": "",
-            "axisPlacement": "auto",
-            "barAlignment": 0,
-            "barWidthFactor": 0.6,
-            "drawStyle": "line",
-            "fillOpacity": 0,
-            "gradientMode": "none",
-            "hideFrom": {
-              "legend": false,
-              "tooltip": false,
-              "viz": false
-            },
-            "insertNulls": false,
-            "lineInterpolation": "linear",
-            "lineWidth": 2,
-            "pointSize": 5,
-            "scaleDistribution": {
-              "type": "linear"
-            },
-            "showPoints": "never",
-            "showValues": false,
-            "spanNulls": false,
-            "stacking": {
-              "group": "A",
-              "mode": "none"
-            },
-            "thresholdsStyle": {
-              "mode": "off"
-            }
-          },
-          "thresholds": {
-            "mode": "absolute",
-            "steps": [
-              {
-                "color": "#346f36cc",
-                "value": 0
-              }
-            ]
-          },
-          "unit": "short",
-          "decimals": 0,
-          "min": 0
-        },
-        "overrides": []
-      },
-      "gridPos": {
-        "h": 6,
-        "w": 12,
-        "x": 12,
-        "y": 18
-      },
-      "id": 111,
-      "options": {
-        "annotations": {
-          "clustering": -1,
-          "multiLane": false
-        },
-        "legend": {
-          "calcs": [
-            "lastNotNull",
-            "max"
-          ],
-          "displayMode": "table",
-          "placement": "right",
-          "showLegend": true
-        },
-        "tooltip": {
-          "hideZeros": false,
-          "mode": "multi",
-          "sort": "none"
-        }
-      },
-      "pluginVersion": "13.0.0",
-      "targets": [
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "expr": "vault_autopilot_failure_tolerance{job=\"vault\", cls=\"$cls\"}",
+          "expr": "vault_raft_state_leader{job=\"vault\", cls=\"$cls\"}",
           "legendFormat": "{{ ins }}",
           "refId": "A",
           "range": true
         }
       ],
-      "title": "Failure Tolerance",
+      "title": "Leader Elections",
+      "type": "timeseries",
+      "description": "Times each member has become the raft leader since it started"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Applied Index: latest applied raft index\n\nMax Lag: worst follower lag in log entries\n\nRaft Peers: members in raft configuration",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 7,
+        "y": 14
+      },
+      "id": 156,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max(vault_raft_storage_stats_applied_index{job=\"vault\", cls=\"$cls\"})",
+          "legendFormat": "Applied Index",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max(vault:ins:raft_lag{cls=\"$cls\"})",
+          "legendFormat": "Max Lag",
+          "refId": "B",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max(vault_raft_peers{job=\"vault\", cls=\"$cls\"})",
+          "legendFormat": "Raft Peers",
+          "refId": "C",
+          "range": true
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Non-login requests per second",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 10,
+        "y": 14
+      },
+      "id": 157,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(vault:ins:req_rps{cls=\"$cls\"}) or on() vector(0)",
+          "legendFormat": "Req/s",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Login requests per second",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "reqps"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 12,
+        "y": 14
+      },
+      "id": 158,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(vault:ins:login_rps{cls=\"$cls\"}) or on() vector(0)",
+          "legendFormat": "Login/s",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Request weighted mean latency in last 5m, ∅ when there is no request",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 14,
+        "y": 14
+      },
+      "id": 159,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "vault:cls:req_rt_avg_5m{cls=\"$cls\"}",
+          "legendFormat": "Mean RT",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Audit write failures in last 5m, requests are rejected while audit fails",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              },
+              {
+                "color": "#cc4637d9",
+                "value": 1
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 16,
+        "y": 14
+      },
+      "id": 160,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(vault:ins:audit_failure_5m{cls=\"$cls\"})",
+          "legendFormat": "Audit Fail",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Active leases",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 18,
+        "y": 14
+      },
+      "id": 161,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max(vault_expire_num_leases{job=\"vault\", cls=\"$cls\"})",
+          "legendFormat": "Leases",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Tokens (refreshed by usage gauge period)",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 20,
+        "y": 14
+      },
+      "id": 162,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "max(vault_token_count{job=\"vault\", cls=\"$cls\"})",
+          "legendFormat": "Tokens",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "KV entries of all kv mounts",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [
+            {
+              "options": {
+                "match": "null+nan",
+                "result": {
+                  "color": "gray",
+                  "index": 0,
+                  "text": "∅"
+                }
+              },
+              "type": "special"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 2,
+        "x": 22,
+        "y": 14
+      },
+      "id": 163,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12,
+          "valueSize": 18
+        },
+        "textMode": "value_and_name",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "sum(max by (mount_point) (vault_secret_kv_count{job=\"vault\", cls=\"$cls\"}))",
+          "legendFormat": "KV Secrets",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "max": 1,
+          "min": 0,
+          "noValue": "OK",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#fcdb72",
+                "value": 1
+              },
+              {
+                "color": "#f79f64",
+                "value": 4
+              },
+              {
+                "color": "#b783af",
+                "value": 8
+              },
+              {
+                "color": "text",
+                "value": 16
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "targetBlank": true,
+                    "title": "Pigsty Alertmanager",
+                    "url": "/alertmgr/"
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 3,
+        "x": 0,
+        "y": 18
+      },
+      "id": 164,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {},
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(ALERTS{alertstate=\"firing\", category=\"vault\", cls=\"$cls\"}) or on() vector(0)",
+          "legendFormat": "Firing Alert",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(ALERTS{alertstate=\"pending\", category=\"vault\", cls=\"$cls\"})",
+          "legendFormat": "Pending Alert",
+          "refId": "B",
+          "range": true
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "decimals": 0,
+          "links": [
+            {
+              "targetBlank": true,
+              "title": "AlertInfo ${__field.labels.alertname}",
+              "url": "/alertmgr/#/alerts?filter=%7Balertname%3D%22${__field.labels.alertname}%22%7D"
+            }
+          ],
+          "max": 1,
+          "min": 0,
+          "noValue": "OK",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#3e668f",
+                "value": 0
+              },
+              {
+                "color": "#fcdb72",
+                "value": 1
+              },
+              {
+                "color": "#f79f64",
+                "value": 2
+              },
+              {
+                "color": "#b783af",
+                "value": 4
+              }
+            ]
+          },
+          "unit": "none"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 3,
+        "y": 18
+      },
+      "id": 165,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "horizontal",
+        "percentChangeColorMode": "standard",
+        "reduceOptions": {
+          "calcs": [
+            "last"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "showPercentChange": false,
+        "text": {
+          "titleSize": 12
+        },
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "count(ALERTS{category=\"vault\", cls=\"$cls\"}) by (alertname, severity)",
+          "legendFormat": "{{ alertname }}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Alerting event graph. Each stripe represents an alerting event. Gray transparent stripes are pending alerts.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "hidden",
+            "axisSoftMax": 1.2,
+            "axisSoftMin": 0,
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 70,
+            "gradientMode": "none",
+            "hideFrom": {
+              "graph": false,
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "stepBefore",
+            "lineWidth": 0,
+            "pointSize": 1,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "normal"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "decimals": 0,
+          "links": [
+            {
+              "targetBlank": true,
+              "title": "AlertInfo ${__field.labels.alertname} on Cluster ${cls}",
+              "url": "/alertmgr/#/alerts?filter=%7Bcls%3D%22${cls}%22%2C%20alertname%3D%22${__field.labels.alertname}%22%7D"
+            },
+            {
+              "targetBlank": true,
+              "title": "Silence ${__field.labels.alertname} on Cluster ${cls}",
+              "url": "/alertmgr/#/silences/new?filter=%7Bcls%3D%22${cls}%22%2C%20alertname%3D%22${__field.labels.alertname}%22%7D"
+            },
+            {
+              "title": "Node Instance for ${__field.labels.ip}",
+              "url": "/d/node-instance?var-id=${__field.labels.ip}&${__url_time_range}"
+            }
+          ],
+          "min": 0,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "none"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "A"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 70
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "1": {
+                        "index": 0,
+                        "text": "Firing🔥"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byFrameRefID",
+              "options": "B"
+            },
+            "properties": [
+              {
+                "id": "custom.fillOpacity",
+                "value": 30
+              },
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "rgba(128, 128, 128, 0.5)",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "1": {
+                        "color": "gray",
+                        "index": 0,
+                        "text": "Pend⏰"
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Alert"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "#cc4637d9",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byType",
+              "options": "time"
+            },
+            "properties": [
+              {
+                "id": "custom.axisPlacement",
+                "value": "auto"
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 17,
+        "x": 7,
+        "y": 18
+      },
+      "id": 166,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [
+            "last"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true,
+          "sortBy": "Last",
+          "sortDesc": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "ALERTS{category=\"vault\", cls=\"$cls\", alertstate=\"firing\"}",
+          "legendFormat": "[{{ severity }}🔥] {{alertname}} @ {{ ins }}",
+          "refId": "A",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "ALERTS{category=\"vault\", cls=\"$cls\", alertstate=\"pending\"}",
+          "legendFormat": "[{{ severity }}⏰] {{alertname}} @ {{ ins }}",
+          "refId": "B",
+          "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "0",
+          "legendFormat": "Alert",
+          "refId": "C",
+          "range": true
+        }
+      ],
+      "title": "",
       "type": "timeseries"
     },
     {
@@ -1340,7 +2496,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 24
+        "y": 22
       },
       "id": 112,
       "title": "Requests",
@@ -1409,7 +2565,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 25
+        "y": 23
       },
       "id": 113,
       "options": {
@@ -1512,7 +2668,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 25
+        "y": 23
       },
       "id": 114,
       "options": {
@@ -1615,7 +2771,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 31
+        "y": 29
       },
       "id": 115,
       "options": {
@@ -1740,7 +2896,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 31
+        "y": 29
       },
       "id": 116,
       "options": {
@@ -1775,6 +2931,17 @@
           "legendFormat": "{{ ins }}",
           "refId": "A",
           "range": true
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "vault:cls:req_rt_avg_5m{job=\"vault\", cls=\"$cls\"} * 1000",
+          "legendFormat": "{{ cls }} (cluster)",
+          "refId": "B",
+          "range": true
         }
       ],
       "title": "Mean Request Latency (5m)",
@@ -1786,7 +2953,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 37
+        "y": 35
       },
       "id": 117,
       "title": "Raft Storage",
@@ -1855,7 +3022,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 38
+        "y": 36
       },
       "id": 118,
       "options": {
@@ -1970,7 +3137,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 38
+        "y": 36
       },
       "id": 119,
       "options": {
@@ -2074,7 +3241,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 44
+        "y": 42
       },
       "id": 120,
       "options": {
@@ -2177,7 +3344,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 44
+        "y": 42
       },
       "id": 121,
       "options": {
@@ -2208,7 +3375,7 @@
             "uid": "ds-prometheus"
           },
           "editorMode": "code",
-          "expr": "vault_raft_storage_follower_last_heartbeat_ms{job=\"vault\", cls=\"$cls\"}",
+          "expr": "vault:ins:raft_heartbeat_ms{job=\"vault\", cls=\"$cls\"}",
           "legendFormat": "{{ ins }}",
           "refId": "A",
           "range": true
@@ -2280,7 +3447,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 50
+        "y": 48
       },
       "id": 122,
       "options": {
@@ -2394,7 +3561,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 50
+        "y": 48
       },
       "id": 123,
       "options": {
@@ -2508,7 +3675,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 56
+        "y": 54
       },
       "id": 124,
       "options": {
@@ -2611,7 +3778,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 56
+        "y": 54
       },
       "id": 125,
       "options": {
@@ -2663,12 +3830,220 @@
       "type": "timeseries"
     },
     {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Autopilot failure tolerance reported by the active member: members that can fail before quorum is lost",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 0,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 60
+      },
+      "id": 111,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "vault:cls:failure_tolerance{cls=\"$cls\"}",
+          "legendFormat": "{{ cls }}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "Failure Tolerance",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Members in the raft configuration seen by each member",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "short",
+          "decimals": 0,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 60
+      },
+      "id": 167,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "vault_raft_peers{job=\"vault\", cls=\"$cls\"}",
+          "legendFormat": "{{ ins }}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "Raft Peers",
+      "type": "timeseries"
+    },
+    {
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 62
+        "y": 66
       },
       "id": 126,
       "title": "Secrets & Leases",
@@ -2738,7 +4113,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 63
+        "y": 67
       },
       "id": 127,
       "options": {
@@ -2842,7 +4217,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 63
+        "y": 67
       },
       "id": 128,
       "options": {
@@ -2945,7 +4320,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 69
+        "y": 73
       },
       "id": 129,
       "options": {
@@ -3071,7 +4446,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 69
+        "y": 73
       },
       "id": 130,
       "options": {
@@ -3128,7 +4503,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 75
+        "y": 79
       },
       "id": 131,
       "title": "Audit",
@@ -3197,7 +4572,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 76
+        "y": 80
       },
       "id": 132,
       "options": {
@@ -3253,7 +4628,7 @@
         "type": "prometheus",
         "uid": "ds-prometheus"
       },
-      "description": "Audit write failures. OpenBao blocks requests while the audit device is failing",
+      "description": "Audit write failures (request + response) in the last 5m. OpenBao rejects requests while the audit device is failing",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -3302,7 +4677,7 @@
               }
             ]
           },
-          "unit": "ops",
+          "unit": "short",
           "min": 0
         },
         "overrides": [
@@ -3327,7 +4702,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 76
+        "y": 80
       },
       "id": 133,
       "options": {
@@ -3358,24 +4733,13 @@
             "uid": "ds-prometheus"
           },
           "editorMode": "code",
-          "expr": "rate(vault_audit_log_request_failure{job=\"vault\", cls=\"$cls\"}[1m])",
-          "legendFormat": "{{ ins }} request",
+          "expr": "vault:ins:audit_failure_5m{job=\"vault\", cls=\"$cls\"}",
+          "legendFormat": "{{ ins }}",
           "refId": "A",
-          "range": true
-        },
-        {
-          "datasource": {
-            "type": "prometheus",
-            "uid": "ds-prometheus"
-          },
-          "editorMode": "code",
-          "expr": "rate(vault_audit_log_response_failure{job=\"vault\", cls=\"$cls\"}[1m])",
-          "legendFormat": "{{ ins }} response",
-          "refId": "B",
           "range": true
         }
       ],
-      "title": "Audit Failure Rate",
+      "title": "Audit Failures (5m)",
       "type": "timeseries"
     },
     {
@@ -3384,7 +4748,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 82
+        "y": 86
       },
       "id": 134,
       "title": "Runtime",
@@ -3454,7 +4818,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 83
+        "y": 87
       },
       "id": 135,
       "options": {
@@ -3557,7 +4921,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 83
+        "y": 87
       },
       "id": 136,
       "options": {
@@ -3671,7 +5035,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 89
+        "y": 93
       },
       "id": 137,
       "options": {
@@ -3786,7 +5150,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 89
+        "y": 93
       },
       "id": 138,
       "options": {
@@ -3832,7 +5196,7 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 95
+        "y": 99
       },
       "id": 139,
       "title": "HA Forwarding",
@@ -3901,7 +5265,7 @@
         "h": 6,
         "w": 12,
         "x": 0,
-        "y": 96
+        "y": 100
       },
       "id": 140,
       "options": {
@@ -4015,7 +5379,7 @@
         "h": 6,
         "w": 12,
         "x": 12,
-        "y": 96
+        "y": 100
       },
       "id": 141,
       "options": {
@@ -4072,7 +5436,272 @@
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 102
+        "y": 106
+      },
+      "id": 145,
+      "title": "Backup",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Time since the latest successful local snapshot of each member, alert after 26h",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "s",
+          "decimals": 0,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 0,
+        "y": 107
+      },
+      "id": 146,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "time() - vault:ins:backup_time{job=\"vault\", cls=\"$cls\"}",
+          "legendFormat": "{{ ins }}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "Backup Age",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "ds-prometheus"
+      },
+      "description": "Size of the latest successful local snapshot of each member",
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "never",
+            "showValues": false,
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#346f36cc",
+                "value": 0
+              }
+            ]
+          },
+          "unit": "bytes",
+          "decimals": 0,
+          "min": 0
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 6,
+        "w": 12,
+        "x": 12,
+        "y": 107
+      },
+      "id": 147,
+      "options": {
+        "annotations": {
+          "clustering": -1,
+          "multiLane": false
+        },
+        "legend": {
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "displayMode": "table",
+          "placement": "right",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "multi",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "13.0.0",
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "ds-prometheus"
+          },
+          "editorMode": "code",
+          "expr": "vault:ins:backup_size{job=\"vault\", cls=\"$cls\"}",
+          "legendFormat": "{{ ins }}",
+          "refId": "A",
+          "range": true
+        }
+      ],
+      "title": "Snapshot Size",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "victoriametrics-logs-datasource",
+        "uid": "ds-vlogs"
+      },
+      "description": "vault-backup logs of cluster $cls (journalctl -t vault-backup)",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 113
+      },
+      "id": 148,
+      "options": {
+        "dedupStrategy": "none",
+        "enableInfiniteScrolling": false,
+        "enableLogDetails": true,
+        "fontSize": "small",
+        "prettifyLogMessage": false,
+        "showCommonLabels": false,
+        "showControls": true,
+        "showLabels": false,
+        "showTime": true,
+        "sortOrder": "Descending",
+        "syntaxHighlighting": true,
+        "wrapLogMessage": false
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "victoriametrics-logs-datasource",
+            "uid": "ds-vlogs"
+          },
+          "editorMode": "code",
+          "expr": "job:syslog ip:in(${members:doublequote}) app:=\"vault-backup\"",
+          "instant": false,
+          "legendFormat": "{{ ins }}",
+          "queryType": "instant",
+          "range": true,
+          "refId": "A"
+        }
+      ],
+      "title": "Backup Logs",
+      "type": "logs"
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 121
       },
       "id": 142,
       "title": "Logs",
@@ -4083,7 +5712,7 @@
         "type": "victoriametrics-logs-datasource",
         "uid": "ds-vlogs"
       },
-      "description": "Journald log entries produced by the openbao unit on cluster $cls",
+      "description": "Journald log entries produced by the openbao unit on cluster $cls, by openbao log level",
       "fieldConfig": {
         "defaults": {
           "color": {
@@ -4142,7 +5771,7 @@
         "h": 6,
         "w": 24,
         "x": 0,
-        "y": 103
+        "y": 122
       },
       "id": 143,
       "options": {
@@ -4172,8 +5801,8 @@
             "uid": "ds-vlogs"
           },
           "editorMode": "code",
-          "expr": "job:syslog ip:in(${members:doublequote}) unit:openbao | stats by (ins) count() as count",
-          "legendFormat": "{{ ins }}",
+          "expr": "job:syslog ip:in(${members:doublequote}) unit:openbao | extract \"[<lvl>]\" from _msg | stats by (ins, lvl) count() as count",
+          "legendFormat": "{{ ins }} {{ lvl }}",
           "refId": "A",
           "queryType": "statsRange"
         }
@@ -4191,7 +5820,7 @@
         "h": 18,
         "w": 24,
         "x": 0,
-        "y": 109
+        "y": 128
       },
       "id": 144,
       "options": {
@@ -4245,7 +5874,7 @@
           "type": "prometheus",
           "uid": "ds-prometheus"
         },
-        "definition": "label_values(vault_core_unsealed, cls)",
+        "definition": "label_values(up{job=\"vault\"}, cls)",
         "description": "vault cluster name",
         "hide": 0,
         "includeAll": false,
@@ -4254,7 +5883,7 @@
         "name": "cls",
         "options": [],
         "query": {
-          "query": "label_values(vault_core_unsealed, cls)",
+          "query": "label_values(up{job=\"vault\"}, cls)",
           "refId": "StandardVariableQuery"
         },
         "refresh": 1,
@@ -4270,7 +5899,7 @@
         "datasource": {
           "type": "prometheus"
         },
-        "definition": "label_values(vault_core_unsealed{cls=\"$cls\"},ip)",
+        "definition": "label_values(up{job=\"vault\", cls=\"$cls\"},ip)",
         "description": "IP address of this cluster members",
         "hide": 2,
         "includeAll": true,
@@ -4280,7 +5909,7 @@
         "options": [],
         "query": {
           "qryType": 1,
-          "query": "label_values(vault_core_unsealed{cls=\"$cls\"},ip)",
+          "query": "label_values(up{job=\"vault\", cls=\"$cls\"},ip)",
           "refId": "PrometheusVariableQueryEditor-VariableQuery"
         },
         "refresh": 1,

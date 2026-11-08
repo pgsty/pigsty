@@ -1,5 +1,6 @@
 # {{ ansible_managed }}
-# openbao audit & backup log rotation, SIGHUP makes openbao reopen the audit file
+# openbao audit log rotation, SIGHUP makes openbao reopen the audit file
+# a failed reload of a running openbao fails logrotate, which shows up in journal
 /var/log/openbao/*.log {
     daily
     rotate 7
@@ -10,6 +11,6 @@
     create 0640 openbao openbao
     sharedscripts
     postrotate
-        /bin/systemctl reload openbao >/dev/null 2>&1 || true
+        if /bin/systemctl is-active -q openbao; then /bin/systemctl reload openbao; fi
     endscript
 }

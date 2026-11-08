@@ -48,7 +48,7 @@ roles/vault/
 └── templates/
     ├── openbao.hcl           # OpenBao server config
     ├── openbao.svc           # Systemd service unit
-    ├── openbao.logrotate     # Audit / backup log rotation
+    ├── openbao.logrotate     # Audit log rotation
     ├── bao.sh                # CLI environment (/etc/profile.d)
     ├── vault-backup          # Snapshot script (/usr/local/bin)
     └── vault.cfg             # Haproxy entry on vip (if enabled)
@@ -146,6 +146,16 @@ or rebuilding a member never bootstraps a second, empty cluster:
 
 Every member runs `vault-backup` daily, pulling a snapshot from the **active** member
 into `/data/vault/backup/` (keeps 7). Run `vault-backup` by hand for an ad-hoc snapshot.
+
+Each success writes `vault_backup_last_success_timestamp_seconds` and `vault_backup_size_bytes`
+to `/var/lib/node_exporter/textfile/vault.prom`, `VaultBackupStale` fires when a member has no
+successful snapshot for 26h (or never). Cron output goes to journald: `journalctl -t vault-backup`.
+
+
+## Monitoring
+
+Metrics are scraped from each member over HTTPS (`/v1/sys/metrics`, no token), see the `Vault Overview` dashboard.
+Alerts: `VaultDown`, `VaultSealed`, `VaultNoLeader`, `VaultNoFailureTolerance`, `VaultAuditFailure`, `VaultBackupStale`.
 
 
 ## See Also

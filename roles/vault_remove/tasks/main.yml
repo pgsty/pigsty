@@ -71,6 +71,14 @@
 #--------------------------------------------------------------#
 # Remove vault service                               [vault_svc]
 #--------------------------------------------------------------#
+# stop scheduled backup and drop backup metrics, even if data is kept
+- name: remove vault backup crontab and metrics
+  tags: vault_svc
+  file: path={{ item }} state=absent
+  loop:
+    - /etc/cron.d/vault-backup
+    - /var/lib/node_exporter/textfile/vault.prom
+
 - name: stop openbao service
   tags: vault_svc
   ignore_errors: true
@@ -113,7 +121,6 @@
     - "{{ vault_data }}"
     - /etc/systemd/system/openbao.service
     - /etc/profile.d/bao.sh
-    - /etc/cron.d/vault-backup
     - /etc/logrotate.d/openbao
     - /usr/local/bin/vault-backup
 
