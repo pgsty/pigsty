@@ -2,7 +2,7 @@
 # File      :   vultr.tf
 # Desc      :   1-node pigsty meta for Vultr (Debian 12/13)
 # Ctime     :   2025-01-07
-# Mtime     :   2026-08-24
+# Mtime     :   2026-11-09
 # Path      :   terraform/spec/vultr.tf
 # Docs      :   https://pigsty.io/docs/deploy/terraform
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -92,13 +92,13 @@ resource "vultr_ssh_key" "pigsty_key" {
 
 
 #===========================================================#
-# VPC 2.0
+# VPC (provider 2.33 removed the legacy vultr_vpc2 resource)
 #===========================================================#
-resource "vultr_vpc2" "pigsty_vpc" {
+resource "vultr_vpc" "pigsty_vpc" {
   description    = "Pigsty VPC Network"
   region         = var.region
-  ip_block       = "10.10.10.0"
-  prefix_length  = 24
+  v4_subnet      = "10.10.10.0"
+  v4_subnet_mask = 24
 }
 
 
@@ -172,7 +172,7 @@ resource "vultr_instance" "pg-meta" {
   os_id             = data.vultr_os.debian.id
   ssh_key_ids       = [vultr_ssh_key.pigsty_key.id]
   firewall_group_id = vultr_firewall_group.pigsty_fw.id
-  vpc2_ids          = [vultr_vpc2.pigsty_vpc.id]
+  vpc_ids           = [vultr_vpc.pigsty_vpc.id]
 
   enable_ipv6       = true
   backups           = "disabled"

@@ -2,7 +2,7 @@
 # File      :   iac.yml
 # Desc      :   Validate OpenTofu-first cloud templates
 # Ctime     :   2026-08-24
-# Mtime     :   2026-08-24
+# Mtime     :   2026-11-09
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -14,14 +14,12 @@ on:
     branches: [main]
     paths:
       - '.github/workflows/iac.yml'
-      - '.opentofu-version'
       - 'Makefile'
       - 'terraform/**'
   pull_request:
     branches: [main]
     paths:
       - '.github/workflows/iac.yml'
-      - '.opentofu-version'
       - 'Makefile'
       - 'terraform/**'
   workflow_dispatch:
@@ -34,7 +32,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_IN_AUTOMATION: 'true'
-      TF_PLUGIN_CACHE_DIR: ${{ runner.temp }}/tofu-plugin-cache
       TF_PROVIDER_DOWNLOAD_RETRY: '5'
       TF_REGISTRY_CLIENT_TIMEOUT: '30'
 
@@ -45,11 +42,13 @@ jobs:
       - name: Set up OpenTofu
         uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2
         with:
-          tofu_version_file: .opentofu-version
+          tofu_version: 1.12.6
           tofu_wrapper: false
 
       - name: Prepare provider cache
-        run: mkdir -p "${TF_PLUGIN_CACHE_DIR}"
+        run: |
+          echo "TF_PLUGIN_CACHE_DIR=${RUNNER_TEMP}/tofu-plugin-cache" >> "$GITHUB_ENV"
+          mkdir -p "${RUNNER_TEMP}/tofu-plugin-cache"
 
       - name: Validate every template
         run: ./terraform/check validate
@@ -59,7 +58,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       TF_IN_AUTOMATION: 'true'
-      TF_PLUGIN_CACHE_DIR: ${{ runner.temp }}/terraform-plugin-cache
       TF_REGISTRY_CLIENT_TIMEOUT: '30'
 
     steps:
@@ -73,7 +71,9 @@ jobs:
           terraform_wrapper: false
 
       - name: Prepare provider cache
-        run: mkdir -p "${TF_PLUGIN_CACHE_DIR}"
+        run: |
+          echo "TF_PLUGIN_CACHE_DIR=${RUNNER_TEMP}/terraform-plugin-cache" >> "$GITHUB_ENV"
+          mkdir -p "${RUNNER_TEMP}/terraform-plugin-cache"
 
       - name: Validate every template
         env:
