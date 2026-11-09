@@ -156,7 +156,7 @@
         common_name: pigsty
         organization_name: pigsty
         organizational_unit_name: nginx
-        subject_alt_name: "{% set san = ['DNS:i.pigsty'] %}{% for name,srv in infra_portal.items() %}{% if srv.domain is defined and srv.domain != '' %}{{ san.append('DNS:'+srv.domain) }}{% endif %}{% if srv.domains is defined and srv.domains is sequence %}{% for domain in srv.domains %}{{ san.append('DNS:'+domain) }}{% endfor %}{% endif %}{% endfor %}{{ san.append('DNS:localhost') }}{{ san.append('IP:' + inventory_hostname) }}{{ san | unique | list }}"
+        subject_alt_name: "{% set san = ['DNS:i.pigsty'] %}{% for name,srv in infra_portal.items() %}{% if srv.domain is defined and srv.domain != '' %}{{ san.append('DNS:'+srv.domain) }}{% endif %}{% if srv.domains is defined and srv.domains is sequence %}{% for domain in srv.domains %}{{ san.append('DNS:'+domain) }}{% endfor %}{% endif %}{% endfor %}{{ san.append('DNS:localhost') }}{% for ip in groups['infra'] %}{{ san.append('IP:' + ip) }}{% if hostvars[ip].vip_enabled|default(false)|bool %}{{ san.append('IP:' + hostvars[ip].vip_address.split('/')[0]) }}{% endif %}{% endfor %}{{ san | unique | list }}"
         key_usage:
           - digitalSignature
           - keyEncipherment
