@@ -155,6 +155,10 @@ or rebuilding a member never bootstraps a second, empty cluster:
 Every member runs `vault-backup` daily, pulling a snapshot from the **active** member
 into `/data/vault/backup/` (keeps 7). Run `vault-backup` by hand for an ad-hoc snapshot.
 
+`vault_provision` validates `files/pki/vault/backup.token` on every run and reissues it when
+it is invalid (e.g. left by a previous cluster, or after a snapshot restore), keeping the
+replaced file as `backup.token.*~`. Run `-t vault_provision,vault_backup` to refresh it.
+
 Each success writes `vault_backup_last_success_timestamp_seconds` and `vault_backup_size_bytes`
 to `/var/lib/node_exporter/textfile/vault.prom`, `VaultBackupStale` fires when a member has no
 successful snapshot for 26h (or never). Cron output goes to journald: `journalctl -t vault-backup`.

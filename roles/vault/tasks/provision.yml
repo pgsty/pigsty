@@ -58,8 +58,19 @@
       stat: path=files/pki/vault/backup.token
       register: vault_backup_token_stat
 
+    # a token left by a previous cluster (e.g. re-init after vault-rm) is invalid here, reissue it
+    - name: validate vault backup token
+      when: vault_backup_token_stat.stat.exists
+      command:
+        cmd: bao write -format=json auth/token/lookup token=-
+        stdin: "{{ lookup('file', playbook_dir + '/files/pki/vault/backup.token') }}"
+        stdin_add_newline: false
+      register: vault_backup_token_check
+      changed_when: false
+      failed_when: false
+
     - name: issue vault backup token
-      when: not vault_backup_token_stat.stat.exists
+      when: not vault_backup_token_stat.stat.exists or (vault_backup_token_check.rc | default(0)) != 0
       block:
         - name: create vault backup token
           no_log: true
@@ -76,5 +87,5 @@
           become: false
           delegate_to: localhost
           no_log: true
-          copy: content="{{ (vault_backup_token.stdout | from_json).auth.client_token }}" dest=files/pki/vault/backup.token mode=0600
+          copy: content="{{ (vault_backup_token.stdout | from_json).auth.client_token }}" dest=files/pki/vault/backup.token mode=0600 backup=yes
 ...
