@@ -14,8 +14,7 @@ The `juice` role deploys and manages **multiple JuiceFS instances** on a node.
 
 It provides:
 
-- Configuration validation (`juice_instances` must be a dict)
-- Port conflict detection across JuiceFS instances
+- Configuration validation (names, required fields, port and path conflicts)
 - `juicefs` package installation
 - Shared cache directory initialization
 - Instance lifecycle management (`create` / `absent`)
@@ -65,9 +64,9 @@ juice
 ├── juice_clean
 ├── juice_instance
 │   ├── juice_init
-│   ├── juice_dir
 │   ├── juice_config
-│   └── juice_launch
+│   ├── juice_launch
+│   └── juice_dir
 └── juice_register
 ```
 
@@ -90,9 +89,9 @@ juice
 | `unit`  | No       | `juicefs-<name>` | systemd unit name                          |
 | `mount` | No       | `''`             | Extra mount options                        |
 | `port`  | No       | `9567`           | Metrics port (must be unique on same host) |
-| `owner` | No       | `root`           | Mountpoint owner                           |
-| `group` | No       | `root`           | Mountpoint group                           |
-| `mode`  | No       | `'0755'`         | Mountpoint mode                            |
+| `owner` | No       | `root`           | Filesystem root owner (set after mount)    |
+| `group` | No       | `root`           | Filesystem root group (set after mount)    |
+| `mode`  | No       | `'0755'`         | Filesystem root mode (set after mount)     |
 | `state` | No       | `create`         | `create` or `absent`                       |
 
 
@@ -108,7 +107,7 @@ juice
 # create/config/start only
 ./juice.yml -l <host> -t juice_instance
 
-# remove instances marked as state=absent
+# remove instances marked as state=absent, and refresh monitoring targets
 ./juice.yml -l <host> -t juice_clean
 ```
 
@@ -127,4 +126,7 @@ Each active instance contributes one scrape target at:
 ## Notes
 
 - `juicefs format` is throttled (`throttle: 1`) to avoid concurrent metadata initialization.
+- The instance name is the JuiceFS volume name: 3 to 63 characters of `[a-z0-9-]`.
+- Running instances are never restarted by the playbook. To apply changed mount options, run `-t juice_config,juice_launch` (renders the unit and reloads systemd), then `systemctl restart juicefs-<name>`.
+- Removal stops the service and unmounts. It never touches metadata, file data, or the local cache.
 - Metadata URL is stored in `/etc/default/<unit>` and should be treated as sensitive.

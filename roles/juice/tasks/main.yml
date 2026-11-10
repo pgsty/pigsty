@@ -14,14 +14,25 @@
     that: juice_instances is defined and juice_instances | type_debug == "dict"
     fail_msg: "juice_instances must be defined as a dictionary"
 
-- name: check juice instance port conflicts
+# absent instances are exempt from name / meta / conflict checks, so they can always be cleaned
+- name: check juice instance definitions
   tags: [ always, juice_id ]
   assert:
-    that: _juice_ports | unique | length == _juice_ports | length
-    fail_msg: "juice_instances have port conflicts: {{ _juice_ports }}"
+    that: _juice_errors | default('', true) | trim | length == 0
+    fail_msg: "invalid juice_instances: {{ _juice_errors | default('', true) | trim }}"
   vars:
-    _ports_raw: "[{% for v in juice_instances.values() %}{{ v.port | default(9567) }}{% if not loop.last %},{% endif %}{% endfor %}]"
-    _juice_ports: "{{ _ports_raw | from_yaml }}"
+    _juice_errors: |-
+      {% for name, fs in juice_instances.items() %}
+      {% if fs.path is not defined %}[{{ name }}] path is required. {% endif %}
+      {% if fs.state | default('create') != 'absent' %}
+      {% if fs.meta is not defined %}[{{ name }}] meta is required. {% endif %}
+      {% if name | string is not match('^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$') %}[{{ name }}] name must be 3-63 chars of [a-z0-9-]. {% endif %}
+      {% for other, ofs in juice_instances.items() if other != name and ofs.state | default('create') != 'absent' %}
+      {% if ofs.port | default(9567) | int == fs.port | default(9567) | int %}[{{ name }}] port conflicts with {{ other }}. {% endif %}
+      {% if fs.path is defined and ofs.path | default('') == fs.path %}[{{ name }}] path conflicts with {{ other }}. {% endif %}
+      {% endfor %}
+      {% endif %}
+      {% endfor %}
 
 
 #--------------------------------------------------------------#
@@ -44,12 +55,16 @@
 #--------------------------------------------------------------#
 # Instance: Clean                                 [juice_clean]
 #--------------------------------------------------------------#
+# tags on include_tasks are not inherited by the included tasks, apply them explicitly
 - name: clean juice instance
-  include_tasks: clean.yml
+  include_tasks:
+    file: clean.yml
+    apply: { tags: juice_clean }
   tags: [ juice_clean ]
   loop: "{{ juice_instances | dict2items }}"
   loop_control:
     loop_var: fs
+    label: "{{ fs.key }}"
   when:
     - (fsname is not defined or fsname == fs.key)
     - (fs.value.state | default('create')) == 'absent'
@@ -68,6 +83,7 @@
   loop: "{{ juice_instances | dict2items }}"
   loop_control:
     loop_var: fs
+    label: "{{ fs.key }}"
   when:
     - (fsname is not defined or fsname == fs.key)
     - (fs.value.state | default('create')) == 'create'
@@ -87,8 +103,9 @@
 #--------------------------------------------------------------#
 # Register                                      [juice_register]
 #--------------------------------------------------------------#
+# the target file is rewritten from config, so it also runs with juice_clean to drop removed instances
 - name: register juice to victoria
-  tags: [ juice, juice_register, register, add_metrics ]
+  tags: [ juice, juice_register, juice_clean, register, add_metrics ]
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"] | default([]) }}'
   ignore_errors: yes

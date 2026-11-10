@@ -4,7 +4,7 @@
 # File      :   juice.yml
 # Desc      :   Deploy JuiceFS distributed filesystem
 # Ctime     :   2025-01-20
-# Mtime     :   2025-01-22
+# Mtime     :   2026-11-10
 # Path      :   juice.yml
 # Docs      :   https://pigsty.io/docs/juice/
 # License   :   Apache-2.0
@@ -14,6 +14,7 @@
   hosts: all
   become: yes
   gather_facts: no
+  pre_tasks: [ { name: skip hosts without juice instances ,meta: end_host ,when: juice_instances is not defined or juice_instances|length == 0 ,tags: always } ]
   roles:
     - { role: node_id, tags: id }
     - { role: juice,   tags: juice }
@@ -32,9 +33,9 @@
 #     unit  : juicefs-<name>              # service name
 #     mount : ''                          # mount options
 #     port  : 9567                        # metrics port (UNIQUE per instance!)
-#     owner : root                        # mountpoint owner
-#     group : root                        # mountpoint group
-#     mode  : '0755'                      # mountpoint mode
+#     owner : root                        # fs root owner, set after mount
+#     group : root                        # fs root group, set after mount
+#     mode  : '0755'                      # fs root mode, set after mount
 #     state : create                      # create | absent
 #--------------------------------------------------------------#
 # Deploy
@@ -42,26 +43,28 @@
 #   ./juice.yml -l <host>                 # all fs on host
 #   ./juice.yml -l <host> -e fsname=xxx   # single fs
 #--------------------------------------------------------------#
-# Reconfigure (only restarts on actual changes)
+# Reconfigure (running instances are NOT restarted)
 #--------------------------------------------------------------#
-#   ./juice.yml -l <host> -t juice_config
+#   ./juice.yml -l <host> -t juice_config,juice_launch  # render & daemon-reload
+#   systemctl restart juicefs-<name>                    # apply on your own
 #--------------------------------------------------------------#
 # Remove (set state: absent in config first)
 #--------------------------------------------------------------#
 #   ./juice.yml -l <host> -t juice_clean
 #   ./juice.yml -l <host> -e fsname=xxx -t juice_clean
+# metadata and file data are never touched by removal
 #--------------------------------------------------------------#
 # Tags
 #--------------------------------------------------------------#
-#   juice_id       : validate config and check port conflicts
+#   juice_id       : validate names, required fields, port & path conflicts
 #   juice_install  : install juicefs package
 #   juice_cache    : create cache directory
+#   juice_clean    : remove instances (state=absent), refresh targets
 #   juice_instance : create instances (state=create)
 #     juice_init   : format filesystem
-#     juice_dir    : create mountpoint
-#     juice_config : render service files (triggers restart)
-#     juice_launch : start service
-#   juice_clean    : remove instances (state=absent)
-#   juice_register : register to prometheus
+#     juice_config : render service files (no restart)
+#     juice_launch : start service and wait for mountpoint
+#     juice_dir    : set mountpoint owner and mode (after mount)
+#   juice_register : register to victoria
 #--------------------------------------------------------------#
 ...

@@ -10,9 +10,9 @@
 #   juice_path       - mountpoint (required, e.g. /pgfs)
 #   juice_mount_opts - mount options
 #   juice_port       - metrics port
-#   juice_owner      - mountpoint owner
-#   juice_group      - mountpoint group
-#   juice_mode       - mountpoint mode
+#   juice_owner      - fs root owner (set after mount)
+#   juice_group      - fs root group (set after mount)
+#   juice_mode       - fs root mode (set after mount)
 #
 # Global variables:
 #   juice_cache      - shared cache directory (default: /data/juice)
@@ -30,16 +30,16 @@
   throttle: 1
   command: juicefs format --no-update {{ juice_format }} "{{ juice_meta }}" "{{ juice_name }}"
   register: _fmt
-  changed_when: "'created' in _fmt.stdout or 'Dumped' in _fmt.stdout"
-  failed_when: _fmt.rc != 0
+  changed_when: "'Volume is formatted' in _fmt.stderr | default('')"
+  failed_when: false
   no_log: true
 
-#--------------------------------------------------------------#
-# Mountpoint                                         [juice_dir]
-#--------------------------------------------------------------#
-- name: create juicefs mountpoint {{ juice_path }}
-  tags: [ juice_instance, juice_dir ]
-  file: path={{ juice_path }} state=directory owner={{ juice_owner }} group={{ juice_group }} mode={{ juice_mode }}
+# the command line carries credentials and stays hidden, juicefs masks passwords in its own log
+- name: check juicefs {{ juice_name }} format result
+  tags: [ juice_instance, juice_init ]
+  assert:
+    that: _fmt is skipped or _fmt.rc == 0
+    fail_msg: "juicefs format {{ juice_name }} failed: {{ _fmt.stderr_lines | default([]) | last | default(_fmt.msg | default('unknown error'), true) }}"
 
 #--------------------------------------------------------------#
 # Config                                          [juice_config]
@@ -59,7 +59,23 @@
   tags: [ juice_instance, juice_launch ]
   systemd: name={{ juice_unit }} state=started enabled=yes daemon_reload=yes
 
-- name: wait for {{ juice_unit }} online
+# the metrics port may be held by another process, check the mountpoint itself
+- name: wait for {{ juice_path }} mounted
   tags: [ juice_instance, juice_launch ]
-  wait_for: host=127.0.0.1 port={{ juice_port }} state=started timeout=60
+  when: not ansible_check_mode
+  command: mountpoint -q {{ juice_path }}
+  register: _mnt
+  until: _mnt.rc == 0
+  retries: 30
+  delay: 2
+  changed_when: false
+
+#--------------------------------------------------------------#
+# Mountpoint                                         [juice_dir]
+#--------------------------------------------------------------#
+# juicefs creates the mountpoint on mount if missing. owner / group / mode
+# are applied after mount, to the filesystem root instead of the dir beneath
+- name: set juicefs mountpoint {{ juice_path }} owner and mode
+  tags: [ juice_instance, juice_dir ]
+  file: path={{ juice_path }} state=directory owner={{ juice_owner }} group={{ juice_group }} mode={{ juice_mode }}
 ...
