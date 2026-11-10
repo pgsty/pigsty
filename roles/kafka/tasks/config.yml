@@ -63,15 +63,27 @@
       {{ (copies | selectattr('commissioned', 'defined') | selectattr('commissioned') | list | first)
          | default(copies | first | default({}, true), true) }}
 
-- name: reject a stale manifest paired with an entirely empty cluster
+# an uncommissioned manifest binds nothing until some storage is formatted with
+# its identities: a first bootstrap that failed before any format (bad config,
+# missing ca, format error) simply starts over with a fresh manifest
+- name: discard uncommissioned manifest when no storage is formatted
+  when:
+    - kafka_manifest_exists_internal | bool
+    - not kafka_any_formatted_internal | bool
+    - not (kafka_manifest_internal.commissioned | default(true) | bool)
+  set_fact:
+    kafka_manifest_exists_internal: false
+    kafka_manifest_internal: {}
+
+- name: reject a commissioned manifest paired with an entirely empty cluster
   when:
     - kafka_manifest_exists_internal | bool
     - not kafka_any_formatted_internal | bool
   fail:
     msg: >-
-      A bootstrap manifest for {{ kafka_cluster }} exists but every selected
-      Kafka data disk is empty. Refusing to reuse bootstrap identity. Run
-      kafka-rm for {{ kafka_cluster }} before a deliberate rebuild.
+      A commissioned bootstrap manifest for {{ kafka_cluster }} exists but every
+      selected Kafka data disk is empty. Refusing to reuse bootstrap identity.
+      Run kafka-rm for {{ kafka_cluster }} before a deliberate rebuild.
 
 - name: reject formatted storage without any bootstrap manifest
   when:
@@ -157,8 +169,8 @@
       uncommissioned bootstrap cohort. Fix the inventory, or wipe the cluster
       with kafka-rm.yml before a deliberate rebuild.
 
-# node copies are written before any storage is formatted, so an interrupted
-# bootstrap can always resume with the same frozen identities
+# node copies are written before any storage is formatted, so a bootstrap
+# interrupted after formatting began resumes with the same frozen identities
 - name: sync bootstrap manifest to cluster nodes
   when: not ansible_check_mode
   copy:

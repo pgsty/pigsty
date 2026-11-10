@@ -2,7 +2,8 @@
 # Restart exactly one node (roll_host) whose static config changed. Invoked once
 # per changed node by the run_once loop in launch.yml, so restarts are strictly
 # serialized. A multi-node cluster is protected by a quorum/minISR preflight and
-# a post-restart catch-up gate; the only-node case accepts unavoidable downtime.
+# a post-restart catch-up gate; the only-node case accepts unavoidable downtime
+# and a two-controller quorum accepts a brief loss of its majority.
 - name: evaluate rolling target {{ roll_host }}
   set_fact:
     roll_is_controller: "{{ hostvars[roll_host].kafka_has_controller | bool }}"
@@ -19,9 +20,13 @@
     roll_only_node: >-
       {{ (hostvars[roll_host].kafka_has_controller | bool and kafka_controller_nodes | length == 1) or
          (hostvars[roll_host].kafka_has_broker | bool and kafka_broker_nodes | length == 1) }}
+    roll_two_controllers: >-
+      {{ hostvars[roll_host].kafka_has_controller | bool and kafka_controller_nodes | length == 2 }}
 
 # transient unsafety (a peer still catching up after admission or join) heals
-# by itself, so the preflight retries briefly before giving up
+# by itself, so the preflight retries briefly before giving up. Two voters can
+# never keep a majority while one of them restarts, so that topology skips the
+# controller-majority requirement and keeps only the broker minisr preflight.
 - name: preflight quorum and minisr before restarting {{ roll_host }}
   when: not roll_only_node | bool
   delegate_to: "{{ roll_gate_host }}"
@@ -33,7 +38,7 @@
              (hostvars[roll_gate_host].kafka_port | default(9092) | string),
           '--command-config', '/etc/kafka/admin.properties',
           '--node-id', roll_seq | string] +
-         (['--controller'] if roll_is_controller | bool else []) +
+         (['--controller'] if roll_is_controller | bool and not roll_two_controllers | bool else []) +
          (['--broker'] if roll_is_broker | bool else []) }}
   register: kafka_roll_preflight_internal
   changed_when: false
@@ -47,6 +52,14 @@
     msg: >-
       {{ roll_host }} is the only {{ 'controller' if roll_is_controller | bool else 'broker' }}
       in {{ kafka_cluster }}; restarting it causes a brief unavoidable service outage.
+
+- name: warn about quorum outage restarting {{ roll_host }} of two controllers
+  when: roll_two_controllers | bool and not roll_only_node | bool
+  debug:
+    msg: >-
+      {{ kafka_cluster }} has only two controllers: the kraft quorum has no
+      majority while {{ roll_host }} restarts, so metadata changes and leader
+      elections pause until it is back. Use an odd controller count.
 
 - name: restart kafka on {{ roll_host }}
   delegate_to: "{{ roll_host }}"

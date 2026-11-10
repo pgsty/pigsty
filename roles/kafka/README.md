@@ -88,7 +88,9 @@ replication policy) and `/etc/kafka/secrets.yml` (role-owned scram secrets).
 The admin node holds no kafka state: issued node certificates live in the
 shared pki tree (`files/pki/kafka/<cluster>-<seq>.{key,crt}`, CSRs under
 `files/pki/csr/`) and are simply re-signed from the pigsty CA when absent.
-A stale manifest paired with empty data disks still fails closed.
+A commissioned manifest paired with empty data disks still fails closed; an
+uncommissioned one left by a first bootstrap that failed before any format is
+discarded and regenerated on the next run.
 
 
 ## Tags
@@ -217,7 +219,9 @@ Full parameter reference: [KAFKA Configuration](https://pigsty.io/docs/kafka/con
   restart with pre/post quorum, offline-partition, under-minISR, and ISR catch-up
   gates; expansion admits newly formatted pure brokers one at a time.
 - A sole controller/broker cannot restart without downtime: such a restart
-  proceeds with a logged warning and a brief unavoidable outage.
+  proceeds with a logged warning and a brief unavoidable outage. A two-controller
+  quorum likewise loses its majority while either one restarts: the roll keeps
+  the broker minISR preflight, warns, and proceeds.
 - The manifest is a **birth certificate**: after first commission, live quorum
   membership is authoritative. A wiped or newly declared controller-capable node
   is formatted fresh (`--no-initial-controllers`), catches up as an observer, and

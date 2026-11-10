@@ -4,7 +4,7 @@
 # File      :   kafka-rm.yml
 # Desc      :   remove kafka cluster / instance from hosts
 # Ctime     :   2024-01-01
-# Mtime     :   2026-08-06
+# Mtime     :   2026-11-10
 # Path      :   kafka-rm.yml
 # Docs      :   https://pigsty.io/docs/kafka/playbook
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -56,19 +56,23 @@
 #     ./kafka-rm.yml -l 10.10.10.13  # remove a single member from its cluster
 #  Selecting a strict subset of a cluster also retires the leaving kraft voter
 #  entry and broker registration through a surviving member, so this works
-#  even when the node itself is unreachable. Keep an odd controller count, and
-#  note that partition replicas still assigned to the retired broker stay
-#  under-replicated until a replacement with the same kafka_seq rejoins via
-#  ./kafka.yml (it re-inherits the assignment and resyncs automatically), or
-#  until you reassign them explicitly.
+#  even when the node itself is unreachable. The voter entry is retired first,
+#  one member at a time, while the member is still running: if the quorum is
+#  unreadable or the change cannot commit, the play aborts before anything is
+#  stopped or removed, so retire dead members before live ones. Keep an odd
+#  controller count, and note that partition replicas still assigned to the
+#  retired broker stay under-replicated until a replacement with the same
+#  kafka_seq rejoins via ./kafka.yml (it re-inherits the assignment and
+#  resyncs automatically), or until you reassign them explicitly.
 #
 #--------------------------------------------------------------#
 # Tasks
 #--------------------------------------------------------------#
 # kafka_safeguard  : abort when kafka_safeguard=true
+# kafka_retire     : retire voter entry via a survivor (before anything stops)
 # kafka_deregister : remove kafka / kafka_exporter victoria targets from infra
 # kafka            : stop & disable kafka and kafka_exporter services
-# kafka_retire     : retire voter entry & broker registration via a survivor
+# kafka_retire     : retire broker registration via a survivor (after stop)
 # kafka_config     : stop services; remove config, systemd units, and helper scripts
 # kafka_data       : stop services; remove data and /etc/kafka state (disable with kafka_rm_data=false)
 # kafka_pkg        : uninstall kafka-stack packages         (enable  with kafka_rm_pkg=true)

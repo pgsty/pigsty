@@ -18,10 +18,14 @@ separate, explicit paths.
 Steps:
 
 - Honor the `kafka_safeguard` protection (abort if enabled)
+- When removing a strict subset, retire its KRaft voter entry through a surviving
+  member first, one member at a time, including when the leaving host is
+  unreachable. An unreadable quorum or a membership change that cannot commit
+  aborts the play before any service is stopped or any data is removed
 - Deregister `kafka` / `kafka_exporter` targets from all infra nodes
 - Stop and disable the `kafka` and `kafka_exporter` services
-- When removing a strict subset, retire its KRaft voter and broker registration
-  through a surviving member, including when the leaving host is unreachable
+- When removing a strict subset, retire its broker registration through a
+  surviving member
 - Remove exporter config, systemd environment/units, and role-owned helper scripts
 - Remove the data directory and `/etc/kafka` recovery state when `kafka_rm_data` is set
 - Uninstall the kafka-stack packages when `kafka_rm_pkg` is set
