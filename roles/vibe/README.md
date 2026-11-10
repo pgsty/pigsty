@@ -16,7 +16,7 @@ The `vibe` role deploys an integrated development environment:
 - **JupyterLab**: Interactive computing notebooks
 - **Claude Code**: default AI coding assistant with observability
 - **Codex**: optional CLI package install only
-- **Node.js**: JavaScript runtime used by AI CLI installers when needed
+- **Node.js**: Standalone JavaScript runtime with optional npm packages
 
 
 ## Quick Start
@@ -98,7 +98,7 @@ vibe
 | Variable         | Default                     | Description                         |
 |------------------|-----------------------------|-------------------------------------|
 | `claude_enabled` | `true`                      | Install and configure Claude Code   |
-| `claude_package` | `@anthropic-ai/claude-code` | npm package used to install Claude  |
+| `claude_package` | `claude-code`               | Native infra package used to install Claude |
 | `claude_env`     | `{}`                        | Extra env vars merged with defaults |
 
 Claude Code is pre-configured with OpenTelemetry, sending metrics and logs to VictoriaMetrics/VictoriaLogs. Prompt content is not collected by default; opt in through `claude_env` only when appropriate.
@@ -109,7 +109,7 @@ Claude Code is pre-configured with OpenTelemetry, sending metrics and logs to Vi
 |-----------------|---------|---------------------------------|
 | `codex_enabled` | `true`  | Install the Codex CLI package   |
 
-Codex has no managed config file and no VIBE observability integration. When enabled, the role only runs `npm install -g @openai/codex`.
+Codex has no managed config file and no VIBE observability integration. When enabled, the role installs the native `codex` infra package.
 
 ### Node.js
 
@@ -119,11 +119,11 @@ Codex has no managed config file and no VIBE observability integration. When ena
 | `nodejs_registry` | `''`    | npm registry URL, auto china mirror if empty     |
 | `npm_packages`    | `[]`    | Extra global npm packages to install             |
 
-The Codex and Claude tasks also enable the Node.js runtime task on demand.
+Node.js is independent of Claude and Codex. Enabling either agent does not install Node.js.
 
 When `nodejs_registry` is empty and `region=china`, npm is automatically configured to use `https://registry.npmmirror.com`.
 
-Claude and Codex install their own CLI packages when their tasks run. `npm_packages` is only for extra global packages:
+`npm_packages` is only for extra global npm packages installed with the Node.js runtime:
 
 ```yaml
 npm_packages:
