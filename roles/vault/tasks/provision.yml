@@ -26,14 +26,15 @@
       changed_when: false
       failed_when: false
 
-    - name: abort if vault root token is rejected
+    - name: abort if vault root token lookup failed
       when: vault_root_token_check.rc != 0
       no_log: false
       fail:
         msg: >-
-          root_token in files/pki/vault/init.json does not work on {{ vault_instance }}:
+          root_token lookup failed on {{ vault_instance }}:
           {{ vault_root_token_check.stderr | default('') | trim }}.
-          On 'permission denied', init.json belongs to another cluster or the token was revoked: put the matching init.json back and retry.
+          If this says 'permission denied', init.json belongs to another cluster or the token was revoked;
+          otherwise check that OpenBao is running, initialized, unsealed and has a leader.
 
     - name: list vault secret engines
       command: bao secrets list -format=json

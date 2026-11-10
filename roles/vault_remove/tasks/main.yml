@@ -19,9 +19,11 @@
 
 - name: validate vault data path before removal
   tags: always
+  any_errors_fatal: true
+  ignore_errors: false
   assert:
     that:
-      - vault_data is match('^/[^/]+/[^/]+') and '..' not in vault_data.split('/')
+      - vault_data is match('^(/[^/]+){2,}$') and vault_data.split('/') | intersect(['.', '..']) | length == 0
       - vault_data not in ['/var/lib', '/var/log', '/home/dba', '/etc/openbao/tls']
     fail_msg: 'vault_data must be a dedicated absolute directory, never a shared parent directory'
 
@@ -97,6 +99,14 @@
         mode: '0600'
 
 #--------------------------------------------------------------#
+# leave vault raft cluster                         [vault_leave]
+#--------------------------------------------------------------#
+# only when part of the cluster survives this play
+- import_tasks: leave.yml
+  tags: vault_leave
+  when: not vault_remove_all|bool
+
+#--------------------------------------------------------------#
 # remove vault targets from victoria          [vault_deregister]
 #--------------------------------------------------------------#
 - name: remove vault from victoria targets
@@ -105,14 +115,6 @@
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"]|default([]) }}'
   file: path="/infra/targets/vault/{{ vault_instance }}.yml" state=absent
-
-#--------------------------------------------------------------#
-# leave vault raft cluster                         [vault_leave]
-#--------------------------------------------------------------#
-# only when part of the cluster survives this play
-- import_tasks: leave.yml
-  tags: vault_leave
-  when: not vault_remove_all|bool
 
 #--------------------------------------------------------------#
 # Remove vault service                               [vault_svc]
@@ -157,7 +159,7 @@
 #--------------------------------------------------------------#
 # /etc/openbao holds tls keys, the node copy of unseal key & backup token.
 # local snapshots in {{ vault_data }}/backup go with the data dir.
-# admin node files/pki/vault/* and /var/log/openbao are NEVER touched.
+# admin node files/pki/vault/* and /var/log/openbao are never deleted.
 - name: remove vault data
   tags: vault_data
   when: vault_rm_data|bool

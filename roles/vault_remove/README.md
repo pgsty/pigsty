@@ -15,13 +15,13 @@ The `vault_remove` role removes vault members or the entire cluster:
 - Honor `vault_safeguard` (**true by default**, unlike other `*_remove` roles)
 - List `tde/*` / `kes/*` consumers before removing the entire cluster
 - Save a final snapshot to admin node before removing the entire cluster, **abort if it fails**
-- Deregister from monitoring
 - `raft remove-peer` on a surviving member (partial removal), **abort if it fails**
+- Deregister from monitoring
 - Stop openbao, remove haproxy entry, data, config and node key copies
 - Optionally uninstall the package
 
-Admin node `files/pki/vault/*` (unseal key, init material, snapshots) and
-`/var/log/openbao` (audit trail) are **never** touched.
+Existing admin node `files/pki/vault/*` (unseal key, init material, snapshots) and
+`/var/log/openbao` (audit trail) are **never** deleted.
 
 Local snapshots in `vault_data` are removed along with the data, so the entire-cluster
 removal first runs `vault-backup` on one member and fetches the result to
@@ -52,8 +52,8 @@ vault_remove (full role)
 ├── vault_consumer       # List tde/* kes/* consumers (entire cluster only)
 ├── vault_pause          # Pause 5s for confirmation
 ├── vault_snapshot       # Final snapshot to admin node (entire cluster only)
-├── vault_deregister     # Remove victoria targets
 ├── vault_leave          # raft remove-peer on a surviving member (partial only)
+├── vault_deregister     # Remove victoria targets
 ├── vault_svc            # Stop openbao, remove haproxy entry
 ├── vault_data           # Remove data, config, tls, key copies, snapshots
 └── vault_pkg            # Uninstall openbao (vault_rm_pkg=true)

@@ -14,7 +14,8 @@
           - vault_seq is defined and vault_seq|string is match('^[0-9]+$') and vault_seq|int >= 0
           - "'vault' in group_names"
           - groups['vault'] | map('extract', hostvars, 'vault_seq') | map('int') | unique | length == groups['vault'] | length
-          - vault_data is match('^/[^/]+/[^/]+') and '..' not in vault_data.split('/')
+          - vault_data is match('^(/[^/]+){2,}$') and vault_data.split('/') | intersect(['.', '..']) | length == 0
+          - vault_data not in ['/var/lib', '/var/log', '/home/dba', '/etc/openbao/tls']
         fail_msg: "group 'vault' requires unique nonnegative integer vault_seq values and a dedicated absolute vault_data directory"
 
     # vault_instance : vault-<seq>, raft node id and cert common name
@@ -127,6 +128,7 @@
     - name: require net.ipv4.ip_nonlocal_bind=1 to bind haproxy on vault vip
       when: vault_vip != '' and vault_members|length > 1
       command: sysctl -n net.ipv4.ip_nonlocal_bind
+      check_mode: false
       register: vault_nonlocal_bind
       changed_when: false
       failed_when: vault_nonlocal_bind.stdout | trim != '1'

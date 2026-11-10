@@ -4,7 +4,7 @@
 # File      :   vault-rm.yml
 # Desc      :   remove vault (openbao) cluster or members
 # Ctime     :   2026-07-30
-# Mtime     :   2026-11-10
+# Mtime     :   2026-11-11
 # Path      :   vault-rm.yml
 # Docs      :   https://pigsty.io/docs/vault/playbook
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -19,7 +19,9 @@
     #vault_safeguard: true            # safeguard for vault remove, TRUE by default, halts execution
     #vault_rm_data: true              # remove vault data & config during remove? true by default
     #vault_rm_pkg: false              # uninstall openbao package during remove? false by default
-  roles: [ { role: node_id }, { role: vault_remove } ]
+  roles:
+    - { role: node_id, any_errors_fatal: true, ignore_errors: false }
+    - { role: vault_remove }
 
 
 #--------------------------------------------------------------#
@@ -49,8 +51,8 @@
 # vault_consumer   : list tde/* & kes/* consumers before removing entire cluster
 # vault_pause      : pause for confirmation (5s)
 # vault_snapshot   : save a final snapshot to admin node before removing entire cluster
-# vault_deregister : remove vault targets from victoria-metrics
 # vault_leave      : raft remove-peer on a surviving member (partial removal only)
+# vault_deregister : remove vault targets from victoria-metrics
 # vault_svc        : stop openbao service, remove haproxy entry
 # vault_data       : remove data, config, tls, node unseal key copy & snapshots
 # vault_pkg        : uninstall openbao package (enable with `vault_rm_pkg=true`)
