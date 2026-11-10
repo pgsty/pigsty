@@ -117,6 +117,10 @@
     - name: init postgres cluster
       tags: pg_init_exec
       become_user: "{{ pg_dbsu }}"
+      # Replicas are started below. Strict synchronous mode would otherwise
+      # block the bootstrap SQL before any synchronous standby can connect.
+      environment:
+        PGOPTIONS: '-c synchronous_commit=local'
       command: bash /pg/bin/pg-init
 
     - name: check postgres primary inited
