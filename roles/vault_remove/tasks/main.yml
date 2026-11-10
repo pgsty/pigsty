@@ -60,6 +60,43 @@
   pause: { seconds: 5 }
 
 #--------------------------------------------------------------#
+# TAKE FINAL SNAPSHOT                           [vault_snapshot]
+#--------------------------------------------------------------#
+# removing the entire cluster wipes the local snapshots along with the
+# data, so keep a final snapshot in files/pki/vault/backup/ on admin node
+# first. abort if it fails, BEFORE anything is removed: a broken or never
+# initialized cluster can be removed with `--skip-tags vault_snapshot`.
+- name: take final vault snapshot before removal
+  tags: vault_snapshot
+  when: vault_remove_all|bool and vault_rm_data|bool and not ansible_check_mode and inventory_hostname == ansible_play_hosts | first
+  any_errors_fatal: true
+  ignore_errors: false
+  block:
+
+    - name: take final vault snapshot
+      command: /usr/local/bin/vault-backup
+      register: vault_final_snapshot
+      failed_when: false
+
+    - name: abort if final vault snapshot failed
+      when: vault_final_snapshot.rc|default(1) != 0
+      fail:
+        msg: >-
+          fail to take a final snapshot on {{ inventory_hostname }}, nothing is removed
+          ({{ vault_final_snapshot.stderr_lines | default([]) | first | default(vault_final_snapshot.msg | default('')) | trim }}).
+          Fix the cluster and retry, or add --skip-tags vault_snapshot to remove it WITHOUT a final snapshot.
+
+    - name: fetch final vault snapshot to admin node
+      fetch: src={{ vault_final_snapshot.stdout_lines | last }} dest={{ playbook_dir }}/files/pki/vault/backup/ flat=yes
+
+    - name: restrict final snapshot permissions on admin node
+      become: false
+      delegate_to: localhost
+      file:
+        path: "{{ playbook_dir }}/files/pki/vault/backup/{{ vault_final_snapshot.stdout_lines | last | basename }}"
+        mode: '0600'
+
+#--------------------------------------------------------------#
 # remove vault targets from victoria          [vault_deregister]
 #--------------------------------------------------------------#
 - name: remove vault from victoria targets
@@ -132,6 +169,11 @@
     - /etc/profile.d/bao.sh
     - /etc/logrotate.d/openbao
     - /usr/local/bin/vault-backup
+
+- name: reload systemd after openbao unit removal
+  tags: vault_data
+  when: vault_rm_data|bool
+  systemd: daemon_reload=yes
 
 #--------------------------------------------------------------#
 # Uninstall openbao packages                         [vault_pkg]

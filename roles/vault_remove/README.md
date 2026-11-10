@@ -14,6 +14,7 @@ The `vault_remove` role removes vault members or the entire cluster:
 
 - Honor `vault_safeguard` (**true by default**, unlike other `*_remove` roles)
 - List `tde/*` / `kes/*` consumers before removing the entire cluster
+- Save a final snapshot to admin node before removing the entire cluster, **abort if it fails**
 - Deregister from monitoring
 - `raft remove-peer` on a surviving member (partial removal), **abort if it fails**
 - Stop openbao, remove haproxy entry, data, config and node key copies
@@ -21,6 +22,11 @@ The `vault_remove` role removes vault members or the entire cluster:
 
 Admin node `files/pki/vault/*` (unseal key, init material, snapshots) and
 `/var/log/openbao` (audit trail) are **never** touched.
+
+Local snapshots in `vault_data` are removed along with the data, so the entire-cluster
+removal first runs `vault-backup` on one member and fetches the result to
+`files/pki/vault/backup/` on admin node. To remove a broken or never initialized
+cluster that can not take a snapshot, add `--skip-tags vault_snapshot`.
 
 
 ## Playbooks
@@ -45,6 +51,7 @@ vault_remove (full role)
 ├── vault_safeguard      # Abort unless vault_safeguard=false
 ├── vault_consumer       # List tde/* kes/* consumers (entire cluster only)
 ├── vault_pause          # Pause 5s for confirmation
+├── vault_snapshot       # Final snapshot to admin node (entire cluster only)
 ├── vault_deregister     # Remove victoria targets
 ├── vault_leave          # raft remove-peer on a surviving member (partial only)
 ├── vault_svc            # Stop openbao, remove haproxy entry
@@ -66,7 +73,7 @@ vault_remove (full role)
 
 Destroying the vault cluster destroys the keys of pg_tde clusters and kes objects:
 the encrypted data **and all its backups** become permanently unreadable, unless vault
-is restored from a snapshot with `files/pki/vault/unseal.key`.
+is restored from the final snapshot with `files/pki/vault/unseal.key`.
 
 To bootstrap a brand-new empty cluster after removal, move `files/pki/vault/init.json`
 away first, otherwise `vault.yml` refuses to initialize (it treats it as data loss).

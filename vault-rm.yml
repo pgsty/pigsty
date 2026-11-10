@@ -4,7 +4,7 @@
 # File      :   vault-rm.yml
 # Desc      :   remove vault (openbao) cluster or members
 # Ctime     :   2026-07-30
-# Mtime     :   2026-11-08
+# Mtime     :   2026-11-10
 # Path      :   vault-rm.yml
 # Docs      :   https://pigsty.io/docs/vault/playbook
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -28,6 +28,8 @@
 #  Remove entire vault cluster
 #     ./vault-rm.yml -l vault -e vault_safeguard=false
 #  It aborts unless `vault_safeguard` is explicitly set to `false`
+#  A final snapshot is saved to files/pki/vault/backup/ on admin node first,
+#  it aborts if that fails: add `--skip-tags vault_snapshot` for a broken cluster
 #
 #  Remove a vault member:
 #     ./vault-rm.yml -l 10.10.10.13 -e vault_safeguard=false
@@ -46,6 +48,7 @@
 # vault_safeguard  : abort unless safeguard is disabled (enabled by default)
 # vault_consumer   : list tde/* & kes/* consumers before removing entire cluster
 # vault_pause      : pause for confirmation (5s)
+# vault_snapshot   : save a final snapshot to admin node before removing entire cluster
 # vault_deregister : remove vault targets from victoria-metrics
 # vault_leave      : raft remove-peer on a surviving member (partial removal only)
 # vault_svc        : stop openbao service, remove haproxy entry
@@ -57,7 +60,7 @@
 #--------------------------------------------------------------#
 # Destroying the vault cluster destroys the pg_tde & kes keys.
 # Encrypted PostgreSQL clusters, objects and ALL their backups
-# become permanently unreadable, unless restored from a snapshot
-# with files/pki/vault/unseal.key, which are kept on admin node.
+# become permanently unreadable, unless restored from the final
+# snapshot with files/pki/vault/unseal.key, kept on admin node.
 #--------------------------------------------------------------#
 ...

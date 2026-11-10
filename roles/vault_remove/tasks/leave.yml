@@ -11,8 +11,9 @@
   set_fact:
     vault_surviving_peer: "{{ vault_members | difference(ansible_play_hosts_all) | first | default('') }}"
 
+# delegate_to is templated even when this task is skipped (entire cluster removal), keep it defined
 - name: remove this member from vault raft
-  delegate_to: "{{ vault_surviving_peer }}"
+  delegate_to: "{{ vault_surviving_peer | default(inventory_hostname) }}"
   ignore_errors: false
   any_errors_fatal: true
   no_log: true
