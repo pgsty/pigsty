@@ -1,11 +1,20 @@
 ---
-# check nginx by listening port
+# check nginx by listening port, or by home.conf which means infra has taken over
 - name: check nginx exists by port
   command: 'ss -tp state listening sport = :{{ nginx_port }}'
   register: check_nginx_port_result
+- name: check nginx exists by conf
+  stat: path=/etc/nginx/conf.d/home.conf
+  register: check_nginx_conf_result
 - name: set nginx_exists flag
   connection: local
-  set_fact: { nginx_exists: "{{ 'nginx' in check_nginx_port_result.stdout }}" }
+  set_fact: { nginx_exists: "{{ 'nginx' in check_nginx_port_result.stdout or check_nginx_conf_result.stat.exists }}" }
+
+# never touch the nginx configured by infra, just try to start it and ignore the result
+- name: start existing infra nginx
+  when: check_nginx_conf_result.stat.exists
+  ignore_errors: true
+  systemd: name=nginx state=started
 
 # only setup repo nginx when nginx is not running
 - name: setup repo nginx server
