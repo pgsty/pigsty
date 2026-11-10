@@ -22,7 +22,7 @@
         common_name: "{{ mysql_instance }}"
         organization_name: pigsty
         organizational_unit_name: mysql
-        subject_alt_name: [ "DNS:localhost", "DNS:{{ mysql_cluster }}", "DNS:{{ mysql_instance }}", "IP:127.0.0.1", "{{ ('IP:' if mysql_local_address is match('^[0-9.]+$') else 'DNS:') ~ mysql_local_address }}" ]
+        subject_alt_name: "{{ [ 'DNS:localhost', 'DNS:' ~ mysql_cluster, 'DNS:' ~ mysql_instance, 'IP:127.0.0.1', ('IP:' if mysql_local_address is match('^[0-9.]+$') else 'DNS:') ~ mysql_local_address ] + ([ 'IP:' ~ mysql_vip ] if mysql_vip else []) }}"
 
     - name: sign mysql certificate
       openssl_certificate:
@@ -61,10 +61,11 @@
   stat: { path: /etc/apparmor.d/usr.sbin.mysqld, follow: false, get_attributes: false, get_checksum: false, get_mime: false }
   register: mysql_apparmor_profile
 
-- name: allow mysql to read node ca
+- name: allow mysql to read node ca and use mysql_data
   tags: mysql_cert_copy
   when: os_package == 'deb' and mysql_apparmor_profile.stat.exists
-  lineinfile: path=/etc/apparmor.d/local/usr.sbin.mysqld line='  /etc/pki/ca.crt r,' create=yes owner=root group=root mode=0644
+  lineinfile: path=/etc/apparmor.d/local/usr.sbin.mysqld line='  {{ item }}' create=yes owner=root group=root mode=0644
+  loop: [ '/etc/pki/ca.crt r,', '{{ mysql_data }}/ r,', '{{ mysql_data }}/** rwk,' ]
   register: mysql_apparmor_ca_result
 
 - name: reload mysql apparmor profile

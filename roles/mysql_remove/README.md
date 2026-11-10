@@ -1,60 +1,50 @@
 # Role: mysql_remove
 
-> Conservative MySQL member/cluster retirement for Pigsty
+> Remove a MySQL member or cluster from Pigsty
 
-| **Playbook**     | `mysql-rm.yml`                                    |
-|------------------|---------------------------------------------------|
-| **Safeguard**    | `mysql_safeguard=true`                            |
-| **Confirmation** | exact `mysql_rm_confirm` instance or cluster name |
-| **Data policy**  | preserve all local state                          |
+| **Playbook**  | `mysql-rm.yml`                                    |
+|---------------|---------------------------------------------------|
+| **Safeguard** | `mysql_safeguard=true`                            |
+| **Scope**     | one member, or the complete cluster               |
 
-`mysql_remove` is the separately gated scale-in and retirement path for the
-native MySQL 8.4 platform. It is intentionally narrower than `pg_remove`:
+`mysql_remove` follows the other Pigsty removal roles:
 
-- one-member HA removal accepts only an ONLINE SECONDARY from a healthy
-  three-member cluster and calls AdminAPI with `force: false`;
-- a whole-cluster run stops Router, backup timers, MySQL, and exporter in a
-  deterministic order and removes VictoriaMetrics file-SD targets;
-- every run requires `mysql_safeguard=false` and an exact instance or cluster
-  value in `mysql_rm_confirm`;
-- datadir, backup, configuration, certificates, packages, local metadata, and
-  Router identity are always preserved.
-- an initialized datadir must carry Pigsty's exact cluster, instance, and
-  topology ownership marker before any service state can change;
-- before mysqld stops, a stable root:mysql `0600`
-  `/var/lib/mysql/.pigsty-mysql-retired` guard is written so ordinary
-  `mysql.yml` cannot accidentally restart preserved state; check mode previews
-  the guard without writing it.
-- a running mysqld, Router, or exporter outside its native systemd unit fails
-  closed; this role never signals an unmanaged process.
+| Variable          | Default       | Description                                  |
+|-------------------|---------------|----------------------------------------------|
+| `mysql_safeguard` | `true`        | abort unless explicitly set to `false`       |
+| `mysql_rm_data`   | `true`        | remove data, config, secrets, router state   |
+| `mysql_rm_pkg`    | `false`       | uninstall MySQL packages                     |
+| `mysql_data`      | `/data/mysql` | data directory; must match the `mysql` role  |
 
-Unlike `mysql.yml`, `mysql-rm.yml` does not skip hosts without MySQL identity:
-it runs `node_id` and then requires `mysql_cluster` group membership plus
-`mysql_seq`. Always pass an exact `-l` limit; an unrelated selected host fails
-closed during `mysql_rm_check`.
+The safeguard defaults to `true` because this is a database. The playbook also
+requires an explicit `-l` limit.
 
-Ansible check mode performs the same inventory, service, protected-client, and
-Performance Schema topology checks, then reports the exact AdminAPI action. It
-does not invoke the lifecycle API. A real single-member run repeats topology
-validation inside MySQL Shell and calls `removeInstance()` with `force: false`
-and a 60-second synchronization timeout.
+```bash
+./mysql-rm.yml -l my-test -e mysql_safeguard=false                         # remove the cluster
+./mysql-rm.yml -l my-test -e mysql_safeguard=false -e mysql_rm_data=false  # stop it, keep everything
+./mysql-rm.yml -l 10.10.10.13 -e mysql_safeguard=false                     # remove one member
+```
 
-A single-member HA run is for same-address node replacement, not a supported
-two-member steady state. Replace the machine behind the same advertised service
-address, keep that inventory identity, and run the complete three-member
-`mysql.yml` scope. The retirement guard remains on the detached host. Reusing
-that datadir, changing the member address, removing the guard, or deleting
-retained state requires a different, explicitly approved runbook with
-recent-backup verification and exact-target confirmation.
+- **Complete cluster**: stops Router, backup timer, exporter, and mysqld, then
+  removes the data directory, Pigsty config and secrets, Router state, and the
+  monitoring targets. With `mysql_rm_data=false` everything stays on disk and
+  `mysql.yml` brings the stopped cluster back.
+- **One member**: the member first leaves the InnoDB Cluster through a
+  surviving member. A PRIMARY hands over, an ONLINE member syncs and leaves,
+  anything else is dropped from the metadata. Pigsty runs MySQL with one or
+  three members, so run `mysql.yml` next: it clones the member back on the
+  same or a replaced machine. A dead machine needs no removal at all; see the
+  `mysql` role.
+- **Backups** under `mysql_backup_dir` are never removed.
 
-Tags follow the normal Pigsty phase shape:
+Tags:
 
 ```text
 mysql_remove
-├── mysql_rm_check
-├── mysql_rm_quiesce
-├── mysql_rm_member
-├── mysql_rm_service
-├── mysql_deregister
-└── mysql_rm_done
+├── mysql_safeguard   assert identity and honor the safeguard
+├── mysql_leave       detach a single member through a survivor
+├── mysql_deregister  remove VictoriaMetrics targets
+├── mysql             stop services
+├── mysql_data        remove data, config, secrets, and router state
+└── mysql_pkg         uninstall packages
 ```

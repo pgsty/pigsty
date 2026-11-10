@@ -2,11 +2,11 @@
 ---
 #==============================================================#
 # File      :   mysql-rm.yml
-# Desc      :   detach mysql instance/cluster from pigsty
+# Desc      :   remove mysql instance/cluster from pigsty
 # Ctime     :   2026-07-17
-# Mtime     :   2026-07-19
+# Mtime     :   2026-11-10
 # Path      :   mysql-rm.yml
-# Docs      :   https://pigsty.io/docs/pilot/mysql
+# Docs      :   https://pigsty.io/docs/mysql
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -15,41 +15,43 @@
   hosts: all
   gather_facts: no
   any_errors_fatal: true
+  pre_tasks:
+    - name: require an explicit mysql remove limit
+      connection: local
+      run_once: true
+      tags: always
+      assert:
+        that: ansible_limit is defined and ansible_limit | trim | length > 0
+        fail_msg: mysql-rm.yml requires an explicit -l/--limit target
   roles:
-    - { role: node_id      ,tags: [id,node-id] } # get node identity (always)
-    - { role: mysql_remove ,tags: mysql_remove } # detach mysql instance/cluster
+    - { role: mysql_remove ,tags: mysql_remove } # remove mysql instance/cluster
 
 
 #--------------------------------------------------------------#
 # Usage
 #--------------------------------------------------------------#
-#  Preview one exact SECONDARY replacement/removal:
-#    ./mysql-rm.yml -l <instance> --check \
-#      -e mysql_safeguard=false -e mysql_rm_confirm=<instance>
+#  Remove a standalone or a complete HA cluster:
+#     ./mysql-rm.yml -l <cluster> -e mysql_safeguard=false
+#         -e mysql_rm_data=true      # remove data, config and router state (default)
+#         -e mysql_rm_data=false     # stop only; ./mysql.yml brings the cluster back
+#         -e mysql_rm_pkg=true       # also uninstall mysql packages
 #
-#  Remove one exact ONLINE SECONDARY from InnoDB Cluster:
-#    ./mysql-rm.yml -l <instance> \
-#      -e mysql_safeguard=false -e mysql_rm_confirm=<instance>
+#  Remove one member from an HA cluster:
+#     ./mysql-rm.yml -l <ip> -e mysql_safeguard=false
+#  The member leaves through a surviving member: a PRIMARY hands over first.
+#  Pigsty runs MySQL with one or three members, so re-create the member next:
+#  ./mysql.yml -l <cluster> clones it back on the same or a replaced machine.
 #
-#  Stop and deregister one whole standalone/HA cluster:
-#    ./mysql-rm.yml -l <cluster> \
-#      -e mysql_safeguard=false -e mysql_rm_confirm=<cluster>
-#
-#  mysql-rm.yml writes a persistent retirement guard before stopping mysqld but
-#  never removes datadir, backup, configuration, certificate, package, metadata
-#  schema, or Router identity. Guard removal or destructive retirement uses a
-#  separately approved runbook with recent-backup verification and exact-name
-#  confirmation. A one-member HA removal is a same-address replacement workflow:
-#  Pigsty does not support a persistent two-member MySQL topology or address
-#  changes during ordinary replacement.
+#  It aborts unless mysql_safeguard is false, and always needs -l.
+#  Backups under mysql_backup_dir are never removed.
 #--------------------------------------------------------------#
 # Tasks
 #--------------------------------------------------------------#
-# mysql_rm_check      : validate identity, scope, safeguard, and runtime state
-# mysql_rm_quiesce    : stop Router ingress and the daily backup timer
-# mysql_rm_member     : remove one ONLINE SECONDARY with AdminAPI force=false
-# mysql_rm_service    : stop MySQL secondaries before the runtime primary
-# mysql_deregister    : stop exporter and remove VictoriaMetrics targets
-# mysql_rm_done       : report preserved local state and next action
+# mysql_safeguard     : assert identity and abort if safeguard is enabled
+# mysql_leave         : detach a single member through a surviving member
+# mysql_deregister    : remove VictoriaMetrics targets
+# mysql               : stop router, exporter, backup timer and mysqld
+# mysql_data          : remove data, config, secrets and router state
+# mysql_pkg           : uninstall mysql packages
 #--------------------------------------------------------------#
 ...

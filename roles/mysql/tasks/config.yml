@@ -33,6 +33,26 @@
     validate: mysqld --defaults-file=%s --validate-config --tmpdir=/tmp --secure-file-priv=NULL --skip-log-bin
   register: mysql_config_result
 
+- name: rotate mysql logs
+  tags: mysql_config_file
+  copy:
+    dest: /etc/logrotate.d/pigsty-mysql
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      # Managed by Pigsty. Local edits will be overwritten.
+      {{ mysql_log_dir }}/error.log {{ mysql_log_dir }}/slow.log {
+          weekly
+          maxsize 1G
+          rotate 4
+          missingok
+          notifempty
+          compress
+          delaycompress
+          copytruncate
+      }
+
 - name: inspect mysql runtime tls
   tags: mysql_config_file
   when: mysql_preinstall_system_database.stat.exists

@@ -1,46 +1,114 @@
 ---
 #--------------------------------------------------------------#
-# Check MySQL Remove                            [mysql_rm_check]
+# Assert MySQL Identity                        [mysql_safeguard]
 #--------------------------------------------------------------#
-- import_tasks: check.yml
-  tags: [ always, mysql_rm_check ]
+# one member leaves an HA cluster at a time; anything else is the whole cluster
+- name: assert mysql remove identity
+  tags: [ always, mysql_safeguard ]
+  assert:
+    that:
+      - mysql_cluster is defined and mysql_cluster in groups and inventory_hostname in groups[mysql_cluster]
+      - mysql_seq is defined and mysql_seq | string is match('^[1-9][0-9]*$')
+      - mysql_data is match('^/[^/\s]+/[^\s]+$') and '..' not in mysql_data.split('/')
+      - groups[mysql_cluster] | intersect(ansible_play_hosts_all) | length in [1, groups[mysql_cluster] | length]
+    fail_msg: >-
+      mysql remove takes one member or the complete cluster, and requires
+      mysql_cluster group membership, mysql_seq, and a dedicated mysql_data path.
 
 #--------------------------------------------------------------#
-# Quiesce MySQL                               [mysql_rm_quiesce]
+# Honor mysql_safeguard                        [mysql_safeguard]
 #--------------------------------------------------------------#
-- import_tasks: quiesce.yml
-  tags: [ mysql_rm_quiesce ]
-
-#--------------------------------------------------------------#
-# Remove MySQL Member                          [mysql_rm_member]
-#--------------------------------------------------------------#
-- import_tasks: member.yml
-  tags: [ mysql_rm_member, mysql_cluster ]
-
-#--------------------------------------------------------------#
-# Stop MySQL Service                          [mysql_rm_service]
-#--------------------------------------------------------------#
-- import_tasks: service.yml
-  tags: [ mysql_rm_service, mysql_launch ]
-
-#--------------------------------------------------------------#
-# Deregister MySQL                            [mysql_deregister]
-#--------------------------------------------------------------#
-- import_tasks: monitor.yml
-  tags: [ mysql_deregister, mysql_monitor, deregister ]
-
-#--------------------------------------------------------------#
-# Summary                                        [mysql_rm_done]
-#--------------------------------------------------------------#
-- name: mysql remove done
-  tags: mysql_rm_done
+- name: ABORT due to mysql_safeguard enabled
+  tags: [ always, mysql_safeguard ]
   connection: local
-  debug:
-    msg: >-
-      {{ mysql_rm_expected_confirm }} {{ 'would be detached' if ansible_check_mode else 'detached' }};
-      datadir, backup, config, certificates, packages, and metadata schema remain
-      untouched{% if ansible_check_mode %}; retirement and service changes were
-      previewed only{% elif mysql_rm_datadir_state.stat.exists %}; ordinary
-      mysql.yml is blocked by the persistent retirement marker{% else %}; no
-      mysql datadir was present{% endif %}
+  when: mysql_safeguard | bool
+  fail: msg="Abort due to mysql_safeguard for {{ mysql_cluster }} @ {{ inventory_hostname }} is enabled, override with -e mysql_safeguard=false"
+
+#--------------------------------------------------------------#
+# Leave InnoDB Cluster                             [mysql_leave]
+#--------------------------------------------------------------#
+# A single member leaves through a surviving member: a PRIMARY hands over
+# first, an ONLINE member syncs and leaves, anything else is dropped from the
+# metadata. Removing the complete cluster has no survivor and skips this.
+- name: detach mysql member from cluster
+  tags: mysql_leave
+  when: mysql_rm_survivors | length > 0
+  delegate_to: "{{ mysql_rm_survivors | first | default(inventory_hostname) }}"
+  block:
+    - name: render mysql leave script
+      template: src=mysql-leave.js.j2 dest=/etc/mysql/pigsty/cluster-leave.js owner=root group=root mode=0600
+    - name: run mysql leave script
+      when: not ansible_check_mode
+      command: mysqlsh --js --file /etc/mysql/pigsty/cluster-leave.js
+      register: mysql_leave_result
+      changed_when: "'\"pigstyChanged\":true' in mysql_leave_result.stdout"
+
+#--------------------------------------------------------------#
+# Deregister Monitoring Targets               [mysql_deregister]
+#--------------------------------------------------------------#
+- name: deregister mysql targets from victoria
+  tags: [ mysql_deregister, deregister, rm_metrics ]
+  ignore_errors: true
+  delegate_to: "{{ item }}"
+  loop: "{{ groups['infra'] | default([]) }}"
+  file: path=/infra/targets/mysql/{{ mysql_instance }}.yml state=absent
+
+#--------------------------------------------------------------#
+# Stop MySQL Services                                    [mysql]
+#--------------------------------------------------------------#
+# mysqld is named mysqld on EL and mysql on Debian, and a standalone has no
+# router: a missing unit is expected, not a failure
+- name: stop mysql services
+  tags: mysql
+  failed_when: false
+  systemd: name={{ item }} state=stopped enabled=no
+  loop: [ mysql-backup.timer, mysqlrouter, mysqld_exporter, mysqld, mysql ]
+
+#--------------------------------------------------------------#
+# Remove MySQL Data & Config                        [mysql_data]
+#--------------------------------------------------------------#
+# Config, secrets, and Router state belong to the removed cluster and would
+# mislead the next bootstrap, so they go with the data. Backups under
+# mysql_backup_dir are never removed. With mysql_rm_data=false everything
+# stays and mysql.yml brings the stopped cluster back.
+- name: remove mysql data and config
+  tags: mysql_data
+  when: mysql_rm_data | bool
+  ignore_errors: true
+  block:
+    - name: remove mysql data and config
+      file: path={{ item }} state=absent
+      loop:
+        - "{{ mysql_data }}"
+        - /etc/mysql/pigsty
+        - /etc/mysql/pki
+        - /etc/my.cnf.d/pigsty.cnf
+        - /etc/mysql/mysql.conf.d/pigsty.cnf
+        - /etc/mysqlrouter/mysqlrouter.conf
+        - /etc/mysqlrouter/mysqlrouter.key
+        - /var/lib/mysqlrouter/keyring
+        - /var/lib/mysqlrouter/state.json
+        - /etc/mysqld_exporter.cnf
+        - /etc/systemd/system/mysqld.service.d/pigsty.conf
+        - /etc/systemd/system/mysqld_exporter.service.d/pigsty.conf
+        - /etc/systemd/system/mysql-backup.service
+        - /etc/systemd/system/mysql-backup.timer
+        - /usr/local/bin/mysql-backup
+        - /var/lib/pigsty/mysql-backup
+        - /var/lib/node_exporter/textfile/mysql.prom
+        - /etc/logrotate.d/pigsty-mysql
+        - /etc/profile.d/mysql.sh
+    - name: reload systemd after mysql unit removal
+      systemd: daemon_reload=yes
+
+#--------------------------------------------------------------#
+# Uninstall MySQL Packages                           [mysql_pkg]
+#--------------------------------------------------------------#
+- name: uninstall mysql packages
+  tags: mysql_pkg
+  when: mysql_rm_pkg | bool
+  ignore_errors: true
+  package:
+    name: [ 'mysql-community-*', mysql-server, mysql-client, mysql-shell, 'mysql-router*', percona-xtrabackup-84, mysqld-exporter ]
+    state: absent
 ...

@@ -8,7 +8,7 @@
   when: not item.local | default(false) | bool or mysql_backup_enabled | bool
   loop:
     - { path: "{{ mysql_backup_state_dir }}"  ,owner: root ,group: root  ,mode: '0700' }
-    - { path: "{{ mysql_backup_repo.get('local', {}).get('path', '/data/backups/mysql') }}" ,owner: root ,group: mysql ,mode: '0750' ,local: true }
+    - { path: "{{ mysql_backup_dir }}"        ,owner: root ,group: mysql ,mode: '0750' ,local: true }
 
 - name: install mysql backup tool
   tags: mysql_backup_install
@@ -31,4 +31,16 @@
     state: "{{ 'started' if mysql_backup_enabled | bool else 'stopped' }}"
     enabled: "{{ mysql_backup_enabled | bool }}"
     daemon_reload: true
+
+- name: remove mysql backup metrics
+  tags: mysql_backup_timer
+  when: not mysql_backup_enabled | bool
+  file: path={{ mysql_backup_metrics }} state=absent
+
+# Like pgbackrest_init_backup: a new instance gets its first backup and its
+# backup metrics at once. Members that are not the writable primary skip.
+- name: take initial mysql backup
+  tags: mysql_backup_init
+  when: mysql_backup_enabled | bool and not mysql_preinstall_system_database.stat.exists and not ansible_check_mode
+  systemd: name=mysql-backup.service state=started
 ...

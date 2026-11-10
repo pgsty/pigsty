@@ -4,9 +4,9 @@
 # File      :   mysql.yml
 # Desc      :   reconcile native MySQL 8.4 LTS cluster/instance
 # Ctime     :   2026-07-16
-# Mtime     :   2026-08-06
+# Mtime     :   2026-11-10
 # Path      :   mysql.yml
-# Docs      :   https://pigsty.io/docs/pilot/mysql
+# Docs      :   https://pigsty.io/docs/mysql
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -28,13 +28,15 @@
 #    ./mysql.yml -l <cluster> --check  # preview without service mutation
 #    ./mysql.yml -l <cluster>          # approved real run; 1 or 3 members
 #
-#  Replace one HA member:
-#    ./mysql-rm.yml -l <secondary> --check -e mysql_safeguard=false \
-#      -e mysql_rm_confirm=<secondary>
-#    ./mysql-rm.yml -l <secondary> -e mysql_safeguard=false \
-#      -e mysql_rm_confirm=<secondary> # explicit approval required
-#    # replace the machine at the same service address, then reconcile all 3 nodes
-#    ./mysql.yml -l <cluster> --check
+#  Manage users and databases, also on a degraded cluster (partial limit):
+#    ./mysql.yml -l <cluster> -t mysql_provision
+#
+#  Replace a lost HA member: bring up a fresh machine at the same address and
+#  reconcile; the stale registration is dropped and the member cloned back:
+#    ./node.yml  -l <ip>
+#    ./mysql.yml -l <cluster>
+#
+#  Recover from a complete outage: start every member, then reconcile:
 #    ./mysql.yml -l <cluster>
 #
 #  mysql_cluster and mysql_seq are required identity fields. mysql_seq is only
@@ -56,7 +58,7 @@
 # mysql_access            : reconcile local access layer
 #   - mysql_router        : bootstrap and launch local Router on HA members
 # mysql_provision         : reconcile declared business databases and users
-# mysql_backup            : configure daily full backup
+# mysql_backup            : configure daily full backup and its metrics
 # mysql_monitor           : setup exporter and Victoria registration
 #   - mysql_exporter      : configure and launch mysqld_exporter
 #   - mysql_register      : register mysqld_exporter VictoriaMetrics target

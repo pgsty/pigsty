@@ -2,7 +2,7 @@
 #==============================================================#
 # File      :   mysql.yml
 # Ctime     :   2023-08-17
-# Mtime     :   2026-07-16
+# Mtime     :   2026-11-10
 # Desc      :   Recording and alert rules for MySQL
 # Path      :   /infra/rules/mysql.yml
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -252,13 +252,36 @@ groups:
       - record: mysql:ins:gr_applier_queue_ratio
         expr: mysql:ins:gr_applier_queue / clamp_min(mysql_global_variables_group_replication_flow_control_applier_threshold{job="mysql"}, 1)
 
+      # Latest successful local full backup, written by mysql-backup through the
+      # node_exporter textfile collector and joined to the mysql target by ip.
+      # Backups follow the runtime primary, so freshness is a cluster property.
+      - record: mysql:ins:backup_time
+        expr: max by (ip) (mysql_backup_last_success_timestamp_seconds) + on (ip) group_right() mysql_up{job="mysql"} * 0
+
+      - record: mysql:cls:backup_time
+        expr: max by (cls, topology) (mysql:ins:backup_time)
+
 
   #--------------------------------------------------------------#
   # MySQL alert rules
   #--------------------------------------------------------------#
+  # Few and actionable: each alert means an operator has something to do.
+  # Diagnostic signals (slow queries, temporary tables, buffer pool, redo,
+  # locks) stay on the dashboards.
   - name: mysql-alerts
     interval: 30s
     rules:
+
+      # mysqld_exporter is scraped but cannot connect to mysqld
+      - alert: MySQLDown
+        expr: mysql:ins:exporter_up == 1 and on (job, cls, ins, ip, instance, topology) mysql:ins:up < 1
+        for: 1m
+        labels: { level: 0, severity: CRIT, category: mysql }
+        annotations:
+          summary: "CRIT MySQLDown {{ $labels.ins }}@{{ $labels.instance }}"
+          description: |
+            mysqld_exporter is reachable but cannot connect to MySQL on {{ $labels.ins }}.
+            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
 
       - alert: MySQLExporterDown
         expr: mysql:ins:exporter_up < 1
@@ -270,156 +293,51 @@ groups:
             mysqld_exporter is unavailable for {{ $labels.ins }} at {{ $labels.instance }}.
             /ui/d/mysql-instance?var-ins={{ $labels.ins }}
 
-      - alert: MySQLInstanceDown
-        expr: mysql:ins:exporter_up == 1 and on (job, cls, ins, ip, instance, topology) mysql:ins:up < 1
+      # health 0: quorum lost, or not exactly one ONLINE primary
+      - alert: MySQLClusterDown
+        expr: mysql:cls:health{topology="innodb_cluster"} < 1
         for: 1m
         labels: { level: 0, severity: CRIT, category: mysql }
         annotations:
-          summary: "CRIT MySQLInstanceDown {{ $labels.ins }}@{{ $labels.instance }}"
+          summary: "CRIT MySQLClusterDown {{ $labels.cls }}"
           description: |
-            mysqld_exporter is reachable but cannot connect to MySQL on {{ $labels.ins }}.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+            {{ $labels.cls }} cannot accept writes: quorum is lost or there is not exactly one ONLINE primary.
+            Bring every member back and run mysql.yml; it reboots a complete outage by itself.
+            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
 
-      - alert: MySQLCollectorError
-        expr: mysql_exporter_collector_success{job="mysql"} < 1
+      # health 1: writable, but a member is not ONLINE and one more failure stops writes
+      - alert: MySQLClusterDegraded
+        expr: mysql:cls:health{topology="innodb_cluster"} == 1
         for: 5m
         labels: { level: 1, severity: WARN, category: mysql }
         annotations:
-          summary: "WARN MySQLCollectorError {{ $labels.ins }} {{ $labels.collector }}"
+          summary: "WARN MySQLClusterDegraded {{ $labels.cls }}"
           description: |
-            mysqld_exporter collector {{ $labels.collector }} has failed for 5 minutes.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
+            {{ $labels.cls }} has a member that is not ONLINE and tolerates no further failure.
+            Run mysql.yml to rejoin it, or replace the machine at the same address.
+            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
 
-      - alert: MySQLRecentlyRestarted
-        expr: mysql:ins:uptime < 600
-        for: 2m
-        labels: { level: 2, severity: INFO, category: mysql }
-        annotations:
-          summary: "INFO MySQLRecentlyRestarted {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} has been up for only {{ $value | humanizeDuration }}.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
-
-      - alert: MySQLConnectionsHigh
-        expr: mysql:ins:connection_usage > 0.80 and mysql:ins:connection_usage <= 0.95
+      - alert: MySQLReplicationLag
+        expr: mysql:ins:gr_certifier_queue > 1000 or mysql:ins:gr_applier_queue > 1000
         for: 10m
         labels: { level: 1, severity: WARN, category: mysql }
         annotations:
-          summary: "WARN MySQLConnectionsHigh {{ $labels.ins }}"
+          summary: "WARN MySQLReplicationLag {{ $labels.ins }}"
+          description: |
+            {{ $labels.ins }} has {{ $value | humanize }} transactions waiting in a Group Replication queue.
+            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
+
+      - alert: MySQLConnUsageHigh
+        expr: mysql:ins:connection_usage > 0.80
+        for: 5m
+        labels: { level: 1, severity: WARN, category: mysql }
+        annotations:
+          summary: "WARN MySQLConnUsageHigh {{ $labels.ins }}"
           description: |
             {{ $labels.ins }} is using {{ $value | humanizePercentage }} of max_connections.
             /ui/d/mysql-instance?var-ins={{ $labels.ins }}
 
-      - alert: MySQLConnectionsCritical
-        expr: mysql:ins:connection_usage > 0.95
-        for: 3m
-        labels: { level: 0, severity: CRIT, category: mysql }
-        annotations:
-          summary: "CRIT MySQLConnectionsCritical {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} is using {{ $value | humanizePercentage }} of max_connections.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
-
-      - alert: MySQLConnectionErrors
-        expr: mysql:ins:connection_errors > 0.1
-        for: 10m
-        labels: { level: 1, severity: WARN, category: mysql }
-        annotations:
-          summary: "WARN MySQLConnectionErrors {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} has {{ $value | printf "%.2f" }} connection errors per second.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
-
-      - alert: MySQLAbortedConnections
-        expr: mysql:ins:aborted_connects > 1 or mysql:ins:aborted_clients > 1
-        for: 10m
-        labels: { level: 2, severity: INFO, category: mysql }
-        annotations:
-          summary: "INFO MySQLAbortedConnections {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} has {{ $value | printf "%.2f" }} aborted connections per second.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
-
-      - alert: MySQLSlowQueries
-        expr: mysql:ins:slow_query_ratio > 0.01 and mysql:ins:qps > 10
-        for: 10m
-        labels: { level: 2, severity: INFO, category: mysql }
-        annotations:
-          summary: "INFO MySQLSlowQueries {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} slow-query ratio is {{ $value | humanizePercentage }}.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
-
-      - alert: MySQLDiskTemporaryTablesHigh
-        expr: mysql:ins:tmp_disk_ratio > 0.25 and mysql:ins:tmp_tables > 1
-        for: 15m
-        labels: { level: 2, severity: INFO, category: mysql }
-        annotations:
-          summary: "INFO MySQLDiskTemporaryTablesHigh {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} creates {{ $value | humanizePercentage }} of temporary tables on disk.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
-
-      - alert: MySQLFullJoinsHigh
-        expr: mysql:ins:full_joins > 1
-        for: 15m
-        labels: { level: 2, severity: INFO, category: mysql }
-        annotations:
-          summary: "INFO MySQLFullJoinsHigh {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} executes {{ $value | printf "%.2f" }} joins without indexes per second.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
-
-      - alert: MySQLBufferPoolHitLow
-        expr: mysql:ins:buffer_pool_hit_ratio < 0.95 and mysql:ins:qps > 100
-        for: 15m
-        labels: { level: 2, severity: INFO, category: mysql }
-        annotations:
-          summary: "INFO MySQLBufferPoolHitLow {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} buffer-pool hit ratio is {{ $value | humanizePercentage }} under sustained load.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
-
-      - alert: MySQLBufferPoolWaits
-        expr: mysql:ins:buffer_pool_waits > 0
-        for: 5m
-        labels: { level: 1, severity: WARN, category: mysql }
-        annotations:
-          summary: "WARN MySQLBufferPoolWaits {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} waits for free InnoDB buffer-pool pages at {{ $value | printf "%.2f" }}/s.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
-
-      - alert: MySQLInnoDBLogWaits
-        expr: mysql:ins:log_waits > 0
-        for: 5m
-        labels: { level: 1, severity: WARN, category: mysql }
-        annotations:
-          summary: "WARN MySQLInnoDBLogWaits {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} waits for InnoDB redo space at {{ $value | printf "%.2f" }}/s.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
-
-      - alert: MySQLRedoCapacityHigh
-        expr: mysql:ins:redo_utilization > 0.80
-        for: 10m
-        labels: { level: 1, severity: WARN, category: mysql }
-        annotations:
-          summary: "WARN MySQLRedoCapacityHigh {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} redo checkpoint age uses {{ $value | humanizePercentage }} of capacity.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
-
-      - alert: MySQLDeadlocksHigh
-        expr: mysql:ins:deadlocks > 0
-        for: 5m
-        labels: { level: 1, severity: WARN, category: mysql }
-        annotations:
-          summary: "WARN MySQLDeadlocks {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} reports {{ $value | printf "%.3f" }} deadlocks per second.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
-
+      # a transaction left open keeps purge from reclaiming undo
       - alert: MySQLHistoryListLarge
         expr: mysql:ins:history_list_length > 1000000
         for: 15m
@@ -427,114 +345,18 @@ groups:
         annotations:
           summary: "WARN MySQLHistoryListLarge {{ $labels.ins }}"
           description: |
-            {{ $labels.ins }} InnoDB history-list length is {{ $value | humanize }}; purge may be blocked.
+            {{ $labels.ins }} InnoDB history-list length is {{ $value | humanize }}; a long transaction may block purge.
             /ui/d/mysql-instance?var-ins={{ $labels.ins }}
 
-      - alert: MySQLClusterNoPrimary
-        expr: mysql:cls:gr_primary_members{topology="innodb_cluster"} < 1
-        for: 1m
-        labels: { level: 0, severity: CRIT, category: mysql }
-        annotations:
-          summary: "CRIT MySQLClusterNoPrimary {{ $labels.cls }}"
-          description: |
-            The InnoDB Cluster has no ONLINE primary. Normal automation will not
-            perform complete-outage recovery or force a new primary.
-            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
-
-      - alert: MySQLClusterMultiplePrimary
-        expr: mysql:cls:gr_primary_members{topology="innodb_cluster"} > 1
-        for: 30s
-        labels: { level: 0, severity: CRIT, category: mysql }
-        annotations:
-          summary: "CRIT MySQLClusterMultiplePrimary {{ $labels.cls }}"
-          description: |
-            Single-primary invariant is violated: {{ $value }} ONLINE primary members.
-            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
-
-      - alert: MySQLClusterQuorumLost
-        expr: mysql:cls:gr_quorum{topology="innodb_cluster"} < 1
-        for: 1m
-        labels: { level: 0, severity: CRIT, category: mysql }
-        annotations:
-          summary: "CRIT MySQLClusterQuorumLost {{ $labels.cls }}"
-          description: |
-            Fewer than a majority of declared members are ONLINE; writes must remain unavailable.
-            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
-
-      - alert: MySQLClusterMemberOffline
-        expr: >-
-          mysql:ins:up{topology="innodb_cluster"} == 1
-          unless on (job, cls, ins, ip, instance, topology)
-          mysql:ins:gr_online == 1
+      # daily backup did not succeed anywhere in the cluster for 30h
+      - alert: MySQLBackupStale
+        expr: time() - mysql:cls:backup_time > 30 * 3600
         for: 5m
         labels: { level: 1, severity: WARN, category: mysql }
         annotations:
-          summary: "WARN MySQLClusterMemberOffline {{ $labels.ins }}"
+          summary: "WARN MySQLBackupStale {{ $labels.cls }}"
           description: |
-            mysqld is reachable but its local Group Replication member is not ONLINE.
-            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
-
-      - alert: MySQLGRQueueHigh
-        expr: mysql:ins:gr_certifier_queue > 1000 or mysql:ins:gr_applier_queue > 1000
-        for: 10m
-        labels: { level: 1, severity: WARN, category: mysql }
-        annotations:
-          summary: "WARN MySQLGRQueueHigh {{ $labels.ins }}"
-          description: |
-            A GR certification or applier queue has exceeded 1000 transactions.
-            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
-
-      - alert: MySQLGRQueueCritical
-        expr: mysql:ins:gr_certifier_queue > 10000 or mysql:ins:gr_applier_queue > 10000
-        for: 5m
-        labels: { level: 0, severity: CRIT, category: mysql }
-        annotations:
-          summary: "CRIT MySQLGRQueueCritical {{ $labels.ins }}"
-          description: |
-            A GR certification or applier queue has exceeded 10000 transactions.
-            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
-
-      - alert: MySQLGRFlowControlHigh
-        expr: mysql:ins:gr_certifier_queue_ratio > 0.80 or mysql:ins:gr_applier_queue_ratio > 0.80
-        for: 10m
-        labels: { level: 1, severity: WARN, category: mysql }
-        annotations:
-          summary: "WARN MySQLGRFlowControlHigh {{ $labels.ins }}"
-          description: |
-            A Group Replication queue has remained above 80% of its configured flow-control threshold.
-            /ui/d/mysql-replication?var-cls={{ $labels.cls }}
-
-      - alert: MySQLPrimaryReadOnly
-        expr: >-
-          mysql_global_variables_read_only{job="mysql"} > 0
-          and on (job, cls, ins, ip, instance, topology) mysql:ins:gr_primary == 1
-        for: 5m
-        labels: { level: 1, severity: WARN, category: mysql }
-        annotations:
-          summary: "WARN MySQLPrimaryReadOnly {{ $labels.ins }}"
-          description: |
-            The runtime GR primary reports read_only enabled.
+            The latest successful backup of {{ $labels.cls }} is {{ $value | humanizeDuration }} old.
+            Backups follow the runtime primary: check `journalctl -u mysql-backup` there.
             /ui/d/mysql-cluster?var-cls={{ $labels.cls }}
-
-      - alert: MySQLSecondaryWritable
-        expr: >-
-          mysql_global_variables_super_read_only{job="mysql"} < 1
-          and on (job, cls, ins, ip, instance, topology) mysql:ins:gr_secondary == 1
-        for: 2m
-        labels: { level: 0, severity: CRIT, category: mysql }
-        annotations:
-          summary: "CRIT MySQLSecondaryWritable {{ $labels.ins }}"
-          description: |
-            A runtime GR secondary reports super_read_only disabled.
-            /ui/d/mysql-cluster?var-cls={{ $labels.cls }}
-
-      - alert: MySQLExporterScrapeSlow
-        expr: max without (collector) (mysql_exporter_collector_duration_seconds{job="mysql"}) > 5
-        for: 10m
-        labels: { level: 2, severity: INFO, category: mysql }
-        annotations:
-          summary: "INFO MySQLExporterScrapeSlow {{ $labels.ins }}"
-          description: |
-            {{ $labels.ins }} exporter collectors take {{ $value | humanizeDuration }}.
-            /ui/d/mysql-instance?var-ins={{ $labels.ins }}
 ...

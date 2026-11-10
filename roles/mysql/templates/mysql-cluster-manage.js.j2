@@ -1,10 +1,12 @@
 // Managed by Pigsty: conservative MySQL 8.4 InnoDB Cluster reconciliation.
-// No force, metadata removal, overwrite clone, switchover, or complete-outage path.
+// No force, overwrite clone, or switchover. Two recoveries run unattended,
+// because they need no judgement once every declared member is reachable:
+// a fresh machine replacing a lost member at the same address, and a
+// complete outage rebooted from the most advanced member.
 shell.options.useWizards = false;
 
 function secret(path) { return os.loadTextFile(path).replace(/[\r\n]+$/, ""); }
 const clusterName = {{ mysql_cluster | to_json }};
-const groupName = {{ mysql_gr_group_name | to_json }};
 const password = secret({{ mysql_cluster_password_file | to_json }});
 const ca = {{ mysql_tls_ca | to_json }};
 const members = [
@@ -56,6 +58,7 @@ function view(cluster) {
 let seed = null;
 let seedSession = null;
 let fallback = null;
+let online = false;
 let inspected = 0;
 for (const member of members) {
   let s;
@@ -63,7 +66,7 @@ for (const member of members) {
   inspected += 1;
   const hasMetadata = Number(scalar(s, "SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='mysql_innodb_cluster_metadata'")) === 1;
   const isOnline = String(scalar(s, "SELECT COALESCE((SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID=@@server_uuid),'OFFLINE')")) === "ONLINE";
-  if (hasMetadata && isOnline) { seed = member; seedSession = s; break; }
+  if (hasMetadata && isOnline) { seed = member; seedSession = s; online = true; break; }
   if (hasMetadata && !fallback) { fallback = {member: member, session: s}; continue; }
   s.close();
 }
@@ -85,7 +88,7 @@ if (seedState.metadata === 0) {
     if (!fresh(state)) { throw new Error(endpoint(member) + " is not a fresh Clone target"); }
   });
   cluster = dba.createCluster(clusterName, {
-    communicationStack: "XCOM", memberSslMode: "VERIFY_CA", groupName: groupName,
+    communicationStack: "XCOM", memberSslMode: "VERIFY_CA",
     localAddress: seed.host + ":33061", ipAllowlist: members.map(m => m.host).join(','),
     consistency: "BEFORE_ON_PRIMARY_FAILOVER", exitStateAction: "OFFLINE_MODE",
     autoRejoinTries: 3, manualStartOnBoot: false
@@ -98,11 +101,18 @@ if (seedState.metadata === 0) {
 } else {
   const names = seedSession.runSql("SELECT cluster_name FROM mysql_innodb_cluster_metadata.clusters").fetchAll();
   if (names.length !== 1 || String(names[0][0]) !== clusterName) { throw new Error("metadata cluster does not match inventory"); }
-  try { cluster = dba.getCluster(clusterName); }
-  catch (e) {
-    throw new Error("no ONLINE member holds the cluster; if every member is down, recover manually with " +
-      "dba.rebootClusterFromCompleteOutage('" + clusterName + "') via mysqlsh on the most advanced member, " +
-      "then rerun mysql.yml: " + e.message);
+  if (online) {
+    cluster = dba.getCluster(clusterName);
+  } else {
+    // Complete outage: no member is ONLINE. With every member reachable,
+    // AdminAPI reseeds from the most advanced GTID set and loses nothing;
+    // with a member missing that choice needs an operator.
+    if (inspected !== members.length) {
+      throw new Error("no ONLINE member holds the cluster and not every member is reachable; bring every " +
+        "member back and rerun mysql.yml, or decide manually with dba.rebootClusterFromCompleteOutage()");
+    }
+    cluster = dba.rebootClusterFromCompleteOutage(clusterName);
+    changed = true;
   }
 
   const r = view(cluster);
@@ -113,15 +123,19 @@ if (seedState.metadata === 0) {
   members.forEach(member => {
     const key = endpoint(member);
     const state = inspect(member);
-    if (state.group !== groupName) { throw new Error(key + " has a foreign Group Replication UUID"); }
-    if (r.topology[key] && ["ONLINE", "RECOVERING"].indexOf(r.topology[key].status) >= 0) { return; }
-    if (r.topology[key]) {
+    const known = r.topology[key];
+    if (state.group.length && state.group !== seedState.group) { throw new Error(key + " has a foreign Group Replication UUID"); }
+    if (known && ["ONLINE", "RECOVERING"].indexOf(known.status) >= 0) { return; }
+    if (known && !fresh(state)) {
       const options = {recoveryMethod: "incremental", recoveryProgress: 0,
         localAddress: member.host + ":33061", ipAllowlist: members.map(m => m.host).join(',')};
       cluster.rejoinInstance(conn(member), Object.assign({dryRun: true}, options));
       cluster.rejoinInstance(conn(member), options);
     } else {
       if (!fresh(state)) { throw new Error(key + " is not a fresh replacement"); }
+      // A fresh machine answers at a registered address: the member it
+      // replaces is gone for good, so drop that registration before Clone.
+      if (known) { cluster.rescan({removeInstances: [key]}); }
       cluster.addInstance(conn(member), {recoveryMethod: "clone", recoveryProgress: 0,
         localAddress: member.host + ":33061", ipAllowlist: members.map(m => m.host).join(',')});
     }

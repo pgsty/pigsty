@@ -1,0 +1,10 @@
+# Managed by Pigsty: MySQL admin shortcuts. Secrets stay in {{ mysql_secret_dir }} (root only).
+#   my [args]      root client on the local socket      my -e 'SHOW PROCESSLIST'
+alias my='sudo mysql --defaults-extra-file={{ mysql_root_config }}'
+{% if mysql_is_ha | bool %}
+#   mysh [code]    AdminAPI on this member as {{ mysql_cluster_username }}; prints the cluster status by default
+#                  mysh 'dba.getCluster().setPrimaryInstance("10.10.10.12:3306")'
+mysh() {
+  sudo mysqlsh --js -e "shell.options.useWizards=false; shell.connect({user:'{{ mysql_cluster_username }}', password:os.loadTextFile('{{ mysql_cluster_password_file }}').replace(/[\r\n]+\$/,''), host:'127.0.0.1', port:3306, 'ssl-mode':'VERIFY_CA', 'ssl-ca':'{{ mysql_tls_ca }}'}); ${1:-print(dba.getCluster().status())}"
+}
+{% endif %}

@@ -12,7 +12,7 @@ tmpdir = {{ mysql_data }}/tmp
 secure_file_priv = {{ mysql_secure_file_dir }}
 
 # identity, durability, GTID
-server_id = {{ mysql_seq }}
+server_id = {{ mysql_server_id }}
 log_bin = {{ mysql_data }}/binlog/mysql-bin
 relay_log = {{ mysql_data }}/binlog/relay-bin
 relay_log_recovery = ON
@@ -33,9 +33,9 @@ ssl_key = {{ mysql_tls_key }}
 mysqlx_bind_address = {{ '0.0.0.0' if mysql_is_ha | bool else '127.0.0.1' }}
 
 {% if mysql_is_ha | bool %}
-# single-primary Group Replication; mysql_seq is never a runtime role
+# single-primary Group Replication; mysql_seq is never a runtime role and
+# the group UUID is generated and persisted by AdminAPI
 plugin_load_add = group_replication.so;mysql_clone.so
-loose-group_replication_group_name = {{ mysql_gr_group_name }}
 loose-group_replication_communication_stack = XCOM
 loose-group_replication_local_address = {{ mysql_local_address }}:33061
 loose-group_replication_group_seeds = {{ mysql_member_addresses | sort | map('regex_replace', '$', ':33061') | join(',') }}
@@ -51,7 +51,8 @@ loose-group_replication_recovery_ssl_key = {{ mysql_tls_key }}
 loose-group_replication_recovery_ssl_verify_server_cert = ON
 {% endif %}
 
-# resource-derived InnoDB baseline
+# resource-derived baseline
+max_connections = 1000
 innodb_buffer_pool_size = {{ mysql_buffer_pool_mb }}M
 innodb_redo_log_capacity = {{ mysql_redo_log_mb }}M
 

@@ -7,6 +7,15 @@
   template: { src: mysql-provision.sql.j2, dest: "{{ mysql_provision_script }}", owner: root, group: root, mode: '0600' }
   no_log: true
 
+- name: check mysql primary in scope
+  tags: [ mysql_platform_user, mysql_db, mysql_user ]
+  when: mysql_is_ha | bool and not ansible_check_mode
+  assert:
+    that: >-
+      ansible_play_hosts_all | intersect(groups[mysql_cluster]) | map('extract', hostvars, 'mysql_runtime_member')
+      | map(attribute='stdout') | select('equalto', 'PRIMARY\tONLINE') | list | length == 1
+    fail_msg: The runtime PRIMARY of {{ mysql_cluster }} must be inside the play limit to reconcile users and databases.
+
 - name: reconcile mysql platform and business objects
   tags: [ mysql_platform_user, mysql_db, mysql_user ]
   when: not ansible_check_mode and (not mysql_is_ha | bool or mysql_runtime_member.stdout == 'PRIMARY\tONLINE')

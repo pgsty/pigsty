@@ -10,27 +10,40 @@
       - groups[mysql_cluster] | length in [1, 3]
       - mysql_seq is defined and mysql_seq | int in [1, 2, 3]
       - groups[mysql_cluster] | map('extract', hostvars, 'mysql_seq') | map('int') | sort == range(1, groups[mysql_cluster] | length + 1) | list
-      - groups[mysql_cluster] | difference(ansible_play_hosts_all) | length == 0
       - groups[mysql_cluster] | select('match', '^[A-Za-z0-9_.-]+$') | list | length == groups[mysql_cluster] | length
       - >-
         (os_arch == 'x86_64' and ((os_package == 'rpm' and os_version | int in [8,9,10]) or
         (os_package == 'deb' and os_version | int in [12,13,22,24]))) or
         (os_arch == 'aarch64' and os_package == 'rpm' and os_version | int in [9,10])
     fail_msg: >-
-      MySQL requires one complete 1-node or 3-node cluster with sequential
-      mysql_seq values and an admitted native-package platform.
+      MySQL requires a 1-node or 3-node cluster with sequential mysql_seq
+      values and an admitted native-package platform.
 
-- name: check mysql credentials and backup
+# Bootstrap, config, and cluster phases coordinate every member. Only the
+# phases that act on one member at a time accept a partial limit, so a
+# degraded cluster can still gain a user or a database.
+- name: check mysql cluster scope
+  when: ansible_run_tags | difference(['mysql_provision', 'mysql_db', 'mysql_user', 'mysql_backup', 'mysql_monitor']) | length > 0
+  assert:
+    that: groups[mysql_cluster] | difference(ansible_play_hosts_all) | length == 0
+    fail_msg: >-
+      Limit the play to the complete cluster {{ mysql_cluster }}; only
+      -t mysql_provision, mysql_backup, or mysql_monitor accept a partial limit.
+
+- name: check mysql credentials and storage
   assert:
     that:
       - mysql_root_password | string | length > 0 and (mysql_root_password | string) is not search('[\r\n]') and mysql_root_password | string is not match('^CHANGE_ME')
       - mysql_monitor_password | string | length > 0 and (mysql_monitor_password | string) is not search('[\r\n]') and mysql_monitor_password | string is not match('^CHANGE_ME')
       - mysql_cluster_password | string | length > 0 and (mysql_cluster_password | string) is not search('[\r\n]') and mysql_cluster_password | string is not match('^CHANGE_ME')
       - mysql_databases | type_debug == 'list' and mysql_users | type_debug == 'list'
-      - mysql_backup_method | default('local') == 'local' and mysql_backup_repo is mapping
-      - mysql_backup_repo.get('local', {}).get('path', '') is match('^/[^\r\n]+$')
-      - mysql_backup_repo.get('local', {}).get('retention', '') | string is match('^[1-9][0-9]{0,3}$')
-    fail_msg: MySQL credentials, business declarations, or backup settings are invalid.
+      - mysql_data is match('^/[^/\s]+/[^\s]+$') and '..' not in mysql_data.split('/')
+      - mysql_backup_dir is match('^/[^/\s]+/[^\s]+$') and '..' not in mysql_backup_dir.split('/')
+      - mysql_backup_retention | string is match('^[1-9][0-9]{0,3}$')
+      - mysql_backup_repo is not defined
+    fail_msg: >-
+      MySQL credentials, business declarations, or data and backup directories are invalid;
+      mysql_backup_repo was replaced by mysql_backup_dir and mysql_backup_retention.
     quiet: true
 
 - name: check mysql parameters
@@ -83,29 +96,33 @@
 #--------------------------------------------------------------#
 - name: inspect mysql lifecycle state
   stat: { path: "{{ item }}", follow: false, get_attributes: false, get_checksum: false, get_mime: false }
-  loop: [ "{{ mysql_data }}/mysql", "{{ mysql_initialized_marker }}", "{{ mysql_data }}/.pigsty-mysql-retired", /usr/sbin/mysqld, /etc/pki/ca.crt, "{{ mysql_cluster_password_file }}", "{{ mysql_data }}" ]
+  loop: [ "{{ mysql_data }}/mysql", "{{ mysql_initialized_marker }}", /usr/sbin/mysqld, /etc/pki/ca.crt, "{{ mysql_cluster_password_file }}", /var/lib/mysql/mysql ]
   register: mysql_state
 
 - name: derive mysql lifecycle state
   set_fact:
     mysql_preinstall_system_database: "{{ mysql_state.results[0] }}"
     mysql_preinstall_owned_marker: "{{ mysql_state.results[1] }}"
-    mysql_server_binary: "{{ mysql_state.results[3] }}"
-    mysql_node_ca: "{{ mysql_state.results[4] }}"
-    mysql_cluster_password_state: "{{ mysql_state.results[5] }}"
-    mysql_datadir_state: "{{ mysql_state.results[6] }}"
-    mysql_preinstall_bootstrap_incomplete: "{{ mysql_state.results[0].stat.exists and not mysql_state.results[5].stat.exists }}"
+    mysql_server_binary: "{{ mysql_state.results[2] }}"
+    mysql_cluster_password_state: "{{ mysql_state.results[4] }}"
+    mysql_preinstall_bootstrap_incomplete: "{{ mysql_state.results[0].stat.exists and not mysql_state.results[4].stat.exists }}"
     mysql_restart_required: false
 
 - name: check mysql lifecycle guards
   assert:
     that:
-      - not mysql_state.results[2].stat.exists
-      - mysql_node_ca.stat.exists and mysql_node_ca.stat.isreg and not mysql_node_ca.stat.islnk
-      - not mysql_datadir_state.stat.exists or (mysql_datadir_state.stat.isdir and not mysql_datadir_state.stat.islnk)
-      - not mysql_preinstall_system_database.stat.exists or (mysql_preinstall_owned_marker.stat.exists and mysql_preinstall_owned_marker.stat.isreg)
-      - not mysql_cluster_password_state.stat.exists or (mysql_cluster_password_state.stat.isreg and not mysql_cluster_password_state.stat.islnk and mysql_cluster_password_state.stat.pw_name == 'root' and mysql_cluster_password_state.stat.gr_name == 'root' and mysql_cluster_password_state.stat.mode == '0600')
-    fail_msg: MySQL requires node_ca, protected secrets, no retirement guard, and a Pigsty-owned datadir.
+      - mysql_state.results[3].stat.exists
+      - not mysql_preinstall_system_database.stat.exists or mysql_preinstall_owned_marker.stat.exists
+    fail_msg: MySQL requires the node CA from node.yml and a datadir initialized by Pigsty.
+
+# mysql_data used to be fixed at /var/lib/mysql. Never start an empty datadir
+# next to initialized data: keep managing it in place or move it away first.
+- name: check mysql datadir relocation
+  assert:
+    that: mysql_data == '/var/lib/mysql' or not mysql_state.results[5].stat.exists
+    fail_msg: >-
+      /var/lib/mysql holds an initialized MySQL datadir. Set
+      mysql_data: /var/lib/mysql to keep managing it, or move it away first.
 
 - name: read mysql datadir identity
   when: mysql_preinstall_system_database.stat.exists
@@ -115,7 +132,7 @@
 - name: check mysql datadir identity
   when: mysql_preinstall_system_database.stat.exists
   assert:
-    that: mysql_owned_marker_raw.content | b64decode | from_json in [mysql_initialized_marker_identity, mysql_initialized_marker_legacy_identity]
+    that: mysql_owned_marker_raw.content | b64decode | from_json == mysql_initialized_marker_identity
     fail_msg: Existing MySQL data belongs to another Pigsty cluster, instance, or topology.
 
 - name: read existing mysql cluster password

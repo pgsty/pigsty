@@ -54,14 +54,6 @@ if (( ! ELIGIBLE )); then
   exit 0
 fi
 
-require_commit_eligibility() {
-  local current
-  current="$(mysql --defaults-extra-file="$MYSQL_XTRABACKUP_CNF" --protocol=socket --socket="$MYSQL_SOCKET" --batch --raw --skip-column-names -e "$METADATA_SQL")"
-  [[ "$current" == "$METADATA" ]] || {
-    log "source identity or runtime role changed before commit"; return 1;
-  }
-}
-
 prune_local() {
   local cluster_dir="$1" excess victim
   local -a committed=()
@@ -101,12 +93,24 @@ xtrabackup --prepare --target-dir="$PARTIAL_DIR" >>"$WORK_LOG" 2>&1
 grep -Eq '^backup_type[[:space:]]*=[[:space:]]*full-prepared$' "$PARTIAL_DIR/xtrabackup_checkpoints"
 mv "$WORK_LOG" "$PARTIAL_DIR/backup.log"
 LAST_SIZE="$(du -sb "$PARTIAL_DIR" | cut -f1)"
-require_commit_eligibility
 printf 'committed full backup %s\n' "$BACKUP_ID" > "$PARTIAL_DIR/backup.ok"
 mv "$PARTIAL_DIR" "$FINAL_DIR"
 ln -s "$BACKUP_ID" "$CLUSTER_DIR/.latest.$$"
 mv -Tf "$CLUSTER_DIR/.latest.$$" "$CLUSTER_DIR/latest"
 prune_local "$CLUSTER_DIR" || log "warning: retention cleanup failed"
 
+# export backup metrics to the node_exporter textfile collector (if present), only on success
+if [[ -d "$(dirname "$MYSQL_BACKUP_METRICS")" ]]; then
+  ( umask 022
+    printf '%s\n' \
+      '# HELP mysql_backup_last_success_timestamp_seconds unix time of the latest successful local mysql backup' \
+      '# TYPE mysql_backup_last_success_timestamp_seconds gauge' \
+      "mysql_backup_last_success_timestamp_seconds $(date +%s)" \
+      '# HELP mysql_backup_size_bytes size of the latest successful local mysql backup' \
+      '# TYPE mysql_backup_size_bytes gauge' \
+      "mysql_backup_size_bytes $LAST_SIZE" > "$MYSQL_BACKUP_METRICS.tmp" &&
+    mv -f "$MYSQL_BACKUP_METRICS.tmp" "$MYSQL_BACKUP_METRICS" ) || log "warning: backup metrics export failed"
+fi
+
 ACTIVE=0
-log "committed full backup $BACKUP_ID ($MYSQL_BACKUP_METHOD, $LAST_SIZE bytes)"
+log "committed full backup $BACKUP_ID ($LAST_SIZE bytes)"

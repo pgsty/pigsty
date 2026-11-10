@@ -2,12 +2,15 @@
 #--------------------------------------------------------------#
 # Install Native MySQL 8.4                         [mysql_install]
 #--------------------------------------------------------------#
-- name: guard fresh deb datadir during package install
+# The deb postinst initializes an empty /var/lib/mysql on its own. Keep that
+# directory occupied so that only Pigsty initializes mysql_data; when the data
+# lives elsewhere the placeholder stays and covers later package upgrades too.
+- name: guard deb default datadir during package install
   tags: mysql_pkg
   when: os_package == 'deb' and not mysql_preinstall_system_database.stat.exists and not ansible_check_mode
   block:
-    - file: path={{ mysql_data }} state=directory owner=root group=root mode=0750
-    - copy: dest={{ mysql_data }}/.pigsty-mysql-installing content='Pigsty owns this pending MySQL initialization' owner=root group=root mode=0600
+    - file: path=/var/lib/mysql state=directory owner=root group=root mode=0750
+    - copy: dest=/var/lib/mysql/.pigsty-mysql-installing content='Pigsty initializes MySQL in {{ mysql_data }}' owner=root group=root mode=0600
 
 - name: install mysql rpm platform packages
   tags: mysql_pkg
@@ -34,10 +37,10 @@
     name: [ mysql-server, mysql-client, mysql-shell, mysql-router-community, percona-xtrabackup-84, mysqld-exporter ]
     state: present
 
-- name: release fresh deb datadir after package install
+- name: release deb default datadir after package install
   tags: mysql_pkg
-  when: os_package == 'deb' and not mysql_preinstall_system_database.stat.exists and not ansible_check_mode
-  file: path={{ mysql_data }}/.pigsty-mysql-installing state=absent
+  when: os_package == 'deb' and mysql_data == '/var/lib/mysql' and not mysql_preinstall_system_database.stat.exists and not ansible_check_mode
+  file: path=/var/lib/mysql/.pigsty-mysql-installing state=absent
 
 - name: end fresh mysql check mode after package preview
   tags: mysql_pkg
@@ -55,6 +58,11 @@
   tags: mysql_dir
   file: path={{ mysql_secret_dir | dirname }} state=directory owner=root group=root mode=0755
   register: mysql_public_config_dir_result
+
+- name: ensure node_data directory exists
+  tags: mysql_dir
+  when: mysql_data.startswith(node_data)
+  file: path={{ node_data }} state=directory owner=root group=root mode=0755
 
 - name: create mysql directories
   tags: mysql_dir
