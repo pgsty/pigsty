@@ -4,7 +4,7 @@ set -uo pipefail
 # File      :   pgb-user
 # Desc      :   add user to pgbouncer pool
 # Ctime     :   2021-03-29
-# Mtime     :   2025-01-20
+# Mtime     :   2026-11-10
 # Path      :   /pg/bin/pgb-user
 # Deps      :   psql, sed
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
@@ -48,6 +48,7 @@ function pgbouncer_create_user() {
     local userlist=${3-'/etc/pgbouncer/userlist.txt'}
     local entry="\"${username}\" \"\""   # "username" ""
     mkdir -p /etc/pgbouncer/
+    umask 077   # userlist holds password hashes, keep it (and its temp file) 0600
     touch ${userlist}
 
     case ${password} in
