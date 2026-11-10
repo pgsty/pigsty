@@ -77,12 +77,12 @@ make rebuild                       # stop, rebuild/migrate, then start
 make clean                         # remove the container, preserve files and PostgreSQL
 ```
 
-The pinned `DISCOURSE_DOCKER_REF` selects the classic Launcher and templates
-together; `DISCOURSE_VERSION=tests-passed` follows the official tested channel.
-Set an exact application commit for a controlled deployment. `make up` reuses
-the image when its local build receipt and resolved configuration match. Use
-`make rebuild` to refresh a floating application ref. Review both refs and the
-required PostgreSQL major version when upgrading.
+The defaults pin both `DISCOURSE_DOCKER_REF` and `DISCOURSE_VERSION` to exact
+commits verified together. The Launcher selects the base image and its Ruby
+version; a floating application branch can outgrow that runtime. Update and
+verify both refs together, including the required PostgreSQL major version.
+`make up` reuses the image when its local build receipt and resolved configuration
+match; `make rebuild` rebuilds the configured version.
 
 The generated `launcher/containers/discourse.yml` is JSON, which is valid YAML,
 and has mode 0600. It uses Redis, Web, rate-limit and socket templates, with no
@@ -153,7 +153,7 @@ the objects are backed up separately.
 If the database endpoint or other configuration changes, pin
 `DISCOURSE_VERSION` to the old receipt's exact `commit` and use `make up` to
 rebuild that same application version. Do not combine a move with an unintended
-upgrade of the floating `tests-passed` branch.
+upgrade of the application version.
 
 When PostgreSQL stays in place, no Discourse restore is needed for this move.
 Moving or retiring the database host is a separate Pigsty switchover/restore

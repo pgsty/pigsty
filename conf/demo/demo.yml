@@ -63,23 +63,6 @@ all:
         pg_hba_rules:
           - {user: dbuser_view , db: all ,addr: infra ,auth: pwd ,title: 'allow grafana dashboard access cmdb from infra nodes'}
         pg_libs: 'timescaledb,pg_stat_statements, auto_explain'  # add timescaledb to shared_preload_libraries
-        pg_extensions: # extensions to be installed on this cluster
-          - timescaledb timescaledb_toolkit pg_timeseries periods temporal_tables emaj table_version pg_cron pg_task pg_later pg_background
-          - postgis pgrouting pointcloud pg_h3 q3c ogr_fdw geoip pg_polyline pg_geohash #mobilitydb
-          - pgvector vchord pgvectorscale pg_vectorize pg_similarity smlar pg_summarize pg_tiktoken pg4ml #pgml
-          - pg_search pgroonga pg_bigm zhparser pg_bestmatch vchord_bm25 hunspell
-          - citus pg_duckdb pg_mooncake duckdb_fdw pg_parquet pg_fkpart pg_partman plproxy #pg_strom #hydra
-          - age hll rum pg_graphql pg_jsonschema jsquery pg_hint_plan hypopg index_advisor pg_plan_filter imgsmlr pg_ivm pg_incremental pgmq pgq pg_cardano omnigres #rdkit
-          - pg_tle plv8 pllua plprql pldebugger plpgsql_check plprofiler plsh pljava #plr #pgtap #faker #dbt2
-          - pg_prefix pg_semver pgunit pgpdf pglite_fusion md5hash asn1oid pg_roaringbitmap pgfaceting pgsphere pg_country pg_xenophile pg_currency pgcollection pgmp numeral pg_rational pguint pg_uint128 hashtypes ip4r pg_uri pg_emailaddr pg_acl timestamp9 chkpass #pg_duration #debversion #pg_rrule
-          - pg_gzip pg_bzip pg_zstd pg_http pg_net pg_curl pgjq pgjwt pg_smtp_client pg_html5_email_address url_encode pgsql_tweaks pg_extra_time pgpcre icu_ext pgqr pg_protobuf pg_envvar floatfile pg_readme ddl_historization data_historization pg_schedoc pg_hashlib pg_xxhash shacrypt cryptint pg_ecdsa pgsparql
-          - pg_idkit pg_uuidv7 permuteseq pg_hashids sequential_uuids topn quantile lower_quantile count_distinct omnisketch ddsketch vasco pgxicor tdigest first_last_agg extra_window_functions floatvec aggs_for_vecs aggs_for_arrays pg_arraymath pg_math pg_random pg_base36 pg_base62 pg_base58 pg_financial
-          - pg_repack pg_squeeze pg_dirtyread pgfincore pg_cooldown pg_ddlx pg_prioritize pg_checksums pg_readonly pg_upless pg_permissions pgautofailover pg_catcheck preprepare pgcozy pg_orphaned pg_crash pg_cheat_funcs pg_fio pg_savior safeupdate pg_drop_events table_log #pgagent #pgpool
-          - pg_profile pg_tracing pg_show_plans pg_stat_kcache pg_stat_monitor pg_qualstats pg_store_plans pg_track_settings pg_wait_sampling system_stats pg_meta pgnodemx pg_sqlog bgw_replstatus pgmeminfo toastinfo pg_explain_ui pg_relusage pagevis powa
-          - passwordcheck_cracklib supautils pgsodium pg_vault pg_session_jwt pg_anon pgsmcrypto pgaudit pgauditlogtofile pg_auth_mon credcheck pgcryptokey pg_jobmon logerrors login_hook set_user pg_snakeoil pgextwlist pg_auditor sslutils pg_noset #pg_tde
-          - wrappers multicorn odbc_fdw jdbc_fdw mysql_fdw tds_fdw sqlite_fdw pgbouncer_fdw mongo_fdw redis_fdw pg_redis_pubsub kafka_fdw hdfs_fdw firebird_fdw aws_s3 log_fdw #oracle_fdw #db2_fdw
-          - documentdb orafce pgtt session_variable pg_statement_rollback pg_dbms_metadata pg_dbms_lock pgmemcache #pg_dbms_job
-          - pglogical pglogical_ticker pgl_ddl_deploy pg_failover_slots db_migrator wal2json wal2mongo decoderbufs decoder_raw mimeo pg_fact_loader pg_bulkload #repmgr
 
     redis-ms: # redis classic primary & replica
       hosts: { 10.10.10.10: { redis_node: 1 , redis_instances: { 6379: { }, 6380: { replica_of: '10.10.10.10 6379' }, 6381: { replica_of: '10.10.10.10 6379' } } } }
@@ -123,15 +106,15 @@ all:
       - pool cn.pool.ntp.org iburst
       - pool ${admin_ip} iburst       # assume non-admin nodes does not have internet access
     pgbackrest_enabled: false         # do not take backups since this is disposable demo env
-    # keep 3GiB metrics data at most on demo env
+    # keep 15 days of metrics on the demo server
     vmetrics_options: >-
       -retentionPeriod=15d
-      -retention.maxDiskSpaceUsageBytes=3GiB
+      -retention.maxDiskSpaceUsageBytes=10GiB
 
     # install all postgresql18 extensions
     pg_version: 18                    # default postgres version
     repo_extra_packages: [ pg18-core ,pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl ,kafka-stack ,java-runtime]
-    pg_extensions: [pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl ] #,pg18-olap]
+    pg_extensions: [pg18-time ,pg18-gis ,pg18-rag ,pg18-fts ,pg18-olap ,pg18-feat ,pg18-lang ,pg18-type ,pg18-util ,pg18-func ,pg18-admin ,pg18-stat ,pg18-sec ,pg18-fdw ,pg18-sim ,pg18-etl]
 
     #----------------------------------------------#
     # PASSWORD : https://pigsty.io/docs/setup/security/

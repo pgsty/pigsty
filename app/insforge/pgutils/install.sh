@@ -33,7 +33,8 @@ curl --fail --show-error --silent --location --retry 3 \
   "$SOURCE_BASE/src/insforge_pg_utils.c" -o "$BUILD_DIR/src/insforge_pg_utils.c"
 (cd "$BUILD_DIR" && sha256sum --check "$SCRIPT_DIR/SHA256SUMS")
 patch --directory "$BUILD_DIR" -p1 --forward < "$SCRIPT_DIR/pg16-18.patch"
-make -C "$BUILD_DIR" PG_CONFIG="$PG_CONFIG" PG_CFLAGS="-ffile-prefix-map=$BUILD_DIR=."
+# This utility hook exposes no SQL functions and needs no LLVM bitcode.
+make -C "$BUILD_DIR" PG_CONFIG="$PG_CONFIG" PG_CFLAGS="-ffile-prefix-map=$BUILD_DIR=." with_llvm=no
 
 TARGET_LIBRARY="$("$PG_CONFIG" --pkglibdir)/insforge_pg_utils.so"
 if [ -e "$TARGET_LIBRARY" ]; then
@@ -45,6 +46,6 @@ if [ -e "$TARGET_LIBRARY" ]; then
   echo "Back it up and plan its replacement/restart explicitly before retrying." >&2
   exit 1
 fi
-make -C "$BUILD_DIR" install PG_CONFIG="$PG_CONFIG" PG_CFLAGS="-ffile-prefix-map=$BUILD_DIR=."
+make -C "$BUILD_DIR" install PG_CONFIG="$PG_CONFIG" PG_CFLAGS="-ffile-prefix-map=$BUILD_DIR=." with_llvm=no
 sha256sum "$TARGET_LIBRARY"
 echo "Installed for PostgreSQL $PG_MAJOR. Add insforge_pg_utils to pg_libs before cluster initialization."
