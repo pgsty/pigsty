@@ -11,12 +11,12 @@
 
     # create pg_exporter config dir
     - name: create /etc/pg_exporter conf dir
-      file: path=/etc/pg_exporter state=directory owner={{ pg_dbsu }} group=postgres mode=0750
+      file: path=/etc/pg_exporter state=directory owner=prometheus group=infra mode=0755
 
     # if pg_exporter_config is not defined, use default template
     - name: render default pg_exporter.yml config
       when: pg_exporter_config == 'pg_exporter.yml'
-      template: src=pg_exporter.yml dest=/etc/pg_exporter/{{ pg_exporter_unit }}.yml owner={{ pg_dbsu }} group=postgres mode=0644
+      template: src=pg_exporter.yml dest=/etc/pg_exporter/{{ pg_exporter_unit }}.yml owner=prometheus group=infra mode=0644
       vars:
         ttl_fast: "{{ pg_exporter_cache_ttls.split(',')[0]|int }}"
         ttl_norm: "{{ pg_exporter_cache_ttls.split(',')[1]|int }}"
@@ -26,11 +26,11 @@
     # otherwise, COPY use specified file
     - name: copy user provided pg_exporter.yml config
       when: pg_exporter_config != 'pg_exporter.yml'
-      copy: src={{ pg_exporter_config }} dest=/etc/pg_exporter/{{ pg_exporter_unit }}.yml owner={{ pg_dbsu }} group=postgres mode=0644
+      copy: src={{ pg_exporter_config }} dest=/etc/pg_exporter/{{ pg_exporter_unit }}.yml owner=prometheus group=infra mode=0644
 
     # config pg_exporter systemd environment options
     - name: config pg_exporter parameters
-      template: src=pg_exporter.env dest=/etc/default/{{ pg_exporter_unit }} owner={{ pg_dbsu }} group=postgres mode=0600
+      template: src=pg_exporter.env dest=/etc/default/{{ pg_exporter_unit }} owner=prometheus group=prometheus mode=0600
 
     # config pg_exporter systemd service
     - name: config pg_exporter systemd unit

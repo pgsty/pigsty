@@ -89,7 +89,6 @@ pg_exporters:
     pg_seq: <sequence_number>      # Required: instance sequence
     pg_host: <remote_ip>           # Required: remote PostgreSQL IP
     pg_port: 5432                  # Optional: PostgreSQL port
-    pg_dbsu: postgres              # Optional: database superuser
     pg_monitor_username: dbuser_monitor  # Optional: monitor user
     pg_monitor_password: DBUser.Monitor  # Optional: monitor password
     pg_exporter_url: ''            # Optional: override connection URL
@@ -108,6 +107,21 @@ pg_exporters:
 | `pg_exporter_include_database` | `''`                           | Databases to include    |
 | `pg_exporter_exclude_database` | `template0,template1,postgres` | Databases to exclude    |
 | `pg_exporter_connect_timeout`  | `200`                          | Connection timeout (ms) |
+
+Remote exporters run as the existing `prometheus` service account on infra nodes.
+The `infra` role creates this account and the shared `infra` group; this role does
+not create or use a local PostgreSQL `postgres` account. The remote database
+credentials are supplied through `pg_monitor_username`, `pg_monitor_password`,
+or `pg_exporter_url`.
+
+| Path                                   | Owner                   | Mode   |
+|----------------------------------------|-------------------------|--------|
+| `/etc/pg_exporter/`                    | `prometheus:infra`      | `0755` |
+| `/etc/pg_exporter/<unit>.yml`          | `prometheus:infra`      | `0644` |
+| `/etc/default/<unit>` (has credential) | `prometheus:prometheus` | `0600` |
+
+`/etc/pg_exporter/` is owned by this role only; the local `pg_monitor` exporter
+uses `/etc/pg_exporter.yml` instead.
 
 ### Connection URL
 
