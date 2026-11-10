@@ -123,6 +123,13 @@
   tags: vault_haproxy
   when: haproxy_enabled|default(true)|bool
   block:
+    # members that do not hold the vip must be able to bind it: set by node tuned profiles, not by node_tune=none
+    - name: require net.ipv4.ip_nonlocal_bind=1 to bind haproxy on vault vip
+      when: vault_vip != '' and vault_members|length > 1
+      command: sysctl -n net.ipv4.ip_nonlocal_bind
+      register: vault_nonlocal_bind
+      changed_when: false
+      failed_when: vault_nonlocal_bind.stdout | trim != '1'
     - name: render vault haproxy service
       when: vault_vip != '' and vault_members|length > 1
       template: src=vault.cfg dest=/etc/haproxy/conf.d/vault.cfg owner=root mode=0644

@@ -19,6 +19,22 @@
     BAO_TOKEN: "{{ (lookup('file', playbook_dir + '/files/pki/vault/init.json') | from_json).root_token }}"
   block:
 
+    # tasks below are no_log: report a rejected root token explicitly instead of a censored failure
+    - name: check vault root token
+      command: bao token lookup -format=json
+      register: vault_root_token_check
+      changed_when: false
+      failed_when: false
+
+    - name: abort if vault root token is rejected
+      when: vault_root_token_check.rc != 0
+      no_log: false
+      fail:
+        msg: >-
+          root_token in files/pki/vault/init.json does not work on {{ vault_instance }}:
+          {{ vault_root_token_check.stderr | default('') | trim }}.
+          On 'permission denied', init.json belongs to another cluster or the token was revoked: put the matching init.json back and retry.
+
     - name: list vault secret engines
       command: bao secrets list -format=json
       register: vault_mounts

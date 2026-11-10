@@ -12,6 +12,10 @@ cluster_name = "{{ vault_cluster }}"
 ui           = true
 log_level    = "info"
 
+# a kms needs read-after-write consistency, not read scalability: standbys
+# forward every request to the active member instead of serving stale reads
+disable_standby_reads = true
+
 #--------------------------------------------------------------#
 # Storage: integrated raft, members join with retry_join
 #--------------------------------------------------------------#

@@ -117,6 +117,10 @@ node_etc_hosts: [ '10.10.10.8 vault.pigsty' ]
 ```
 
 OpenBao listens on `<node_ip>:8200` and `127.0.0.1:8200` only, leaving `<vip>:8200` to haproxy.
+Members that do not hold the vip need `net.ipv4.ip_nonlocal_bind=1` to bind it: all node tuned
+profiles set it, `vault_haproxy` aborts otherwise (e.g. with `node_tune: none`).
+Standby reads are disabled (`disable_standby_reads`): a standby forwards every request to the
+active member, so any member gives read-after-write consistency.
 Use the same `node_cluster` on these members so NODE derives the same VRRP authentication.
 Configuration updates restart one member at a time and wait for it to rejoin before continuing.
 
@@ -130,7 +134,7 @@ Everything lives in `files/pki/vault/` on admin node, alongside the CA (`files/p
 | `unseal.key`          | static seal key (32 bytes), members auto-unseal with it |
 | `init.json`           | root token & recovery keys from `bao operator init` |
 | `backup.token`        | snapshot-only token used by `vault-backup`     |
-| `backup/*.snap`       | snapshots kept on admin node                   |
+| `backup/*.snap`       | initial snapshot, and the final one before removal |
 | `vault-<seq>.crt/key` | server certificates                            |
 
 The snapshot and matching `unseal.key` recover the encrypted storage. Keep
@@ -154,6 +158,8 @@ or rebuilding a member never bootstraps a second, empty cluster:
 
 Every member runs `vault-backup` daily, pulling a snapshot from the **active** member
 into `/data/vault/backup/` (keeps 7). Run `vault-backup` by hand for an ad-hoc snapshot.
+These snapshots live on the members: copy them off the cluster yourself. Admin node only
+gets the initial snapshot, and a final one when `vault-rm.yml` removes the entire cluster.
 
 `vault_provision` validates `files/pki/vault/backup.token` on every run and reissues it when
 it is invalid (e.g. left by a previous cluster, or after a snapshot restore), keeping the
