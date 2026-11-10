@@ -11,9 +11,10 @@
     group: "{{ item.group | default('nginx') }}"
     mode:  "{{ item.mode | default('0755') }}"
   with_items:
-    - { path: "{{ nginx_home }}"        ,owner: nginx }
-    - { path: "{{ nginx_home }}/acme"   ,owner: nginx }
-    - { path: "{{ nginx_home }}/pigsty" ,owner: nginx }
+    # static content is owned by root and read by nginx, only cache dirs are nginx-owned
+    - { path: "{{ nginx_home }}"        }
+    - { path: "{{ nginx_home }}/acme"   }
+    - { path: "{{ nginx_home }}/pigsty" }
     - { path: /etc/letsencrypt/renewal-hooks/deploy ,owner: root ,group: root ,mode: '0755' }
 
 - name: create nginx portal cache dirs
@@ -211,10 +212,10 @@
         group: "{{ item.group | default('nginx') }}"
         mode: "{{ item.mode | default('0755') }}"
       with_items:
-        - { path: "{{ nginx_home }}/logs"   ,owner: nginx }
-        - { path: "{{ nginx_home }}/repos"  ,owner: nginx }
-        - { path: "{{ nginx_home }}/schema" ,owner: nginx }
-        - { path: "{{ nginx_home }}/report" ,owner: nginx }
+        - { path: "{{ nginx_home }}/logs"   }
+        - { path: "{{ nginx_home }}/repos"  }
+        - { path: "{{ nginx_home }}/schema" }
+        - { path: "{{ nginx_home }}/report" }
 
     - name: copy pigsty ca cert
       tags: nginx_ca
