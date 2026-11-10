@@ -42,6 +42,13 @@
          (['--broker'] if roll_is_broker | bool else []) }}
   register: kafka_roll_preflight_internal
   changed_when: false
+  # Inventory can declare two controllers while a replacement is still only an
+  # observer. Never restart the sole live voter under the two-controller escape.
+  failed_when: >-
+    kafka_roll_preflight_internal.rc != 0 or
+    (roll_two_controllers | bool and
+     ((kafka_roll_preflight_internal.stdout | default('{}') | from_json).voters
+      | default([]) | length < 2))
   retries: 15
   delay: 4
   until: kafka_roll_preflight_internal.rc == 0

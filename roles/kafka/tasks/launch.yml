@@ -125,6 +125,8 @@
 #--------------------------------------------------------------#
 # Commission Manifest & Record State           [kafka_commission]
 #--------------------------------------------------------------#
+# A healthy quorum may still omit an intended controller if the early probe
+# failed. Refuse to commission observers; rerunning can then finish their join.
 - name: require full kafka health after launch
   when:
     - not ansible_check_mode
@@ -134,7 +136,12 @@
     /usr/local/bin/pigsty-kafka-health cluster
     --bootstrap-server {{ kafka_broker_bootstrap_internal }}
     --command-config /etc/kafka/admin.properties
+  register: kafka_launch_health_internal
   changed_when: false
+  failed_when: >-
+    kafka_launch_health_internal.rc != 0 or
+    (kafka_controller_nodes | map(attribute='seq') | list |
+     difference((kafka_launch_health_internal.stdout | from_json).voters) | length > 0)
 
 # marking the manifest commissioned freezes the initial-controller identities:
 # from now on an unformatted controller can never be silently reformatted

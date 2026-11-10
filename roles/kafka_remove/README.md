@@ -24,7 +24,7 @@ Steps:
   aborts the play before any service is stopped or any data is removed
 - Deregister `kafka` / `kafka_exporter` targets from all infra nodes
 - Stop and disable the `kafka` and `kafka_exporter` services
-- When removing a strict subset, retire its broker registration through a
+- When removing a strict subset, retire its broker/controller registrations through a
   surviving member
 - Remove exporter config, systemd environment/units, and role-owned helper scripts
 - Remove the data directory and `/etc/kafka` recovery state when `kafka_rm_data` is set
@@ -51,7 +51,7 @@ Steps:
 | `kafka_safeguard`  | evaluate the safeguard gate                 |
 | `kafka_deregister` | remove monitoring targets from infra        |
 | `kafka`            | stop kafka & kafka_exporter services        |
-| `kafka_retire`     | retire voter and broker via a survivor      |
+| `kafka_retire`     | retire voter and broker/controller registrations via a survivor |
 | `kafka_config`     | stop services; remove runtime integration   |
 | `kafka_data`       | stop services; remove data/runtime state    |
 | `kafka_pkg`        | uninstall kafka-stack packages              |

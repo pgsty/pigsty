@@ -97,7 +97,8 @@
 - name: inspect live quorum for retirement
   when: not kafka_safeguard | bool and kafka_rm_ctl_survivor_internal | length > 0
   tags: kafka_retire
-  delegate_to: "{{ kafka_rm_ctl_survivor_internal }}"
+  # Delegation is templated before when; full removal has no survivor.
+  delegate_to: "{{ kafka_rm_ctl_survivor_internal | default(inventory_hostname, true) }}"
   become_user: kafka
   command: >-
     /opt/kafka/bin/kafka-metadata-quorum.sh
@@ -111,7 +112,7 @@
 # is unknown: an unreadable quorum fails closed instead of skipping retirement
 - name: require readable quorum before retiring a controller
   when: >-
-    not kafka_safeguard | bool and kafka_rm_partial_internal | bool and
+    not ansible_check_mode and not kafka_safeguard | bool and kafka_rm_partial_internal | bool and
     kafka_role | default('combined') in ['combined', 'controller']
   tags: kafka_retire
   any_errors_fatal: true
@@ -136,7 +137,7 @@
   any_errors_fatal: true
   ignore_errors: false
   ignore_unreachable: false
-  delegate_to: "{{ kafka_rm_ctl_survivor_internal }}"
+  delegate_to: "{{ kafka_rm_ctl_survivor_internal | default(inventory_hostname, true) }}"
   become_user: kafka
   command: >-
     /opt/kafka/bin/kafka-metadata-quorum.sh
@@ -176,29 +177,38 @@
   loop: [ kafka_exporter, kafka ]
 
 #--------------------------------------------------------------#
-# Retire Broker Registration                      [kafka_retire]
+# Retire Broker / Controller Registrations        [kafka_retire]
 #--------------------------------------------------------------#
-# the broker registration is retired once the service is down. Partition
+# registrations are retired after stop: a running controller would register
+# itself again if remove-controller --unregister were used before stop. Partition
 # replicas still assigned to the retired broker stay under-replicated until an
 # identically-numbered replacement rejoins via kafka.yml, or until they are
 # reassigned explicitly.
-- name: retire broker registration
+- name: retire kafka registrations
   when: not kafka_safeguard | bool and kafka_rm_survivor_internal | length > 0
   tags: kafka_retire
-  delegate_to: "{{ kafka_rm_survivor_internal }}"
+  any_errors_fatal: true
+  ignore_errors: false
+  ignore_unreachable: false
+  delegate_to: "{{ kafka_rm_survivor_internal | default(inventory_hostname, true) }}"
   become_user: kafka
   command: >-
-    /opt/kafka/bin/kafka-cluster.sh unregister
+    /opt/kafka/bin/kafka-cluster.sh {{ item }}
     --bootstrap-server {{ kafka_rm_survivor_internal }}:{{ hostvars[kafka_rm_survivor_internal].kafka_port | default(9092) }}
     --command-config /etc/kafka/admin.properties --id {{ kafka_seq }}
+  loop: >-
+    {{ (['unregister'] if kafka_role | default('combined') in ['combined', 'broker'] else []) +
+       (['unregister-controller'] if kafka_role | default('combined') in ['combined', 'controller'] else []) }}
   register: kafka_rm_unregister_internal
   changed_when: "'no longer registered' in kafka_rm_unregister_internal.stdout | default('')"
-  failed_when: false
+  failed_when: >-
+    'no longer registered' not in kafka_rm_unregister_internal.stdout | default('') and
+    'IdNotRegisteredException' not in kafka_rm_unregister_internal.stderr | default('')
 
 - name: warn about partition replicas left on retired broker
   when: not kafka_safeguard | bool and kafka_rm_survivor_internal | length > 0
   tags: kafka_retire
-  delegate_to: "{{ kafka_rm_survivor_internal }}"
+  delegate_to: "{{ kafka_rm_survivor_internal | default(inventory_hostname, true) }}"
   become_user: kafka
   shell: >-
     /opt/kafka/bin/kafka-topics.sh
