@@ -2,9 +2,17 @@
 #--------------------------------------------------------------#
 # Launch MySQL                                    [mysql_launch]
 #--------------------------------------------------------------#
+- name: inspect mysql service state
+  tags: mysql_safety
+  command: systemctl is-active {{ mysql_service }}
+  register: mysql_service_state
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
 - name: inspect mysql restart safety
   tags: mysql_safety
-  when: mysql_is_ha | bool and mysql_preinstall_system_database.stat.exists and not mysql_preinstall_bootstrap_incomplete | bool and mysql_restart_required | bool
+  when: mysql_is_ha | bool and mysql_service_state.rc == 0 and mysql_preinstall_system_database.stat.exists and not mysql_preinstall_bootstrap_incomplete | bool and mysql_restart_required | bool
   command: >-
     mysql --defaults-extra-file={{ mysql_root_config }} --protocol=socket --socket={{ mysql_sock }} --batch --raw --skip-column-names -e
     "SELECT CONCAT_WS(CHAR(9),(SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name='mysql_innodb_cluster_metadata'),
@@ -24,7 +32,7 @@
 
 - name: check mysql restart safety
   tags: mysql_safety
-  when: mysql_is_ha | bool and mysql_preinstall_system_database.stat.exists and not mysql_preinstall_bootstrap_incomplete | bool and mysql_restart_required | bool
+  when: mysql_is_ha | bool and mysql_service_state.rc == 0 and mysql_preinstall_system_database.stat.exists and not mysql_preinstall_bootstrap_incomplete | bool and mysql_restart_required | bool
   assert:
     that: mysql_pre_restart_ha_state.stdout == '0\t0\t0\t0\tNONE' or mysql_pre_restart_ha_state.stdout is match('^1\t3\t1\t2\t(PRIMARY|SECONDARY)$')
     fail_msg: Refusing to restart a degraded or no-quorum MySQL cluster.
@@ -42,7 +50,8 @@
     - hostvars[mysql_restart_member].mysql_preinstall_system_database.stat.exists
     - not hostvars[mysql_restart_member].mysql_preinstall_bootstrap_incomplete | bool
     - hostvars[mysql_restart_member].mysql_restart_required | bool
-    - hostvars[mysql_restart_member].mysql_pre_restart_ha_state.stdout is not search('\tPRIMARY$')
+    - hostvars[mysql_restart_member].mysql_service_state.rc | default(1) == 0
+    - hostvars[mysql_restart_member].mysql_pre_restart_ha_state.stdout | default('') is not search('\tPRIMARY$')
   include_tasks: config_restart_member.yml
   loop: "{{ groups[mysql_cluster] | sort }}"
   loop_control: { loop_var: mysql_restart_member }
@@ -53,7 +62,8 @@
     - hostvars[mysql_restart_member].mysql_preinstall_system_database.stat.exists
     - not hostvars[mysql_restart_member].mysql_preinstall_bootstrap_incomplete | bool
     - hostvars[mysql_restart_member].mysql_restart_required | bool
-    - hostvars[mysql_restart_member].mysql_pre_restart_ha_state.stdout is search('\tPRIMARY$')
+    - hostvars[mysql_restart_member].mysql_service_state.rc | default(1) == 0
+    - hostvars[mysql_restart_member].mysql_pre_restart_ha_state.stdout | default('') is search('\tPRIMARY$')
   include_tasks: config_restart_member.yml
   loop: "{{ groups[mysql_cluster] | sort }}"
   loop_control: { loop_var: mysql_restart_member }
@@ -65,10 +75,11 @@
 #--------------------------------------------------------------#
 # Establish Local Root                               [mysql_root]
 #--------------------------------------------------------------#
-# the declared password only enters through the environment so the rendered
-# command text stays free of secrets and failures can be shown verbatim
+# the declared password only enters through the environment; hide this task's
+# output because Ansible may include task arguments and environment values.
 - name: reconcile mysql root password
   tags: mysql_root
+  no_log: true
   when: not ansible_check_mode
   shell: |
     set -euo pipefail

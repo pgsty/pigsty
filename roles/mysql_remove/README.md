@@ -25,16 +25,18 @@ requires an explicit `-l` limit.
 ./mysql-rm.yml -l 10.10.10.13 -e mysql_safeguard=false                     # remove one member
 ```
 
-- **Complete cluster**: stops Router, backup timer, exporter, and mysqld, then
+- **Complete cluster**: stops Router, backup units, exporter, and mysqld, then
   removes the data directory, Pigsty config and secrets, Router state, and the
   monitoring targets. With `mysql_rm_data=false` everything stays on disk and
   `mysql.yml` brings the stopped cluster back.
 - **One member**: the member first leaves the InnoDB Cluster through a
-  surviving member. A PRIMARY hands over, an ONLINE member syncs and leaves,
-  anything else is dropped from the metadata. Pigsty runs MySQL with one or
-  three members, so run `mysql.yml` next: it clones the member back on the
+  surviving member. A PRIMARY hands over and an ONLINE member syncs and
+  leaves; a member in any other state must be recovered or replaced at the
+  same address through `mysql.yml`. Pigsty runs MySQL with one or three
+  members, so run `mysql.yml` next: it clones the removed member back on the
   same or a replaced machine. A dead machine needs no removal at all; see the
-  `mysql` role.
+  `mysql` role. Preserving data while detaching one member is rejected because
+  that state cannot be reconciled as either a retained cluster or a fresh clone.
 - **Backups** under `mysql_backup_dir` are never removed.
 
 Tags:

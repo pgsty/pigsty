@@ -1697,6 +1697,7 @@ INSERT INTO pigsty.default_var VALUES
 -- MYSQL PARAMETERS
 (1201, 'mysql_cluster', NULL, 'MYSQL', 'MYSQL_ID', 'string', 'C', 'mysql cluster name, REQUIRED', NULL),
 (1202, 'mysql_seq', NULL, 'MYSQL', 'MYSQL_ID', 'int', 'I', 'mysql instance sequence number, REQUIRED', NULL),
+(1203, 'mysql_data', '"/data/mysql"', 'MYSQL', 'MYSQL', 'path', 'C', 'persistent mysql data directory, /data/mysql by default', NULL),
 (1210, 'mysql_root_password', '"DBUser.Root"', 'MYSQL', 'MYSQL_BUSINESS', 'password', 'C', 'mysql root password', NULL),
 (1211, 'mysql_monitor_password', '"DBUser.Monitor"', 'MYSQL', 'MYSQL_BUSINESS', 'password', 'C', 'mysql monitor user password', NULL),
 (1212, 'mysql_cluster_password', '"DBUser.Cluster"', 'MYSQL', 'MYSQL_BUSINESS', 'password', 'C', 'mysql cluster administration and backup user password', NULL),
@@ -1704,10 +1705,12 @@ INSERT INTO pigsty.default_var VALUES
 (1214, 'mysql_users', '[]', 'MYSQL', 'MYSQL_BUSINESS', 'user[]', 'C', 'mysql business users and privileges', NULL),
 (1215, 'mysql_parameters', '{}', 'MYSQL', 'MYSQL_BUSINESS', 'dict', 'C', 'extra mysqld options', NULL),
 (1220, 'mysql_backup_enabled', 'true', 'MYSQL', 'MYSQL_BACKUP', 'bool', 'C', 'enable mysql backup configuration?', NULL),
-(1221, 'mysql_backup_repo', '{"local":{"path":"/data/backups/mysql","retention":7}}', 'MYSQL', 'MYSQL_BACKUP', 'dict', 'C', 'mysql backup repository settings', NULL),
+(1221, 'mysql_backup_dir', '"/data/backups/mysql"', 'MYSQL', 'MYSQL_BACKUP', 'path', 'C', 'local mysql backup directory', NULL),
+(1222, 'mysql_backup_retention', '3', 'MYSQL', 'MYSQL_BACKUP', 'int', 'C', 'number of prepared full backups to retain', NULL),
 (1230, 'mysql_exporter_enabled', 'true', 'MYSQL', 'MYSQL_MONITOR', 'bool', 'C', 'enable mysqld_exporter on mysql nodes?', NULL),
 (1280, 'mysql_safeguard', 'true', 'MYSQL', 'MYSQL_REMOVE', 'bool', 'G/C/A', 'prevent mysql removal unless explicitly disabled', NULL),
-(1281, 'mysql_rm_confirm', '""', 'MYSQL', 'MYSQL_REMOVE', 'string', 'A', 'exact mysql instance or cluster name required to confirm removal', NULL),
+(1281, 'mysql_rm_data', 'true', 'MYSQL', 'MYSQL_REMOVE', 'bool', 'G/C/A', 'remove mysql data, config and router state?', NULL),
+(1282, 'mysql_rm_pkg', 'false', 'MYSQL', 'MYSQL_REMOVE', 'bool', 'G/C/A', 'uninstall mysql packages?', NULL),
 
 -- JUICE PARAMETERS
 (1301, 'juice_cache', '"/data/juice"', 'JUICE', 'JUICE', 'path', 'C/I', 'shared JuiceFS cache directory, /data/juice by default', NULL),

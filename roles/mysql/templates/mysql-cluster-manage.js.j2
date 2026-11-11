@@ -52,8 +52,8 @@ function view(cluster) {
 }
 // Find metadata on the declared members, anchoring on an ONLINE holder so a
 // stopped metadata holder (often seq=1) cannot masquerade as a full outage.
-// Fall back to any metadata holder only when no member is ONLINE. If no
-// metadata exists at all, every member must be reachable and fresh before
+// Fall back to a metadata holder for AdminAPI to select the GTID-superset seed.
+// If no metadata exists at all, every member must be reachable and fresh before
 // seq=1 may create a new cluster.
 let seed = null;
 let seedSession = null;
@@ -81,6 +81,7 @@ shell.setSession(seedSession);
 
 let cluster;
 let changed = false;
+let primary = seed;
 const seedState = inspect(seed);
 if (seedState.metadata === 0) {
   members.forEach(member => {
@@ -104,14 +105,11 @@ if (seedState.metadata === 0) {
   if (online) {
     cluster = dba.getCluster(clusterName);
   } else {
-    // Complete outage: no member is ONLINE. With every member reachable,
-    // AdminAPI reseeds from the most advanced GTID set and loses nothing;
-    // with a member missing that choice needs an operator.
+    // AdminAPI selects the GTID-superset seed and rejects divergent histories.
     if (inspected !== members.length) {
-      throw new Error("no ONLINE member holds the cluster and not every member is reachable; bring every " +
-        "member back and rerun mysql.yml, or decide manually with dba.rebootClusterFromCompleteOutage()");
+      throw new Error("not every member is reachable; refusing complete-outage recovery");
     }
-    cluster = dba.rebootClusterFromCompleteOutage(clusterName);
+    cluster = dba.rebootClusterFromCompleteOutage(clusterName, {force: false});
     changed = true;
   }
 
@@ -120,11 +118,14 @@ if (seedState.metadata === 0) {
   if (onlinePrimaries.length !== 1) {
     throw new Error("cluster needs exactly one ONLINE PRIMARY before reconciliation");
   }
+  primary = members.find(m => endpoint(m) === onlinePrimaries[0]);
+  if (!primary) { throw new Error("undeclared cluster primary " + onlinePrimaries[0]); }
+  const groupName = String(r.groupName || "");
   members.forEach(member => {
     const key = endpoint(member);
     const state = inspect(member);
     const known = r.topology[key];
-    if (state.group.length && state.group !== seedState.group) { throw new Error(key + " has a foreign Group Replication UUID"); }
+    if (state.group.length && state.group !== groupName) { throw new Error(key + " has a foreign Group Replication UUID"); }
     if (known && ["ONLINE", "RECOVERING"].indexOf(known.status) >= 0) { return; }
     if (known && !fresh(state)) {
       const options = {recoveryMethod: "incremental", recoveryProgress: 0,
@@ -144,8 +145,10 @@ if (seedState.metadata === 0) {
 }
 
 const expected = members.map(endpoint).sort();
-const metadata = seedSession.runSql("SELECT address FROM mysql_innodb_cluster_metadata.v2_instances ORDER BY address")
+const primarySession = primary.host === seed.host ? seedSession : mysql.getSession(conn(primary));
+const metadata = primarySession.runSql("SELECT address FROM mysql_innodb_cluster_metadata.v2_instances ORDER BY address")
   .fetchAll().map(row => String(row[0])).sort();
+if (primarySession !== seedSession) { primarySession.close(); }
 const foreign = metadata.filter(x => expected.indexOf(x) < 0);
 if (foreign.length) { throw new Error("metadata contains undeclared instances: " + foreign.join(',')); }
 const missing = expected.filter(x => metadata.indexOf(x) < 0);

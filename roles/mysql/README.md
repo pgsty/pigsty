@@ -191,7 +191,7 @@ The alert set is small on purpose; diagnostic signals stay on the dashboards:
 
 The v1 backup contract is deliberately small:
 
-- fixed daily systemd timer, plus one backup right after first bootstrap;
+- fixed daily systemd timer, plus an initial backup if no committed backup exists;
 - full physical XtraBackup only, prepared and uncompressed;
 - backup runs on standalone or the current MGR PRIMARY;
 - `mysql_backup_dir` holds the last `mysql_backup_retention` backups, each as
@@ -199,7 +199,9 @@ The v1 backup contract is deliberately small:
 
 A successful backup writes `mysql_backup_last_success_timestamp_seconds` and
 `mysql_backup_size_bytes` through the node_exporter textfile collector, which
-feeds the `MySQLBackupStale` alert.
+feeds the `MySQLBackupStale` alert. A failed first backup writes a zero timestamp
+so it also alerts; later failures preserve the last success. Rerunning
+`mysql.yml` retries an initial backup that failed.
 
 There is no public schedule expression, incremental chain, continuous binlog
 archive, or restore automation. Physical restore is a separate, destructive

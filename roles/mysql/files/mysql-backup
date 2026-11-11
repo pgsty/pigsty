@@ -26,6 +26,13 @@ on_exit() {
   set +e
   if (( ACTIVE )); then
     log "failed with exit code $rc; previous committed backup was preserved"
+    [[ ! -f "${WORK_LOG:-}" ]] || log "details: $WORK_LOG"
+    # Expose a failed first backup without resetting any previous success.
+    if [[ -d "$(dirname "$MYSQL_BACKUP_METRICS")" && ! -e "$MYSQL_BACKUP_METRICS" ]]; then
+      ( umask 022
+        printf 'mysql_backup_last_success_timestamp_seconds 0\n' > "$MYSQL_BACKUP_METRICS.tmp" &&
+        mv -f "$MYSQL_BACKUP_METRICS.tmp" "$MYSQL_BACKUP_METRICS" ) || log "warning: backup metrics export failed"
+    fi
   fi
   [[ -z "$TEMP_DIR" || ! -d "$TEMP_DIR" ]] || find -P "$TEMP_DIR" -xdev -depth -delete
   exit "$rc"
@@ -40,8 +47,8 @@ BACKUP_ID="$(date -u +%Y%m%dT%H%M%SZ)"
 ACTIVE=1
 
 METADATA_SQL="SELECT CONCAT_WS('|',@@server_uuid,@@version,@@global.read_only,COALESCE((SELECT MEMBER_ROLE FROM performance_schema.replication_group_members WHERE MEMBER_ID=@@server_uuid),'NONE'),COALESCE((SELECT MEMBER_STATE FROM performance_schema.replication_group_members WHERE MEMBER_ID=@@server_uuid),'NONE'))"
-METADATA="$(mysql --defaults-extra-file="$MYSQL_XTRABACKUP_CNF" --protocol=socket --socket="$MYSQL_SOCKET" --batch --raw --skip-column-names -e "$METADATA_SQL")"
-IFS='|' read -r SERVER_UUID SERVER_VERSION SERVER_READ_ONLY MEMBER_ROLE MEMBER_STATE <<< "$METADATA"
+METADATA="$(mysql --defaults-file="$MYSQL_XTRABACKUP_CNF" --protocol=socket --socket="$MYSQL_SOCKET" --batch --raw --skip-column-names -e "$METADATA_SQL")"
+IFS='|' read -r _ SERVER_VERSION SERVER_READ_ONLY MEMBER_ROLE MEMBER_STATE <<< "$METADATA"
 [[ "$SERVER_VERSION" == 8.4.* ]] || { log "refusing non-8.4 source"; exit 1; }
 if [[ "$MYSQL_TOPOLOGY" == standalone ]]; then
   ELIGIBLE=$(( SERVER_READ_ONLY == 0 ))
@@ -88,8 +95,8 @@ TEMP_DIR="$PARTIAL_DIR"
 FINAL_DIR="$CLUSTER_DIR/$BACKUP_ID"
 [[ ! -e "$PARTIAL_DIR" && ! -e "$FINAL_DIR" ]] || { log "backup id collision"; exit 1; }
 WORK_LOG="$MYSQL_BACKUP_STATE_DIR/$BACKUP_ID.log"
-xtrabackup --defaults-extra-file="$MYSQL_XTRABACKUP_CNF" --backup --target-dir="$PARTIAL_DIR" >"$WORK_LOG" 2>&1
-xtrabackup --prepare --target-dir="$PARTIAL_DIR" >>"$WORK_LOG" 2>&1
+xtrabackup --defaults-file="$MYSQL_XTRABACKUP_CNF" --datadir="$MYSQL_DATA" --backup --target-dir="$PARTIAL_DIR" >"$WORK_LOG" 2>&1
+xtrabackup --no-defaults --prepare --target-dir="$PARTIAL_DIR" >>"$WORK_LOG" 2>&1
 grep -Eq '^backup_type[[:space:]]*=[[:space:]]*full-prepared$' "$PARTIAL_DIR/xtrabackup_checkpoints"
 mv "$WORK_LOG" "$PARTIAL_DIR/backup.log"
 LAST_SIZE="$(du -sb "$PARTIAL_DIR" | cut -f1)"

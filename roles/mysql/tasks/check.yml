@@ -37,8 +37,13 @@
       - mysql_monitor_password | string | length > 0 and (mysql_monitor_password | string) is not search('[\r\n]') and mysql_monitor_password | string is not match('^CHANGE_ME')
       - mysql_cluster_password | string | length > 0 and (mysql_cluster_password | string) is not search('[\r\n]') and mysql_cluster_password | string is not match('^CHANGE_ME')
       - mysql_databases | type_debug == 'list' and mysql_users | type_debug == 'list'
-      - mysql_data is match('^/[^/\s]+/[^\s]+$') and '..' not in mysql_data.split('/')
-      - mysql_backup_dir is match('^/[^/\s]+/[^\s]+$') and '..' not in mysql_backup_dir.split('/')
+      - mysql_data is match('^/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)+$') and mysql_data.split('/') | intersect(['.', '..']) | length == 0
+      - mysql_backup_dir is match('^/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)+$') and mysql_backup_dir.split('/') | intersect(['.', '..']) | length == 0
+      - (mysql_data == '/var/lib/mysql' or mysql_data is not match('^/(etc|usr|var|bin|sbin|lib|lib64|boot|dev|proc|sys|run|root|home|tmp|opt|srv)(/|$)'))
+      - mysql_backup_dir is not match('^/(etc|usr|var|bin|sbin|lib|lib64|boot|dev|proc|sys|run|root|home|tmp|opt|srv)(/|$)')
+      - mysql_backup_dir != mysql_data
+      - not mysql_backup_dir.startswith(mysql_data ~ '/')
+      - not mysql_data.startswith(mysql_backup_dir ~ '/')
       - mysql_backup_retention | string is match('^[1-9][0-9]{0,3}$')
       - mysql_backup_repo is not defined
     fail_msg: >-
@@ -74,6 +79,7 @@
   loop_control: { label: "{{ item.name | default('invalid') }}" }
 
 - name: check mysql users
+  no_log: true
   assert:
     that:
       - item is mapping
@@ -112,7 +118,11 @@
   assert:
     that:
       - mysql_state.results[3].stat.exists
-      - not mysql_preinstall_system_database.stat.exists or mysql_preinstall_owned_marker.stat.exists
+      - >-
+        not mysql_preinstall_system_database.stat.exists or
+        (mysql_preinstall_owned_marker.stat.exists and mysql_preinstall_owned_marker.stat.isreg and
+         not mysql_preinstall_owned_marker.stat.islnk and
+         mysql_preinstall_owned_marker.stat.pw_name | default('') == 'mysql')
     fail_msg: MySQL requires the node CA from node.yml and a datadir initialized by Pigsty.
 
 # mysql_data used to be fixed at /var/lib/mysql. Never start an empty datadir

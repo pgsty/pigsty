@@ -37,10 +37,11 @@
   when: not mysql_backup_enabled | bool
   file: path={{ mysql_backup_metrics }} state=absent
 
-# Like pgbackrest_init_backup: a new instance gets its first backup and its
-# backup metrics at once. Members that are not the writable primary skip.
+# Like pgbackrest_init_backup: retry until a committed backup exists.
+# Members that are not the writable primary skip inside the backup script.
 - name: take initial mysql backup
   tags: mysql_backup_init
-  when: mysql_backup_enabled | bool and not mysql_preinstall_system_database.stat.exists and not ansible_check_mode
-  systemd: name=mysql-backup.service state=started
+  when: mysql_backup_enabled | bool and not ansible_check_mode
+  command: systemctl start mysql-backup.service
+  args: { creates: "{{ mysql_backup_dir }}/{{ mysql_cluster }}/latest/backup.ok" }
 ...

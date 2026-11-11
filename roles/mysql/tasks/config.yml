@@ -18,6 +18,7 @@
     content: |
       # Managed by Pigsty. Local edits will be overwritten.
       [Service]
+      ExecStartPre=
       ExecStart=
       ExecStart=/usr/sbin/mysqld --defaults-file={{ mysql_conf }}
   register: mysql_systemd_config_result
@@ -30,7 +31,10 @@
     owner: root
     group: mysql
     mode: '0640'
-    validate: mysqld --defaults-file=%s --validate-config --tmpdir=/tmp --secure-file-priv=NULL --skip-log-bin
+    validate: >-
+      sh -c 'install -m 0640 -o root -g mysql "$1" "{{ mysql_conf }}.tmp" &&
+      trap "rm -f {{ mysql_conf }}.tmp" EXIT &&
+      mysqld --defaults-file="{{ mysql_conf }}.tmp" --validate-config --tmpdir=/tmp --secure-file-priv=NULL --skip-log-bin' _ %s
   register: mysql_config_result
 
 - name: rotate mysql logs
@@ -54,7 +58,7 @@
       }
 
 - name: inspect mysql runtime tls
-  tags: mysql_config_file
+  tags: [ mysql_config_file, mysql_launch ]
   when: mysql_preinstall_system_database.stat.exists
   command: >-
     mysql --defaults-extra-file={{ mysql_root_config }} --protocol=socket --socket={{ mysql_sock }} --batch --raw --skip-column-names -e
@@ -65,12 +69,12 @@
   check_mode: false
 
 - name: inspect mysql pending restart
-  tags: mysql_config_file
+  tags: [ mysql_config_file, mysql_launch ]
   when: mysql_preinstall_system_database.stat.exists
   shell: |
     pid=$(systemctl show {{ mysql_service }} --property=MainPID --value)
     [ "${pid:-0}" -gt 0 ] 2>/dev/null || exit 0
-    for path in {{ mysql_conf }} {{ mysql_tls_cert }} {{ mysql_tls_key }} {{ mysql_systemd_dropin }}; do
+    for path in {{ mysql_conf }} {{ mysql_tls_cert }} {{ mysql_tls_key }} {{ mysql_systemd_dropin }} /etc/apparmor.d/local/usr.sbin.mysqld; do
       if [ -e "$path" ] && [ "$path" -nt "/proc/$pid" ]; then
         echo pending
         exit 0
@@ -82,10 +86,10 @@
   check_mode: false
 
 - name: derive mysql restart requirement
-  tags: mysql_config_file
+  tags: [ mysql_config_file, mysql_launch ]
   set_fact:
     mysql_restart_required: >-
-      {{ mysql_config_result.changed or
+      {{ (mysql_config_result.changed | default(false)) or
          (mysql_public_config_dir_result.changed | default(false)) or
          (mysql_systemd_config_result.changed | default(false)) or
          (mysql_runtime_tls.rc | default(1) == 0 and mysql_runtime_tls.stdout != 'Yes') or

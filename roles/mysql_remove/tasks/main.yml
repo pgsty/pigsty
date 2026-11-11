@@ -9,11 +9,17 @@
     that:
       - mysql_cluster is defined and mysql_cluster in groups and inventory_hostname in groups[mysql_cluster]
       - mysql_seq is defined and mysql_seq | string is match('^[1-9][0-9]*$')
-      - mysql_data is match('^/[^/\s]+/[^\s]+$') and '..' not in mysql_data.split('/')
+      - mysql_data is match('^/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)+$') and mysql_data.split('/') | intersect(['.', '..']) | length == 0
+      - mysql_backup_dir is match('^/[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)+$') and mysql_backup_dir.split('/') | intersect(['.', '..']) | length == 0
+      - mysql_backup_dir != mysql_data
+      - not mysql_backup_dir.startswith(mysql_data ~ '/')
+      - not mysql_data.startswith(mysql_backup_dir ~ '/')
       - groups[mysql_cluster] | intersect(ansible_play_hosts_all) | length in [1, groups[mysql_cluster] | length]
+      - mysql_rm_data | bool or groups[mysql_cluster] | intersect(ansible_play_hosts_all) | length == groups[mysql_cluster] | length
     fail_msg: >-
       mysql remove takes one member or the complete cluster, and requires
-      mysql_cluster group membership, mysql_seq, and a dedicated mysql_data path.
+      mysql_cluster group membership, mysql_seq, safe data paths, and data removal
+      for a single-member detach.
 
 #--------------------------------------------------------------#
 # Honor mysql_safeguard                        [mysql_safeguard]
@@ -25,13 +31,79 @@
   fail: msg="Abort due to mysql_safeguard for {{ mysql_cluster }} @ {{ inventory_hostname }} is enabled, override with -e mysql_safeguard=false"
 
 #--------------------------------------------------------------#
+# Verify Pigsty Ownership & Storage                 [mysql_safeguard]
+#--------------------------------------------------------------#
+- name: inspect mysql removal state
+  tags: [ mysql_safeguard, mysql_data ]
+  when: not mysql_safeguard | bool and mysql_rm_data | bool
+  stat:
+    path: "{{ item }}"
+    follow: false
+    get_attributes: false
+    get_checksum: false
+    get_mime: false
+  loop: [ "{{ mysql_data }}", "{{ mysql_initialized_marker }}" ]
+  register: mysql_rm_state
+
+- name: check mysql removal state
+  tags: [ mysql_safeguard, mysql_data ]
+  when: not mysql_safeguard | bool and mysql_rm_data | bool and mysql_rm_state.results[0].stat.exists
+  assert:
+    that:
+      - mysql_rm_state.results[0].stat.isdir and not mysql_rm_state.results[0].stat.islnk
+      - >-
+        not mysql_rm_state.results[1].stat.exists or
+        (mysql_rm_state.results[1].stat.isreg and not mysql_rm_state.results[1].stat.islnk and
+         mysql_rm_state.results[1].stat.pw_name | default('') == 'mysql')
+    fail_msg: Refusing to remove a non-directory datadir or invalid Pigsty initialized marker.
+
+- name: check mysql datadir is not a mount point
+  tags: [ mysql_safeguard, mysql_data ]
+  when: not mysql_safeguard | bool and mysql_rm_data | bool and mysql_rm_state.results[0].stat.exists
+  command: mountpoint -- "{{ mysql_data }}"
+  register: mysql_rm_mount
+  changed_when: false
+  # EL8 returns 1 for a non-mountpoint; newer util-linux returns 32.
+  failed_when: mysql_rm_mount.rc not in [1, 32] or mysql_rm_mount.stderr | length > 0
+  check_mode: false
+
+- name: inspect uninitialized mysql datadir before removal
+  tags: [ mysql_safeguard, mysql_data ]
+  when: not mysql_safeguard | bool and mysql_rm_data | bool and mysql_rm_state.results[0].stat.exists and not mysql_rm_state.results[1].stat.exists
+  find: { paths: "{{ mysql_data }}", recurse: true, hidden: true, file_type: any }
+  register: mysql_rm_uninitialized_files
+
+- name: check uninitialized mysql datadir is empty before removal
+  tags: [ mysql_safeguard, mysql_data ]
+  when: not mysql_safeguard | bool and mysql_rm_data | bool and mysql_rm_state.results[0].stat.exists and not mysql_rm_state.results[1].stat.exists
+  assert:
+    that: mysql_rm_uninitialized_files.files | length == 0
+    fail_msg: Refusing to remove a non-empty datadir without a Pigsty-owned initialized marker.
+
+- name: read mysql ownership marker
+  tags: [ mysql_safeguard, mysql_data ]
+  when: not mysql_safeguard | bool and mysql_rm_data | bool and mysql_rm_state.results[1].stat.exists
+  slurp:
+    src: "{{ mysql_initialized_marker }}"
+  register: mysql_rm_marker
+  no_log: true
+
+- name: verify mysql ownership marker
+  tags: [ mysql_safeguard, mysql_data ]
+  when: not mysql_safeguard | bool and mysql_rm_data | bool and mysql_rm_state.results[1].stat.exists
+  assert:
+    that: mysql_rm_marker.content | b64decode | from_json == mysql_initialized_marker_identity
+    fail_msg: MySQL datadir belongs to another cluster or instance.
+  no_log: true
+
+#--------------------------------------------------------------#
 # Leave InnoDB Cluster                             [mysql_leave]
 #--------------------------------------------------------------#
-# A single member leaves through a surviving member: a PRIMARY hands over
-# first, an ONLINE member syncs and leaves, anything else is dropped from the
-# metadata. Removing the complete cluster has no survivor and skips this.
+# A single ONLINE member leaves through a survivor: a PRIMARY hands over first
+# and the member is removed without force. Removing the complete cluster has
+# no survivor and skips this.
 - name: detach mysql member from cluster
-  tags: mysql_leave
+  tags: [ mysql_leave, mysql_data ]
   when: mysql_rm_survivors | length > 0
   delegate_to: "{{ mysql_rm_survivors | first | default(inventory_hostname) }}"
   block:
@@ -56,13 +128,29 @@
 #--------------------------------------------------------------#
 # Stop MySQL Services                                    [mysql]
 #--------------------------------------------------------------#
-# mysqld is named mysqld on EL and mysql on Debian, and a standalone has no
-# router: a missing unit is expected, not a failure
+# Stop the timer before the backup service and the server. Missing units are
+# expected when a partial installation never reached the backup phase; a
+# failure to stop an existing unit still aborts before data removal.
 - name: stop mysql services
-  tags: mysql
+  tags: [ mysql, mysql_data ]
+  shell: |
+    set -eu
+    for unit in mysql-backup.timer mysql-backup.service mysql.service mysqld.service; do
+      if systemctl cat "$unit" >/dev/null 2>&1; then
+        systemctl stop "$unit"
+        systemctl disable "$unit" >/dev/null 2>&1 || true
+      fi
+    done
+  args: { executable: /bin/bash }
+
+- name: stop mysql ancillary services
+  tags: [ mysql, mysql_data ]
   failed_when: false
-  systemd: name={{ item }} state=stopped enabled=no
-  loop: [ mysql-backup.timer, mysqlrouter, mysqld_exporter, mysqld, mysql ]
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+  loop: [ mysqlrouter, mysqld_exporter ]
 
 #--------------------------------------------------------------#
 # Remove MySQL Data & Config                        [mysql_data]
@@ -74,7 +162,6 @@
 - name: remove mysql data and config
   tags: mysql_data
   when: mysql_rm_data | bool
-  ignore_errors: true
   block:
     - name: remove mysql data and config
       file: path={{ item }} state=absent
@@ -107,7 +194,6 @@
 - name: uninstall mysql packages
   tags: mysql_pkg
   when: mysql_rm_pkg | bool
-  ignore_errors: true
   package:
     name: [ 'mysql-community-*', mysql-server, mysql-client, mysql-shell, 'mysql-router*', percona-xtrabackup-84, mysqld-exporter ]
     state: absent

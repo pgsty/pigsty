@@ -10,23 +10,30 @@ const target = {{ inventory_hostname | to_json }};
 const key = target + ":3306";
 
 let cluster = null;
-let survivor = null;
 for (const host of {{ mysql_rm_survivors | to_json }}) {
+  let s = null;
   try {
-    shell.setSession(mysql.getSession(conn(host)));
+    s = mysql.getSession(conn(host));
+    shell.setSession(s);
     cluster = dba.getCluster({{ mysql_cluster | to_json }});
-    survivor = host;
     break;
-  } catch (ignored) {}
+  } catch (ignored) {
+    if (s) { try { s.close(); } catch (e) {} }
+  }
 }
 if (!cluster) { throw new Error("no surviving member holds the cluster"); }
 
-const member = cluster.status({extended: 1}).defaultReplicaSet.topology[key];
+const topology = cluster.status({extended: 1}).defaultReplicaSet.topology;
+const member = topology[key];
 if (member) {
   const online = member.status === "ONLINE";
+  if (!online) { throw new Error("target " + key + " is " + member.status + "; bring it ONLINE before removal"); }
   // a leaving PRIMARY hands over first, so removal is never an unplanned failover
-  if (online && member.memberRole === "PRIMARY") { cluster.setPrimaryInstance(survivor + ":3306"); }
-  // an ONLINE member syncs and leaves; anything else is only dropped from the metadata
-  cluster.removeInstance(conn(target), {force: !online});
+  if (member.memberRole === "PRIMARY") {
+    const onlineSurvivor = Object.keys(topology).find(k => k !== key && topology[k].status === "ONLINE");
+    if (!onlineSurvivor) { throw new Error("no ONLINE surviving member is available to take over PRIMARY"); }
+    cluster.setPrimaryInstance(onlineSurvivor);
+  }
+  cluster.removeInstance(conn(target), {force: false, timeout: 60});
 }
 print(JSON.stringify({pigstyChanged: Boolean(member), instance: key}));

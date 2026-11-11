@@ -55,21 +55,49 @@
     - { src: "{{ mysql_pki_dir }}/mysql/{{ mysql_instance }}.key" ,dest: "{{ mysql_tls_key }}"  ,owner: mysql ,group: mysqlrouter ,mode: '0640' }
   register: mysql_cert_copy_result
 
-- name: inspect mysql apparmor profile
+- name: inspect mysql apparmor profiles
   tags: mysql_cert_copy
   when: os_package == 'deb'
-  stat: { path: /etc/apparmor.d/usr.sbin.mysqld, follow: false, get_attributes: false, get_checksum: false, get_mime: false }
-  register: mysql_apparmor_profile
+  stat: { path: "{{ item }}", follow: false, get_attributes: false, get_checksum: false, get_mime: false }
+  loop: [ /etc/apparmor.d/usr.sbin.mysqld, /etc/apparmor.d/usr.bin.mysqlrouter ]
+  register: mysql_apparmor_profiles
 
 - name: allow mysql to read node ca and use mysql_data
   tags: mysql_cert_copy
-  when: os_package == 'deb' and mysql_apparmor_profile.stat.exists
+  when: os_package == 'deb' and mysql_apparmor_profiles.results[0].stat.exists
   lineinfile: path=/etc/apparmor.d/local/usr.sbin.mysqld line='  {{ item }}' create=yes owner=root group=root mode=0644
   loop: [ '/etc/pki/ca.crt r,', '{{ mysql_data }}/ r,', '{{ mysql_data }}/** rwk,' ]
   register: mysql_apparmor_ca_result
 
-- name: reload mysql apparmor profile
+- name: allow mysql router to read tls material and 8.4 charsets
   tags: mysql_cert_copy
-  when: mysql_apparmor_ca_result.changed | default(false)
-  command: apparmor_parser -r /etc/apparmor.d/usr.sbin.mysqld
+  when: os_package == 'deb' and mysql_apparmor_profiles.results[1].stat.exists
+  lineinfile: path=/etc/apparmor.d/local/usr.bin.mysqlrouter line='  {{ item }}' create=yes owner=root group=root mode=0644
+  loop:
+    - '/etc/pki/ca.crt r,'
+    - '{{ mysql_tls_dir }}/ r,'
+    - '{{ mysql_tls_dir }}/** r,'
+    - '/usr/share/mysql-8.4/charsets/** r,'
+  register: mysql_router_apparmor_local_result
+
+- name: include local mysql router apparmor rules
+  tags: mysql_cert_copy
+  when: os_package == 'deb' and mysql_apparmor_profiles.results[1].stat.exists
+  lineinfile:
+    path: /etc/apparmor.d/usr.bin.mysqlrouter
+    line: '  #include <local/usr.bin.mysqlrouter>'
+    insertbefore: '^}\s*$'
+  register: mysql_router_apparmor_include_result
+
+- name: reload mysql apparmor profiles
+  tags: mysql_cert_copy
+  when: >-
+    (mysql_apparmor_ca_result.changed | default(false)) or
+    (mysql_router_apparmor_local_result.changed | default(false)) or
+    (mysql_router_apparmor_include_result.changed | default(false))
+  shell: |
+    if aa-enabled --quiet 2>/dev/null; then
+      [ ! -f /etc/apparmor.d/usr.sbin.mysqld ] || apparmor_parser -r /etc/apparmor.d/usr.sbin.mysqld
+      [ ! -f /etc/apparmor.d/usr.bin.mysqlrouter ] || apparmor_parser -r /etc/apparmor.d/usr.bin.mysqlrouter
+    fi
 ...

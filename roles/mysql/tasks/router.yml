@@ -18,6 +18,7 @@
 
 - name: bootstrap mysql router
   tags: mysql_router_bootstrap
+  no_log: true
   when: mysql_is_ha | bool and not ansible_check_mode and mysql_router_metadata.rc != 0
   command:
     argv:
@@ -52,7 +53,11 @@
   when: mysql_is_ha | bool
   systemd:
     name: mysqlrouter
-    state: "{{ 'restarted' if mysql_router_bootstrap.changed | default(false) or mysql_cert_copy_result.changed | default(false) else 'started' }}"
+    state: >-
+      {{ 'restarted' if (mysql_router_bootstrap.changed | default(false)) or
+         (mysql_cert_copy_result.changed | default(false)) or
+         (mysql_router_apparmor_local_result.changed | default(false)) or
+         (mysql_router_apparmor_include_result.changed | default(false)) else 'started' }}
     enabled: true
   throttle: 1
 
