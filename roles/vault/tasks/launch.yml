@@ -19,7 +19,9 @@
 
 - name: restart openbao service when changed
   delegate_to: "{{ vault_launch_host }}"
-  when: hostvars[vault_launch_host].vault_restart_required|bool
+  when:
+    - hostvars[vault_launch_host].vault_restart_required|bool
+    - hostvars[vault_launch_host].vault_start.status.ActiveState == 'active'
   systemd: name=openbao state=restarted
 
 - name: wait for openbao online

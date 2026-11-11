@@ -26,6 +26,10 @@ if [[ ! -s "${TOKEN_FILE}" ]]; then
     exit 1
 fi
 
+mkdir -p "${BACKUP_DIR}"
+exec 9>"${BACKUP_DIR}/.backup.lock"
+flock 9
+
 # a standby may serve its own (possibly stale) raft state, always ask the active member
 LEADER=$(curl -fsS --max-time 10 --cacert "${BAO_CACERT}" "${BAO_ADDR}/v1/sys/leader" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("leader_address") or "")')
 if [[ -z "${LEADER}" ]]; then
@@ -33,7 +37,6 @@ if [[ -z "${LEADER}" ]]; then
     exit 2
 fi
 
-mkdir -p "${BACKUP_DIR}"
 FILE="${BACKUP_DIR}/vault-$(date +%Y%m%d-%H%M%S)-$$.snap"
 trap 'rm -f "${FILE}.tmp"' EXIT
 BAO_ADDR="${LEADER}" BAO_TOKEN="$(cat "${TOKEN_FILE}")" bao operator raft snapshot save "${FILE}.tmp"
