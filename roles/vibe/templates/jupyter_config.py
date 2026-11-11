@@ -5,12 +5,12 @@ c = get_config()
 c.ServerApp.ip = '0.0.0.0'
 c.ServerApp.port = {{ jupyter_port }}
 c.ServerApp.open_browser = False
-c.ServerApp.root_dir = '{{ vibe_data }}'
+c.ServerApp.root_dir = {{ vibe_data | string | to_json }}
 c.ServerApp.base_url = '/jupyter/'
 c.ServerApp.allow_root = True
 
 # Authentication - use token-based auth
-c.IdentityProvider.token = '{{ jupyter_password }}'
+c.IdentityProvider.token = {{ jupyter_password | string | to_json }}
 
 # Allow remote access through reverse proxy
 c.ServerApp.allow_remote_access = True

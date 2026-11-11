@@ -8,13 +8,14 @@
 #--------------------------------------------------------------#
 - name: install jupyter with uv if not exists
   tags: jupyter_install
+  environment: "{{ proxy_env | default({}) }}"
   shell: |
-    [ -x "{{ jupyter_venv }}/bin/jupyter" ] && exit 0
-    uv pip install --python {{ jupyter_venv }}/bin/python jupyterlab ipykernel
+    [ -x {{ (jupyter_venv ~ '/bin/python') | quote }} ] || uv venv {{ jupyter_venv | quote }}
+    uv pip install --python {{ (jupyter_venv ~ '/bin/python') | quote }} jupyterlab ipykernel
   args:
     executable: /bin/bash
+    creates: "{{ jupyter_venv }}/bin/jupyter"
   register: jupyter_install_result
-  changed_when: jupyter_install_result.rc == 0 and jupyter_install_result.stdout != ''
 
 #--------------------------------------------------------------#
 # jupyter_dir - create jupyter data directory
@@ -22,10 +23,13 @@
 - name: create jupyter data directory
   tags: jupyter_dir
   file:
-    path: "{{ jupyter_data }}"
+    path: "{{ item }}"
     state: directory
     owner: "{{ node_user | default('root') }}"
     mode: '0755'
+  loop:
+    - "{{ vibe_data }}"
+    - "{{ jupyter_data }}"
 
 #--------------------------------------------------------------#
 # jupyter_config - render jupyter config files
@@ -37,6 +41,7 @@
     dest: "{{ jupyter_data }}/jupyter_config.py"
     owner: "{{ node_user | default('root') }}"
     mode: '0600'
+  register: jupyter_config_result
 
 - name: render jupyter systemd service
   tags: jupyter_config
@@ -44,6 +49,7 @@
     src: jupyter.svc
     dest: /etc/systemd/system/jupyter.service
     mode: '0644'
+  register: jupyter_service_result
 
 - name: render jupyter environment file
   tags: jupyter_config
@@ -51,6 +57,7 @@
     src: jupyter.env
     dest: /etc/default/jupyter
     mode: '0644'
+  register: jupyter_env_result
 
 #--------------------------------------------------------------#
 # jupyter_launch - start jupyter service
@@ -59,7 +66,13 @@
   tags: jupyter_launch
   systemd:
     name: jupyter
-    state: started
+    state: >-
+      {{ 'restarted' if
+         (jupyter_install_result.changed | default(false)
+          or jupyter_config_result.changed | default(false)
+          or jupyter_service_result.changed | default(false)
+          or jupyter_env_result.changed | default(false))
+         else 'started' }}
     enabled: yes
     daemon_reload: yes
 

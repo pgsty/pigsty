@@ -10,6 +10,7 @@
   tags: code_install
   package: name=code-server state=present
   environment: "{{ proxy_env | default({}) }}"
+  register: code_install_result
 
 #--------------------------------------------------------------#
 # code_dir - create code-server data directories
@@ -22,6 +23,7 @@
     owner: "{{ node_user | default('root') }}"
     mode: '0755'
   loop:
+    - "{{ vibe_data }}"
     - "{{ code_data }}"
     - "{{ code_data }}/code-server"
 
@@ -35,6 +37,7 @@
     dest: "{{ code_data }}/code-server/config.yaml"
     owner: "{{ node_user | default('root') }}"
     mode: '0600'
+  register: code_config_result
 
 - name: render code-server systemd service
   tags: code_config
@@ -42,6 +45,7 @@
     src: code.svc
     dest: /etc/systemd/system/code-server.service
     mode: '0644'
+  register: code_service_result
 
 - name: render code-server environment file
   tags: code_config
@@ -49,6 +53,7 @@
     src: code.env
     dest: /etc/default/code
     mode: '0644'
+  register: code_env_result
 
 #--------------------------------------------------------------#
 # code_launch - start code-server service
@@ -57,7 +62,13 @@
   tags: code_launch
   systemd:
     name: code-server
-    state: restarted
+    state: >-
+      {{ 'restarted' if
+         (code_install_result.changed | default(false)
+          or code_config_result.changed | default(false)
+          or code_service_result.changed | default(false)
+          or code_env_result.changed | default(false))
+         else 'started' }}
     enabled: yes
     daemon_reload: yes
 

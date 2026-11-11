@@ -95,13 +95,13 @@ vibe
 
 ### Claude Code
 
-| Variable         | Default                     | Description                         |
-|------------------|-----------------------------|-------------------------------------|
-| `claude_enabled` | `true`                      | Install and configure Claude Code   |
-| `claude_package` | `claude-code`               | Native infra package used to install Claude |
-| `claude_env`     | `{}`                        | Extra env vars merged with defaults |
+| Variable         | Default  | Description                                 |
+|------------------|----------|---------------------------------------------|
+| `claude_enabled` | `true`   | Install and configure Claude Code           |
+| `claude_package` | `claude` | Native infra package used to install Claude |
+| `claude_env`     | `{}`     | Extra env vars merged with defaults         |
 
-Claude Code is pre-configured with OpenTelemetry, sending metrics and logs to VictoriaMetrics/VictoriaLogs. Prompt content is not collected by default; opt in through `claude_env` only when appropriate.
+Claude Code is pre-configured with OpenTelemetry, sending metrics and logs to VictoriaMetrics/VictoriaLogs at `admin_ip`. Prompt content is not collected by default; opt in through `claude_env` only when appropriate. The role preserves other keys in the user's `~/.claude/settings.json`.
 
 ### Codex
 
@@ -135,13 +135,15 @@ npm_packages:
 
 ## Usage
 
+VIBE packages (`code-server`, `claude`, `codex`, `nodejs`) are served from the `pigsty-infra` repository (`infra` in `node_repo_modules`, included in `conf/vibe.yml` and `conf/meta.yml`).
+
 ```bash
-./vibe.yml -l <host>              # Full deployment
-./vibe.yml -l <host> -t code      # Code Server only
-./vibe.yml -l <host> -t jupyter   # JupyterLab only
-./vibe.yml -l <host> -t claude    # Install/configure Claude Code
-./vibe.yml -l <host> -t codex     # Install Codex package only
-./vibe.yml -l <host> -t nodejs    # Node.js only
+./vibe.yml -l <host>                                    # Full deployment
+./vibe.yml -l <host> -t code                            # Code Server only
+./vibe.yml -l <host> -t jupyter -e jupyter_enabled=true # JupyterLab only (disabled by default)
+./vibe.yml -l <host> -t claude                          # Install/configure Claude Code
+./vibe.yml -l <host> -t codex                           # Install Codex package only
+./vibe.yml -l <host> -t nodejs                          # Node.js only
 ```
 
 Disable components:

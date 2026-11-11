@@ -8,6 +8,7 @@
 #--------------------------------------------------------------#
 - name: install claude code cli
   tags: claude_install
+  environment: "{{ proxy_env | default({}) }}"
   package:
     name: "{{ claude_package }}"
     state: present
@@ -17,19 +18,22 @@
 #--------------------------------------------------------------#
 - name: create claude config directory
   tags: claude_config
-  become: false
-  file: { path: "~/.claude", state: directory, mode: '0700' }
+  file:
+    path: "~{{ node_user | default('root') }}/.claude"
+    state: directory
+    owner: "{{ node_user | default('root') }}"
+    mode: '0700'
 
 #--------------------------------------------------------------#
 # claude_config - render claude.json (skip onboarding & warnings)
 #--------------------------------------------------------------#
 - name: render claude.json (skip onboarding & warnings)
   tags: claude_config
-  become: false
   copy:
-    dest: "~/.claude.json"
+    dest: "~{{ node_user | default('root') }}/.claude.json"
+    owner: "{{ node_user | default('root') }}"
     mode: '0600'
-    force: true
+    force: false
     content: |
       {
         "hasCompletedOnboarding": true,
@@ -41,24 +45,60 @@
       }
 
 #--------------------------------------------------------------#
+# claude_config - read existing claude settings before rendering
+#--------------------------------------------------------------#
+- name: check claude settings file
+  tags: claude_config
+  stat:
+    path: "~{{ node_user | default('root') }}/.claude/settings.json"
+  register: claude_settings_file
+
+- name: read existing claude settings
+  tags: claude_config
+  slurp:
+    src: "~{{ node_user | default('root') }}/.claude/settings.json"
+  when: claude_settings_file.stat.exists | default(false)
+  register: claude_settings_raw
+  no_log: true
+
+#--------------------------------------------------------------#
 # claude_config - render claude settings.json with otel config
 #--------------------------------------------------------------#
 - name: render claude settings.json
   tags: claude_config
-  become: false
   vars:
+    # Use the stable admin IP configured for the Pigsty control plane.
+    claude_otel_host: "{{ admin_ip | default('127.0.0.1', true) }}"
+    claude_vmetrics_port: "{{ vmetrics_port | default(8428, true) }}"
+    claude_vlogs_port: "{{ vlogs_port | default(9428, true) }}"
     claude_env_default:
       CLAUDE_CODE_ENABLE_TELEMETRY: "1"             # write opentelemetry metrics/logs to victoria
       OTEL_METRICS_EXPORTER: otlp
       OTEL_LOGS_EXPORTER: otlp
       OTEL_EXPORTER_OTLP_METRICS_PROTOCOL: http/protobuf
       OTEL_EXPORTER_OTLP_LOGS_PROTOCOL: http/protobuf
-      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://127.0.0.1:{{ vmetrics_port | default(8428) }}/opentelemetry/v1/metrics"
-      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: "http://127.0.0.1:{{ vlogs_port | default(9428) }}/insert/opentelemetry/v1/logs"
+      OTEL_EXPORTER_OTLP_METRICS_ENDPOINT: "http://{{ claude_otel_host }}:{{ claude_vmetrics_port }}/opentelemetry/v1/metrics"
+      OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: "http://{{ claude_otel_host }}:{{ claude_vlogs_port }}/insert/opentelemetry/v1/logs"
       OTEL_RESOURCE_ATTRIBUTES: "ip={{ inventory_hostname }},job=claude"
+    claude_settings_existing: >-
+      {{ (claude_settings_raw.content | b64decode | from_json)
+         if (claude_settings_raw is defined and claude_settings_raw.content is defined)
+         else {} }}
+    claude_settings_existing_env: >-
+      {{ claude_settings_existing.get('env', {})
+         if (claude_settings_existing is mapping and claude_settings_existing.get('env', {}) is mapping)
+         else {} }}
+    # Preserve user settings and custom env keys, while refreshing the role's
+    # managed OTEL defaults and applying explicit claude_env overrides.
+    claude_env_source: "{{ claude_settings_existing_env | combine(claude_env_default) | combine(claude_env | default({}, true)) }}"
+    claude_env_raw: "{{ claude_env_source | dict2items | rejectattr('value', 'none') | list }}"
+    claude_env_vals: "[{% for item in claude_env_raw %}{{ ('true' if item.value is sameas true else ('false' if item.value is sameas false else (item.value | string))) | to_json }}{% if not loop.last %},{% endif %}{% endfor %}]"
+    claude_env_merged: "{{ dict(claude_env_raw | map(attribute='key') | map('string') | list | zip(claude_env_vals | from_json)) }}"
   copy:
-    dest: "~/.claude/settings.json"
+    dest: "~{{ node_user | default('root') }}/.claude/settings.json"
+    owner: "{{ node_user | default('root') }}"
     mode: '0600'
-    content: "{{ {'env': claude_env_default | combine(claude_env | default({}))} | to_nice_json }}\n"
+    content: "{{ (claude_settings_existing | combine({'env': claude_env_merged}, recursive=false)) | to_nice_json }}\n"
+  no_log: true
 
 ...

@@ -19,9 +19,9 @@ Main data dir is `/data`—don't touch existing subdirs.
 ## Services
 
 - PostgreSQL :5432 — `psql postgres://{{ pg_admin_username | default('dbuser_dba') }}:{{ pg_admin_password | default('DBUser.DBA') }}@127.0.0.1/postgres`
-- Grafana :3000 — `admin` / `{{ grafana_admin_password | default('pigsty') }}`, http://{{ inventory_hostname }}:3000
-- VictoriaMetrics :8428 — http://{{ inventory_hostname }}:8428/vmui
-- VictoriaLogs :9428 — http://{{ inventory_hostname }}:9428/select/vmui
+- Grafana :3000 — `admin` / `{{ grafana_admin_password | default('pigsty') }}`, http://{{ admin_ip | default(inventory_hostname) }}:3000
+- VictoriaMetrics :{{ vmetrics_port | default(8428) }} — http://{{ admin_ip | default(inventory_hostname) }}:{{ vmetrics_port | default(8428) }}/vmui
+- VictoriaLogs :{{ vlogs_port | default(9428) }} — http://{{ admin_ip | default(inventory_hostname) }}:{{ vlogs_port | default(9428) }}/select/vmui
 - Nginx :80/443 — static root `/www/` → http://{{ inventory_hostname }}/
 
 
@@ -92,15 +92,15 @@ Backups via pgBackRest, config at `/etc/pgbackrest/`. Use `pg-backup` and `pg-pi
 ## Observability
 
 ```bash
-curl 'http://127.0.0.1:8428/api/v1/query?query=pg_up'              # query metrics
-curl 'http://127.0.0.1:9428/select/logsql/query?query=*'           # query logs
-curl -X POST 'http://127.0.0.1:8428/opentelemetry/v1/metrics' -d   # push metrics
-curl -X POST 'http://127.0.0.1:9428/insert/opentelemetry/v1/logs' -d  # push logs
+curl 'http://{{ admin_ip | default(inventory_hostname) }}:{{ vmetrics_port | default(8428) }}/api/v1/query?query=pg_up'              # query metrics
+curl 'http://{{ admin_ip | default(inventory_hostname) }}:{{ vlogs_port | default(9428) }}/select/logsql/query?query=*'           # query logs
+curl -X POST 'http://{{ admin_ip | default(inventory_hostname) }}:{{ vmetrics_port | default(8428) }}/opentelemetry/v1/metrics' -d   # push metrics
+curl -X POST 'http://{{ admin_ip | default(inventory_hostname) }}:{{ vlogs_port | default(9428) }}/insert/opentelemetry/v1/logs' -d  # push logs
 ```
 
-Grafana dashboards: PGSQL, NODE, INFRA at http://{{ inventory_hostname }}:3000
+Grafana dashboards: PGSQL, NODE, INFRA at http://{{ admin_ip | default(inventory_hostname) }}:3000
 
-Claude Code emits OTEL logs and metrics to the local Victoria stack as `job=claude`.
+Claude Code emits OTEL logs and metrics to the Victoria stack at `{{ admin_ip | default('127.0.0.1') }}` as `job=claude`.
 
 ## Web Publishing
 

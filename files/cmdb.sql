@@ -1668,7 +1668,7 @@ INSERT INTO pigsty.default_var VALUES
 (1024, 'jupyter_venv', '"/data/venv"', 'VIBE', 'JUPYTER', 'path', 'C', 'python venv path with jupyter', NULL),
 (1030, 'codex_enabled', 'true', 'VIBE', 'CODEX', 'bool', 'C', 'install codex cli package only', NULL),
 (1040, 'claude_enabled', 'true', 'VIBE', 'CLAUDE', 'bool', 'C', 'install and configure claude code cli', NULL),
-(1041, 'claude_package', '"claude-code"', 'VIBE', 'CLAUDE', 'string', 'C', 'native infra package used to install claude code', NULL),
+(1041, 'claude_package', '"claude"', 'VIBE', 'CLAUDE', 'string', 'C', 'native infra package used to install claude code', NULL),
 (1042, 'claude_env', '{}', 'VIBE', 'CLAUDE', 'dict', 'C', 'extra env vars to merge with otel defaults', NULL),
 (1050, 'nodejs_enabled', 'true', 'VIBE', 'NODEJS', 'bool', 'C', 'install standalone nodejs runtime task', NULL),
 (1051, 'nodejs_registry', '""', 'VIBE', 'NODEJS', 'url', 'C', 'npm registry, auto china mirror if empty', NULL),

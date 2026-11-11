@@ -8,23 +8,59 @@
 #--------------------------------------------------------------#
 - name: install nodejs package
   tags: nodejs_install
+  environment: "{{ proxy_env | default({}) }}"
   package: name=nodejs state=present
 
 #--------------------------------------------------------------#
 # nodejs_config - configure npm registry         [nodejs_config]
 #--------------------------------------------------------------#
+- name: discover npm global config
+  tags: nodejs_config
+  command: npm config get globalconfig
+  check_mode: false
+  changed_when: false
+  failed_when:
+    - not ansible_check_mode
+    - nodejs_global_config_result.rc != 0 or not (nodejs_global_config_result.stdout | default('') | trim).startswith('/')
+  environment: "{{ proxy_env | default({}) }}"
+  register: nodejs_global_config_result
+
+- name: set npm global config path
+  tags: nodejs_config
+  set_fact:
+    nodejs_global_config_path: >-
+      {{ (nodejs_global_config_result.stdout | default('') | trim)
+         if (nodejs_global_config_result.stdout | default('') | trim).startswith('/')
+         else '/etc/npmrc' }}
+
+- name: configure npm global settings
+  tags: nodejs_config
+  file:
+    path: "{{ nodejs_global_config_path | dirname }}"
+    state: directory
+    mode: '0755'
+
+- name: configure npm global prefix
+  tags: nodejs_config
+  lineinfile:
+    path: "{{ nodejs_global_config_path }}"
+    regexp: '^\s*prefix\s*='
+    line: 'prefix=/usr/local'
+    create: true
+    mode: '0644'
+
 - name: configure npm registry
   tags: nodejs_config
-  when: nodejs_registry != '' or (region is defined and region == 'china')
+  when: nodejs_registry | default('', true) | length > 0 or (region | default('', true)) == 'china'
   lineinfile:
-    dest: /etc/npmrc
-    regexp: '^registry\s*='
+    path: "{{ nodejs_global_config_path }}"
+    regexp: '^\s*registry\s*='
     line: "registry={{ nodejs_registry | default('https://registry.npmmirror.com', true) }}"
     create: true
     mode: '0644'
 
 #--------------------------------------------------------------#
-# npm_packages - install global npm packages           [npm_pkg]
+# nodejs_pkg - install global npm packages          [nodejs_pkg]
 #--------------------------------------------------------------#
 - name: install global npm packages
   tags: nodejs_pkg

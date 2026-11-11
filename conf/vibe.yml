@@ -17,8 +17,8 @@
 #   curl https://repo.pigsty.io/get | bash
 #   ./configure -c vibe
 #   ./deploy.yml
-#   ./juice.yml     # pgfs: juicefs on pgsql, mount on /fs
-#   ./vibe.yml      # code-server, jupyter, claude-code, and codex cli
+#   ./juice.yml     # jfs: juicefs on pgsql, mount on /fs
+#   ./vibe.yml      # code-server, jupyter, claude, and codex cli
 
 all:
   children:
@@ -45,8 +45,8 @@ all:
     #blackbox_enabled: false            # disable blackbox exporter
     #alertmanager_enabled: false        # disable alertmanager
     infra_extra_services:               # home page navigation entries
-      - { name: Code Server  ,url: '/code'             ,desc: 'VS Code Server'       ,icon: 'code'     }
-      - { name: Jupyter      ,url: '/jupyter'          ,desc: 'Jupyter Notebook'     ,icon: 'jupyter'  }
+      - { name: Code Server  ,url: '/code/'            ,desc: 'VS Code Server'       ,icon: 'code'     }
+      - { name: Jupyter      ,url: '/jupyter/'         ,desc: 'Jupyter Notebook'     ,icon: 'jupyter'  }
       - { name: Claude Code  ,url: '/ui/d/claude-code' ,desc: 'Claude Observability' ,icon: 'claude'   }
 
     #----------------------------------------------#
@@ -111,6 +111,7 @@ all:
         meta  : postgres://dbuser_meta:DBUser.Meta@10.10.10.10:5432/meta
         data  : --storage postgres --bucket 10.10.10.10:5432/meta --access-key dbuser_meta --secret-key DBUser.Meta
         port  : 9567
+        owner : '{{ node_user | default("root") }}'
 
     # Claude Code is the default coding agent. Claude and Codex use native infra packages; Node.js is standalone.
     nodejs_enabled: true              # standalone nodejs runtime
