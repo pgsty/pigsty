@@ -162,8 +162,8 @@ These snapshots live on the members: copy them off the cluster yourself. Admin n
 gets the initial snapshot, and a final one when `vault-rm.yml` removes the entire cluster.
 
 `vault_provision` validates `files/pki/vault/backup.token` on every run and reissues it when
-it is invalid (e.g. left by a previous cluster, or after a snapshot restore), keeping the
-replaced file as `backup.token.*~`. Run `-t vault_provision,vault_backup` to refresh it.
+it is missing, empty, or invalid (e.g. left by a previous cluster or after a snapshot restore),
+keeping the replaced file as `backup.token.*~`. Run `-t vault_provision,vault_backup` to refresh it.
 
 Each success writes `vault_backup_last_success_timestamp_seconds` and `vault_backup_size_bytes`
 to `/var/lib/node_exporter/textfile/vault.prom`, `VaultBackupStale` fires when a member has no

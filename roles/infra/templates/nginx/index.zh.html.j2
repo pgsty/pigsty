@@ -812,7 +812,8 @@
           'pg_seq': pg_seq,
           'infra_seq': node_info.infra_seq | default(''),
           'etcd_seq': node_info.etcd_seq | default(''),
-          'vault_seq': node_info.vault_seq | default(''),
+          'vault_cluster': node_info.vault_cluster | default('vault'),
+          'vault_seq': (node_info.vault_seq | string) if (host in (groups['vault'] | default([])) and node_info.vault_seq is defined) else '',
           'minio_cluster': node_info.minio_cluster | default(''),
           'minio_seq': node_info.minio_seq | default('')
         }) %}
@@ -850,7 +851,7 @@
                             </td>
                             <td data-col="vault">
 {%   if node.vault_seq %}
-                                <a href="/ui/d/vault-overview" class="tp-pill">vault-{{ node.vault_seq }}</a>
+                                <a href="/ui/d/vault-overview?var-cls={{ node.vault_cluster }}" class="tp-pill">{{ node.vault_cluster }}-{{ node.vault_seq }}</a>
 {%   else %}
                                 <span class="tp-pill empty">-</span>
 {%   endif %}

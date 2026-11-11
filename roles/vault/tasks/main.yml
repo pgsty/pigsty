@@ -13,10 +13,12 @@
         that:
           - vault_seq is defined and vault_seq|string is match('^[0-9]+$') and vault_seq|int >= 0
           - "'vault' in group_names"
-          - groups['vault'] | map('extract', hostvars, 'vault_seq') | map('int') | unique | length == groups['vault'] | length
+          - groups['vault'] | map('extract', hostvars, 'vault_seq') | select('defined') | map('string') | select('match', '^[0-9]+$') | map('int') | unique | length == groups['vault'] | length
           - vault_data is match('^(/[^/]+){2,}$') and vault_data.split('/') | intersect(['.', '..']) | length == 0
           - vault_data not in ['/var/lib', '/var/log', '/home/dba', '/etc/openbao/tls']
-        fail_msg: "group 'vault' requires unique nonnegative integer vault_seq values and a dedicated absolute vault_data directory"
+          - vault_port|string is match('^[0-9]+$') and vault_port|int > 0 and vault_port|int < 65535
+          - not (vip_enabled|bool) or ((vip_address|default('')|string).split('/')[0] | trim != '')
+        fail_msg: "group 'vault' requires unique nonnegative integer vault_seq on all members, valid vault_port (1..65534), vip_address when vip_enabled, and a dedicated absolute vault_data directory"
 
     # vault_instance : vault-<seq>, raft node id and cert common name
     # vault_members  : sorted member ip list
@@ -88,6 +90,12 @@
   set_fact:
     vault_restart_required: "{{ (vault_cert_copy|default({})) is changed or (vault_seal_copy|default({})) is changed or (vault_conf|default({})) is changed or (vault_unit|default({})) is changed }}"
 
+# Bring stopped members online before waiting for quorum during rolling restarts.
+- name: start vault members
+  tags: vault_launch
+  when: not ansible_check_mode
+  systemd: name=openbao state=started enabled=yes daemon_reload=yes
+
 - name: launch vault members one at a time
   tags: vault_launch
   when: not ansible_check_mode
@@ -155,6 +163,8 @@
 - name: setup vault backup
   tags: vault_backup
   block:
+    - name: ensure node_exporter textfile directory exists
+      file: path=/var/lib/node_exporter/textfile state=directory owner=root group=root mode=0755
     - name: install vault backup token
       when: (playbook_dir + '/files/pki/vault/backup.token') is file
       no_log: true
@@ -172,16 +182,20 @@
           # {{ vault_instance }} daily raft snapshot, managed by pigsty, logs: journalctl -t vault-backup
           {{ (vault_seq|int * 10) % 60 }} 3 * * * root /usr/local/bin/vault-backup 2>&1 | logger -t vault-backup
 
-    # right after a fresh init, keep an initial snapshot on admin node
+    # keep an initial snapshot on admin node, also after an interrupted first deployment
     - name: take initial vault snapshot
-      when: vault_seq|int == vault_seq_min|int and (vault_init_result|default({})) is changed
+      when:
+        - not ansible_check_mode and vault_seq|int == vault_seq_min|int
+        - (playbook_dir + '/files/pki/vault/init.json') is file
+        - (playbook_dir + '/files/pki/vault/backup.token') is file
+        - (vault_init_result|default({})) is changed or lookup('fileglob', playbook_dir + '/files/pki/vault/backup/vault-*.snap', wantlist=True) | length == 0
       command: /usr/local/bin/vault-backup
       register: vault_initial_snapshot
     - name: fetch initial vault snapshot to admin node
-      when: vault_seq|int == vault_seq_min|int and (vault_init_result|default({})) is changed
+      when: vault_initial_snapshot is changed
       fetch: src={{ vault_initial_snapshot.stdout_lines | last }} dest={{ playbook_dir }}/files/pki/vault/backup/ flat=yes
     - name: restrict initial snapshot permissions on admin node
-      when: vault_seq|int == vault_seq_min|int and (vault_init_result|default({})) is changed
+      when: vault_initial_snapshot is changed
       become: false
       delegate_to: localhost
       file:
@@ -190,6 +204,7 @@
 
     # every member keeps its own local snapshot (and backup metrics) from day one
     - name: take first vault snapshot on each member
+      when: not ansible_check_mode and (playbook_dir + '/files/pki/vault/backup.token') is file
       command: /usr/local/bin/vault-backup
       args: { creates: /var/lib/node_exporter/textfile/vault.prom }
 

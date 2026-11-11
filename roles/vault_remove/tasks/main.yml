@@ -8,24 +8,28 @@
   tags: [ always , vault_safeguard ]
   any_errors_fatal: true
   ignore_errors: false
-  fail: msg="Abort due to vault_safeguard for {{ vault_cluster }}-{{ vault_seq }} @ {{ inventory_hostname }} is enabled (TRUE by default), override with -e vault_safeguard=false"
+  fail: msg="Abort due to vault_safeguard for {{ vault_cluster }}-{{ vault_seq | default('?') }} @ {{ inventory_hostname }} is enabled (TRUE by default), override with -e vault_safeguard=false"
 
-- name: build vault identity
-  tags: always
-  set_fact:
-    vault_instance: "{{ vault_cluster }}-{{ vault_seq }}"
-    vault_members: "{{ groups['vault'] | default([]) | sort }}"
-    vault_remove_all: "{{ (groups['vault'] | default([]) | difference(ansible_play_hosts_all) | length) == 0 }}"
-
-- name: validate vault data path before removal
+- name: validate vault identity and data path before removal
   tags: always
   any_errors_fatal: true
   ignore_errors: false
   assert:
     that:
+      - vault_seq is defined and vault_seq|string is match('^[0-9]+$') and vault_seq|int >= 0
+      - "'vault' in group_names"
       - vault_data is match('^(/[^/]+){2,}$') and vault_data.split('/') | intersect(['.', '..']) | length == 0
       - vault_data not in ['/var/lib', '/var/log', '/home/dba', '/etc/openbao/tls']
-    fail_msg: 'vault_data must be a dedicated absolute directory, never a shared parent directory'
+    fail_msg: "group 'vault' requires a nonnegative integer vault_seq and a dedicated absolute vault_data directory"
+
+- name: build vault identity
+  tags: always
+  any_errors_fatal: true
+  ignore_errors: false
+  set_fact:
+    vault_instance: "{{ vault_cluster }}-{{ vault_seq }}"
+    vault_members: "{{ groups['vault'] | default([]) | sort }}"
+    vault_remove_all: "{{ (groups['vault'] | default([]) | difference(ansible_play_hosts_all) | length) == 0 }}"
 
 #--------------------------------------------------------------#
 # LIST DEPENDENT CONSUMERS                      [vault_consumer]

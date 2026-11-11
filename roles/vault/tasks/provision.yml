@@ -16,7 +16,7 @@
   environment:
     BAO_ADDR: "https://127.0.0.1:{{ vault_port }}"
     BAO_CACERT: /etc/openbao/tls/ca.crt
-    BAO_TOKEN: "{{ (lookup('file', playbook_dir + '/files/pki/vault/init.json') | from_json).root_token }}"
+    BAO_TOKEN: "{{ (lookup('file', playbook_dir + '/files/pki/vault/init.json') | default('{}', true) | from_json).root_token | default('') }}"
   block:
 
     # tasks below are no_log: report a rejected root token explicitly instead of a censored failure
@@ -75,19 +75,19 @@
       stat: path=files/pki/vault/backup.token
       register: vault_backup_token_stat
 
-    # a token left by a previous cluster (e.g. re-init after vault-rm) is invalid here, reissue it
+    # a blank file would make `token=-` fall back to the current root token
     - name: validate vault backup token
-      when: vault_backup_token_stat.stat.exists
+      when: vault_backup_token_stat.stat.exists and (lookup('file', playbook_dir + '/files/pki/vault/backup.token') | trim) != ''
       command:
         cmd: bao write -format=json auth/token/lookup token=-
-        stdin: "{{ lookup('file', playbook_dir + '/files/pki/vault/backup.token') }}"
+        stdin: "{{ lookup('file', playbook_dir + '/files/pki/vault/backup.token') | trim }}"
         stdin_add_newline: false
       register: vault_backup_token_check
       changed_when: false
       failed_when: false
 
     - name: issue vault backup token
-      when: not vault_backup_token_stat.stat.exists or (vault_backup_token_check.rc | default(0)) != 0
+      when: not vault_backup_token_stat.stat.exists or (vault_backup_token_check.rc | default(1)) != 0
       block:
         - name: create vault backup token
           no_log: true

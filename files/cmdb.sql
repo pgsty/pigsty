@@ -1470,6 +1470,16 @@ INSERT INTO pigsty.default_var VALUES
 (512, 'etcd_rm_data', 'true', 'ETCD', 'ETCD_REMOVE', 'bool', 'G/C/A', 'purging etcd data and config? true by default', NULL),
 (513, 'etcd_rm_pkg', 'false', 'ETCD', 'ETCD_REMOVE', 'bool', 'G/C/A', 'uninstall etcd packages? false by default', NULL),
 
+-- VAULT PARAMETERS
+(551, 'vault_seq', NULL, 'VAULT', 'VAULT', 'int', 'I', 'vault instance identifier, REQUIRED', NULL),
+(552, 'vault_cluster', '"vault"', 'VAULT', 'VAULT', 'string', 'C', 'vault cluster name, vault by default', NULL),
+(553, 'vault_data', '"/data/vault"', 'VAULT', 'VAULT', 'path', 'C', 'vault data directory for raft storage and local snapshots, /data/vault by default', NULL),
+(554, 'vault_port', '8200', 'VAULT', 'VAULT', 'port', 'G', 'vault api port, 8200 by default, raft cluster port is vault_port + 1', NULL),
+(555, 'vault_domain', '"vault.pigsty"', 'VAULT', 'VAULT', 'string', 'G', 'vault service domain for cert SAN and clients, vault.pigsty by default', NULL),
+(556, 'vault_safeguard', 'true', 'VAULT', 'VAULT_REMOVE', 'bool', 'G/C/A', 'prevent purging vault instance unless explicitly disabled, true by default', NULL),
+(557, 'vault_rm_data', 'true', 'VAULT', 'VAULT_REMOVE', 'bool', 'G/C/A', 'remove vault data, config and local snapshots during removal? true by default', NULL),
+(558, 'vault_rm_pkg', 'false', 'VAULT', 'VAULT_REMOVE', 'bool', 'G/C/A', 'uninstall openbao package during removal? false by default', NULL),
+
 -- MINIO PARAMETERS
 (600, 'minio_type', '"silo"', 'MINIO', 'MINIO', 'enum', 'G/C', 'object storage engine, currently fixed to silo', NULL),
 (601, 'minio_seq', NULL, 'MINIO', 'MINIO', 'int', 'I', 'minio instance identifier, REQUIRED', NULL),

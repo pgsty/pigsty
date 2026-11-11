@@ -41,10 +41,11 @@ groups:
           / sum by (job,cls) (rate(vault_core_handle_request_count{job="vault"}[5m])) / 1000
 
       # unsealed & active (leader) members of cluster, active should be exactly 1
+      # fall back to 0 when all scrape targets are down so VaultNoLeader still fires
       - record: vault:cls:unsealed
-        expr: sum by (job,cls) (vault_core_unsealed{job="vault"})
+        expr: sum by (job,cls) (vault_core_unsealed{job="vault"}) or (0 * count by (job,cls) (up{job="vault"}))
       - record: vault:cls:active
-        expr: sum by (job,cls) (vault_core_active{job="vault"})
+        expr: sum by (job,cls) (vault_core_active{job="vault"}) or (0 * count by (job,cls) (up{job="vault"}))
 
       # autopilot view of the current active member
       - record: vault:cls:autopilot_healthy
@@ -88,7 +89,7 @@ groups:
           description: |
             vault_up[ins={{ $labels.ins }}, instance={{ $labels.instance }}] = {{ $value }} < 1
             metrics of the member can not be scraped: check openbao service on {{ $labels.ip }}
-            /ui/d/vault-overview
+            /ui/d/vault-overview?var-cls={{ $labels.cls }}
 
       # member reports itself sealed: a sealed single node also triggers VaultNoLeader
       - alert: VaultSealed

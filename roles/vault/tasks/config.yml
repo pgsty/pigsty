@@ -14,15 +14,16 @@
 
     - name: ensure vault pki directory exists
       file: path={{ item }} state=directory mode=0700
-      with_items: [ files/pki/vault, files/pki/vault/backup ]
+      with_items: [ files/pki/csr, files/pki/vault, files/pki/vault/backup ]
 
     - name: generate vault private key
+      when: not ansible_check_mode or (playbook_dir + '/files/pki/vault') is directory
       openssl_privatekey:
         path: files/pki/vault/{{ vault_instance }}.key
         mode: 0600
 
     - name: generate vault signing request
-      when: not ansible_check_mode or (playbook_dir + '/files/pki/vault/' + vault_instance + '.key') is file
+      when: not ansible_check_mode or ((playbook_dir + '/files/pki/csr') is directory and (playbook_dir + '/files/pki/vault/' + vault_instance + '.key') is file)
       openssl_csr:
         path: "files/pki/csr/{{ vault_instance }}.csr"
         privatekey_path: "files/pki/vault/{{ vault_instance }}.key"
@@ -72,11 +73,16 @@
       run_once: true
       become: false
       connection: local
+      any_errors_fatal: true
       vars: { ansible_python_interpreter: "{{ ansible_playbook_python }}" }
       shell: |
         set -e
         mkdir -p files/pki/vault && chmod 0700 files/pki/vault
         if [ ! -s files/pki/vault/unseal.key ]; then
+          if [ -e files/pki/vault/init.json ]; then
+            echo "files/pki/vault/unseal.key is missing while files/pki/vault/init.json exists; restore the matching unseal.key instead of generating a new random key" >&2
+            exit 1
+          fi
           umask 077 && openssl rand -out files/pki/vault/unseal.key 32
           echo created
         fi

@@ -1,29 +1,34 @@
 ---
 # A single loop iteration must finish before the next member is restarted.
-- name: check vault member before restart
+# Wait for rejoin only when the cluster currently has a live leader, so a
+# cold-started / quorum-lost cluster can bring remaining members online first.
+- name: check if vault cluster has an active leader before restart
   delegate_to: "{{ vault_launch_host }}"
-  command: >-
-    curl -fsS --max-time 5 --cacert /etc/openbao/tls/ca.crt
-    https://127.0.0.1:{{ vault_port }}/v1/sys/init
-  register: vault_before_restart
+  shell: |
+    for addr in 127.0.0.1 {{ vault_members | join(' ') }}; do
+      if out=$(curl -fsS --max-time 3 --cacert /etc/openbao/tls/ca.crt "https://${addr}:{{ vault_port }}/v1/sys/leader" 2>/dev/null); then
+        if python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("is_self") else 1)' <<< "$out" 2>/dev/null; then
+          echo active; exit 0
+        fi
+      fi
+    done
+  args: { executable: /bin/bash }
+  register: vault_cluster_before_launch
   changed_when: false
   failed_when: false
 
-- name: launch openbao service
+- name: restart openbao service when changed
   delegate_to: "{{ vault_launch_host }}"
-  systemd:
-    name: openbao
-    enabled: yes
-    daemon_reload: yes
-    state: "{{ 'restarted' if hostvars[vault_launch_host].vault_restart_required|bool else 'started' }}"
+  when: hostvars[vault_launch_host].vault_restart_required|bool
+  systemd: name=openbao state=restarted
 
 - name: wait for openbao online
   delegate_to: "{{ vault_launch_host }}"
   wait_for: host=127.0.0.1 port={{ vault_port }} state=started timeout=60
 
-- name: wait for existing vault member to rejoin before continuing
+- name: wait for vault member to join active cluster before continuing
   delegate_to: "{{ vault_launch_host }}"
-  when: vault_before_restart.rc == 0 and (vault_before_restart.stdout | from_json).initialized
+  when: "'active' in (vault_cluster_before_launch.stdout | default(''))"
   command: >-
     curl -fsS --max-time 5 --cacert /etc/openbao/tls/ca.crt
     https://127.0.0.1:{{ vault_port }}/v1/sys/leader
