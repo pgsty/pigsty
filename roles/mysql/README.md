@@ -9,6 +9,8 @@
 | **Example**  | `conf/demo/mysql.yml`                                                   |
 | **Stack**    | MySQL 8.4, Group Replication, MySQL Router, XtraBackup, mysqld_exporter |
 
+Sandbox validation: [实机测试记录](TESTING.zh-CN.md).
+
 
 ## Overview
 
@@ -64,6 +66,8 @@ Only the following variables are intended for inventory use:
 | `mysql_exporter_enabled` | `true`           | exporter service and target state     |
 
 The fixed defaults live in [`vars/main.yml`](vars/main.yml) and are internal.
+The monitoring password must not contain INI interpolation such as `%(host)s`;
+the exporter would substitute these expressions instead of using the literal password.
 The InnoDB buffer pool takes half of `node_mem_mb`, or a quarter on a node
 shared with PostgreSQL; redo capacity follows it and replica workers follow
 `node_cpu`. `max_connections` defaults to 1000. Inventory host names are the
