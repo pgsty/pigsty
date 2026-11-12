@@ -322,7 +322,9 @@
 - name: install node pem key and certificate bundle
   when:
     - kafka_security == 'scram'
-    - not ansible_check_mode or kafka_secret_found_internal | default(false) | bool
+    - not ansible_check_mode or
+      ((playbook_dir ~ '/' ~ kafka_pki_base ~ '.key') is file and
+       (playbook_dir ~ '/' ~ kafka_pki_base ~ '.crt') is file)
   no_log: true
   vars:
     kafka_pki_base: "files/pki/kafka/{{ kafka_instance }}"

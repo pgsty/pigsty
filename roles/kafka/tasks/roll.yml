@@ -44,14 +44,17 @@
   changed_when: false
   # Inventory can declare two controllers while a replacement is still only an
   # observer. Never restart the sole live voter under the two-controller escape.
-  failed_when: >-
-    kafka_roll_preflight_internal.rc != 0 or
-    (roll_two_controllers | bool and
-     ((kafka_roll_preflight_internal.stdout | default('{}') | from_json).voters
-      | default([]) | length < 2))
+  vars:
+    roll_preflight_ok: >-
+      {{ kafka_roll_preflight_internal.rc == 0 and
+         (not (roll_two_controllers | bool) or
+          (kafka_controller_nodes | map(attribute='seq') | map('int') | list
+           | difference((kafka_roll_preflight_internal.stdout | default('{}', true) | from_json).voters | default([]))
+           | length == 0)) }}
+  failed_when: not (roll_preflight_ok | bool)
   retries: 15
   delay: 4
-  until: kafka_roll_preflight_internal.rc == 0
+  until: roll_preflight_ok | bool
 
 - name: warn about unavoidable downtime restarting single-node {{ roll_host }}
   when: roll_only_node | bool

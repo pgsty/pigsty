@@ -26,27 +26,47 @@ def client_args(ns):
             "--command-config", ns.command_config]
 
 
+QUORUM_ROW_RE = re.compile(
+    r"^\s*(-?\d+)\s+(\S+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+(-?\d+)\s+"
+    r"(Leader|Follower|Observer)\s*$")
+
+
+def parse_quorum_replication(out):
+    """Evaluate every KRaft voter from `describe --replication` rows."""
+    leaders, followers = [], []
+    for line in out.splitlines():
+        found = QUORUM_ROW_RE.match(line)
+        if not found:
+            continue
+        row = {"node_id": int(found.group(1)), "leo": int(found.group(3)),
+               "lag": int(found.group(4)), "last_fetch": int(found.group(5)),
+               "last_caught_up": int(found.group(6)), "status": found.group(7)}
+        if row["status"] == "Leader":
+            leaders.append(row)
+        elif row["status"] == "Follower":
+            followers.append(row)
+    voters = {row["node_id"] for row in leaders + followers if row["node_id"] >= 0}
+    if len(leaders) != 1 or len(voters) != len(leaders) + len(followers):
+        return False, voters
+    leader = leaders[0]
+    if (leader["leo"] < 0 or leader["last_fetch"] < 0 or
+            leader["last_caught_up"] < 0 or not voters):
+        return False, voters
+    caught_up = all(
+        follower["lag"] == 0 and
+        follower["last_fetch"] >= 0 and
+        follower["last_caught_up"] >= 0 and
+        leader["last_fetch"] - follower["last_fetch"] <= MAX_QUORUM_LAG_TIME_MS and
+        leader["last_caught_up"] - follower["last_caught_up"] <= MAX_QUORUM_LAG_TIME_MS
+        for follower in followers)
+    return caught_up, voters
+
+
 def quorum(ns):
     rc, out = run("kafka-metadata-quorum.sh",
-                  client_args(ns) + ["describe", "--status"])
-    leader = re.search(r"(?m)^LeaderId:\s*(-?\d+)", out)
-    max_lag = re.search(r"(?m)^MaxFollowerLag:\s*(\d+)", out)
-    max_lag_time = re.search(r"(?m)^MaxFollowerLagTimeMs:\s*(-1|\d+)", out)
-    voters = {int(v) for v in re.findall(r"ReplicaKey\(id=(\d+)", out)}
-    if not voters:
-        line = re.search(r"(?m)^CurrentVoters:\s*(\[.*\])$", out)
-        if line:
-            try:
-                voters = {int(entry["id"]) for entry in json.loads(line.group(1))}
-            except (json.JSONDecodeError, KeyError, TypeError, ValueError):
-                legacy = line.group(1).strip("[]")
-                voters = {int(v) for v in re.findall(
-                    r"(?:^|[,\s])([0-9]+)(?:@|:|,|$)", legacy)}
-    caught_up = (max_lag is not None and int(max_lag.group(1)) == 0 and
-                 max_lag_time is not None and
-                 int(max_lag_time.group(1)) <= MAX_QUORUM_LAG_TIME_MS)
-    return (rc == 0 and leader is not None and int(leader.group(1)) >= 0 and
-            bool(voters) and caught_up), voters, out
+                  client_args(ns) + ["describe", "--replication"])
+    ok, voters = parse_quorum_replication(out)
+    return rc == 0 and ok, voters, out
 
 
 def topic_lines_present(out):
@@ -160,6 +180,29 @@ def selftest():
         "ReplicationFactor: 3\tConfigs: min.insync.replicas=2\n"
         "\tTopic: test.events\tPartition: 0\tLeader: 3\tReplicas: 3,1,2\tIsr: 3,1,2\n"
         "\tTopic: test.events\tPartition: 1\tLeader: 1\tReplicas: 1,2,3\tIsr: 1,2\n")
+    quorum_header = (
+        "NodeId\tDirectoryId           \tLogEndOffset\tLag\t"
+        "LastFetchTimestamp\tLastCaughtUpTimestamp\tStatus  \t\n")
+    quorum_single = quorum_header + (
+        "1     \tAAAAAAAAAAAAAAAAAAAAAA\t420         \t0  \t"
+        "1762795200500     \t1762795200500        \tLeader  \t\n")
+    quorum_three = quorum_single + (
+        "2     \tBBBBBBBBBBBBBBBBBBBBBB\t420         \t0  \t"
+        "1762795200400     \t1762795200400        \tFollower\t\n"
+        "3     \tCCCCCCCCCCCCCCCCCCCCCC\t420         \t0  \t"
+        "1762795200300     \t1762795200300        \tFollower\t\n"
+        "4     \tDDDDDDDDDDDDDDDDDDDDDD\t420         \t0  \t"
+        "-1                \t-1                   \tObserver\t\n")
+    quorum_uncaught = quorum_single + (
+        "2     \tBBBBBBBBBBBBBBBBBBBBBB\t420         \t0  \t"
+        "1762795200400     \t1762795200400        \tFollower\t\n"
+        "3     \tCCCCCCCCCCCCCCCCCCCCCC\t0           \t420\t"
+        "-1                \t-1                   \tFollower\t\n")
+    quorum_stale_tie = quorum_single + (
+        "2     \tBBBBBBBBBBBBBBBBBBBBBB\t420         \t0  \t"
+        "1762795200400     \t1762795200400        \tFollower\t\n"
+        "3     \tCCCCCCCCCCCCCCCCCCCCCC\t420         \t0  \t"
+        "1762795190000     \t1762795190000        \tFollower\t\n")
     topic_min, parts = parse_partitions(describe)
     cases = [
         ("tab-indented partition lines fail the filter checks",
@@ -172,6 +215,16 @@ def selftest():
         ("describe parsing sees every partition", len(parts) == 2),
         ("describe parsing keeps isr membership",
          parts and parts[1]["isr"] == {1, 2} and parts[1]["replicas"] == {1, 2, 3}),
+        ("single-voter replication table stays healthy",
+         parse_quorum_replication(quorum_single) == (True, {1})),
+        ("three-voter replication table excludes observers from voters",
+         parse_quorum_replication(quorum_three) == (True, {1, 2, 3})),
+        ("uncaught-up follower (-1 timestamp) fails quorum check",
+         parse_quorum_replication(quorum_uncaught) == (False, {1, 2, 3})),
+        ("stalled follower tied at zero lag fails quorum check",
+         parse_quorum_replication(quorum_stale_tie) == (False, {1, 2, 3})),
+        ("empty replication output fails quorum check",
+         parse_quorum_replication("") == (False, set())),
     ]
     failed = [name for name, ok in cases if not ok]
     print(json.dumps({"healthy": not failed, "checks": len(cases),

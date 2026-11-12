@@ -22,6 +22,28 @@
         enabled: true
         daemon_reload: true
 
+- name: inspect unselected kafka exporter unit
+  when: inventory_hostname not in kafka_exporter_hosts_internal
+  stat: path=/etc/systemd/system/kafka_exporter.service
+  register: kafka_exporter_unselected_unit_internal
+
+- name: retire unselected kafka exporter replica
+  when:
+    - inventory_hostname not in kafka_exporter_hosts_internal
+    - kafka_exporter_unselected_unit_internal.stat.exists | default(false)
+  block:
+    - name: stop unselected kafka exporter
+      when: not ansible_check_mode
+      systemd: name=kafka_exporter state=stopped enabled=no
+    - name: remove unselected kafka exporter config and unit
+      file: path={{ item }} state=absent
+      loop:
+        - /etc/default/kafka_exporter
+        - /etc/systemd/system/kafka_exporter.service
+    - name: reload systemd after retiring unselected kafka exporter
+      when: not ansible_check_mode
+      systemd: daemon_reload=yes
+
 #--------------------------------------------------------------#
 # Register Monitoring Targets      [add_metrics][kafka_register]
 #--------------------------------------------------------------#

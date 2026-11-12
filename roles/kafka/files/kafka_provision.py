@@ -10,6 +10,9 @@ import tempfile
 from decimal import Decimal, InvalidOperation
 
 BIN = "/opt/kafka/bin"
+ETC = "/etc/kafka"
+QUOTA_KEYS = ("producer_byte_rate", "consumer_byte_rate",
+              "request_percentage", "controller_mutation_rate")
 
 
 class Failure(RuntimeError):
@@ -26,14 +29,18 @@ def invoke(script, common, args, check=True, sensitive=False):
     return proc.returncode, proc.stdout
 
 
-def properties_call(script, common, prefix, values):
-    fd, path = tempfile.mkstemp(prefix=".pigsty-kafka-", dir="/etc/kafka", text=True)
+def properties_call(script, common, prefix, values, sensitive=False):
+    fd, path = tempfile.mkstemp(prefix=".pigsty-kafka-", dir=ETC, text=True)
     try:
         os.fchmod(fd, 0o600)
         with os.fdopen(fd, "w") as stream:
             for key, value in values.items():
-                stream.write(f"{key}={value}\n")
-        invoke(script, common, prefix + ["--add-config-file", path])
+                escaped = (str(value).replace("\\", "\\\\")
+                           .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t"))
+                if escaped.startswith(" "):
+                    escaped = "\\" + escaped
+                stream.write(f"{key}={escaped}\n")
+        invoke(script, common, prefix + ["--add-config-file", path], sensitive=sensitive)
     finally:
         try:
             os.unlink(path)
@@ -53,9 +60,20 @@ def desired_acls(user):
     result = set()
     for acl in user.get("acls", []):
         resource = acl["resource"]
-        name = "kafka-cluster" if resource == "cluster" else acl["name"]
+        if resource not in ("topic", "group", "transactional_id", "cluster"):
+            raise Failure(f"unsupported ACL resource {resource!r} for user {user['name']}")
         pattern = acl.get("pattern", "literal").lower()
-        for operation in acl["operations"]:
+        if pattern not in ("literal", "prefixed"):
+            raise Failure(f"unsupported ACL pattern {pattern!r} for user {user['name']}")
+        if resource == "cluster" and pattern != "literal":
+            raise Failure(f"cluster ACL for user {user['name']} only supports literal pattern")
+        name = "kafka-cluster" if resource == "cluster" else acl["name"]
+        if not isinstance(name, str) or not name:
+            raise Failure(f"ACL resource name is required for user {user['name']}")
+        operations = acl.get("operations") or []
+        if not operations:
+            raise Failure(f"ACL operations are required for user {user['name']}")
+        for operation in operations:
             canonical = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", "_", operation).upper()
             result.add((resource, name, pattern, canonical))
     return result
@@ -71,8 +89,8 @@ def current_acls(common, principal):
     result = set()
     current = None
     resource_re = re.compile(
-        r"resourceType=(TOPIC|GROUP|TRANSACTIONAL_ID|CLUSTER),\s*"
-        r"name=([^,]+),\s*patternType=(LITERAL|PREFIXED)")
+        r"ResourcePattern\(resourceType=(TOPIC|GROUP|TRANSACTIONAL_ID|CLUSTER),\s*"
+        r"name=(.+),\s*patternType=(LITERAL|PREFIXED)\)")
     entry_re = re.compile(
         r"principal=([^,]+),\s*host=([^,]+),\s*operation=([^,]+),\s*"
         r"permissionType=([^\)]+)")
@@ -81,7 +99,7 @@ def current_acls(common, principal):
     for line in out.splitlines():
         found = resource_re.search(line)
         if found:
-            current = (reverse[found.group(1)], found.group(2).strip(),
+            current = (reverse[found.group(1)], found.group(2),
                        found.group(3).strip().lower())
             continue
         entry = entry_re.search(line)
@@ -109,13 +127,12 @@ def converge_acls(common, user, changed):
 
 
 def parse_configs(out):
-    return {key: value for key, value in
-            re.findall(r"(?:^|[\s,])([A-Za-z0-9._-]+)=([^\s]+)\s+sensitive=", out)}
+    return dict(re.findall(
+        r"(?m)^\s*([A-Za-z0-9._-]+)=(.*?)\s+sensitive=(?:true|false)\b", out))
 
 
 def parse_quotas(out):
-    names = ("producer_byte_rate|consumer_byte_rate|request_percentage|"
-             "controller_mutation_rate")
+    names = "|".join(QUOTA_KEYS)
     return dict(re.findall(rf"(?:^|[\s,])({names})=([^\s,]+)", out))
 
 
@@ -137,15 +154,18 @@ def converge_user(common, user, cache, salt, changed):
         digest = hashlib.sha256((salt + password).encode()).hexdigest()
         live_scram = "SCRAM-SHA-512" in out
         if not live_scram or cache.get(name) != digest:
-            value = f"SCRAM-SHA-512=[iterations=8192,password={password}]"
-            invoke("kafka-configs.sh", common,
-                   ["--entity-type", "users", "--entity-name", name,
-                    "--alter", "--add-config", value], sensitive=True)
+            properties_call("kafka-configs.sh", common,
+                            ["--entity-type", "users", "--entity-name", name, "--alter"],
+                            {"SCRAM-SHA-512": f"iterations=8192,password={password}"},
+                            sensitive=True)
             cache[name] = digest
             changed.append(f"credential:{name}")
     converge_acls(common, user, changed)
     quota = user.get("quota", {})
     if quota:
+        unknown = sorted(set(quota) - set(QUOTA_KEYS))
+        if unknown:
+            raise Failure(f"unsupported quota key(s) {','.join(unknown)} for user {name}")
         _, out = invoke("kafka-configs.sh", common,
                         ["--entity-type", "users", "--entity-name", name, "--describe"])
         actual = parse_quotas(out)
@@ -181,7 +201,9 @@ def converge_topic(common, topic, changed):
                 "--partitions", str(desired_partitions),
                 "--replication-factor", str(desired_rf)]
         for key, value in topic.get("config", {}).items():
-            args += ["--config", f"{key}={value}"]
+            text = str(value)
+            if text != "" and "=" not in text:
+                args += ["--config", f"{key}={text}"]
         invoke("kafka-topics.sh", common, args)
         changed.append(f"topic-create:{name}")
         state, output = topic_description(common, name)
@@ -234,7 +256,7 @@ def main():
     with open(spec_path, encoding="utf-8") as stream:
         spec = json.load(stream)
     common = ["--bootstrap-server", bootstrap, "--command-config", command_config]
-    cache_path = "/etc/kafka/.pigsty-user-digests.json"
+    cache_path = os.path.join(ETC, ".pigsty-user-digests.json")
     try:
         with open(cache_path, encoding="utf-8") as stream:
             cache = json.load(stream)
@@ -251,7 +273,7 @@ def main():
             KeyError, TypeError, ValueError) as exc:
         print(json.dumps({"ok": False, "changed": changed, "error": str(exc)}))
         return 1
-    fd, temp_path = tempfile.mkstemp(prefix=".pigsty-user-digests-", dir="/etc/kafka", text=True)
+    fd, temp_path = tempfile.mkstemp(prefix=".pigsty-user-digests-", dir=ETC, text=True)
     with os.fdopen(fd, "w") as stream:
         json.dump(cache, stream, sort_keys=True)
         stream.write("\n")

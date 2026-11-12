@@ -31,7 +31,7 @@
       delay: 4
       until:
         - kafka_controller_converge_internal.rc == 0
-        - "'LeaderId:' in kafka_controller_converge_internal.stdout"
+        - kafka_controller_converge_internal.stdout is regex('(?m)^LeaderId:\s*[0-9]+')
     # the manifest is a birth certificate: this assert guards the initial
     # bootstrap only, live quorum membership is authoritative once commissioned
     - name: verify frozen initial controller directory identities
@@ -39,12 +39,63 @@
         - inventory_hostname == kafka_initial_admin_host_internal
         - not (kafka_manifest_internal.commissioned | default(true) | bool)
       assert:
-        that: item.directory_id in kafka_controller_converge_internal.stdout
+        that: >-
+          item.directory_id in
+          (kafka_controller_converge_internal.stdout | regex_search('(?m)^CurrentVoters:.*') | default(''))
         fail_msg: >-
           Controller node.id {{ item.node_id }} directory identity is absent from
           the live quorum. Wipe the interrupted bootstrap with kafka-rm.yml
           before retrying.
       loop: "{{ kafka_manifest_internal.initial_controllers }}"
+    # when a commissioned cluster began stopped or unreachable, config.yml could
+    # not read CurrentVoters yet: resolve pending controller joins here before
+    # waiting on cluster health or recording proven static state
+    - name: resolve pending quorum joins after recovering a stopped cluster
+      when:
+        - kafka_manifest_internal.commissioned | default(false) | bool
+        - hostvars[kafka_admin_host_internal].kafka_quorum_status_internal.rc | default(1) != 0
+      vars:
+        kafka_recovered_quorum: "{{ hostvars[kafka_initial_admin_host_internal].kafka_controller_converge_internal | default({}) }}"
+        kafka_recovered_voters_line: "{{ kafka_recovered_quorum.stdout | default('') | regex_search('(?m)^CurrentVoters:.*') | default('') }}"
+      set_fact:
+        kafka_quorum_join_required_internal: >-
+          {{ kafka_has_controller | bool and
+             kafka_recovered_quorum.rc | default(1) == 0 and
+             (kafka_storage_new_internal | default(false) | bool or
+              (kafka_storage_formatted_internal | bool and
+               kafka_meta_directory_id_internal | length > 0 and
+               kafka_meta_directory_id_internal not in kafka_recovered_voters_line)) }}
+    - name: reject joining over a stale predecessor voter after recovery
+      when:
+        - kafka_manifest_internal.commissioned | default(false) | bool
+        - hostvars[kafka_admin_host_internal].kafka_quorum_status_internal.rc | default(1) != 0
+        - kafka_quorum_join_required_internal | default(false) | bool
+        - kafka_recovered_stale_voter | length > 0
+      vars:
+        kafka_recovered_stale_voter: >-
+          {{ ((hostvars[kafka_initial_admin_host_internal].kafka_controller_converge_internal.stdout | default('')
+              | regex_search('CurrentVoters:\s*(\[.*\])', '\1') | default(['[]'], true) | first | from_json)
+             | selectattr('id', 'equalto', kafka_seq | int)
+             | map(attribute='directoryId') | list | first | default('')) }}
+      fail:
+        msg: >-
+          Controller node.id {{ kafka_seq }} still holds voter entry
+          {{ kafka_recovered_stale_voter }} in the live quorum. Retire the dead
+          predecessor first with ./kafka-rm.yml -l {{ inventory_hostname }}, then rerun.
+    - name: refresh cluster quorum join list after recovery
+      when:
+        - kafka_manifest_internal.commissioned | default(false) | bool
+        - hostvars[kafka_admin_host_internal].kafka_quorum_status_internal.rc | default(1) != 0
+        - inventory_hostname == kafka_admin_host_internal
+      set_fact:
+        kafka_cluster_join_required_internal: >-
+          {%- set required = [] -%}
+          {%- for host in kafka_cluster_members -%}
+          {%-   if hostvars[host].kafka_quorum_join_required_internal | default(false) | bool -%}
+          {%-     set _ = required.append(host) -%}
+          {%-   endif -%}
+          {%- endfor -%}
+          {{ required }}
     - name: start pure broker services after quorum convergence
       when: kafka_role == 'broker'
       systemd: name=kafka state=started enabled=yes daemon_reload=yes
@@ -64,10 +115,13 @@
       delay: 4
       until: kafka_converge_health_internal.rc == 0
     # nodes that converge just started (were down) now run the desired static
-    # config, so their pending restart is cleared; nodes that were already up
-    # but stale keep it and fall through to the strict rolling section below
+    # config, so their pending restart is cleared; nodes that still owe a quorum
+    # join record state in join.yml after promotion, and nodes that were already
+    # up with stale config fall through to the strict rolling section below
     - name: record static state loaded during converge
-      when: kafka_service_active_internal.rc != 0
+      when:
+        - kafka_service_active_internal.rc != 0
+        - not (kafka_quorum_join_required_internal | default(false) | bool)
       copy:
         dest: /etc/kafka/.pigsty-applied-static.sha256
         content: "{{ kafka_desired_static_fingerprint_internal }}\n"
@@ -75,7 +129,9 @@
         group: root
         mode: '0644'
     - name: clear pending restart already satisfied by converge
-      when: kafka_service_active_internal.rc != 0
+      when:
+        - kafka_service_active_internal.rc != 0
+        - not (kafka_quorum_join_required_internal | default(false) | bool)
       set_fact: { kafka_restart_required_internal: false }
 
 #--------------------------------------------------------------#
@@ -140,8 +196,8 @@
   changed_when: false
   failed_when: >-
     kafka_launch_health_internal.rc != 0 or
-    (kafka_controller_nodes | map(attribute='seq') | list |
-     difference((kafka_launch_health_internal.stdout | from_json).voters) | length > 0)
+    (kafka_controller_nodes | map(attribute='seq') | map('int') | list |
+     difference((kafka_launch_health_internal.stdout | default('{}', true) | from_json).voters | default([])) | length > 0)
 
 # marking the manifest commissioned freezes the initial-controller identities:
 # from now on an unformatted controller can never be silently reformatted

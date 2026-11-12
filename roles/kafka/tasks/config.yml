@@ -154,20 +154,22 @@
 # through the dynamic-quorum join flow (fresh format, observer catch-up, gated
 # add-controller in launch); an interrupted, never-commissioned bootstrap may
 # only resume formatting its original initial controllers
-- name: reject unformatted controller outside its bootstrap cohort
+- name: reject altered controller cohort during interrupted bootstrap
   when:
-    - kafka_has_controller | bool
-    - not kafka_storage_formatted_internal
     - kafka_any_formatted_internal | bool
     - not (kafka_manifest_internal.commissioned | default(true) | bool)
   assert:
     that:
-      - kafka_manifest_internal.initial_controllers
-        | selectattr('node_id', 'equalto', kafka_seq | int) | list | length == 1
+      - (kafka_controller_nodes | map(attribute='seq') | map('int') | sort) ==
+        (kafka_manifest_internal.initial_controllers | map(attribute='node_id') | map('int') | sort)
+      - not (kafka_has_controller | bool and kafka_storage_formatted_internal | bool) or
+        ((kafka_manifest_internal.initial_controllers
+          | selectattr('node_id', 'equalto', kafka_seq | int)
+          | map(attribute='directory_id') | list | first | default('')) == kafka_meta_directory_id_internal)
     fail_msg: >-
-      Unformatted controller node.id {{ kafka_seq }} is not part of this
-      uncommissioned bootstrap cohort. Fix the inventory, or wipe the cluster
-      with kafka-rm.yml before a deliberate rebuild.
+      Controller topology or on-disk directory identity for {{ kafka_cluster }} no
+      longer matches its interrupted bootstrap manifest. Restore the original
+      initial controllers, or wipe the cluster with kafka-rm.yml before rebuilding.
 
 # node copies are written before any storage is formatted, so a bootstrap
 # interrupted after formatting began resumes with the same frozen identities
