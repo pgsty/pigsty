@@ -10,7 +10,7 @@ Most templates create a single-node `pg-meta` instance; the multi-node Aliyun te
 - **Network**: VPC with `10.10.10.0/24` subnet, private IP `10.10.10.10`
 - **Security**: All ports open (demo only - restrict in production!)
 
-As of 2026-11-07, the upstream OS baselines are Rocky Linux 9.8 / 10.2, Debian 12.15 / 13.7, and Ubuntu 22.04.5 / 24.04.5 / 26.04.1.
+As of 2026-11-12, the upstream OS baselines are Rocky Linux 9.8 / 10.2, Debian 12.15 / 13.7, and Ubuntu 22.04.5 / 24.04.5 / 26.04.1.
 Alibaba Cloud published Debian 13.7 images for amd64 and arm64 on 2026-10-19; the Aliyun `d13` selectors use `debian_13_7_*`. DigitalOcean uses Debian 13 because its Debian 12 base image has been retired.
 
 
@@ -149,7 +149,7 @@ Most templates support these variables:
 | `region`       | Cloud region/location                                     | Varies  |
 | `zone`         | Availability zone / subnet zone (provider-specific)       | Varies  |
 
-Aliyun public base image versions checked against the published image catalog on 2026-11-07:
+Aliyun public base image versions checked against the published image catalog on 2026-11-12:
 
 | Code   | Distro                | amd64 | arm64 |
 |--------|-----------------------|-------|-------|
@@ -162,13 +162,13 @@ Aliyun public base image versions checked against the published image catalog on
 | `u24`  | Ubuntu 24.04 LTS      | 24.04.5 | 24.04.5 |
 | `u26`  | Ubuntu 26.04 LTS      | 26.04.1 | 26.04.1 |
 | `an8`  | Anolis OS 8           | 8.10  | 8.10  |
-| `al3`  | Alibaba Cloud Linux 3 | 3 (20260828 alibase) | 3 (20260828 alibase) |
+| `al3`  | Alibaba Cloud Linux 3 | 3.13.4 (20260828 alibase) | 3.13.4 (20260828 alibase) |
 
 Aliyun selectors pin Rocky and Debian to the minor versions listed above, then use `most_recent = true` to select the newest build within that version. Debian 13.7 was published as `debian_13_7_x64_20G_alibase_20261019.vhd` and `debian_13_7_arm64_20G_alibase_20261019.vhd`; subsequent builds matching these selectors are picked up automatically.
 
 Ubuntu image IDs only include the LTS release (`22_04` / `24_04` / `26_04`), so `most_recent = true` also follows point releases within each LTS series. The October 2026 Rocky, Debian 12, and Ubuntu rebuilds match the existing selectors and do not require date-specific IDs in the templates.
 
-Upstream image records: [Debian](https://help.aliyun.com/zh/ecs/debian), [Rocky Linux](https://help.aliyun.com/zh/ecs/rocky-linux), [Ubuntu](https://help.aliyun.com/zh/ecs/ubuntu-image), [Alibaba Cloud Linux 3](https://help.aliyun.com/zh/alinux/product-overview/release-notes-for-alibaba-cloud-linux).
+Upstream image records: [Debian](https://help.aliyun.com/zh/ecs/debian), [Rocky Linux](https://help.aliyun.com/zh/ecs/rocky-linux), [Ubuntu](https://help.aliyun.com/zh/ecs/ubuntu-image), [Anolis OS](https://help.aliyun.com/zh/ecs/release-notes-2/), [Alibaba Cloud Linux 3](https://help.aliyun.com/zh/alinux/product-overview/release-notes-for-alibaba-cloud-linux).
 
 Other cloud templates use provider-native image selectors for the Debian major releases available on each platform:
 
@@ -187,6 +187,14 @@ These selectors follow each provider's published images for the chosen major rel
 DigitalOcean's [release notes](https://docs.digitalocean.com/) announced the retirement of its Debian 12 image on 2026-06-10, with a 30-day API-only transition. Its [current image catalog](https://docs.digitalocean.com/products/droplets/details/images/) lists `debian-13-x64`. The DigitalOcean template defaults to `d13` and rejects `d12` with an explicit validation error; update any existing DigitalOcean `terraform.tfvars` to `distro = "d13"`.
 
 The AWS China legacy template keeps its hardcoded regional AMI because Debian's official AWS AMI catalog does not cover China regions. Verify any replacement with `DescribeImages` in the target account and region. The 2026-11-07 checks used public catalogs and metadata; they did not verify every account/region combination or launch instances.
+
+The 2026-11-12 release check reconfirmed the Aliyun versions above, Debian's
+[AWS owner and names](https://wiki.debian.org/Cloud/AmazonEC2Image/Trixie) and
+[Azure image references](https://wiki.debian.org/Cloud/MicrosoftAzure), the
+[GCP image families](https://docs.cloud.google.com/compute/docs/images/os-details),
+and DigitalOcean's Debian 13 slug. The public Linode and Vultr APIs still list
+both Debian 12 and 13. Tencent Cloud, Hetzner, and AWS China image availability
+still needs a lookup in the intended account and region before deployment.
 
 Updated image selectors take effect when the configuration is next planned and applied; they do not patch existing guest operating systems in place. Review the plan for instance replacement before applying an image change to an existing deployment.
 

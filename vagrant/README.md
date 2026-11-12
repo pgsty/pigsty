@@ -156,7 +156,7 @@ u24  -> cloud-image/ubuntu-24.04
 u26  -> cloud-image/ubuntu-26.04
 ```
 
-The generator pins each `cloud-image/*` box to a published version for reproducible environments. On 2026-11-07, all 20 pins in `config` matched the latest active versions returned by the [Vagrant Cloud metadata API](https://vagrantcloud.com/api/v2/vagrant/cloud-image/ubuntu-24.04). All 13 `cloud-image/*` pins include both amd64 and arm64 builds for VirtualBox and libvirt. This check verifies published metadata; it does not test VM boot or provisioning. Current pins are:
+The generator pins each `cloud-image/*` box to a published version for reproducible environments. On 2026-11-12, all 20 pins in `config` matched the latest active versions returned by the [Vagrant Cloud metadata API](https://vagrantcloud.com/api/v2/vagrant/cloud-image/ubuntu-24.04). All 13 `cloud-image/*` pins include both amd64 and arm64 builds for VirtualBox and libvirt. This check verifies published metadata; it does not test VM boot or provisioning. Current pins are:
 
 | Alias  | Vagrant box                | Version           |
 |--------|----------------------------|-------------------|
