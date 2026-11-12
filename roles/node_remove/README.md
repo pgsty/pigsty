@@ -88,6 +88,7 @@ node_remove (full role)
 |-----------------|-----------------------------------------------------|
 | Node Target     | `/infra/targets/node/<ip>.yml`                      |
 | Docker Target   | `/infra/targets/docker/<ip>.yml`                    |
+| Juice Target    | `/infra/targets/juice/<ip>.yml`                     |
 | Ping Target     | `/infra/targets/ping/<ip>.yml`                      |
 | VIP Ping Target | `/infra/targets/ping/<vip>---<ip>.yml`              |
 | VIP DNS         | `/etc/dnsmasq.d/pigsty/<cluster>.vip`               |

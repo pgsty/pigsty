@@ -14,7 +14,14 @@
   hosts: all
   become: yes
   gather_facts: no
-  pre_tasks: [ { name: skip hosts without juice instances ,meta: end_host ,when: juice_instances is not defined or juice_instances|length == 0 ,tags: always } ]
+  pre_tasks:
+    - name: skip hosts without matching juice instances
+      meta: end_host
+      when: >-
+        juice_instances is not defined or juice_instances is none or
+        (juice_instances is mapping and
+        (juice_instances | length == 0 or (fsname is defined and fsname not in juice_instances)))
+      tags: always
   roles:
     - { role: node_id, tags: id }
     - { role: juice,   tags: juice }

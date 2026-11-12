@@ -3,27 +3,43 @@
 # JUICE Instance Cleanup Tasks
 #--------------------------------------------------------------#
 # Variables (passed from main.yml):
-#   juice_name       - filesystem name (instance key)
-#   juice_unit       - systemd service name
-#   juice_path       - mountpoint path
+#   juice_unit - systemd service name
 #--------------------------------------------------------------#
 
+# ExecStop in the service unit handles juicefs umount; do not force lazy-umount
 - name: stop {{ juice_unit }} service
-  systemd: name={{ juice_unit }} state=stopped enabled=no
-  ignore_errors: yes
+  systemd:
+    name: "{{ juice_unit }}"
+    state: stopped
+    enabled: no
+  register: _stop
+  failed_when:
+    - _stop is failed
+    - "'Could not find the requested service' not in (_stop.msg | default(''))"
+    - "'could not be found' not in (_stop.msg | default(''))"
 
-- name: umount {{ juice_path }} (fallback)
-  command: umount -l {{ juice_path }}
-  register: _umount
-  failed_when: false
-  changed_when: _umount.rc == 0
+# systemctl stop can return 0 even when ExecStop fails (e.g. a busy mount).
+# Check the result only when this run actually stopped a running service;
+# an already failed/missing instance must still be removable.
+- name: check {{ juice_unit }} stopped cleanly before removing config
+  when:
+    - not ansible_check_mode
+    - (_stop.status.ActiveState | default('inactive')) not in ['inactive', 'failed']
+  command: systemctl show {{ juice_unit }} --property=Result --value
+  register: _stopped
+  changed_when: false
+  failed_when: _stopped.rc != 0 or _stopped.stdout | trim != 'success'
 
 - name: remove {{ juice_unit }} config files
-  file: path={{ item }} state=absent
+  file:
+    path: "{{ item }}"
+    state: absent
   loop:
     - /etc/systemd/system/{{ juice_unit }}.service
     - /etc/default/{{ juice_unit }}
 
 - name: reload systemd daemon
-  systemd: daemon_reload=yes
+  when: not ansible_check_mode
+  systemd:
+    daemon_reload: yes
 ...

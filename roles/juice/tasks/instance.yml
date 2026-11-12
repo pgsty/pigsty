@@ -28,9 +28,11 @@
 - name: init and format juicefs {{ juice_name }}
   tags: [ juice_instance, juice_init ]
   throttle: 1
-  command: juicefs format --no-update {{ juice_format }} "{{ juice_meta }}" "{{ juice_name }}"
+  command:
+    cmd: juicefs format --no-update {{ juice_format }} {{ juice_meta | quote }} {{ juice_name | quote }}
+    expand_argument_vars: false
   register: _fmt
-  changed_when: "'Volume is formatted' in _fmt.stderr | default('')"
+  changed_when: "'Volume is formatted' in (_fmt.stderr | default(''))"
   failed_when: false
   no_log: true
 
@@ -41,32 +43,89 @@
     that: _fmt is skipped or _fmt.rc == 0
     fail_msg: "juicefs format {{ juice_name }} failed: {{ _fmt.stderr_lines | default([]) | last | default(_fmt.msg | default('unknown error'), true) }}"
 
+# format --no-update exits 0 without checking volume name when metadata is already formatted
+- name: verify existing juicefs {{ juice_name }} volume
+  tags: [ juice_instance, juice_init ]
+  when: not (_fmt is skipped) and 'Volume is formatted' not in (_fmt.stderr | default(''))
+  command:
+    cmd: juicefs status {{ juice_meta | quote }}
+    expand_argument_vars: false
+  register: _status
+  changed_when: false
+  failed_when: false
+  no_log: true
+
+- name: check juicefs {{ juice_name }} volume identity
+  tags: [ juice_instance, juice_init ]
+  when: not (_status is skipped)
+  assert:
+    that:
+      - _status.rc == 0
+      - _vol_name == juice_name
+    fail_msg: >-
+      juicefs metadata for {{ juice_name }} {{ 'status failed: ' + (_status.stderr_lines | default([]) | last | default(_status.msg | default('unknown error'), true))
+      if _status.rc != 0 else 'belongs to volume ' + (_vol_name | quote) + ', expected ' + (juice_name | quote) }}
+  vars:
+    _vol_name: "{{ ((_status.stdout | from_json).Setting | default({})).Name | default('') if _status.rc == 0 and (_status.stdout | default('') | trim).startswith('{') else '' }}"
+
 #--------------------------------------------------------------#
 # Config                                          [juice_config]
 #--------------------------------------------------------------#
 - name: config {{ juice_unit }} environment file
   tags: [ juice_instance, juice_config ]
-  template: src=juice.env dest=/etc/default/{{ juice_unit }} mode='0600'
+  template:
+    src: juice.env
+    dest: /etc/default/{{ juice_unit }}
+    owner: root
+    group: root
+    mode: '0600'
 
 - name: config {{ juice_unit }} systemd service
   tags: [ juice_instance, juice_config ]
-  template: src=juice.svc dest=/etc/systemd/system/{{ juice_unit }}.service mode='0644'
+  template:
+    src: juice.svc
+    dest: /etc/systemd/system/{{ juice_unit }}.service
+    owner: root
+    group: root
+    mode: '0644'
 
 #--------------------------------------------------------------#
 # Launch                                          [juice_launch]
 #--------------------------------------------------------------#
 - name: launch {{ juice_unit }} service
   tags: [ juice_instance, juice_launch ]
-  systemd: name={{ juice_unit }} state=started enabled=yes daemon_reload=yes
-
-# the metrics port may be held by another process, check the mountpoint itself
-- name: wait for {{ juice_path }} mounted
-  tags: [ juice_instance, juice_launch ]
   when: not ansible_check_mode
-  command: mountpoint -q {{ juice_path }}
+  systemd:
+    name: "{{ juice_unit }}"
+    state: started
+    enabled: yes
+    daemon_reload: yes
+  register: _launch
+
+# verify unit is active and the topmost mount on juice_path is this live fuse.juicefs volume;
+# also tagged juice_dir so standalone -t juice_dir never mutates an unmounted underlying dir
+- name: wait for {{ juice_path }} mounted
+  tags: [ juice_instance, juice_launch, juice_dir ]
+  when: not ansible_check_mode
+  environment:
+    JUICE_UNIT: "{{ juice_unit }}"
+    JUICE_PATH: "{{ juice_path }}"
+    JUICE_NAME: "{{ juice_name }}"
+  shell: |
+    set -eu
+    state=$(systemctl is-active "$JUICE_UNIT" 2>/dev/null || true)
+    mnt=$(findmnt -knP -d backward -f -M "$JUICE_PATH" -o FSTYPE,SOURCE 2>/dev/null || true)
+    if [ "$state" = "active" ] \
+       && [ "$mnt" = "FSTYPE=\"fuse.juicefs\" SOURCE=\"JuiceFS:$JUICE_NAME\"" ] \
+       && [ -d "$JUICE_PATH" ] \
+       && stat -f "$JUICE_PATH" >/dev/null 2>&1; then
+      exit 0
+    fi
+    echo "unit=$JUICE_UNIT state=${state:-unknown} mount=${mnt:-none}" >&2
+    exit 1
   register: _mnt
   until: _mnt.rc == 0
-  retries: 30
+  retries: "{{ 1 if (_launch is not defined or _launch is skipped) else 30 }}"
   delay: 2
   changed_when: false
 
@@ -77,5 +136,10 @@
 # are applied after mount, to the filesystem root instead of the dir beneath
 - name: set juicefs mountpoint {{ juice_path }} owner and mode
   tags: [ juice_instance, juice_dir ]
-  file: path={{ juice_path }} state=directory owner={{ juice_owner }} group={{ juice_group }} mode={{ juice_mode }}
+  file:
+    path: "{{ juice_path }}"
+    state: directory
+    owner: "{{ juice_owner }}"
+    group: "{{ juice_group }}"
+    mode: "{{ juice_mode }}"
 ...

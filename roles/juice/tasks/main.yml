@@ -8,13 +8,15 @@
 #--------------------------------------------------------------#
 # Validate                                            [juice_id]
 #--------------------------------------------------------------#
-- name: check juice instances defined
+- name: check juice prerequisites
   tags: [ always, juice_id ]
   assert:
-    that: juice_instances is defined and juice_instances | type_debug == "dict"
-    fail_msg: "juice_instances must be defined as a dictionary"
+    that:
+      - ansible_version.full is version('2.16', '>=')
+      - juice_instances is defined and juice_instances is mapping
+    fail_msg: "juice requires ansible-core 2.16+ and juice_instances defined as a dictionary"
 
-# absent instances are exempt from name / meta / conflict checks, so they can always be cleaned
+# absent instances are exempt from name / meta / port / path checks, so they can always be cleaned
 - name: check juice instance definitions
   tags: [ always, juice_id ]
   assert:
@@ -22,15 +24,34 @@
     fail_msg: "invalid juice_instances: {{ _juice_errors | default('', true) | trim }}"
   vars:
     _juice_errors: |-
+      {% set _cache = (juice_cache | regex_replace('/+', '/') | regex_replace('^(.+)/$', '\\1')) if (juice_cache is defined and juice_cache is string) else '' %}
+      {% if not _cache.startswith('/') or _cache == '/' or '.' in _cache.split('/') or '..' in _cache.split('/') %}juice_cache must be a valid non-root absolute path. {% endif %}
       {% for name, fs in juice_instances.items() %}
-      {% if fs.path is not defined %}[{{ name }}] path is required. {% endif %}
-      {% if fs.state | default('create') != 'absent' %}
-      {% if fs.meta is not defined %}[{{ name }}] meta is required. {% endif %}
+      {% if fs is not mapping %}[{{ name }}] definition must be a dictionary. {% else %}
+      {% set _state = fs.state | default('create') %}
+      {% if _state not in ['create', 'absent'] %}[{{ name }}] state must be 'create' or 'absent'. {% endif %}
+      {% set _unit_raw = fs.unit | default('juicefs-' + (name | string)) %}
+      {% set _unit = _unit_raw if (_unit_raw is string) else '' %}
+      {% if _unit is not match('^[A-Za-z0-9][A-Za-z0-9_.@-]*$') or _unit.endswith('.service') %}[{{ name }}] unit must be a valid systemd unit name without .service suffix. {% endif %}
+      {% if _state == 'create' %}
+      {% set _path = (fs.path | regex_replace('/+', '/') | regex_replace('^(.+)/$', '\\1')) if (fs.path is defined and fs.path is string) else '' %}
+      {% if not _path.startswith('/') or _path == '/' or '.' in _path.split('/') or '..' in _path.split('/') %}[{{ name }}] path is required and must be a non-root absolute path. {% endif %}
       {% if name | string is not match('^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$') %}[{{ name }}] name must be 3-63 chars of [a-z0-9-]. {% endif %}
-      {% for other, ofs in juice_instances.items() if other != name and ofs.state | default('create') != 'absent' %}
-      {% if ofs.port | default(9567) | int == fs.port | default(9567) | int %}[{{ name }}] port conflicts with {{ other }}. {% endif %}
-      {% if fs.path is defined and ofs.path | default('') == fs.path %}[{{ name }}] path conflicts with {{ other }}. {% endif %}
+      {% if fs.meta is not defined or fs.meta is not string or (fs.meta | trim | length == 0) or '\n' in fs.meta or '\r' in fs.meta %}[{{ name }}] meta is required. {% endif %}
+      {% set _port = fs.port | default(9567) %}
+      {% if _port is boolean or (_port | string is not match('^[0-9]+$')) or (_port | int < 1) or (_port | int > 65535) %}[{{ name }}] port must be an integer between 1 and 65535. {% endif %}
+      {% if _path != '' and _cache != '' and (_path == _cache or _cache.startswith(_path + '/') or _path.startswith(_cache + '/')) %}[{{ name }}] path overlaps juice_cache. {% endif %}
+      {% for other, ofs in juice_instances.items() if other != name and ofs is mapping %}
+      {% set _ounit = ofs.unit | default('juicefs-' + (other | string)) %}
+      {% if _unit != '' and (_ounit is string) and _ounit == _unit %}[{{ name }}] unit conflicts with {{ other }}. {% endif %}
+      {% if (ofs.state | default('create')) == 'create' %}
+      {% set _oport = ofs.port | default(9567) %}
+      {% if not (_port is boolean) and not (_oport is boolean) and (_port | string is match('^[0-9]+$')) and (_oport | string is match('^[0-9]+$')) and (_oport | int == _port | int) %}[{{ name }}] port conflicts with {{ other }}. {% endif %}
+      {% set _opath = (ofs.path | regex_replace('/+', '/') | regex_replace('^(.+)/$', '\\1')) if (ofs.path is defined and ofs.path is string) else '' %}
+      {% if _path != '' and _opath == _path %}[{{ name }}] path conflicts with {{ other }}. {% endif %}
+      {% endif %}
       {% endfor %}
+      {% endif %}
       {% endif %}
       {% endfor %}
 
@@ -41,7 +62,9 @@
 - name: make sure juicefs installed
   tags: [ juice, juice_install ]
   environment: "{{ proxy_env | default({}) }}"
-  package: name=juicefs state=present
+  package:
+    name: juicefs
+    state: present
 
 
 #--------------------------------------------------------------#
@@ -49,7 +72,12 @@
 #--------------------------------------------------------------#
 - name: create juice cache directory
   tags: [ juice, juice_cache ]
-  file: path={{ juice_cache }} state=directory owner=root group=root mode='0755'
+  file:
+    path: "{{ juice_cache | regex_replace('/+', '/') | regex_replace('^(.+)/$', '\\1') }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
 
 
 #--------------------------------------------------------------#
@@ -59,8 +87,9 @@
 - name: clean juice instance
   include_tasks:
     file: clean.yml
-    apply: { tags: juice_clean }
-  tags: [ juice_clean ]
+    apply:
+      tags: [ juice, juice_clean ]
+  tags: [ juice, juice_clean ]
   loop: "{{ juice_instances | dict2items }}"
   loop_control:
     loop_var: fs
@@ -69,16 +98,17 @@
     - (fsname is not defined or fsname == fs.key)
     - (fs.value.state | default('create')) == 'absent'
   vars:
-    juice_name: "{{ fs.key }}"
-    juice_path: "{{ fs.value.path }}"
-    juice_unit: "{{ fs.value.unit | default('juicefs-' + fs.key) }}"
+    juice_unit: "{{ fs.value.unit | default('juicefs-' + (fs.key | string)) }}"
 
 
 #--------------------------------------------------------------#
 # Instance: Create                              [juice_instance]
 #--------------------------------------------------------------#
 - name: create juice instance
-  include_tasks: instance.yml
+  include_tasks:
+    file: instance.yml
+    apply:
+      tags: [ juice, juice_instance ]
   tags: [ juice, juice_instance, juice_init, juice_dir, juice_config, juice_launch ]
   loop: "{{ juice_instances | dict2items }}"
   loop_control:
@@ -89,12 +119,12 @@
     - (fs.value.state | default('create')) == 'create'
   vars:
     juice_name: "{{ fs.key }}"
-    juice_path: "{{ fs.value.path }}"
+    juice_path: "{{ fs.value.path | regex_replace('/+', '/') | regex_replace('^(.+)/$', '\\1') }}"
     juice_meta: "{{ fs.value.meta }}"
     juice_format: "{{ fs.value.data | default('') }}"
-    juice_unit: "{{ fs.value.unit | default('juicefs-' + fs.key) }}"
+    juice_unit: "{{ fs.value.unit | default('juicefs-' + (fs.key | string)) }}"
     juice_mount_opts: "{{ fs.value.mount | default('') }}"
-    juice_port: "{{ fs.value.port | default(9567) }}"
+    juice_port: "{{ fs.value.port | default(9567) | int }}"
     juice_owner: "{{ fs.value.owner | default('root') }}"
     juice_group: "{{ fs.value.group | default('root') }}"
     juice_mode: "{{ fs.value.mode | default('0755') }}"
@@ -106,9 +136,12 @@
 # the target file is rewritten from config, so it also runs with juice_clean to drop removed instances
 - name: register juice to victoria
   tags: [ juice, juice_register, juice_clean, register, add_metrics ]
+  when: (_juice_active_count | int) > 0
   delegate_to: '{{ item }}'
   loop: '{{ groups["infra"] | default([]) }}'
   ignore_errors: yes
+  vars:
+    _juice_active_count: "{% set ns = namespace(n=0) %}{% for k, v in juice_instances.items() if (v.state | default('create')) == 'create' %}{% set ns.n = ns.n + 1 %}{% endfor %}{{ ns.n }}"
   copy:
     dest: /infra/targets/juice/{{ inventory_hostname }}.yml
     owner: victoria
@@ -118,8 +151,20 @@
       # juicefs on {{ inventory_hostname }}
       {% for name, conf in juice_instances.items() %}
       {% if conf.state | default('create') == 'create' %}
-      - labels: { ip: {{ inventory_hostname }}, ins: "{{ nodename }}-{{ name }}", cls: "{{ name }}" }
-        targets: [ {{ inventory_hostname }}:{{ conf.port | default(9567) }} ]
+      - labels: { ip: {{ inventory_hostname }}, ins: "{{ nodename | default(inventory_hostname) }}-{{ name }}", cls: "{{ name }}" }
+        targets: [ {{ inventory_hostname }}:{{ conf.port | default(9567) | int }} ]
       {% endif %}
       {% endfor %}
+
+- name: remove empty juice target from victoria
+  tags: [ juice, juice_register, juice_clean, register, add_metrics ]
+  when: (_juice_active_count | int) == 0
+  delegate_to: '{{ item }}'
+  loop: '{{ groups["infra"] | default([]) }}'
+  ignore_errors: yes
+  vars:
+    _juice_active_count: "{% set ns = namespace(n=0) %}{% for k, v in juice_instances.items() if (v.state | default('create')) == 'create' %}{% set ns.n = ns.n + 1 %}{% endfor %}{{ ns.n }}"
+  file:
+    path: /infra/targets/juice/{{ inventory_hostname }}.yml
+    state: absent
 ...
