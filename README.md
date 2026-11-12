@@ -2,7 +2,7 @@
 
 [![Website: pigsty.io](https://img.shields.io/badge/website-pigsty.io-slategray?style=flat&logo=cilium&logoColor=white)](https://pigsty.io)
 [![CN: pigsty.cc](https://img.shields.io/badge/CN-pigsty.cc-slategray?style=flat&logo=cilium&logoColor=white)](https://pigsty.cc)
-[![Version: v4.5.0](https://img.shields.io/badge/version-v4.5.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases)
+[![Version: v4.6.0](https://img.shields.io/badge/version-v4.6.0-slategray?style=flat&logo=cilium&logoColor=white)](https://github.com/pgsty/pigsty/releases)
 [![License: Apache-2.0](https://img.shields.io/github/license/pgsty/pigsty?logo=opensourceinitiative&logoColor=green&color=slategray)](https://pigsty.io/docs/about/license/)
 [![GitHub Stars](https://img.shields.io/github/stars/pgsty/pigsty?style=flat&logo=github&logoColor=black&color=slategray)](https://star-history.com/#pgsty/pigsty&Date)
 [![Extensions: 626](https://img.shields.io/badge/extensions-626-%233E668F?style=flat&logo=postgresql&logoColor=white&labelColor=3E668F)](https://pigsty.io/ext/list)
@@ -16,10 +16,10 @@ Enterprise-Grade Open-Source **PostgreSQL** Distribution with HA, PITR, IaC, Mon
 
 [![banner](https://pigsty.io/img/pigsty/banner.png)](https://pigsty.io)
 
-Pigsty scales from [**laptop**](https://pigsty.io/docs/setup) to [**datacenter**](https://pigsty.io/docs/deploy). Enterprise-grade. Developer-friendly. [**Get Started**](https://pigsty.io/docs/setup/install) with the latest [**v4.5.0**](https://github.com/pgsty/pigsty/releases/tag/v4.5.0):
+Pigsty scales from [**laptop**](https://pigsty.io/docs/setup) to [**datacenter**](https://pigsty.io/docs/deploy). Enterprise-grade. Developer-friendly. [**Get Started**](https://pigsty.io/docs/setup/install) with the latest [**v4.6.0**](https://github.com/pgsty/pigsty/releases/tag/v4.6.0):
 
 ```bash
-curl -fsSL https://repo.pigsty.io/get | bash -s v4.5.0
+curl -fsSL https://repo.pigsty.io/get | bash -s v4.6.0
 ```
 
 
@@ -75,13 +75,13 @@ And gather the synergistic superpowers of all [**626 PostgreSQL Extensions**](ht
 
 ## Get Started
 
-[![Postgres: 18.6](https://img.shields.io/badge/PostgreSQL-18.6-%233E668F?style=flat&logo=postgresql&labelColor=3E668F&logoColor=white)](https://pigsty.io/docs/pgsql)
+[![Postgres: 18.7](https://img.shields.io/badge/PostgreSQL-18.7-%233E668F?style=flat&logo=postgresql&labelColor=3E668F&logoColor=white)](https://pigsty.io/docs/pgsql)
 [![Linux](https://img.shields.io/badge/Linux-AMD64-%23FCC624?style=flat&logo=linux&labelColor=FCC624&logoColor=black)](https://pigsty.io/docs/node)
 [![Linux](https://img.shields.io/badge/Linux-ARM64-%23FCC624?style=flat&logo=linux&labelColor=FCC624&logoColor=black)](https://pigsty.io/docs/node)
 [![EL Support: 8/9/10](https://img.shields.io/badge/EL-8/9/10-red?style=flat&logo=redhat&logoColor=red)](https://pigsty.io/docs/ref/linux#el)
 [![Debian Support: 12/13](https://img.shields.io/badge/Debian-12/13-%23A81D33?style=flat&logo=debian&logoColor=%23A81D33)](https://pigsty.io/docs/ref/linux#debian)
 [![Ubuntu Support: 22/24/26](https://img.shields.io/badge/Ubuntu-22/24/26-%23E95420?style=flat&logo=ubuntu&logoColor=%23E95420)](https://pigsty.io/docs/ref/linux#ubuntu)
-[![Docker Image](https://img.shields.io/badge/Docker-v4.5.0-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/setup/docker)
+[![Docker Image](https://img.shields.io/badge/Docker-v4.6.0-%232496ED?style=flat&logo=docker&logoColor=white)](https://pigsty.io/docs/setup/docker)
 
 [**Prepare**](https://pigsty.io/docs/deploy/prepare) a fresh `x86_64` / `aarch64` node runs any [**compatible**](https://pigsty.io/docs/ref/linux) **Linux** OS Distros, then [**Install**](https://pigsty.io/docs/setup/install#install) **Pigsty** with:
 
@@ -120,63 +120,17 @@ pig sty deploy   # run the deploy.yml playbook
 
 <details><summary>Install with get script</summary><br>
 
+Install the v4.6.0 release explicitly:
+
 ```bash
-[root@pg-meta ~]# curl -fsSL https://repo.pigsty.io/get | bash -s v4.5.0
-[v4.5.0] ===========================================
-$ curl -fsSL https://repo.pigsty.io/get | bash
-[Docs] https://pigsty.io/docs
-[Demo] https://demo.pigsty.io
-[Repo] https://github.com/pgsty/pigsty
-[Download] ===========================================
-[ OK ] version = v4.5.0 (from arg)
-curl -fSL https://repo.pigsty.io/src/pigsty-v4.5.0.tgz -o /tmp/pigsty-v4.5.0.tgz
-######################################################################## 100.0%
-[ OK ] md5sums = xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx  /tmp/pigsty-v4.5.0.tgz
-[Install] ===========================================
-[WARN] os user = root , it's recommended to use a non-root sudo-able admin
-[ OK ] install = /root/pigsty, from /tmp/pigsty-v4.5.0.tgz
-
-[Bootstrap] ===========================================
-[WARN] ansible = not found, bootstrap
-bootstrap pigsty v4.5.0 begin
-[ OK ] region = china
-[ OK ] kernel  = Linux
-[ OK ] machine = x86_64
-[ OK ] package = rpm,dnf
-[ OK ] vendor = rocky (Rocky Linux)
-[ OK ] version = 10 (10.0)
-[ OK ] sudo = root ok
-[WARN] ssh = root@127.0.0.1 fixed
-[WARN] old repos = moved to /etc/yum.repos.d/backup
-[ OK ] repo file = add el10.x86_64 china upstream
-[WARN] rpm cache = updating, may take a while
-Pigsty PGSQL 10 - x86_64                                                                                                                                                                                      364 kB/s | 251 kB     00:00
-EL 10 BaseOS 10 - x86_64                                                                                                                                                                                       32 MB/s | 6.4 MB     00:00
-EL 10 AppStream 10 - x86_64                                                                                                                                                                                    11 MB/s | 2.1 MB     00:00
-EL 10 CRB 10 - x86_64                                                                                                                                                                                         1.8 MB/s | 492 kB     00:00
-EL 10 EPEL 10.0 - x86_64                                                                                                                                                                                       27 MB/s | 4.8 MB     00:00
-Metadata cache created.
-[ OK ] repo cache = created
-[ OK ] install el10 utils
-Last metadata expiration check: 0:00:02 ago on Wed 07 Jan 2026 05:58:22 PM CST.
-.....
-
-Installed:
-  ansible-2.16.14-1.el10.noarch             ansible-collection-ansible-posix-2.0.0-1.el10_0.noarch      ansible-collection-community-crypto-2.15.0-1PIGSTY.el10.noarch      ansible-collection-community-general-10.2.0-1.el10_0.noarch
-  ansible-core-1:2.16.14-1.el10.noarch      git-core-2.47.3-1.el10.x86_64                               python3-cffi-1.16.0-7.el10.x86_64                                   python3-cryptography-43.0.0-4.el10.x86_64
-  python3-jmespath-1.0.1-8.el10.noarch      python3-ply-3.11-25.el10.noarch                             python3-pycparser-2.20-16.el10.noarch                               python3-resolvelib-1.0.1-6.el10.noarch
-
-Complete!
-[ OK ] ansible = ansible [core 2.16.14]
-[ OK ] bootstrap pigsty complete
-proceed with ./configure
+curl -fsSL https://repo.pigsty.io/get | bash -s v4.6.0
+cd ~/pigsty
+./configure
+./deploy.yml
 ```
 
-> HINT: To install a specific version, pass the version string as the first parameter:
->
-> ```bash
-> curl -fsSL https://repo.pigsty.io/get | bash -s v4.5.0
-> ```
+The installer prepares the local repository and Ansible with `bootstrap`.
+Package versions depend on the selected operating system and repository snapshot.
 
 </details>
 
@@ -186,7 +140,7 @@ proceed with ./configure
 You can also download the pigsty source with `git`, remember to check out a specific version tag, the `main` branch is for development.
 
 ```bash
-git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v4.5.0
+git clone https://github.com/pgsty/pigsty; cd pigsty; git checkout v4.6.0
 ```
 
 </details>
@@ -227,6 +181,8 @@ The node can be used as an admin controller to deploy & monitor more nodes & clu
 [![Juice](https://img.shields.io/badge/JUICE-%2300C853?style=flat&logo=infinityfree&logoColor=white)](https://pigsty.io/docs/juice) JuiceFS can mount S3/MinIO, and even PostgreSQL as a filesystem shared by multi users.
 
 [![Vibe](https://img.shields.io/badge/VIBE-%23FF6B35?style=flat&logo=claude&logoColor=white)](https://pigsty.io/docs/vibe) Vibe coding environment with VS Code Server, JupyterLab, Node.js, and Claude Code.
+
+[![Vault](https://img.shields.io/badge/VAULT-%23000000?style=flat&logo=vault&logoColor=white)](https://pigsty.io/docs/vault) OpenBao provides secret storage and key management with TLS, Raft HA, snapshots, and monitoring.
 
 Of course, you can deploy different kinds of HA **PostgreSQL** clusters on multiple nodes, as much as you want.
 
@@ -382,7 +338,7 @@ There are many built-in configuration [**templates**](https://pigsty.io/docs/con
 
 <details><summary>Example: Sandbox (4-node) with two PG cluster</summary><br>
 
-The [`conf/full.yml`](https://github.com/pgsty/pigsty/blob/main/conf/full.yml) utilizes four nodes to deploy two PostgreSQL clusters, `pg-meta` and `pg-test`:
+The [`conf/ha/full.yml`](https://github.com/pgsty/pigsty/blob/main/conf/ha/full.yml) utilizes four nodes to deploy two PostgreSQL clusters, `pg-meta` and `pg-test`:
 
 ```yaml
 pg-meta:
@@ -421,7 +377,7 @@ You can even deploy PostgreSQL with different major versions and kernel forks in
 
 <details><summary>Example: Security Setup & Delayed Replica</summary><br>
 
-The following [`conf/safe.yml`](https://github.com/pgsty/pigsty/blob/main/conf/ha/safe.yml) provisions a 4-node [security](https://pigsty.io/docs/deploy/security//) enhanced PostgreSQL cluster `pg-meta` with a delayed replica `pg-meta-delay`:
+The following [`conf/ha/safe.yml`](https://github.com/pgsty/pigsty/blob/main/conf/ha/safe.yml) provisions a 4-node [security](https://pigsty.io/docs/deploy/security/) enhanced PostgreSQL cluster `pg-meta` with a delayed replica `pg-meta-delay`:
 
 ```yaml
 pg-meta:      # 3 instance postgres cluster `pg-meta`
@@ -623,6 +579,9 @@ There are other pro, beta, or pilot modules, and there will be more coming in th
 
 ## Compatibility
 
+The v4.6.0 release baseline is PostgreSQL **18.7** and [PIG **1.11.0**](https://github.com/pgsty/pig/releases/tag/v1.11.0).
+PostgreSQL inventory parameters select the major version (`pg_version: 18`); package repositories supply minor updates.
+
 We recommend using Rocky Linux 9.8 / 10.2, Debian 12.15 / 13.7, and Ubuntu 22.04.5 / 24.04.5 / 26.04.1 for production use.
 
 Pigsty runs directly on bare Linux, and focuses on actively maintained mainstream LTS [**Linux Distributions**](https://pigsty.io/docs/ref/linux):
@@ -645,7 +604,7 @@ Many thanks to our contributors and [sponsors](https://pigsty.io/docs/about/spon
 
 |                                Vercel                                |                             JetBrains                             |
 |:--------------------------------------------------------------------:|:-----------------------------------------------------------------:|
-| [![](https://pigsty.io/img/icon/vercel.svg)](https://vercel.com/oss) | [![](https://pigsty.io/img/icon/jetbrains.svg)](jb.gg/OpenSource) |
+| [![](https://pigsty.io/img/icon/vercel.svg)](https://vercel.com/oss) | [![](https://pigsty.io/img/icon/jetbrains.svg)](https://jb.gg/OpenSource) |
 
 
 ## License

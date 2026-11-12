@@ -151,7 +151,8 @@ Job Center is disabled by default upstream. If you enable it under System Settin
 ## PostgreSQL
 
 JumpServer 5.x requires PostgreSQL 16 or newer. The app database does not require
-extra PostgreSQL extensions. The external database path was tested with PostgreSQL 18.6 using a non-superuser application role.
+extra PostgreSQL extensions. The Pigsty v4.6.0 release baseline is PostgreSQL 18.7.
+The external database path was tested with PostgreSQL 18.6 using a non-superuser application role.
 
 Use direct PostgreSQL on `5432` by default. PgBouncer is acceptable only with
 session pooling for the `jumpserver` user; do not use transaction pooling for

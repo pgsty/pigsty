@@ -4,6 +4,7 @@
 
 Pigsty allows you to self-host **InsForge** with an existing managed HA PostgreSQL cluster, and launch the stateless services with docker-compose.
 This template targets the prebuilt `v2.3.5` InsForge OSS image with external PostgreSQL managed by Pigsty.
+The Pigsty v4.6.0 release baseline is PostgreSQL 18.7.
 Historical validation: InsForge v2.3.1 on 2026-08-27, Ubuntu 24.04 arm64,
 Pigsty PostgreSQL 18.6, and all 67 application migrations through
 `064_compute-services-multi-driver`.

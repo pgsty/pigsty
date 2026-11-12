@@ -10,6 +10,7 @@ The Innovation Engine for GenAI Applications, Dify is an open-source LLM app dev
   per-service `.env` files. This template keeps a single `.env`, which `app.yml`
   updates from `apps.dify.conf`, and carries the required defaults in
   `docker-compose.yml`; it does not use upstream's `envs/` directory.
+- Pigsty v4.6.0 uses PostgreSQL 18.7 as its release baseline.
 - Historical validation: Dify v1.17.0 on 2026-08-27, Ubuntu 24.04 arm64,
   Pigsty PostgreSQL 18.6 and pgvector 0.8.6:
   schema head `a4f8d2c9e1b0`, setup/login, collaboration handshake, an actual

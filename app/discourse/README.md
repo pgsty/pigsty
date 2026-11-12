@@ -183,6 +183,8 @@ operation. Never copy live PGDATA as part of the application directory.
 
 ## Validation snapshot
 
+The Pigsty v4.6.0 release baseline is PostgreSQL 18.7. The tests below record the earlier environment.
+
 On 2026-10-14, an isolated Linux ARM64 Docker test built application commit
 `3279b67fba94db51b9a545b90f8eaf4352cae0bb` with the pinned Launcher and external
 PostgreSQL 18.6. Schema migrations, the initial installation page and the health
