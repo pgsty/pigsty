@@ -2,7 +2,7 @@
 # File      :   Makefile
 # Desc      :   Pigsty Docker Image Build & Run
 # Ctime     :   2025-01-27
-# Mtime     :   2025-01-27
+# Mtime     :   2026-11-12
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
@@ -44,6 +44,7 @@ endif
 # Configuration Variables
 #--------------------------------------------------------------#
 VERSION      ?= v4.6.0
+PIG_VERSION  ?= 1.11.0
 REGISTRY     ?= pgsty
 NAME         ?= pigsty
 
@@ -56,6 +57,10 @@ PG_PORT      ?= 5432
 # Derived variables
 TAG          ?= $(VERSION)
 IMAGE        := $(REGISTRY)/pigsty:$(TAG)
+VERSION_NUM  := $(patsubst v%,%,$(VERSION))
+SOURCE_VERSION := v$(VERSION_NUM)
+BUILD_ARGS   := --build-arg VERSION=$(VERSION_NUM) --build-arg PIG_VERSION=$(PIG_VERSION)
+BASE_IMAGE   := $(shell sed -n 's/^FROM //p' Dockerfile | head -n 1)
 
 
 #--------------------------------------------------------------#
@@ -82,6 +87,7 @@ help:
 	@echo "  make pull           # Pull latest image"
 	@echo ""
 	@echo "Build Commands:"
+	@echo "  make source         # Package source from the current Git checkout"
 	@echo "  make build          # Build image locally"
 	@echo "  make buildnc        # Build without cache"
 	@echo "  make push           # Build and push multi-arch image"
@@ -168,17 +174,21 @@ pass:
 #--------------------------------------------------------------#
 # Image Build
 #--------------------------------------------------------------#
-build:
+source:
+	../bin/release "$(SOURCE_VERSION)"
+	cp "../dist/$(SOURCE_VERSION)/pigsty-$(SOURCE_VERSION).tgz" pigsty.tgz
+
+build: source
 	@echo "Building $(IMAGE) for $(ARCH)..."
-	docker build --platform=linux/$(ARCH) -t $(IMAGE) .
+	docker build --platform=linux/$(ARCH) $(BUILD_ARGS) -t $(IMAGE) .
 
-buildnc:
+buildnc: source
 	@echo "Building $(IMAGE) without cache for $(ARCH)..."
-	docker build --no-cache --platform=linux/$(ARCH) -t $(IMAGE) .
+	docker build --no-cache --platform=linux/$(ARCH) $(BUILD_ARGS) -t $(IMAGE) .
 
-push:
+push: source
 	@echo "Building and pushing $(IMAGE) (multi-arch)..."
-	docker buildx build --platform linux/amd64,linux/arm64 \
+	docker buildx build --platform linux/amd64,linux/arm64 $(BUILD_ARGS) \
 		-t $(IMAGE) --push .
 
 
@@ -253,7 +263,7 @@ shell:
 	docker run -it --rm --privileged --platform=linux/$(ARCH) $(IMAGE) /bin/bash
 
 test:
-	docker run -it --rm --platform=linux/$(ARCH) debian:13.7@sha256:2dc419c6d7fe3dad0a2f9fd469c34cc90b0f9ba642d8fde837fe3d7d34a0e7f1 /bin/bash
+	docker run -it --rm --platform=linux/$(ARCH) $(BASE_IMAGE) /bin/bash
 
 all: build run
 
@@ -266,7 +276,7 @@ rebuild: clean build run
 .PHONY: default help \
         up down start stop restart pull deploy launch \
         exec ssh log status ps conf pass \
-        build buildnc push \
+        source build buildnc push \
         run rm clean purge \
         save load rmi \
         ip inspect top shell test all rebuild

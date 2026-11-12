@@ -34,6 +34,15 @@ on:
     paths:
       - 'docker/**'
       - '.github/workflows/docker.yml'
+      - 'bin/**'
+      - 'conf/**'
+      - 'roles/**'
+      - 'templates/**'
+      - 'files/**'
+      - '*.yml'
+      - 'bootstrap'
+      - 'configure'
+      - 'ansible.cfg'
   workflow_dispatch:
     inputs:
       version:
@@ -103,6 +112,11 @@ jobs:
           echo "Version: ${VERSION}"
           echo "Version Number: ${VERSION_NUM}"
           echo "Push Latest: ${PUSH_LATEST}"
+
+      - name: Package checked-out Pigsty source
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: make -C docker source VERSION="${VERSION}"
 
       #--------------------------------------------------------------#
       # Docker Setup

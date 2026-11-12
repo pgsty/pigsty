@@ -20,7 +20,7 @@ cd ~/pigsty/docker    # enter this dir
 make launch           # = make up config deploy
 ```
 
-You can also build the base container image first (based on Debian 13.7):
+From a Pigsty Git checkout, you can also build the container image first (based on Debian 13.7):
 
 ```bash
 cd ~/pigsty/docker
@@ -33,12 +33,20 @@ make build launch     # build image rather than pull
 
 | Image          | Pull   | Size  | Contents                                  |
 |----------------|--------|-------|-------------------------------------------|
-| `pgsty/pigsty` | ~500MB | 1.3GB | Debian 13.7 + systemd + SSH + pig + Ansible |
+| `pgsty/pigsty` | ~500MB | 1.3GB | Debian 13.7 + systemd + SSH + PIG 1.11.0 + Ansible |
 
 - Supports **amd64** (x86_64) and **arm64** (Apple Silicon, AWS Graviton)
-- Tags match pigsty version: `v4.5.0`, `latest`
+- Tags match pigsty version: `v4.6.0`, `latest`
 - Configuration pre-generated with docker template
 - Ready to deploy with `./deploy.yml`
+
+The Debian 13.7 base is pinned to the multi-platform index of the
+[`trixie-20261104` build](https://hub.docker.com/layers/library/debian/trixie-20261104/images/sha256-bfc36aecdece0387418759dba474aa856c026ca8087da3606b41b90ab0509c99),
+checked on 2026-11-12. `make test` uses the same base image as the Dockerfile.
+
+Pigsty v4.6.0 uses PostgreSQL 18.7 as its release baseline. PostgreSQL is installed
+from the configured package repositories when `deploy.yml` runs; the base image
+contains the deployment tools and source.
 
 > Web Portal & PostgreSQL are available after **Deployment** (`./deploy.yml`)
 
@@ -50,7 +58,7 @@ Configure ports via environment variables or [`.env`](.env) file:
 
 | Variable            | Default  | Container | Description |
 |---------------------|----------|-----------|-------------|
-| `PIGSTY_VERSION`    | v4.5.0   | -         | Image tag   |
+| `PIGSTY_VERSION`    | v4.6.0   | -         | Image tag   |
 | `PIGSTY_SSH_PORT`   | 2222     | 22        | SSH access  |
 | `PIGSTY_HTTP_PORT`  | 8080     | 80        | Nginx HTTP  |
 | `PIGSTY_HTTPS_PORT` | 8443     | 443       | Nginx HTTPS |
@@ -93,6 +101,25 @@ make buildnc      # Build without cache
 make push         # Build and push multi-arch image
 ```
 
+Builds require a Git checkout, Git, and GNU tar (`brew install gnu-tar` on macOS).
+Each build runs `bin/release` to package tracked source from the current working
+tree, including local edits, into the ignored `pigsty.tgz` build input. Add new
+source files to Git before building. The Docker context includes only this
+archive and the Dockerfile; local runtime data and PKI files are excluded.
+
+The default versions are `VERSION=v4.6.0` and `PIG_VERSION=1.11.0`. `VERSION`
+must match the source checkout (a prerelease suffix is allowed), while `TAG`
+can name a development image independently:
+
+```bash
+make build TAG=dev
+```
+
+Pull request CI uses the same source packaging step, so it can build a candidate
+before its release tarball is published. For a direct Docker build, run
+`make source` first and pass matching `VERSION` (without `v`) and `PIG_VERSION`
+build arguments when overriding the defaults.
+
 ### Alternative (docker run)
 
 ```bash
@@ -122,7 +149,7 @@ mkdir -p ./data
 docker run -d --privileged --name pigsty \
   -p 2222:22 -p 8080:80 -p 5432:5432 \
   -v ./data:/data \
-  pgsty/pigsty:v4.5.0
+  pgsty/pigsty:v4.6.0
 
 docker exec -it pigsty ./configure -c docker -g --ip 127.0.0.1
 docker exec -it pigsty ./deploy.yml

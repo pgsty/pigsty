@@ -2,20 +2,21 @@
 # File      :   Dockerfile
 # Desc      :   Pigsty Docker Image based on Debian 13 (Trixie)
 # Ctime     :   2025-01-27
-# Mtime     :   2026-10-31
+# Mtime     :   2026-11-12
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license
 # Copyright :   2018-2025  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
-FROM debian:13.7@sha256:2dc419c6d7fe3dad0a2f9fd469c34cc90b0f9ba642d8fde837fe3d7d34a0e7f1
+FROM debian:13.7@sha256:9c6e381421d0f48d1b8133e573f33c185ee16cbf505eda9c4a8a4791b25ea8a6
 
 ARG VERSION=4.6.0
+ARG PIG_VERSION=1.11.0
 
 LABEL maintainer="Ruohang Feng <rh@vonng.com>"
 LABEL org.opencontainers.image.title="Pigsty"
 LABEL org.opencontainers.image.description="Pigsty - PostgreSQL in Great STYle"
 LABEL org.opencontainers.image.url="https://pigsty.io"
 LABEL org.opencontainers.image.source="https://github.com/pgsty/pigsty"
-LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.version="v${VERSION}"
 
 ENV container=docker \
     DEBIAN_FRONTEND=noninteractive \
@@ -100,17 +101,20 @@ RUN echo '%sudo ALL=(ALL) NOPASSWD:ALL' > /etc/sudoers.d/nopasswd \
 RUN echo "deb [trusted=yes] https://repo.pigsty.cc/apt/infra/ generic main" \
     > /etc/apt/sources.list.d/pigsty.list \
     && apt-get update \
-    && apt-get install -y --no-install-recommends pig \
+    && apt-get install -y --no-install-recommends "pig=${PIG_VERSION}-*" \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Initialize Pigsty source and install Ansible
-RUN pig sty init -v ${PIGSTY_VERSION} \
+# Use the source archive prepared from this checkout by `make source`.
+ADD pigsty.tgz /root/
+WORKDIR /root/pigsty
+
+# Check the source version, install Ansible, and generate the container inventory.
+RUN test "$(sed -n 's/^PIGSTY_VERSION=//p' bootstrap)" = "${PIGSTY_VERSION%%-*}" \
     && pig sty boot \
     && pig sty conf -c docker --ip 127.0.0.1
 
 RUN mkdir -p /data
-WORKDIR /root/pigsty
 VOLUME ["/data"]
 EXPOSE 22 80 443 5432
 STOPSIGNAL SIGRTMIN+3
