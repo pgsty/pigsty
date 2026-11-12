@@ -1360,6 +1360,7 @@ INSERT INTO pigsty.default_var VALUES
 (195, 'grafana_auth_proxy', 'false', 'INFRA', 'GRAFANA', 'bool', 'G', 'enable grafana auth proxy?', NULL),
 (196, 'grafana_pgurl', '""', 'INFRA', 'GRAFANA', 'url', 'G', 'external postgres database url for grafana if given', NULL),
 (197, 'grafana_view_password', '"DBUser.Viewer"', 'INFRA', 'GRAFANA', 'password', 'G', 'password for grafana meta pg datasource', NULL),
+(198, 'grafana_anon_enabled', 'true', 'INFRA', 'GRAFANA', 'bool', 'G/I', 'enable anonymous access with the Viewer role?', NULL),
 
 -- NODE PARAMETERS
 (201, 'nodename', NULL, 'NODE', 'NODE_ID', 'string', 'I', 'node instance identity, use hostname if missing, optional', NULL),
