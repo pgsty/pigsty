@@ -4,82 +4,112 @@ set -euo pipefail
 # File      :   release
 # Desc      :   make pigsty release
 # Ctime     :   2021-04-20
-# Mtime     :   2026-09-01
+# Mtime     :   2026-11-12
 # Path      :   bin/release
 # License   :   Apache-2.0 @ https://pigsty.io/docs/about/license/
 # Copyright :   2018-2026  Ruohang Feng / Vonng (rh@vonng.com)
 #==============================================================#
-PROG_NAME="$(basename $0)"
-PROG_DIR="$(cd $(dirname $0) && pwd)"
+PROG_NAME="$(basename "$0")"
+PROG_DIR="$(cd -- "$(dirname -- "$0")" && pwd -P)"
 
 
 #--------------------------------------------------------------#
 # Param
 #--------------------------------------------------------------#
-# complete version string start with 'v'. e.g: v1.0.0
-# if default 'latest' is used, released source code will be generated @ dist/latest
-PIGSTY_VERSION=${1-'latest'}
+# Package tracked files from the current Git working tree, including local edits.
+# Untracked files must be added to Git before they can enter a release.
+usage() {
+    echo "Usage: ${PROG_NAME} [latest|vMAJOR.MINOR.PATCH[-PRERELEASE][+BUILD]]"
+    echo "Build from a Git checkout into dist/<version>/pigsty-<version>.tgz."
+}
+
+if [[ $# -eq 1 && ( "$1" == -h || "$1" == --help ) ]]; then
+    usage
+    exit 0
+fi
+if [[ $# -gt 1 ]]; then
+    usage >&2
+    exit 2
+fi
+
+PIGSTY_VERSION="${1-latest}"
+VERSION_PATTERN='^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?(\+[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$'
+if [[ "${PIGSTY_VERSION}" != latest && ! "${PIGSTY_VERSION}" =~ ${VERSION_PATTERN} ]]; then
+    echo "Invalid release version: ${PIGSTY_VERSION}" >&2
+    usage >&2
+    exit 2
+fi
 
 # pigsty home directory
-# output will be dist/latest/pigsty.tgz
-PIGSTY_HOME="$(cd $(dirname ${PROG_DIR}) && pwd)"
-RELEASE_DIR=${PIGSTY_HOME}/dist/
+# default output: dist/latest/pigsty-latest.tgz
+PIGSTY_HOME="$(cd -- "${PROG_DIR}/.." && pwd -P)"
+RELEASE_DIR="${PIGSTY_HOME}/dist"
 DIR="${RELEASE_DIR}/${PIGSTY_VERSION}"
+ARCHIVE_NAME="pigsty-${PIGSTY_VERSION}.tgz"
+ARCHIVE="${DIR}/${ARCHIVE_NAME}"
 
-
-#--------------------------------------------------------------#
-# source code dir
-#--------------------------------------------------------------#
-cd ${PIGSTY_HOME}
-mkdir -p "${DIR}"
-rm -rf "${DIR}/pigsty"
-mkdir -p "${DIR}/pigsty" "${DIR}/pigsty/files/bin" "${DIR}/pigsty/files/pki" "${DIR}/pigsty/vagrant" "${DIR}/pigsty/terraform" "${DIR}/pigsty/docker"
-mkdir ${DIR}/pigsty/files/pki/{ca,etcd,misc,infra,pgsql,redis,nginx,minio,mysql,csr}
-
-#--------------------------------------------------------------#
-# copy resources
-#--------------------------------------------------------------#
-cp -r ${PIGSTY_HOME}/{README.md,KEYS,LICENSE,NOTICE,Makefile} "${DIR}/pigsty/"
-cp -r ${PIGSTY_HOME}/vagrant/{ssh,dns,spec,nuke,config,Vagrantfile.libvirt,Vagrantfile.virtualbox,Makefile,README.md} "${DIR}/pigsty/vagrant/"
-cp -r ${PIGSTY_HOME}/terraform/{README.md,terraform.tf,spec,ssh,check,Makefile} "${DIR}/pigsty/terraform/"
-cp -r ${PIGSTY_HOME}/docker/{Dockerfile,docker-compose.yml,.env,Makefile,README.md} "${DIR}/pigsty/docker/"
-cp -R ${PIGSTY_HOME}/files/{grafana,victoria,migration,postgres,*.sql} "${DIR}/pigsty/files/"
-cp -r ${PIGSTY_HOME}/app          "${DIR}/pigsty/" # copy pigsty app
-cp -r ${PIGSTY_HOME}/conf         "${DIR}/pigsty/" # copy pigsty conf
-cp -r ${PIGSTY_HOME}/{bin,roles}  "${DIR}/pigsty/" # copy scripts, playbooks
-cp -r ${PIGSTY_HOME}/ansible.cfg  "${DIR}/pigsty/" # copy ansible config
-cp -R ${PIGSTY_HOME}/templates    "${DIR}/pigsty/" # copy templates
-cp -r ${PIGSTY_HOME}/deploy.yml   "${DIR}/pigsty/" # copy deploy playbook
-cp -r ${PIGSTY_HOME}/node*.yml    "${DIR}/pigsty/" # copy node playbooks
-cp -r ${PIGSTY_HOME}/infra*.yml   "${DIR}/pigsty/" # copy infra playbooks
-cp -r ${PIGSTY_HOME}/pgsql*.yml   "${DIR}/pigsty/" # copy pgsql playbooks
-cp -r ${PIGSTY_HOME}/redis*.yml   "${DIR}/pigsty/" # copy redis playbooks
-cp -r ${PIGSTY_HOME}/etcd*.yml    "${DIR}/pigsty/" # copy etcd playbooks
-cp -r ${PIGSTY_HOME}/minio*.yml   "${DIR}/pigsty/" # copy minio playbooks
-cp -r ${PIGSTY_HOME}/mysql*.yml   "${DIR}/pigsty/" # copy mysql playbooks
-cp -r ${PIGSTY_HOME}/kafka*.yml   "${DIR}/pigsty/" # copy kafka playbooks
-cp -r ${PIGSTY_HOME}/juice.yml    "${DIR}/pigsty/" # copy juice playbooks
-cp -r ${PIGSTY_HOME}/vibe.yml     "${DIR}/pigsty/" # copy vibe playbook
-cp -r ${PIGSTY_HOME}/cert.yml     "${DIR}/pigsty/" # copy cert playbook
-cp -r ${PIGSTY_HOME}/cache.yml    "${DIR}/pigsty/" # copy cache playbook
-cp -r ${PIGSTY_HOME}/docker.yml   "${DIR}/pigsty/" # copy docker playbook
-cp -r ${PIGSTY_HOME}/slim.yml     "${DIR}/pigsty/" # copy slim playbooks
-cp -r ${PIGSTY_HOME}/app.yml      "${DIR}/pigsty/" # copy app playbooks
-cp "${PIGSTY_HOME}/conf/meta.yml" "${DIR}/pigsty/pigsty.yml" # copy default pigsty config
-cp -r ${PIGSTY_HOME}/.gitignore   "${DIR}/pigsty/" # copy .gitignore
-cp -r ${PIGSTY_HOME}/{bootstrap,configure} "${DIR}/pigsty/" # basic scripts
-
-rm -rf "${DIR}/pigsty/bin/__pycache__"             # remove py cache files
-rm -rf "${DIR}/pigsty/files/grafana/__pycache__"   # remove py cache files
-rm -rf "${DIR}/pigsty/conf/build/"                 # remove building file
-find "${DIR}/pigsty/" -type f -name .DS_Store -delete
-
-#--------------------------------------------------------------#
-# make tarball
-#--------------------------------------------------------------#
-if [[ "$(uname -s)" == "Darwin" ]]; then
-  cd ${DIR} && gtar cf - pigsty | gzip -9 > pigsty-${PIGSTY_VERSION}.tgz
-else
-  cd ${DIR} && tar cf - pigsty  | gzip -9 > pigsty-${PIGSTY_VERSION}.tgz
+TAR=tar
+if [[ "$(uname -s)" == Darwin ]]; then
+    TAR=gtar
 fi
-rm -rf ${DIR}/pigsty
+for tool in git "${TAR}" gzip; do
+    if ! command -v "${tool}" >/dev/null 2>&1; then
+        echo "Required command not found: ${tool}" >&2
+        exit 1
+    fi
+done
+if [[ "$(git -C "${PIGSTY_HOME}" rev-parse --show-toplevel)" != "${PIGSTY_HOME}" ]]; then
+    echo "Run ${PROG_NAME} from a Pigsty Git checkout." >&2
+    exit 1
+fi
+
+# Do not follow output-directory symlinks outside this checkout.
+if [[ -L "${RELEASE_DIR}" || -L "${DIR}" || -L "${ARCHIVE}" || -d "${ARCHIVE}" ]]; then
+    echo "Release paths must be real directories and the archive a regular file: ${ARCHIVE}" >&2
+    exit 1
+fi
+
+
+#--------------------------------------------------------------#
+# isolated staging directory
+#--------------------------------------------------------------#
+mkdir -p "${DIR}"
+WORK_DIR="$(mktemp -d "${DIR}/.release.XXXXXX")"
+trap 'rm -rf -- "${WORK_DIR}"' EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+STAGING_DIR="${WORK_DIR}/pigsty"
+mkdir -p "${STAGING_DIR}/files/bin" "${STAGING_DIR}/files/pki/"{ca,etcd,misc,infra,pgsql,redis,nginx,minio,mysql,kafka,vault,csr}
+chmod 0700 "${STAGING_DIR}/files/pki/ca" "${STAGING_DIR}/files/pki/vault"
+
+#--------------------------------------------------------------#
+# copy tracked release resources, without reading local PKI or runtime data
+#--------------------------------------------------------------#
+SOURCE_PATHS=(
+    README.md KEYS LICENSE NOTICE Makefile
+    vagrant/{ssh,dns,spec,nuke,config,Vagrantfile.libvirt,Vagrantfile.virtualbox,Makefile,README.md}
+    terraform/{README.md,terraform.tf,spec,ssh,check,Makefile}
+    docker/{Dockerfile,docker-compose.yml,.env,Makefile,README.md}
+    files/{grafana,victoria,migration,postgres} ':(glob)files/*.sql'
+    app conf bin roles templates ansible.cfg
+    deploy.yml ':(glob)node*.yml' ':(glob)infra*.yml' ':(glob)pgsql*.yml'
+    ':(glob)redis*.yml' ':(glob)etcd*.yml' ':(glob)minio*.yml'
+    ':(glob)mysql*.yml' ':(glob)kafka*.yml' ':(glob)vault*.yml'
+    juice.yml vibe.yml cert.yml cache.yml docker.yml slim.yml app.yml
+    .gitignore bootstrap configure
+    ':(exclude)conf/build'
+    ':(exclude,glob)**/__pycache__/**'
+    ':(exclude,glob)**/*.py[co]'
+    ':(exclude,glob)**/.DS_Store'
+)
+git -C "${PIGSTY_HOME}" ls-files --error-unmatch -z -- "${SOURCE_PATHS[@]}" > "${WORK_DIR}/source-files"
+"${TAR}" -C "${PIGSTY_HOME}" -cf - --no-recursion --null -T "${WORK_DIR}/source-files" |
+    "${TAR}" -C "${STAGING_DIR}" -xf -
+cp "${STAGING_DIR}/conf/meta.yml" "${STAGING_DIR}/pigsty.yml"
+
+#--------------------------------------------------------------#
+# replace the final archive only after tar and gzip both succeed
+#--------------------------------------------------------------#
+"${TAR}" -C "${WORK_DIR}" -cf - pigsty | gzip -9 > "${WORK_DIR}/${ARCHIVE_NAME}"
+mv -f -- "${WORK_DIR}/${ARCHIVE_NAME}" "${ARCHIVE}"
+echo "Created: ${ARCHIVE}"

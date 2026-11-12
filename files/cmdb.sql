@@ -1700,6 +1700,7 @@ INSERT INTO pigsty.default_var VALUES
 (1113, 'kafka_security', '"plaintext"', 'KAFKA', 'KAFKA', 'enum', 'C', 'kafka security mode: plaintext,scram', NULL),
 (1114, 'kafka_users', '[]', 'KAFKA', 'KAFKA', 'user[]', 'C', 'kafka users with SCRAM credentials, ACLs and quotas', NULL),
 (1115, 'kafka_topics', '[]', 'KAFKA', 'KAFKA', 'topic[]', 'C', 'kafka topics to provision', NULL),
+(1116, 'kafka_rack', NULL, 'KAFKA', 'KAFKA', 'string', 'I', 'optional broker rack identifier; declare on all broker-capable nodes or none', NULL),
 (1180, 'kafka_safeguard', 'false', 'KAFKA', 'KAFKA_REMOVE', 'bool', 'G/C/A', 'prevent purging a running kafka cluster?', NULL),
 (1181, 'kafka_rm_data', 'true', 'KAFKA', 'KAFKA_REMOVE', 'bool', 'G/C/A', 'remove kafka data and local recovery state?', NULL),
 (1182, 'kafka_rm_pkg', 'false', 'KAFKA', 'KAFKA_REMOVE', 'bool', 'G/C/A', 'uninstall kafka and kafka-exporter packages?', NULL),
